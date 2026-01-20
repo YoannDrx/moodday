@@ -76,9 +76,15 @@ function isLoggedIn(cmd: string): boolean {
       case "upstash":
         execSync("upstash team list", { stdio: "ignore" });
         return true;
-      case "mgrep":
-        execSync("mgrep stores list", { stdio: "ignore" });
-        return true;
+      case "mgrep": {
+        // mgrep n'a pas de commande pour vérifier le login, on vérifie si le fichier token existe
+        const mgrepTokenPath = path.join(
+          process.env.HOME ?? "",
+          ".mgrep",
+          "token.json",
+        );
+        return fs.existsSync(mgrepTokenPath);
+      }
       default:
         return false;
     }
