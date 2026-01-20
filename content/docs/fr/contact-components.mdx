@@ -1,0 +1,93 @@
+---
+title: "Composants de contact"
+description: "Dialogue de support et popover de feedback pour communiquer avec vos utilisateurs"
+keywords: ["contact", "support", "feedback", "composants"]
+tags: ["developpeur", "composants"]
+order: 4
+subcategory: "Composants"
+---
+
+Notre application fournit deux composants qui permettent aux utilisateurs de vous contacter.
+
+## ContactSupportDialog
+
+Ce composant affiche une modale avec un formulaire pour contacter le support.
+
+### Champs du formulaire
+
+- **email** - Affiche uniquement si l'utilisateur n'est pas connecte
+- **subject** - Sujet du message
+- **message** - Contenu du message
+
+### Utilisation basique
+
+```tsx
+<ContactSupportDialog />
+```
+
+Par defaut, un bouton avec le texte "Contact support" est affiche.
+
+### Utilisation personnalisee
+
+Vous pouvez personnaliser le bouton ou la zone de declenchement en passant un contenu enfant :
+
+```tsx
+<ContactSupportDialog>
+  <button>Besoin d'aide ?</button>
+</ContactSupportDialog>
+```
+
+### Comportement
+
+- Lors de la soumission, un email est envoye a l'adresse definie dans la variable d'environnement `NEXT_PUBLIC_EMAIL_CONTACT`
+- Un toast "Votre message a ete envoye." est affiche en cas de succes
+- Un toast d'erreur est affiche en cas d'echec
+- La modale se ferme automatiquement apres un envoi reussi
+
+## ContactFeedbackPopover
+
+Ce composant affiche un bouton qui ouvre un popover permettant aux utilisateurs de donner rapidement un avis sur l'application.
+
+### Champs du formulaire
+
+- **email** - Affiche uniquement si l'utilisateur n'est pas connecte
+- **message** - Contenu du feedback
+- **review** - Un systeme de notation avec 4 emojis :
+  - (1) - Tres insatisfait
+  - (2) - Plutot insatisfait
+  - (3) - Neutre
+  - (4) - Satisfait
+
+### Utilisation basique
+
+```tsx
+<ContactFeedbackPopover />
+```
+
+Par defaut, un bouton avec le texte "Feedback" est affiche.
+
+### Utilisation personnalisee
+
+Vous pouvez personnaliser le bouton ou la zone de declenchement en passant un contenu enfant :
+
+```tsx
+<ContactFeedbackPopover>
+  <button>Donnez-nous votre avis</button>
+</ContactFeedbackPopover>
+```
+
+### Comportement
+
+- Le popover se ferme automatiquement apres un envoi reussi
+- Un toast "Votre avis a ete envoye ! Merci." est affiche en cas de succes
+- Un toast d'erreur est affiche en cas d'echec
+
+## FAQ
+
+### Quand utiliser ContactSupportDialog ?
+
+ContactSupportDialog est utile lorsque vous voulez permettre aux utilisateurs de signaler des problemes ou de poser des questions. Il est deja utilise plusieurs fois dans les pages d'erreur pour permettre un signalement rapide.
+
+### Quand utiliser ContactFeedbackPopover ?
+
+ContactFeedbackPopover est ideal pour collecter rapidement un avis general sur l'experience utilisateur. C'est moins intrusif qu'une modale complete et permet une notation rapide avec des emojis.

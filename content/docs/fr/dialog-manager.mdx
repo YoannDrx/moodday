@@ -1,0 +1,195 @@
+---
+title: "Gestionnaire de dialogues"
+description: "Systeme global de dialogues pour confirmation, saisie et modales personnalisees avec chargement automatique"
+keywords: ["dialogue", "modale", "confirmation", "composants"]
+tags: ["developpeur", "composants"]
+order: 5
+subcategory: "Composants"
+---
+
+Le gestionnaire de dialogues vous permet d'afficher facilement des dialogues de confirmation, de saisie ou personnalises dans votre application.
+
+## Installation
+
+Le Dialog Manager est deja integre a NOW.TS. Assurez-vous que le composant `DialogManagerRenderer` est present dans votre layout principal.
+
+## Import
+
+```tsx
+import { dialogManager } from "@/features/dialog-manager/dialog-manager";
+```
+
+## Dialogue de confirmation
+
+Pour afficher un dialogue de confirmation avec les boutons Action/Annuler :
+
+```tsx
+<Button
+  variant="destructive"
+  onClick={() => {
+    dialogManager.confirm({
+      title: "Supprimer le profil",
+      description: "Etes-vous sur de vouloir supprimer votre profil ?",
+      action: {
+        label: "Supprimer",
+        variant: "destructive",
+        onClick: async () => {
+          await deleteAccountAction(null);
+          toast.success("Votre profil a ete supprime.");
+        },
+      },
+    });
+  }}
+>
+  Supprimer
+</Button>
+```
+
+### Options du dialogue de confirmation
+
+| Option        | Type                                      | Description                          |
+| ------------- | ----------------------------------------- | ------------------------------------ |
+| `title`       | `string`                                  | Titre du dialogue                    |
+| `description` | `ReactNode`                               | Description ou contenu personnalise  |
+| `icon`        | `LucideIcon`                              | Icone affichee dans un cercle        |
+| `variant`     | `"default" \| "destructive" \| "warning"` | Style visuel du dialogue             |
+| `size`        | `"sm" \| "md" \| "lg"`                    | Taille du dialogue                   |
+| `style`       | `"default" \| "centered"`                 | Alignement du contenu                |
+| `confirmText` | `string`                                  | Texte a saisir pour confirmer        |
+| `action`      | `DialogAction`                            | Configuration du bouton d'action     |
+| `cancel`      | `DialogCancel`                            | Configuration du bouton d'annulation |
+
+### Confirmation par texte
+
+Pour les actions critiques, vous pouvez demander a l'utilisateur de saisir un texte pour confirmer :
+
+```tsx
+dialogManager.confirm({
+  title: "Supprimer l'organisation",
+  description: "Cette action est irreversible.",
+  confirmText: "SUPPRIMER",
+  action: {
+    label: "Supprimer",
+    variant: "destructive",
+    onClick: async () => {
+      await deleteOrganization();
+    },
+  },
+});
+```
+
+L'utilisateur devra saisir exactement "SUPPRIMER" pour activer le bouton de confirmation.
+
+## Dialogue de saisie
+
+Pour demander une saisie utilisateur :
+
+```tsx
+dialogManager.input({
+  title: "Renommer un element",
+  description: "Saisissez un nouveau nom pour cet element.",
+  input: {
+    label: "Nom",
+    defaultValue: currentName,
+    placeholder: "Saisir un nom...",
+  },
+  action: {
+    label: "Enregistrer",
+    onClick: async (inputValue) => {
+      await renameItem(id, inputValue);
+      toast.success("Element renomme.");
+    },
+  },
+});
+```
+
+### Options du dialogue de saisie
+
+| Option  | Type          | Description                      |
+| ------- | ------------- | -------------------------------- |
+| `input` | `InputConfig` | Configuration du champ de saisie |
+
+**InputConfig :**
+
+| Option         | Type     | Description       |
+| -------------- | -------- | ----------------- |
+| `label`        | `string` | Libelle du champ  |
+| `defaultValue` | `string` | Valeur par defaut |
+| `placeholder`  | `string` | Placeholder       |
+
+## Dialogue personnalise
+
+Pour des dialogues avec un contenu entierement personnalise :
+
+```tsx
+import { AlertDialogCancel } from "@/components/ui/alert-dialog";
+
+dialogManager.custom({
+  title: "Dialogue personnalise",
+  size: "lg",
+  children: (
+    <div className="flex flex-col gap-4">
+      <p>Contenu personnalise ici</p>
+      <AlertDialogCancel>Fermer</AlertDialogCancel>
+    </div>
+  ),
+});
+```
+
+**Important :** Ajoutez le composant `AlertDialogCancel` ou utilisez `dialogManager.closeAll()` pour permettre a l'utilisateur de fermer le dialogue.
+
+## Fermer les dialogues
+
+```tsx
+// Ferme un dialogue specifique par son ID
+const dialogId = dialogManager.confirm({ ... });
+dialogManager.close(dialogId);
+
+// Ferme tous les dialogues
+dialogManager.closeAll();
+```
+
+## Gestion automatique du chargement
+
+Les boutons d'action affichent automatiquement un etat de chargement pendant l'execution de la promesse `onClick`. Aucune gestion manuelle n'est necessaire.
+
+```tsx
+dialogManager.confirm({
+  title: "Enregistrer",
+  action: {
+    label: "Enregistrer",
+    onClick: async () => {
+      // Le bouton affiche un spinner pendant cette operation
+      await saveData();
+      // Le dialogue se ferme automatiquement apres succes
+    },
+  },
+});
+```
+
+Si une erreur est levee dans `onClick`, le dialogue reste ouvert et un toast d'erreur est affiche.
+
+## Exemple complet avec icone et style centre
+
+```tsx
+import { Trash2 } from "lucide-react";
+
+dialogManager.confirm({
+  title: "Supprimer le fichier",
+  description: "Cette action supprimera definitivement le fichier.",
+  icon: Trash2,
+  variant: "destructive",
+  style: "centered",
+  action: {
+    label: "Supprimer",
+    variant: "destructive",
+    onClick: async () => {
+      await deleteFile(fileId);
+      toast.success("Fichier supprime.");
+    },
+  },
+  cancel: {
+    label: "Annuler",
+  },
+});
+```

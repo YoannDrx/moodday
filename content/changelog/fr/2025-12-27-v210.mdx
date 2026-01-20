@@ -1,0 +1,37 @@
+---
+date: 2025-12-27
+version: "2.1.0"
+title: "Changelog public et systeme de contenu"
+image: /images/changelog/v210.png
+status: published
+---
+
+Cette version introduit un systeme de changelog public complet avec animations CardStack, des pages de contenu modernisees et une couverture de tests complete.
+
+### Fonctionnalites
+
+- **Systeme de changelog public** - Timeline complete avec contenu MDX et support draft/published
+- **Modale via routes interceptantes** - Cliquer sur un changelog ouvre une modale, les URLs directes fonctionnent
+- **Widget CardStack** - Cartes de changelog animees dans la sidebar d'organisation avec dismiss
+- **Persistence via Redis** - Memo de la fermeture du changelog par utilisateur
+- **Debug Panel** - Panneau dev-only avec "Reset Changelog" et autres actions debug
+- **Mise en evidence de la navigation active** - Le header indique la section courante
+- **Section blog** - Contenu d'exemple avec guides sur auth, Stripe, Prisma, Next.js et TailwindCSS
+
+### Refactoring
+
+- **Timeline changelog modernisee** - Ligne verticale epuree avec marqueurs et cartes compactes
+- **Composant content header** - Header reutilisable avec titre, description et onglets
+- **Docs deplaces dans le groupe (layout)** - Meilleure organisation des routes publiques
+- **Variantes de cartes de posts** - Plusieurs variantes d'affichage pour les cartes de blog
+
+### Corrections de bugs
+
+- **Reset InterceptDialog** - Reinitialisation correcte du parallel route avec router.back()
+- **Stabilite des tests E2E** - Gestion de l'invalidation de session et des selecteurs de deconnexion
+
+### Tests
+
+- **23 nouveaux tests unitaires** - changelog-manager, changelog-actions, intercept-dialog
+- **3 nouveaux tests E2E** - Rendu timeline, navigation des items, acces URL direct
+- Tous les tests passent sans skip

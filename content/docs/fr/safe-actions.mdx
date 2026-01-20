@@ -1,0 +1,148 @@
+---
+title: "Actions securisees"
+description: "Actions serveur type-safe avec authentification, autorisation d'organisation et gestion d'erreurs"
+keywords:
+  ["server actions", "next-safe-action", "authentification", "autorisation"]
+tags: ["developpeur", "interne"]
+order: 1
+subcategory: "Developpeur"
+---
+
+Le module `safe-actions.ts` fournit des actions serveur type-safe avec authentification, autorisation et gestion d'erreurs via `next-safe-action`.
+
+## Clients disponibles
+
+### `action` - Actions publiques
+
+Client de base pour les actions publiques qui ne requierent pas d'authentification.
+
+```ts
+import { action } from "@/lib/actions/safe-actions";
+
+export const subscribeNewsletter = action
+  .inputSchema(
+    z.object({
+      email: z.string().email(),
+      name: z.string().optional(),
+    }),
+  )
+  .action(async ({ parsedInput: { email, name } }) => {
+    await addToNewsletter(email, name);
+    return { subscribed: true };
+  });
+```
+
+### `authAction` - Actions authentifiees
+
+Requiert une session utilisateur valide. Fournit `ctx.user` dans le handler.
+
+```ts
+import { authAction } from "@/lib/actions/safe-actions";
+
+export const updateProfile = authAction
+  .inputSchema(
+    z.object({
+      name: z.string().min(1),
+      bio: z.string().optional(),
+    }),
+  )
+  .action(async ({ parsedInput: { name, bio }, ctx: { user } }) => {
+    await updateUserProfile(user.id, { name, bio });
+    return { updated: true };
+  });
+```
+
+### `orgAction` - Actions d'organisation
+
+Requiert l'appartenance a une organisation avec des verifications de roles/permissions optionnelles. Fournit `ctx.org` dans le handler.
+
+```ts
+import { orgAction } from "@/lib/actions/safe-actions";
+
+// Avec permissions
+export const inviteUser = orgAction
+  .metadata({ permissions: { users: ["create", "invite"] } })
+  .inputSchema(
+    z.object({
+      email: z.string().email(),
+      role: z.enum(["member", "admin"]),
+    }),
+  )
+  .action(async ({ parsedInput: { email, role }, ctx: { org } }) => {
+    const invitation = await inviteUserToOrg(email, role, org.id);
+    return { invitationId: invitation.id };
+  });
+
+// Avec roles et permissions
+export const manageTeam = orgAction
+  .metadata({
+    roles: ["admin", "manager"],
+    permissions: { teams: ["create", "update", "delete"] },
+  })
+  .inputSchema(
+    z.object({
+      action: z.enum(["create", "update", "delete"]),
+      teamData: z.object({ name: z.string() }).optional(),
+    }),
+  )
+  .action(async ({ parsedInput, ctx: { org } }) => {
+    return await performTeamAction(parsedInput, org.id);
+  });
+```
+
+### `adminAction` - Actions reservees aux admins
+
+Requiert que l'utilisateur ait le role admin. Fournit `ctx.user` dans le handler.
+
+```ts
+import { adminAction } from "@/lib/actions/safe-actions";
+
+export const updateSubscriptionPlan = adminAction
+  .inputSchema(
+    z.object({
+      organizationId: z.string(),
+      planName: z.string(),
+    }),
+  )
+  .action(
+    async ({ parsedInput: { organizationId, planName }, ctx: { user } }) => {
+      await updateOrgPlan(organizationId, planName);
+      return { updated: true };
+    },
+  );
+```
+
+## Gestion des erreurs
+
+Tous les clients utilisent un handler d'erreurs partage qui :
+
+- Retourne les messages `ApplicationError` au client
+- Log les erreurs inconnues
+- Retourne un message generique en production pour la securite
+- Retourne le message d'erreur complet en developpement pour le debug
+
+## Utilisation avec TanStack Form
+
+Utilisez `resolveActionResult` pour integrer aux formulaires :
+
+```ts
+import { resolveActionResult } from "@/lib/actions/actions-utils";
+import { updateProfile } from "./profile.action";
+
+const form = useForm({
+  schema: ProfileSchema,
+  defaultValues: { name: "", bio: "" },
+  onSubmit: async (values) => {
+    const result = await resolveActionResult(updateProfile(values));
+    // result est type, leve une erreur en cas d'echec
+  },
+});
+```
+
+## Convention de nommage
+
+Les fichiers d'actions serveur doivent se terminer par `.action.ts` :
+
+- `user.action.ts`
+- `dashboard.action.ts`
+- `organization.action.ts`

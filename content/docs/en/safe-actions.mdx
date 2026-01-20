@@ -1,0 +1,148 @@
+---
+title: "Safe Actions"
+description: "Type-safe server actions with authentication, organization authorization, and error handling"
+keywords:
+  ["server actions", "next-safe-action", "authentication", "authorization"]
+tags: ["developer", "internal"]
+order: 1
+subcategory: "Developer"
+---
+
+The `safe-actions.ts` module provides type-safe server actions with built-in authentication, authorization, and error handling using `next-safe-action`.
+
+## Available Clients
+
+### `action` - Public Actions
+
+Base client for public actions that don't require authentication.
+
+```ts
+import { action } from "@/lib/actions/safe-actions";
+
+export const subscribeNewsletter = action
+  .inputSchema(
+    z.object({
+      email: z.string().email(),
+      name: z.string().optional(),
+    }),
+  )
+  .action(async ({ parsedInput: { email, name } }) => {
+    await addToNewsletter(email, name);
+    return { subscribed: true };
+  });
+```
+
+### `authAction` - Authenticated Actions
+
+Requires a valid user session. Provides `ctx.user` in the handler.
+
+```ts
+import { authAction } from "@/lib/actions/safe-actions";
+
+export const updateProfile = authAction
+  .inputSchema(
+    z.object({
+      name: z.string().min(1),
+      bio: z.string().optional(),
+    }),
+  )
+  .action(async ({ parsedInput: { name, bio }, ctx: { user } }) => {
+    await updateUserProfile(user.id, { name, bio });
+    return { updated: true };
+  });
+```
+
+### `orgAction` - Organization Actions
+
+Requires organization membership with optional role/permission checks. Provides `ctx.org` in the handler.
+
+```ts
+import { orgAction } from "@/lib/actions/safe-actions";
+
+// With permissions
+export const inviteUser = orgAction
+  .metadata({ permissions: { users: ["create", "invite"] } })
+  .inputSchema(
+    z.object({
+      email: z.string().email(),
+      role: z.enum(["member", "admin"]),
+    }),
+  )
+  .action(async ({ parsedInput: { email, role }, ctx: { org } }) => {
+    const invitation = await inviteUserToOrg(email, role, org.id);
+    return { invitationId: invitation.id };
+  });
+
+// With roles and permissions
+export const manageTeam = orgAction
+  .metadata({
+    roles: ["admin", "manager"],
+    permissions: { teams: ["create", "update", "delete"] },
+  })
+  .inputSchema(
+    z.object({
+      action: z.enum(["create", "update", "delete"]),
+      teamData: z.object({ name: z.string() }).optional(),
+    }),
+  )
+  .action(async ({ parsedInput, ctx: { org } }) => {
+    return await performTeamAction(parsedInput, org.id);
+  });
+```
+
+### `adminAction` - Admin-Only Actions
+
+Requires the user to have admin role. Provides `ctx.user` in the handler.
+
+```ts
+import { adminAction } from "@/lib/actions/safe-actions";
+
+export const updateSubscriptionPlan = adminAction
+  .inputSchema(
+    z.object({
+      organizationId: z.string(),
+      planName: z.string(),
+    }),
+  )
+  .action(
+    async ({ parsedInput: { organizationId, planName }, ctx: { user } }) => {
+      await updateOrgPlan(organizationId, planName);
+      return { updated: true };
+    },
+  );
+```
+
+## Error Handling
+
+All clients use a shared error handler that:
+
+- Returns `ApplicationError` messages to the client
+- Logs unknown errors
+- Returns generic message in production for security
+- Returns full error message in development for debugging
+
+## Usage with TanStack Form
+
+Use `resolveActionResult` to integrate with forms:
+
+```ts
+import { resolveActionResult } from "@/lib/actions/actions-utils";
+import { updateProfile } from "./profile.action";
+
+const form = useForm({
+  schema: ProfileSchema,
+  defaultValues: { name: "", bio: "" },
+  onSubmit: async (values) => {
+    const result = await resolveActionResult(updateProfile(values));
+    // result is typed, throws on error
+  },
+});
+```
+
+## File Naming Convention
+
+Server action files should be suffixed with `.action.ts`:
+
+- `user.action.ts`
+- `dashboard.action.ts`
+- `organization.action.ts`

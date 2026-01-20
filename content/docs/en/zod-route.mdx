@@ -1,0 +1,189 @@
+---
+title: "Zod Route"
+description: "Type-safe API route handlers with Zod validation, authentication, and organization authorization"
+keywords: ["api routes", "next-zod-route", "validation", "authentication"]
+tags: ["developer", "internal"]
+order: 2
+subcategory: "Developer"
+---
+
+The `zod-route.ts` module provides type-safe API route handlers using `next-zod-route` with built-in validation, authentication, and authorization.
+
+## Available Route Handlers
+
+### `route` - Base Handler
+
+Base route handler with automatic error handling and validation. No authentication required.
+
+```ts
+import { route } from "@/lib/zod-route";
+
+export const POST = route
+  .params(z.object({ id: z.string() }))
+  .body(z.object({ name: z.string() }))
+  .query(z.object({ page: z.number().optional() }))
+  .handler(async (req, { params, body, query }) => {
+    return { success: true };
+  });
+```
+
+### `authRoute` - Authenticated Handler
+
+Requires a valid user session. Provides `ctx.user` in the handler.
+
+```ts
+import { authRoute } from "@/lib/zod-route";
+
+export const GET = authRoute.handler(async (req, { ctx }) => {
+  const { user } = ctx;
+  return { userId: user.id };
+});
+```
+
+### `orgRoute` - Organization Handler
+
+Requires organization membership with optional role/permission checks. Provides `ctx.organization` in the handler.
+
+```ts
+import { orgRoute } from "@/lib/zod-route";
+
+// Basic organization route
+export const GET = orgRoute.handler(async (req, { ctx }) => {
+  const { organization } = ctx;
+  return { orgId: organization.id };
+});
+
+// With permissions
+export const POST = orgRoute
+  .metadata({ permissions: { users: ["create"] } })
+  .body(z.object({ email: z.string().email() }))
+  .handler(async (req, { ctx, body }) => {
+    const { organization } = ctx;
+    await inviteUser(body.email, organization.id);
+    return { success: true };
+  });
+
+// With roles
+export const DELETE = orgRoute
+  .metadata({ roles: ["admin", "owner"] })
+  .params(z.object({ userId: z.string() }))
+  .handler(async (req, { ctx, params }) => {
+    const { organization } = ctx;
+    await removeUserFromOrg(params.userId, organization.id);
+    return { success: true };
+  });
+```
+
+## Request Validation
+
+### URL Parameters
+
+Use `.params()` for dynamic route segments:
+
+```ts
+// Route: /api/users/[id]/route.ts
+export const GET = route
+  .params(z.object({ id: z.string().uuid() }))
+  .handler(async (req, { params }) => {
+    return await getUser(params.id);
+  });
+```
+
+### Request Body
+
+Use `.body()` for JSON body validation:
+
+```ts
+export const POST = route
+  .body(
+    z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      age: z.number().positive().optional(),
+    }),
+  )
+  .handler(async (req, { body }) => {
+    return await createUser(body);
+  });
+```
+
+### Query Parameters
+
+Use `.query()` for URL search parameters:
+
+```ts
+export const GET = route
+  .query(
+    z.object({
+      page: z.coerce.number().default(1),
+      limit: z.coerce.number().default(10),
+      search: z.string().optional(),
+    }),
+  )
+  .handler(async (req, { query }) => {
+    return await listItems(query);
+  });
+```
+
+## Error Handling
+
+The route handlers automatically handle errors:
+
+| Error Type           | Status | Behavior                                    |
+| -------------------- | ------ | ------------------------------------------- |
+| `ZodRouteError`      | Custom | Returns error message with specified status |
+| `ApplicationError`   | 400    | Returns error message                       |
+| Unknown Error (dev)  | 500    | Returns full error message                  |
+| Unknown Error (prod) | 500    | Returns "Internal server error"             |
+
+### Throwing Errors
+
+```ts
+import { ZodRouteError } from "@/lib/errors/zod-route-error";
+
+export const GET = authRoute
+  .params(z.object({ id: z.string() }))
+  .handler(async (req, { params, ctx }) => {
+    const item = await getItem(params.id);
+
+    if (!item) {
+      throw new ZodRouteError("Item not found", 404);
+    }
+
+    if (item.ownerId !== ctx.user.id) {
+      throw new ZodRouteError("Forbidden", 403);
+    }
+
+    return item;
+  });
+```
+
+## Metadata for Authorization
+
+Use `.metadata()` with `orgRoute` to define required roles or permissions:
+
+```ts
+// Require specific roles
+export const DELETE = orgRoute
+  .metadata({ roles: ["admin", "owner"] })
+  .handler(async (req, { ctx }) => {
+    // Only admin or owner can access
+  });
+
+// Require specific permissions
+export const POST = orgRoute
+  .metadata({ permissions: { billing: ["update"] } })
+  .handler(async (req, { ctx }) => {
+    // Only users with billing.update permission can access
+  });
+
+// Combine roles and permissions
+export const PUT = orgRoute
+  .metadata({
+    roles: ["admin"],
+    permissions: { settings: ["update"] },
+  })
+  .handler(async (req, { ctx }) => {
+    // Requires admin role AND settings.update permission
+  });
+```

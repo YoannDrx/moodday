@@ -1,0 +1,37 @@
+---
+date: 2025-08-13
+version: "1.0.0"
+title: "Premiere version"
+image: /images/changelog/v100.png
+status: published
+---
+
+## Nouveautes
+
+Tableau de bord admin complet avec interfaces de gestion.
+
+### Fonctionnalites
+
+- **Tableau de bord admin complet** avec layout sidebar et routing
+- **Gardes d'authentification admin** avec verification de roles
+- **Interface de gestion des utilisateurs** avec recherche, pagination et filtrage par role
+- **Pages detail utilisateur** avec gestion de session et impersonation
+- **Interface de gestion d'organisation** avec gestion des membres
+- **Gestion des abonnements** avec changement d'offre et controles de facturation
+- **Historique de paiement** avec integration Stripe pour le suivi admin
+- Composant reutilisable **AutomaticPagination**
+
+### Refactoring
+
+- Deplacer la facturation du niveau User vers Organization
+- Migrer `stripeCustomerId` du modele User vers le modele Organization
+- Mettre a jour les webhooks pour la facturation par organisation
+- Remplacer les methodes d'abonnement Better-Auth par des actions serveur custom
+- Page de facturation avec composants Card et Typography
+
+### Corrections de bugs
+
+- Suppression de tous les `any` dans les handlers webhook Stripe
+- Problemes de compatibilite de types dans le systeme de facturation
+- Effets hover des cards remplaces par un style plus propre
+- Noms d'organisation/utilisateur cliquables au lieu de boutons "View"
