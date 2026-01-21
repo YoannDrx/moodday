@@ -57,6 +57,96 @@ const fr: typeof en = {
     error: "Une erreur est survenue",
     saving: "Enregistrement...",
   },
+  medication: {
+    add: {
+      title: "Ajouter un médicament",
+      description: "Ajoute un nouveau médicament à suivre",
+      submit: "Ajouter le médicament",
+      success: "Médicament ajouté !",
+    },
+    edit: {
+      title: "Modifier le médicament",
+      submit: "Enregistrer",
+      success: "Médicament modifié !",
+    },
+    form: {
+      name: "Nom du médicament",
+      namePlaceholder: "ex: Sertraline",
+      dosage: "Dosage",
+      dosagePlaceholder: "ex: 50mg",
+      dosageHint: "Entre le dosage tel qu'indiqué sur ton ordonnance",
+      frequency: "Fréquence",
+      isPRN: "Aussi pris si besoin (PRN)",
+      isPRNHint:
+        "Coche si tu prends parfois ce médicament en dehors du planning",
+    },
+    frequency: {
+      daily: "Une fois par jour",
+      twiceDaily: "Deux fois par jour",
+      weekly: "Une fois par semaine",
+      prn: "Si besoin (PRN)",
+    },
+    list: {
+      title: "Mes médicaments",
+      empty:
+        "Pas encore de médicaments. Ajoute ton premier médicament pour commencer !",
+      addNew: "Ajouter un médicament",
+      archived: "Médicaments archivés",
+      showArchived: "Voir archivés",
+      hideArchived: "Masquer archivés",
+      takenToday: "Pris aujourd'hui",
+      notTaken: "Pas encore pris",
+    },
+    archive: {
+      title: "Archiver ce médicament ?",
+      description:
+        "Le médicament sera masqué de ta liste active mais l'historique sera conservé.",
+      confirm: "Archiver",
+      success: "Médicament archivé",
+    },
+    unarchive: {
+      success: "Médicament restauré",
+    },
+    prn: {
+      badge: "PRN",
+      section: "Si besoin",
+      logged: "Prise PRN enregistrée !",
+      takenToday: "{count}x aujourd'hui",
+      logButton: "Prendre",
+      logTitle: "Prendre {name}",
+      logDescription:
+        "Enregistre la prise de ce médicament. Ajoute une raison optionnelle.",
+      reasonPlaceholder: "Pourquoi l'as-tu pris ? (optionnel)",
+      confirm: "Enregistrer la prise",
+      todayHistory: "Prises du jour",
+    },
+    detail: {
+      title: "Détails du médicament",
+      back: "Retour à la liste",
+      edit: "Modifier",
+      restore: "Restaurer",
+      archived: "Archivé",
+      dosageHistory: "Historique des dosages",
+      previousDosage: "Précédent",
+    },
+    dosageHistory: {
+      title: "Historique des dosages",
+    },
+    intake: {
+      logged: "Médicament pris !",
+      skipped: "Médicament sauté",
+      undone: "Prise annulée",
+      undo: "Annuler",
+      skip: "Sauter aujourd'hui",
+    },
+    today: {
+      title: "Médicaments du jour",
+      subtitle: "Marque tes médicaments comme pris",
+      empty: "Pas de médicaments réguliers. Ajoute-en un pour commencer !",
+      allDone: "Tout est pris pour aujourd'hui !",
+      progress: "{taken} sur {total} pris",
+    },
+  },
   mood: {
     entry: {
       title: "Comment te sens-tu ?",
