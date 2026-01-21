@@ -18,8 +18,26 @@ export const exportUserData = authAction.action(async ({ ctx: { user } }) => {
     },
   });
 
+  // Fetch mood entries
+  const moodEntries = await prisma.moodEntry.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Fetch medications with their intakes and history
+  const medications = await prisma.medication.findMany({
+    where: { userId: user.id },
+    include: {
+      intakes: {
+        orderBy: { takenAt: "desc" },
+      },
+      history: {
+        orderBy: { changedAt: "desc" },
+      },
+    },
+  });
+
   // Build export data structure
-  // Note: MoodEntry, Medication, etc. will be added when those models exist
   const exportData = {
     exportMetadata: {
       exportDate: new Date().toISOString(),
@@ -28,10 +46,9 @@ export const exportUserData = authAction.action(async ({ ctx: { user } }) => {
       userId: user.id,
     },
     user: userProfile,
+    moodEntries,
+    medications,
     // These will be populated as we implement other epics
-    moodEntries: [],
-    medications: [],
-    medicationIntakes: [],
     therapySessions: [],
     exercises: [],
     exerciseLogs: [],

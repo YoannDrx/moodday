@@ -55,6 +55,34 @@ const fr: typeof en = {
   },
   common: {
     error: "Une erreur est survenue",
+    saving: "Enregistrement...",
+  },
+  mood: {
+    entry: {
+      title: "Comment te sens-tu ?",
+      editTitle: "Modifier ton humeur",
+      notePlaceholder: "Ajoute une note (optionnel)...",
+      save: "Enregistrer mon humeur",
+      saved: "Humeur enregistrée !",
+      update: "Modifier",
+      updated: "Humeur modifiée !",
+      delete: "Supprimer",
+      deleted: "Entrée supprimée",
+      deleteTitle: "Supprimer cette entrée ?",
+      deleteDescription:
+        "Cette action est irréversible. Ton entrée d'humeur sera définitivement supprimée.",
+      deleteConfirm: "Oui, supprimer",
+    },
+    history: {
+      title: "Historique des humeurs",
+      empty: "Pas encore d'entrées. Commence à suivre ton humeur !",
+      filter: {
+        all: "Tout",
+        week: "7 derniers jours",
+        month: "30 derniers jours",
+        quarter: "90 derniers jours",
+      },
+    },
   },
   debug: {
     title: "Panneau de debug",

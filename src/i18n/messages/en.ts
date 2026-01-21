@@ -52,6 +52,34 @@ const en = {
   },
   common: {
     error: "An error occurred",
+    saving: "Saving...",
+  },
+  mood: {
+    entry: {
+      title: "How are you feeling?",
+      editTitle: "Edit your mood",
+      notePlaceholder: "Add a note (optional)...",
+      save: "Save my mood",
+      saved: "Mood saved!",
+      update: "Update",
+      updated: "Mood updated!",
+      delete: "Delete",
+      deleted: "Entry deleted",
+      deleteTitle: "Delete this entry?",
+      deleteDescription:
+        "This action cannot be undone. Your mood entry will be permanently removed.",
+      deleteConfirm: "Yes, delete it",
+    },
+    history: {
+      title: "Mood History",
+      empty: "No mood entries yet. Start tracking your mood!",
+      filter: {
+        all: "All time",
+        week: "Last 7 days",
+        month: "Last 30 days",
+        quarter: "Last 90 days",
+      },
+    },
   },
   debug: {
     title: "Debug Panel",

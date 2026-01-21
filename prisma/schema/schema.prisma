@@ -24,3 +24,81 @@ model Feedback {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ═══════════════════════════════════════════════════════════════
+// MOOD TRACKING (Epic 2)
+// ═══════════════════════════════════════════════════════════════
+
+model MoodEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  value      Int      // 0-10 scale
+  note       String?  // Optional free-text note
+  syncStatus String   @default("synced") // 'pending' | 'synced' | 'conflict' for offline support
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("mood_entry")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MEDICATION MANAGEMENT (Epic 3)
+// ═══════════════════════════════════════════════════════════════
+
+model Medication {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  dosage     String   // e.g., "50mg", "1 comprimé"
+  frequency  String   // "daily", "twice_daily", "weekly", "prn"
+  isPRN      Boolean  @default(false) // PRN = Pro Re Nata (as needed)
+  isArchived Boolean  @default(false)
+  syncStatus String   @default("synced")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intakes MedIntake[]
+  history MedicationHistory[]
+
+  @@index([userId])
+  @@index([isArchived])
+  @@map("medication")
+}
+
+model MedIntake {
+  id           String   @id @default(cuid())
+  medicationId String
+  takenAt      DateTime @default(now())
+  skipped      Boolean  @default(false)
+  note         String?  // Reason for skip or PRN usage
+
+  createdAt DateTime @default(now())
+
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@index([medicationId])
+  @@index([takenAt])
+  @@map("med_intake")
+}
+
+model MedicationHistory {
+  id           String   @id @default(cuid())
+  medicationId String
+  dosage       String   // The new dosage
+  previousDosage String? // The previous dosage (for reference)
+  reason       String?  // Why the dosage was changed
+  changedAt    DateTime @default(now())
+
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@index([medicationId])
+  @@index([changedAt])
+  @@map("medication_history")
+}
