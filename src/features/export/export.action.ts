@@ -121,7 +121,7 @@ export const getExportData = authAction
         start: start.toISOString(),
         end: end.toISOString(),
       },
-      userName: user.name ?? "Patient",
+      userName: user.name || "Patient",
       mood: {
         entries: moodEntries.map((e) => ({
           value: e.value,

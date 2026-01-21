@@ -283,6 +283,90 @@ const en = {
       noInsights: "Keep tracking to see insights!",
     },
   },
+  export: {
+    title: "Export for consultation",
+    description:
+      "Generate a PDF summary to share with your healthcare provider",
+    presets: {
+      twoWeeks: "2 weeks",
+      oneMonth: "1 month",
+      threeMonths: "3 months",
+    },
+    dateRange: {
+      title: "Select period",
+      start: "Start date",
+      end: "End date",
+      invalidRange: "End date must be after start date",
+    },
+    preview: {
+      title: "Export preview",
+      moodEntries: "{count} mood entries",
+      therapySessions: "{count} therapy sessions",
+      exerciseLogs: "{count} exercises",
+      averageMood: "Average mood",
+      adherence: "Adherence",
+      medications: "Medications",
+    },
+    actions: {
+      preview: "Preview",
+      download: "Download PDF",
+      modifyPeriod: "Modify period",
+    },
+    download: {
+      success: "PDF downloaded!",
+    },
+  },
+  onboarding: {
+    title: "Welcome to Moodday",
+    next: "Continue",
+    skip: "Skip for now",
+    start: "Get started",
+    complete: "Welcome! You're all set.",
+    steps: {
+      welcome: {
+        title: "Welcome to Moodday",
+        description:
+          "Your personal companion for tracking your mental health journey. No judgment, just support.",
+      },
+      mood: {
+        title: "Track your mood",
+        description:
+          "Log how you're feeling each day to understand your patterns and see how your treatment is working.",
+      },
+      medications: {
+        title: "Manage your medications",
+        description:
+          "Keep track of your medications and dosages. See correlations between your treatment and your mood.",
+      },
+      ready: {
+        title: "You're all set!",
+        description:
+          "Start your journey today. Remember, every step counts and you're doing great just by being here.",
+      },
+    },
+  },
+  settings: {
+    title: "Settings",
+    display: {
+      title: "Display",
+      chartPeriod: "Default chart period",
+      chartPeriodHint: "Default time range for mood charts",
+      days7: "7 days",
+      days30: "30 days",
+      days90: "90 days",
+    },
+    notifications: {
+      title: "Notifications",
+      enabled: "Enable notifications",
+      enabledHint: "Receive reminders and updates",
+      dailyCheckIn: "Daily check-in reminder",
+      dailyCheckInHint: "Reminder to log your mood",
+      checkInTime: "Check-in time",
+      medicationReminders: "Medication reminders",
+      medicationRemindersHint: "Reminders to take your medications",
+    },
+    saved: "Settings saved!",
+  },
   debug: {
     title: "Debug Panel",
     info: "Info",

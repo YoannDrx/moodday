@@ -158,3 +158,30 @@ model ExerciseLog {
   @@index([completedAt])
   @@map("exercise_log")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// USER PREFERENCES (Epic 7)
+// ═══════════════════════════════════════════════════════════════
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Onboarding
+  hasCompletedOnboarding Boolean @default(false)
+  onboardingStep         Int     @default(0)
+
+  // Display preferences
+  defaultChartPeriod Int @default(30) // 7, 30, 90 days
+
+  // Notification preferences (for future PWA)
+  notificationsEnabled   Boolean @default(true)
+  dailyCheckInReminder   Boolean @default(true)
+  dailyCheckInTime       String  @default("09:00") // HH:mm format
+  medicationReminders    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_preferences")
+}

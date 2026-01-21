@@ -290,6 +290,90 @@ const fr: typeof en = {
       noInsights: "Continue à tracker pour voir des insights !",
     },
   },
+  export: {
+    title: "Export pour consultation",
+    description:
+      "Génère un résumé PDF à partager avec ton professionnel de santé",
+    presets: {
+      twoWeeks: "2 semaines",
+      oneMonth: "1 mois",
+      threeMonths: "3 mois",
+    },
+    dateRange: {
+      title: "Sélectionner la période",
+      start: "Date de début",
+      end: "Date de fin",
+      invalidRange: "La date de fin doit être après la date de début",
+    },
+    preview: {
+      title: "Aperçu de l'export",
+      moodEntries: "{count} entrées d'humeur",
+      therapySessions: "{count} séances de thérapie",
+      exerciseLogs: "{count} exercices",
+      averageMood: "Humeur moyenne",
+      adherence: "Observance",
+      medications: "Médicaments",
+    },
+    actions: {
+      preview: "Aperçu",
+      download: "Télécharger PDF",
+      modifyPeriod: "Modifier la période",
+    },
+    download: {
+      success: "PDF téléchargé !",
+    },
+  },
+  onboarding: {
+    title: "Bienvenue sur Moodday",
+    next: "Continuer",
+    skip: "Passer pour l'instant",
+    start: "Commencer",
+    complete: "Bienvenue ! Tout est prêt.",
+    steps: {
+      welcome: {
+        title: "Bienvenue sur Moodday",
+        description:
+          "Ton compagnon personnel pour suivre ton parcours de santé mentale. Sans jugement, juste du soutien.",
+      },
+      mood: {
+        title: "Suis ton humeur",
+        description:
+          "Note comment tu te sens chaque jour pour comprendre tes patterns et voir si ton traitement fonctionne.",
+      },
+      medications: {
+        title: "Gère tes médicaments",
+        description:
+          "Garde une trace de tes médicaments et dosages. Vois les corrélations entre ton traitement et ton humeur.",
+      },
+      ready: {
+        title: "Tu es prêt(e) !",
+        description:
+          "Commence ton parcours aujourd'hui. Rappelle-toi, chaque pas compte et tu fais déjà bien d'être ici.",
+      },
+    },
+  },
+  settings: {
+    title: "Paramètres",
+    display: {
+      title: "Affichage",
+      chartPeriod: "Période par défaut des graphiques",
+      chartPeriodHint: "Plage de temps par défaut pour les courbes d'humeur",
+      days7: "7 jours",
+      days30: "30 jours",
+      days90: "90 jours",
+    },
+    notifications: {
+      title: "Notifications",
+      enabled: "Activer les notifications",
+      enabledHint: "Recevoir des rappels et mises à jour",
+      dailyCheckIn: "Rappel quotidien",
+      dailyCheckInHint: "Rappel pour noter ton humeur",
+      checkInTime: "Heure du rappel",
+      medicationReminders: "Rappels médicaments",
+      medicationRemindersHint: "Rappels pour prendre tes médicaments",
+    },
+    saved: "Paramètres sauvegardés !",
+  },
   debug: {
     title: "Panneau de debug",
     info: "Infos",
