@@ -246,6 +246,43 @@ const en = {
       success: "Exercise restored",
     },
   },
+  insights: {
+    title: "Dashboard",
+    chart: {
+      title: "Mood over 30 days",
+      noData: "No mood data yet. Start tracking your mood!",
+      mood: "Mood",
+      dosageChange: "Dosage change",
+    },
+    dashboard: {
+      mood: {
+        title: "Mood",
+        average: "Weekly average",
+        noData: "No data",
+      },
+      medications: {
+        title: "Medications",
+        taken: "{count} taken today",
+        adherence: "{percent}% adherence",
+        noMeds: "No medications",
+      },
+      therapy: {
+        title: "Therapy",
+        lastSession: "Last session",
+        sessions: "{count} sessions this month",
+        noSessions: "No sessions yet",
+      },
+      exercises: {
+        title: "Exercises",
+        completed: "{count} this week",
+        noExercises: "No exercises",
+      },
+    },
+    patterns: {
+      title: "Insights",
+      noInsights: "Keep tracking to see insights!",
+    },
+  },
   debug: {
     title: "Debug Panel",
     info: "Info",

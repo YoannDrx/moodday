@@ -253,6 +253,43 @@ const fr: typeof en = {
       success: "Exercice restauré",
     },
   },
+  insights: {
+    title: "Tableau de bord",
+    chart: {
+      title: "Humeur sur 30 jours",
+      noData: "Pas encore de données. Commence à tracker ton humeur !",
+      mood: "Humeur",
+      dosageChange: "Changement de dosage",
+    },
+    dashboard: {
+      mood: {
+        title: "Humeur",
+        average: "Moyenne semaine",
+        noData: "Pas de données",
+      },
+      medications: {
+        title: "Médicaments",
+        taken: "{count} pris aujourd'hui",
+        adherence: "{percent}% d'observance",
+        noMeds: "Pas de médicaments",
+      },
+      therapy: {
+        title: "Thérapie",
+        lastSession: "Dernière séance",
+        sessions: "{count} séances ce mois",
+        noSessions: "Pas encore de séances",
+      },
+      exercises: {
+        title: "Exercices",
+        completed: "{count} cette semaine",
+        noExercises: "Pas d'exercices",
+      },
+    },
+    patterns: {
+      title: "Insights",
+      noInsights: "Continue à tracker pour voir des insights !",
+    },
+  },
   debug: {
     title: "Panneau de debug",
     info: "Infos",
