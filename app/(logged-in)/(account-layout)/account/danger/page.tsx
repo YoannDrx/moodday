@@ -2,6 +2,7 @@ import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
 import { AccountLayout } from "../account-layout";
 import { DeleteAccountForm } from "./delete-account-form";
+import { ExportDataForm } from "./export-data-form";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -15,6 +16,7 @@ export default async function DeleteProfilePage() {
   return (
     <AccountLayout>
       <div className="flex flex-col gap-4 lg:gap-8">
+        <ExportDataForm />
         <DeleteAccountForm />
       </div>
     </AccountLayout>

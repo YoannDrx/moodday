@@ -31,7 +31,7 @@ export default async function AuthSignInPage() {
   const user = await getUser();
 
   if (user) {
-    redirect("/");
+    redirect("/app");
   }
 
   return (

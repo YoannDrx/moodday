@@ -36,6 +36,14 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   baseURL: getServerUrl(),
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 days (NFR-S5)
+    updateAge: 60 * 60 * 24, // Update session every 24 hours
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // Cache for 5 minutes
+    },
+  },
   databaseHooks: {
     user: {
       create: {

@@ -529,6 +529,16 @@ const fr: typeof en = {
       requestedDescription: "Nous avons reçu votre demande.",
       delete: "Supprimer le compte",
     },
+    export: {
+      title: "Exporter mes données",
+      description:
+        "Téléchargez toutes vos données personnelles au format JSON (RGPD).",
+      dataIncludedTitle: "Données incluses",
+      dataIncludedDescription:
+        "Profil, humeurs, médicaments, sessions de thérapie et exercices.",
+      button: "Télécharger mes données",
+      success: "Vos données ont été téléchargées",
+    },
   },
   auth: {
     form: {

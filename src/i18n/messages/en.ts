@@ -518,6 +518,16 @@ const en = {
       requestedDescription: "We have received your request.",
       delete: "Delete account",
     },
+    export: {
+      title: "Export my data",
+      description:
+        "Download all your personal data in JSON format (GDPR compliance).",
+      dataIncludedTitle: "Included data",
+      dataIncludedDescription:
+        "Profile, moods, medications, therapy sessions, and exercises.",
+      button: "Download my data",
+      success: "Your data has been downloaded",
+    },
   },
   auth: {
     form: {

@@ -28,7 +28,7 @@ export default async function AuthSignInPage() {
   const user = await getUser();
 
   if (user) {
-    redirect("/account");
+    redirect("/app");
   }
 
   const providers = Object.keys(SocialProviders ?? {});
