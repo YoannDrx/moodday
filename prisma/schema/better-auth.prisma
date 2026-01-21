@@ -17,9 +17,11 @@ model User {
   accounts      Account[]
   feedbacks     Feedback[]
   subscription  Subscription?
-  moodEntries   MoodEntry[]
-  medications   Medication[]
-  
+  moodEntries      MoodEntry[]
+  medications      Medication[]
+  therapySessions  TherapySession[]
+  exercises        Exercise[]
+
   // Stripe integration
   stripeCustomerId String?
 

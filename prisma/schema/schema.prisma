@@ -102,3 +102,59 @@ model MedicationHistory {
   @@index([changedAt])
   @@map("medication_history")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// THERAPY & WELLNESS (Epic 4)
+// ═══════════════════════════════════════════════════════════════
+
+model TherapySession {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime @default(now())
+  notes         String   // Free-text session notes
+  benefitRating Int?     // 1-5 rating of how beneficial the session was
+  syncStatus    String   @default("synced")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+  @@map("therapy_session")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isArchived  Boolean  @default(false)
+  syncStatus  String   @default("synced")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs ExerciseLog[]
+
+  @@index([userId])
+  @@index([isArchived])
+  @@map("exercise")
+}
+
+model ExerciseLog {
+  id          String   @id @default(cuid())
+  exerciseId  String
+  completedAt DateTime @default(now())
+  note        String?  // Optional note about how it went
+
+  createdAt DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+  @@index([completedAt])
+  @@map("exercise_log")
+}

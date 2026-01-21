@@ -169,6 +169,83 @@ const en = {
       },
     },
   },
+  therapy: {
+    add: {
+      title: "New therapy session",
+      description: "Record your therapy session notes and reflections",
+      submit: "Save session",
+      success: "Session saved! Take care of yourself 💙",
+    },
+    edit: {
+      title: "Edit session",
+      submit: "Save changes",
+      success: "Session updated!",
+    },
+    form: {
+      date: "Session date",
+      selectDate: "Select a date",
+      notes: "Session notes",
+      notesPlaceholder: "What did you discuss? How did you feel? Any insights?",
+      notesHint: "Write freely, this is your private space",
+      benefitRating: "How beneficial was this session?",
+      benefitRatingHint: "Optional - rate from 1 to 5 stars",
+    },
+    list: {
+      title: "Therapy sessions",
+      empty: "No sessions yet. Record your first therapy session!",
+      addNew: "Add session",
+    },
+    delete: {
+      title: "Delete this session?",
+      description: "This action cannot be undone.",
+      confirm: "Yes, delete it",
+      success: "Session deleted",
+    },
+  },
+  exercise: {
+    add: {
+      title: "New exercise",
+      description: "Add a wellness exercise to track",
+      submit: "Add exercise",
+      success: "Exercise added!",
+    },
+    edit: {
+      title: "Edit exercise",
+      submit: "Save changes",
+      success: "Exercise updated!",
+    },
+    form: {
+      name: "Exercise name",
+      namePlaceholder: "e.g., Deep breathing, Meditation, Walk",
+      description: "Description (optional)",
+      descriptionPlaceholder: "How to do this exercise...",
+      descriptionHint: "Optional - describe how to do this exercise",
+    },
+    list: {
+      title: "My exercises",
+      empty: "No exercises yet. Add your first wellness exercise!",
+      addNew: "Add exercise",
+      archived: "Archived exercises",
+      showArchived: "Show archived",
+      hideArchived: "Hide archived",
+    },
+    log: {
+      logged: "Exercise completed! 🎉",
+      undone: "Log cancelled",
+      undo: "Cancel",
+      button: "Done",
+      todayCount: "{count}x today",
+    },
+    archive: {
+      title: "Archive this exercise?",
+      description: "The exercise will be hidden but history preserved.",
+      confirm: "Archive",
+      success: "Exercise archived",
+    },
+    unarchive: {
+      success: "Exercise restored",
+    },
+  },
   debug: {
     title: "Debug Panel",
     info: "Info",

@@ -174,6 +174,85 @@ const fr: typeof en = {
       },
     },
   },
+  therapy: {
+    add: {
+      title: "Nouvelle séance de thérapie",
+      description: "Note tes observations et réflexions de séance",
+      submit: "Enregistrer la séance",
+      success: "Séance enregistrée ! Prends soin de toi 💙",
+    },
+    edit: {
+      title: "Modifier la séance",
+      submit: "Enregistrer",
+      success: "Séance modifiée !",
+    },
+    form: {
+      date: "Date de la séance",
+      selectDate: "Sélectionne une date",
+      notes: "Notes de séance",
+      notesPlaceholder:
+        "De quoi avez-vous parlé ? Comment te sentais-tu ? Des prises de conscience ?",
+      notesHint: "Écris librement, c'est ton espace privé",
+      benefitRating: "Cette séance t'a-t-elle été bénéfique ?",
+      benefitRatingHint: "Optionnel - note de 1 à 5 étoiles",
+    },
+    list: {
+      title: "Séances de thérapie",
+      empty: "Pas encore de séances. Note ta première séance de thérapie !",
+      addNew: "Ajouter une séance",
+    },
+    delete: {
+      title: "Supprimer cette séance ?",
+      description: "Cette action est irréversible.",
+      confirm: "Oui, supprimer",
+      success: "Séance supprimée",
+    },
+  },
+  exercise: {
+    add: {
+      title: "Nouvel exercice",
+      description: "Ajoute un exercice de bien-être à suivre",
+      submit: "Ajouter l'exercice",
+      success: "Exercice ajouté !",
+    },
+    edit: {
+      title: "Modifier l'exercice",
+      submit: "Enregistrer",
+      success: "Exercice modifié !",
+    },
+    form: {
+      name: "Nom de l'exercice",
+      namePlaceholder: "ex: Respiration profonde, Méditation, Marche",
+      description: "Description (optionnel)",
+      descriptionPlaceholder: "Comment faire cet exercice...",
+      descriptionHint: "Optionnel - décris comment réaliser cet exercice",
+    },
+    list: {
+      title: "Mes exercices",
+      empty:
+        "Pas encore d'exercices. Ajoute ton premier exercice de bien-être !",
+      addNew: "Ajouter un exercice",
+      archived: "Exercices archivés",
+      showArchived: "Voir archivés",
+      hideArchived: "Masquer archivés",
+    },
+    log: {
+      logged: "Exercice terminé ! 🎉",
+      undone: "Log annulé",
+      undo: "Annuler",
+      button: "Fait",
+      todayCount: "{count}x aujourd'hui",
+    },
+    archive: {
+      title: "Archiver cet exercice ?",
+      description: "L'exercice sera masqué mais l'historique conservé.",
+      confirm: "Archiver",
+      success: "Exercice archivé",
+    },
+    unarchive: {
+      success: "Exercice restauré",
+    },
+  },
   debug: {
     title: "Panneau de debug",
     info: "Infos",
