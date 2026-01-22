@@ -106,19 +106,15 @@ export const getPatientMobileNavigation = (
       label: t("nav.dashboard"),
     },
     {
-      href: "/mood",
-      Icon: Heart,
-      label: t("patient.nav.mood"),
+      href: "/trends",
+      Icon: BarChart3,
+      label: "Stats",
     },
+    // Note: the center "+" button links to /mood
     {
-      href: "/medications",
-      Icon: Pill,
-      label: t("patient.nav.medications"),
-    },
-    {
-      href: "/exercises",
-      Icon: Dumbbell,
-      label: t("patient.nav.exercises"),
+      href: "/caregiver",
+      Icon: Users,
+      label: "Aidants",
     },
     {
       href: "/settings",

@@ -3,7 +3,150 @@
  *
  * Centralized configuration for UI elements like mood colors,
  * context tags, side effects, sleep quality, etc.
+ *
+ * Based on the Moodday Design System:
+ * - Soothing & Organic aesthetic
+ * - Soft modernism with high border radii
+ * - Teal/Ocean primary, Sage secondary, Lavender accents
  */
+
+// ═══════════════════════════════════════════════════════════════
+// MOODDAY BRAND COLORS
+// ═══════════════════════════════════════════════════════════════
+
+export const colors = {
+  // Primary (Teal/Ocean) - Brand identity
+  primary: {
+    DEFAULT: "#2BA09F",
+    dark: "#2A8FA8",
+    light: "#3DA5B8",
+    darkest: "#1D7680",
+  },
+
+  // Secondary (Sage/Nature) - Growth elements
+  sage: {
+    DEFAULT: "#48A878",
+    dark: "#3A956E",
+    light: "#6FBD94",
+  },
+
+  // Accent (Lavender) - Soft highlights
+  lavender: {
+    DEFAULT: "#D4C5E8",
+    dark: "#B8A5D6",
+  },
+
+  // Warm Backgrounds - Canvas colors
+  warm: {
+    bg: "#F8F7F3",
+    panel: "#F4F1ED",
+  },
+
+  // Emergency
+  danger: "#EF4444",
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// MOODDAY SPACING & LAYOUT
+// ═══════════════════════════════════════════════════════════════
+
+export const borderRadius = {
+  xl: "12px",
+  "2xl": "24px",
+  "3xl": "32px",
+} as const;
+
+export const shadows = {
+  soft: "0 10px 25px -5px rgba(43, 160, 159, 0.1), 0 8px 10px -6px rgba(43, 160, 159, 0.05)",
+  glass: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+  innerSoft: "inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)",
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// MOODDAY SYMPTOM OPTIONS (for Journal)
+// ═══════════════════════════════════════════════════════════════
+
+export const symptomOptions = [
+  "anxiety",
+  "irritability",
+  "ruminations",
+  "agitation",
+  "brain_fog",
+  "tension",
+  "sadness",
+  "euphoria",
+] as const;
+
+export type Symptom = (typeof symptomOptions)[number];
+
+export const symptomLabels: Record<Symptom, { fr: string; en: string }> = {
+  anxiety: { fr: "Anxiété", en: "Anxiety" },
+  irritability: { fr: "Irritabilité", en: "Irritability" },
+  ruminations: { fr: "Ruminations", en: "Ruminations" },
+  agitation: { fr: "Agitation", en: "Agitation" },
+  brain_fog: { fr: "Brouillard mental", en: "Brain fog" },
+  tension: { fr: "Tension", en: "Tension" },
+  sadness: { fr: "Tristesse", en: "Sadness" },
+  euphoria: { fr: "Euphorie", en: "Euphoria" },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MOODDAY EVENT OPTIONS (for Journal)
+// ═══════════════════════════════════════════════════════════════
+
+export const eventOptions = [
+  "work",
+  "family",
+  "sport",
+  "alcohol",
+  "conflict",
+  "social_outing",
+  "bad_news",
+  "success",
+] as const;
+
+export type EventOption = (typeof eventOptions)[number];
+
+export const eventOptionLabels: Record<
+  EventOption,
+  { fr: string; en: string }
+> = {
+  work: { fr: "Travail", en: "Work" },
+  family: { fr: "Famille", en: "Family" },
+  sport: { fr: "Sport", en: "Sport" },
+  alcohol: { fr: "Alcool", en: "Alcohol" },
+  conflict: { fr: "Conflit", en: "Conflict" },
+  social_outing: { fr: "Sortie sociale", en: "Social outing" },
+  bad_news: { fr: "Mauvaise nouvelle", en: "Bad news" },
+  success: { fr: "Succès", en: "Success" },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MOODDAY SLEEP DISTURBANCES (for Journal)
+// ═══════════════════════════════════════════════════════════════
+
+export const sleepDisturbances = [
+  "nightmares",
+  "multiple_awakenings",
+  "initial_insomnia",
+  "agitation",
+  "night_sweats",
+  "early_awakening",
+] as const;
+
+export type SleepDisturbance = (typeof sleepDisturbances)[number];
+
+export const sleepDisturbanceLabels: Record<
+  SleepDisturbance,
+  { fr: string; en: string }
+> = {
+  nightmares: { fr: "Cauchemars", en: "Nightmares" },
+  multiple_awakenings: { fr: "Réveils multiples", en: "Multiple awakenings" },
+  initial_insomnia: { fr: "Insomnie initiale", en: "Initial insomnia" },
+  agitation: { fr: "Agitation", en: "Agitation" },
+  night_sweats: { fr: "Sueur nocturne", en: "Night sweats" },
+  early_awakening: { fr: "Réveil précoce", en: "Early awakening" },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // MOOD COLORS (0-10 scale)

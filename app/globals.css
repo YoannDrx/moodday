@@ -48,15 +48,36 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
-  /* Moodday Design System Colors */
-  --color-moodday-teal: #2BA09F;
+  /* Moodday Design System - Primary (Teal/Ocean) */
+  --color-moodday-primary: #2BA09F;
+  --color-moodday-primary-dark: #2A8FA8;
+  --color-moodday-primary-light: #3DA5B8;
+  --color-moodday-primary-darkest: #1D7680;
+
+  /* Moodday Design System - Sage (Nature/Growth) */
   --color-moodday-sage: #48A878;
+  --color-moodday-sage-dark: #3A956E;
+  --color-moodday-sage-light: #6FBD94;
+
+  /* Moodday Design System - Accents */
   --color-moodday-lavender: #D4C5E8;
-  --color-moodday-warm: #F8F7F3;
-  --color-moodday-warm-alt: #F4F1ED;
+  --color-moodday-lavender-dark: #B8A5D6;
+
+  /* Moodday Design System - Warm Backgrounds */
+  --color-moodday-warm-bg: #F8F7F3;
+  --color-moodday-warm-panel: #F4F1ED;
+
+  /* Moodday Design System - Emergency */
+  --color-moodday-danger: #EF4444;
+
+  /* Moodday Shadows */
+  --shadow-soft: 0 10px 25px -5px rgba(43, 160, 159, 0.1), 0 8px 10px -6px rgba(43, 160, 159, 0.05);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 
   @keyframes accordion-down {
     from {
@@ -78,48 +99,85 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Moodday uses warm off-white as the main background */
+  --background: #F8F7F3;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
 
-  --success: hsl(151, 55%, 41%);
-  --success-foreground: hsl(137deg 72% 94%);
+  /* Primary: Moodday Teal */
+  --primary: #2BA09F;
+  --primary-foreground: #FFFFFF;
+  --primary-dark: #2A8FA8;
+  --primary-light: #3DA5B8;
+  --primary-darkest: #1D7680;
+
+  /* Secondary: Moodday Sage */
+  --secondary: #F4F1ED;
+  --secondary-foreground: #1F2937;
+
+  /* Muted */
+  --muted: #F4F1ED;
+  --muted-foreground: #6B7280;
+
+  /* Accent: Lavender */
+  --accent: #D4C5E8;
+  --accent-foreground: #1F2937;
+
+  /* Sage colors */
+  --sage: #48A878;
+  --sage-dark: #3A956E;
+  --sage-light: #6FBD94;
+  --sage-foreground: #FFFFFF;
+
+  /* Lavender colors */
+  --lavender: #D4C5E8;
+  --lavender-dark: #B8A5D6;
+
+  /* Warm backgrounds */
+  --warm-bg: #F8F7F3;
+  --warm-panel: #F4F1ED;
+
+  /* Destructive/Emergency */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders and inputs */
+  --border: rgba(0, 0, 0, 0.06);
+  --input: rgba(0, 0, 0, 0.06);
+  --ring: #2BA09F;
+
+  /* Charts - Moodday palette */
+  --chart-1: #2BA09F;
+  --chart-2: #48A878;
+  --chart-3: #D4C5E8;
+  --chart-4: #2A8FA8;
+  --chart-5: #6FBD94;
+
+  /* Border radius */
+  --radius: 12px;
+
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1F2937;
+  --sidebar-primary: #2BA09F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(43, 160, 159, 0.1);
+  --sidebar-accent-foreground: #2BA09F;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: #2BA09F;
+
+  /* Status colors */
+  --success: #48A878;
+  --success-foreground: #FFFFFF;
 
   --warning: hsl(24deg 94% 50%);
   --warning-foreground: hsl(24deg 97% 93%);
 
-  --info: hsl(221.2 83.2% 53.3%);
-  --info-foreground: hsl(210 40% 98%);
+  --info: #2BA09F;
+  --info-foreground: #FFFFFF;
 
   /* Patient Sidebar */
   --sidebar-patient: #F8F7F3;
@@ -128,47 +186,87 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.2 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.6801 0.1583 276.9349);
-  --primary-foreground: oklch(0.2077 0.0398 265.7549);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Dark mode with Moodday palette */
+  --background: #1A1D21;
+  --foreground: #F8F7F3;
+  --card: #242830;
+  --card-foreground: #F8F7F3;
+  --popover: #242830;
+  --popover-foreground: #F8F7F3;
 
-  --success: hsl(151deg 55% 41.5%);
-  --success-foreground: hsl(137 72% 94%);
+  /* Primary stays teal but slightly brighter for dark mode */
+  --primary: #3DA5B8;
+  --primary-foreground: #FFFFFF;
+  --primary-dark: #2BA09F;
+  --primary-light: #4DB8C9;
+  --primary-darkest: #2A8FA8;
 
-  --warning: hsl(24deg 94% 50%);
-  --warning-foreground: hsl(24deg 97% 93.2%);
+  /* Secondary */
+  --secondary: #2D323A;
+  --secondary-foreground: #F8F7F3;
 
-  --info: hsl(217.2 91.2% 59.8%);
-  --info-foreground: hsl(222.2 47.4% 11.2%);
+  /* Muted */
+  --muted: #2D323A;
+  --muted-foreground: #9CA3AF;
+
+  /* Accent: Lavender lighter */
+  --accent: #3D3352;
+  --accent-foreground: #D4C5E8;
+
+  /* Sage colors */
+  --sage: #6FBD94;
+  --sage-dark: #48A878;
+  --sage-light: #8FD4AB;
+  --sage-foreground: #1A1D21;
+
+  /* Lavender colors */
+  --lavender: #B8A5D6;
+  --lavender-dark: #9785C2;
+
+  /* Warm backgrounds (darker versions) */
+  --warm-bg: #1A1D21;
+  --warm-panel: #242830;
+
+  /* Destructive/Emergency */
+  --destructive: #F87171;
+  --destructive-foreground: #1A1D21;
+
+  /* Borders and inputs */
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #3DA5B8;
+
+  /* Charts - Moodday palette for dark */
+  --chart-1: #3DA5B8;
+  --chart-2: #6FBD94;
+  --chart-3: #B8A5D6;
+  --chart-4: #4DB8C9;
+  --chart-5: #8FD4AB;
+
+  /* Sidebar */
+  --sidebar: #1F232A;
+  --sidebar-foreground: #F8F7F3;
+  --sidebar-primary: #3DA5B8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(61, 165, 184, 0.15);
+  --sidebar-accent-foreground: #3DA5B8;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #3DA5B8;
+
+  /* Status colors */
+  --success: #6FBD94;
+  --success-foreground: #1A1D21;
+
+  --warning: hsl(24deg 94% 60%);
+  --warning-foreground: #1A1D21;
+
+  --info: #3DA5B8;
+  --info-foreground: #1A1D21;
+
+  /* Patient Sidebar */
+  --sidebar-patient: #1F232A;
+  --sidebar-patient-accent: rgba(61, 165, 184, 0.15);
+  --sidebar-patient-primary: #3DA5B8;
 }
 
 @layer base {
@@ -453,19 +551,132 @@
     @apply bg-clip-text text-transparent;
   }
 
+  /* Moodday Glass Card */
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .glass-card {
+    background: rgba(36, 40, 48, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Moodday Shadow Soft */
+  .shadow-soft {
+    box-shadow: 0 10px 25px -5px rgba(43, 160, 159, 0.1), 0 8px 10px -6px rgba(43, 160, 159, 0.05);
+  }
+
+  /* Moodday Shadow Glass */
+  .shadow-glass {
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  .dark .shadow-soft {
+    box-shadow: 0 10px 25px -5px rgba(61, 165, 184, 0.15), 0 8px 10px -6px rgba(61, 165, 184, 0.1);
+  }
+
+  /* Moodday Background Colors */
+  .bg-warm-bg {
+    background-color: var(--warm-bg);
+  }
+
+  .bg-warm-panel {
+    background-color: var(--warm-panel);
+  }
+
+  .bg-primary-soft {
+    background-color: rgba(43, 160, 159, 0.1);
+  }
+
+  .bg-sage-soft {
+    background-color: rgba(72, 168, 120, 0.1);
+  }
+
+  .bg-lavender-soft {
+    background-color: rgba(212, 197, 232, 0.2);
+  }
+
+  /* Moodday Text Colors */
+  .text-primary-darkest {
+    color: var(--primary-darkest);
+  }
+
+  .text-sage {
+    color: var(--sage);
+  }
+
+  .text-sage-dark {
+    color: var(--sage-dark);
+  }
+
+  .text-lavender {
+    color: var(--lavender);
+  }
+
+  .text-lavender-dark {
+    color: var(--lavender-dark);
+  }
+
+  /* Moodday Border Radius */
+  .rounded-3xl {
+    border-radius: 32px;
+  }
+
+  /* Moodday Active Nav Item */
+  .nav-item-active {
+    @apply bg-primary text-white font-bold;
+  }
+
+  /* Moodday Blob Decoration */
+  .blob {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    filter: blur(100px);
+    border-radius: 50%;
+    z-index: -1;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .blob-primary {
+    background: rgba(43, 160, 159, 0.2);
+  }
+
+  .blob-lavender {
+    background: rgba(212, 197, 232, 0.3);
+  }
+
+  /* Hide scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Pulse soft animation */
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 3s infinite;
   }
 
   .bg-grid {
     --bg-grid-color: hsl(0 0% 100% / 0.1);
-    background-color: transparent; /* Couleur de fond */
+    background-color: transparent;
     background-image:
       linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px),
       linear-gradient(180deg, var(--bg-grid-color) 1px, transparent 1px);
-    background-size: 64px 64px; /* Taille de la grille */
+    background-size: 64px 64px;
   }
 }
 
