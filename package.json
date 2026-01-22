@@ -88,6 +88,7 @@
     "nprogress": "^0.2.0",
     "nuqs": "^2.6.0",
     "react": "19.1.1",
+    "react-day-picker": "^9.13.0",
     "react-dom": "19.1.1",
     "react-email": "4.2.11",
     "react-hook-form": "^7.62.0",

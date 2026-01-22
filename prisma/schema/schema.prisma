@@ -34,6 +34,15 @@ model MoodEntry {
   userId     String
   value      Int      // 0-10 scale
   note       String?  // Optional free-text note
+
+  // Extended mood tracking fields (optional for compatibility)
+  energy       Int?      // 1-10 energy level
+  sleepHours   Float?    // Hours of sleep
+  sleepQuality String?   // "bad" | "average" | "good"
+  anxiety      Int?      // 1-10 anxiety level
+  tags         String[]  @default([]) // Context tags (work, family, etc.)
+  sideEffects  String[]  @default([]) // Medication side effects
+
   syncStatus String   @default("synced") // 'pending' | 'synced' | 'conflict' for offline support
 
   createdAt DateTime @default(now())
@@ -184,4 +193,55 @@ model UserPreferences {
   updatedAt DateTime @updatedAt
 
   @@map("user_preferences")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAREGIVER TRACKING (Epic 8)
+// ═══════════════════════════════════════════════════════════════
+
+model CaregiverObservation {
+  id         String @id @default(cuid())
+  observerId String // The caregiver making the observation
+  subjectId  String // The patient being observed
+
+  moodObserved     String?  // "very_good" | "good" | "neutral" | "down" | "very_down" | "concerning"
+  energyObserved   String?  // "high" | "normal" | "low" | "very_low"
+  socialBehavior   String?  // "engaged" | "normal" | "withdrawn" | "isolated"
+  sleepObserved    String?  // "good" | "restless" | "insomnia" | "oversleeping"
+  notes            String?
+  visibleToPatient Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  observer User @relation("ObserverRelation", fields: [observerId], references: [id], onDelete: Cascade)
+  subject  User @relation("SubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([observerId])
+  @@index([subjectId])
+  @@index([createdAt])
+  @@map("caregiver_observation")
+}
+
+model CaregiverEvent {
+  id         String @id @default(cuid())
+  reporterId String // The person reporting the event
+  subjectId  String // The patient the event is about
+
+  eventType   String   // "compulsive_purchase" | "crisis" | "conflict" | "milestone" | "medication_issue" | "other"
+  severity    Int      // 1-5 severity scale
+  description String
+  eventDate   DateTime @default(now())
+  visibleToPatient Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reporter User @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
+  subject  User @relation("EventSubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([subjectId])
+  @@index([eventDate])
+  @@map("caregiver_event")
 }

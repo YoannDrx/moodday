@@ -352,6 +352,21 @@ const fr: typeof en = {
       },
     },
   },
+  patient: {
+    nav: {
+      main: "Principal",
+      tracking: "Suivi",
+      tools: "Outils",
+      mood: "Mon humeur",
+      medications: "Traitements",
+      exercises: "Exercices",
+      therapy: "Thérapie",
+      export: "Export",
+      trends: "Tendances",
+      caregiver: "Suivi aidant",
+      crisis: "Ressources de crise",
+    },
+  },
   settings: {
     title: "Paramètres",
     display: {

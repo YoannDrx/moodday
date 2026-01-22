@@ -127,3 +127,67 @@ export const getMoodEntries = authAction
       hasMore,
     };
   });
+
+// ===== Get Today's Mood Entry =====
+
+export const getTodayMoodEntry = authAction.action(
+  async ({ ctx: { user } }) => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const entry = await prisma.moodEntry.findFirst({
+      where: {
+        userId: user.id,
+        createdAt: { gte: startOfDay },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        value: true,
+        createdAt: true,
+      },
+    });
+
+    if (!entry) {
+      throw new ActionError("No mood entry for today");
+    }
+
+    return {
+      id: entry.id,
+      value: entry.value,
+      createdAt: entry.createdAt.toISOString(),
+    };
+  },
+);
+
+// ===== Save Mood Entry (Create or Update Today's) =====
+
+const saveMoodEntrySchema = z.object({
+  value: z.number().min(0).max(10),
+  note: z.string().optional(),
+});
+
+export const saveMoodEntry = authAction
+  .inputSchema(saveMoodEntrySchema)
+  .action(async ({ parsedInput: { value, note }, ctx: { user } }) => {
+    // Create a new entry (user can have multiple entries per day)
+    const entry = await prisma.moodEntry.create({
+      data: {
+        userId: user.id,
+        value,
+        note: note ?? null,
+        syncStatus: "synced",
+      },
+      select: {
+        id: true,
+        value: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      id: entry.id,
+      value: entry.value,
+      createdAt: entry.createdAt.toISOString(),
+    };
+  });

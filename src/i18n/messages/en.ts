@@ -345,6 +345,21 @@ const en = {
       },
     },
   },
+  patient: {
+    nav: {
+      main: "Main",
+      tracking: "Tracking",
+      tools: "Tools",
+      mood: "My mood",
+      medications: "Medications",
+      exercises: "Exercises",
+      therapy: "Therapy",
+      export: "Export",
+      trends: "Trends",
+      caregiver: "Caregiver",
+      crisis: "Crisis resources",
+    },
+  },
   settings: {
     title: "Settings",
     display: {

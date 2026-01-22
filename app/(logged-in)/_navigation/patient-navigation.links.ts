@@ -17,7 +17,7 @@ type Translator = (
   values?: Record<string, string | number>,
 ) => string;
 
-export const getAppNavigation = (t: Translator): NavigationGroup[] => {
+export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
   return [
     {
       title: t("patient.nav.main"),
@@ -86,6 +86,44 @@ export const getAppNavigation = (t: Translator): NavigationGroup[] => {
           label: t("settings.title"),
         },
       ],
+    },
+  ];
+};
+
+export type PatientMobileLink = {
+  href: string;
+  Icon: typeof Home;
+  label: string;
+};
+
+export const getPatientMobileNavigation = (
+  t: Translator,
+): PatientMobileLink[] => {
+  return [
+    {
+      href: "/dashboard",
+      Icon: Home,
+      label: t("nav.dashboard"),
+    },
+    {
+      href: "/mood",
+      Icon: Heart,
+      label: t("patient.nav.mood"),
+    },
+    {
+      href: "/medications",
+      Icon: Pill,
+      label: t("patient.nav.medications"),
+    },
+    {
+      href: "/exercises",
+      Icon: Dumbbell,
+      label: t("patient.nav.exercises"),
+    },
+    {
+      href: "/settings",
+      Icon: Settings,
+      label: t("settings.title"),
     },
   ];
 };

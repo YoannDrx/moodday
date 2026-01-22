@@ -51,6 +51,13 @@
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
+  /* Moodday Design System Colors */
+  --color-moodday-teal: #2BA09F;
+  --color-moodday-sage: #48A878;
+  --color-moodday-lavender: #D4C5E8;
+  --color-moodday-warm: #F8F7F3;
+  --color-moodday-warm-alt: #F4F1ED;
+
   @keyframes accordion-down {
     from {
       height: 0;
@@ -113,6 +120,11 @@
 
   --info: hsl(221.2 83.2% 53.3%);
   --info-foreground: hsl(210 40% 98%);
+
+  /* Patient Sidebar */
+  --sidebar-patient: #F8F7F3;
+  --sidebar-patient-accent: rgba(43, 160, 159, 0.1);
+  --sidebar-patient-primary: #2BA09F;
 }
 
 .dark {
@@ -439,6 +451,12 @@
 @layer utils {
   .text-gradient {
     @apply bg-clip-text text-transparent;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .bg-grid {

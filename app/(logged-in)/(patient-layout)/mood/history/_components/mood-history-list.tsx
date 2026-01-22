@@ -53,11 +53,16 @@ function getMoodEmoji(value: number): string {
   return "😄";
 }
 
-export function MoodHistoryList() {
+type MoodHistoryListProps = {
+  limit?: number; // If set, limits entries and hides filter/load more
+};
+
+export function MoodHistoryList({ limit }: MoodHistoryListProps) {
   const { t, locale } = useI18n();
   const dateLocale = locale === "fr" ? fr : enUS;
   const [filter, setFilter] = useState<FilterPeriod>("month");
   const { openForEdit } = useQuickEntryStore();
+  const isCompact = typeof limit === "number";
 
   const {
     data,
@@ -83,7 +88,8 @@ export function MoodHistoryList() {
     getNextPageParam: (lastPage) => lastPage?.nextCursor,
   });
 
-  const entries = data?.pages.flatMap((page) => page?.entries ?? []) ?? [];
+  const allEntries = data?.pages.flatMap((page) => page?.entries ?? []) ?? [];
+  const entries = isCompact ? allEntries.slice(0, limit) : allEntries;
 
   const handleEntryClick = useCallback(
     (entry: (typeof entries)[0]) => {
@@ -107,29 +113,33 @@ export function MoodHistoryList() {
 
   return (
     <div className="space-y-4">
-      {/* Filter */}
-      <div className="flex justify-end">
-        <Select
-          value={filter}
-          onValueChange={(value) => setFilter(value as FilterPeriod)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">
-              {t("mood.history.filter.week")}
-            </SelectItem>
-            <SelectItem value="month">
-              {t("mood.history.filter.month")}
-            </SelectItem>
-            <SelectItem value="quarter">
-              {t("mood.history.filter.quarter")}
-            </SelectItem>
-            <SelectItem value="all">{t("mood.history.filter.all")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Filter - only show in full mode */}
+      {!isCompact && (
+        <div className="flex justify-end">
+          <Select
+            value={filter}
+            onValueChange={(value) => setFilter(value as FilterPeriod)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">
+                {t("mood.history.filter.week")}
+              </SelectItem>
+              <SelectItem value="month">
+                {t("mood.history.filter.month")}
+              </SelectItem>
+              <SelectItem value="quarter">
+                {t("mood.history.filter.quarter")}
+              </SelectItem>
+              <SelectItem value="all">
+                {t("mood.history.filter.all")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -199,8 +209,8 @@ export function MoodHistoryList() {
         </div>
       )}
 
-      {/* Load more */}
-      {hasNextPage && (
+      {/* Load more - only show in full mode */}
+      {!isCompact && hasNextPage && (
         <div className="flex justify-center pt-4">
           <Button
             variant="outline"

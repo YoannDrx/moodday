@@ -22,6 +22,12 @@ model User {
   therapySessions  TherapySession[]
   exercises        Exercise[]
 
+  // Caregiver relations
+  observationsMade    CaregiverObservation[] @relation("ObserverRelation")
+  observationsReceived CaregiverObservation[] @relation("SubjectRelation")
+  eventsReported      CaregiverEvent[] @relation("ReporterRelation")
+  eventsAbout         CaregiverEvent[] @relation("EventSubjectRelation")
+
   // Stripe integration
   stripeCustomerId String?
 
