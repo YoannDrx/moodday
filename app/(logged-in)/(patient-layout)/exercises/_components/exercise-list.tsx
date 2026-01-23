@@ -9,6 +9,7 @@ import {
   Check,
   MoreHorizontal,
   Undo2,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -18,6 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,17 +40,35 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   getExercises,
   archiveExercise,
   unarchiveExercise,
   logExerciseCompletion,
+  updateExercise,
 } from "@/features/exercise/exercise.action";
 import { useI18n } from "@/i18n/provider";
+import { queueAction } from "@/features/pwa/offline-actions";
+
+type EditingExercise = {
+  id: string;
+  name: string;
+  description: string | null;
+};
 
 export function ExerciseList() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
+  const [editingExercise, setEditingExercise] =
+    useState<EditingExercise | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["exercises", showArchived],
@@ -61,13 +83,21 @@ export function ExerciseList() {
 
   const logMutation = useMutation({
     mutationFn: async (exerciseId: string) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        queueAction({ type: "exercise_log", exerciseId });
+        return { queued: true };
+      }
       const result = await logExerciseCompletion({ exerciseId });
       if (result.serverError) {
         throw new Error(result.serverError);
       }
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if ((result as { queued?: boolean })?.queued) {
+        toast.success(t("exercise.log.logged"));
+        return;
+      }
       toast.success(t("exercise.log.logged"));
       void queryClient.invalidateQueries({ queryKey: ["exercises"] });
     },
@@ -109,6 +139,40 @@ export function ExerciseList() {
       toast.error(error.message);
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (exercise: EditingExercise) => {
+      const result = await updateExercise({
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+      });
+      if (result.serverError) {
+        throw new Error(result.serverError);
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success(t("exercise.edit.success"));
+      setEditingExercise(null);
+      void queryClient.invalidateQueries({ queryKey: ["exercises"] });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const openEditDialog = (exercise: {
+    id: string;
+    name: string;
+    description: string | null;
+  }) => {
+    setEditingExercise({
+      id: exercise.id,
+      name: exercise.name,
+      description: exercise.description,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -193,6 +257,12 @@ export function ExerciseList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => openEditDialog(exercise)}
+                      >
+                        <Pencil className="mr-2 size-4" />
+                        {t("actions.edit")}
+                      </DropdownMenuItem>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem>
                           <Archive className="mr-2 size-4" />
@@ -270,6 +340,69 @@ export function ExerciseList() {
           ))}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editingExercise !== null}
+        onOpenChange={(open) => !open && setEditingExercise(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("exercise.edit.title")}</DialogTitle>
+            <DialogDescription>
+              {t("exercise.edit.description")}
+            </DialogDescription>
+          </DialogHeader>
+          {editingExercise && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">{t("exercise.form.name")}</Label>
+                <Input
+                  id="edit-name"
+                  value={editingExercise.name}
+                  onChange={(e) =>
+                    setEditingExercise({
+                      ...editingExercise,
+                      name: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">
+                  {t("exercise.form.description")}
+                </Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingExercise.description ?? ""}
+                  onChange={(e) =>
+                    setEditingExercise({
+                      ...editingExercise,
+                      description: e.target.value || null,
+                    })
+                  }
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingExercise(null)}>
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              onClick={() =>
+                editingExercise && updateMutation.mutate(editingExercise)
+              }
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending
+                ? t("actions.saving")
+                : t("actions.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

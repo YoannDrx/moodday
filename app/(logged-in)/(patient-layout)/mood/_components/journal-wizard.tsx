@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Check,
@@ -31,45 +32,69 @@ import {
   eventOptionLabels,
   sleepDisturbanceLabels,
 } from "@/lib/design-tokens";
+import { saveMoodEntry } from "@/features/mood/mood.action";
+import { useRouter } from "next/navigation";
+import { useAction } from "next-safe-action/hooks";
+import {
+  getTodayIntakes,
+  logMedIntake,
+} from "@/features/medication/medication.action";
+import { queueMoodEntry } from "@/features/pwa/offline-queue";
+import { getAiJournalInsight } from "@/features/insights/ai-insight.action";
 
 type JournalEntry = {
   mood: number;
   energy: number;
+  anxiety: number;
   sleepHours: number;
   sleepQuality: number;
   sleepDisturbances: string[];
-  medications: { id: number; name: string; dose: string; taken: boolean }[];
   sideEffects: string;
   symptoms: string[];
   events: string[];
   notes: string;
 };
 
+type TodayMedication = {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  intakes: { id: string; skipped: boolean }[];
+};
+
 const initialEntry: JournalEntry = {
   mood: 5,
   energy: 5,
+  anxiety: 5,
   sleepHours: 7.5,
   sleepQuality: 3,
   sleepDisturbances: [],
-  medications: [
-    { id: 1, name: "Lamictal", dose: "200mg", taken: true },
-    { id: 2, name: "Séroquel", dose: "50mg", taken: false },
-  ],
   sideEffects: "",
   symptoms: [],
   events: [],
   notes: "",
 };
 
-const symptomOptions = Object.keys(symptomLabels) as (keyof typeof symptomLabels)[];
-const eventOptions = Object.keys(eventOptionLabels) as (keyof typeof eventOptionLabels)[];
-const sleepDisturbanceOptions = Object.keys(sleepDisturbanceLabels) as (keyof typeof sleepDisturbanceLabels)[];
+const symptomOptions = Object.keys(
+  symptomLabels,
+) as (keyof typeof symptomLabels)[];
+const eventOptions = Object.keys(
+  eventOptionLabels,
+) as (keyof typeof eventOptionLabels)[];
+const sleepDisturbanceOptions = Object.keys(
+  sleepDisturbanceLabels,
+) as (keyof typeof sleepDisturbanceLabels)[];
 
 export function JournalWizard() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const maxStep = 5;
   const [entry, setEntry] = useState<JournalEntry>(initialEntry);
   const [isSaving, setIsSaving] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiSource, setAiSource] = useState<"ai" | "heuristic" | null>(null);
+  const [insightRequested, setInsightRequested] = useState(false);
 
   // Get today's date formatted
   const today = new Date().toLocaleDateString("fr-FR", {
@@ -122,22 +147,141 @@ export function JournalWizard() {
     }
   };
 
-  const toggleMedication = (id: number) => {
-    setEntry({
-      ...entry,
-      medications: entry.medications.map((med) =>
-        med.id === id ? { ...med, taken: !med.taken } : med,
-      ),
-    });
+  const {
+    data: medications = [],
+    isLoading: medicationsLoading,
+    refetch: refetchMedications,
+  } = useQuery<TodayMedication[]>({
+    queryKey: ["journal-medications"],
+    queryFn: async () => {
+      const result = await getTodayIntakes({});
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
+
+  const logMedicationMutation = useMutation({
+    mutationFn: async (medicationId: string) => {
+      const result = await logMedIntake({ medicationId });
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Prise enregistrée !");
+      void refetchMedications();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleMedicationTaken = (medicationId: string, isTaken: boolean) => {
+    if (isTaken || logMedicationMutation.isPending) return;
+    logMedicationMutation.mutate(medicationId);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate save
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Journal enregistré avec succès !");
-    setIsSaving(false);
+    try {
+      // Map sleepQuality from 1-5 scale to string
+      const sleepQualityMap: Record<number, "bad" | "average" | "good"> = {
+        1: "bad",
+        2: "bad",
+        3: "average",
+        4: "good",
+        5: "good",
+      };
+
+      // Combine symptoms and events as tags
+      const tags = [...entry.symptoms, ...entry.events];
+
+      // Parse sideEffects from string to array
+      const sideEffectsArray = entry.sideEffects
+        ? entry.sideEffects
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+      const payload = {
+        value: entry.mood,
+        note: entry.notes || undefined,
+        energy: entry.energy,
+        sleepHours: entry.sleepHours,
+        sleepQuality: sleepQualityMap[entry.sleepQuality],
+        sleepDisturbances: entry.sleepDisturbances,
+        anxiety: entry.anxiety,
+        tags,
+        sideEffects: sideEffectsArray,
+      };
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        queueMoodEntry(payload);
+        toast.success("Enregistrement hors ligne. Synchronisation automatique.");
+        router.push("/dashboard");
+        return;
+      }
+
+      const result = await saveMoodEntry(payload);
+
+      if (result.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
+
+      toast.success("Journal enregistré avec succès !");
+      router.push("/dashboard");
+    } catch {
+      toast.error("Une erreur est survenue lors de l'enregistrement");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const fallbackInsight =
+    "Continuez a noter vos ressentis. Ces donnees vous aideront a mieux comprendre vos patterns.";
+
+  const { execute: fetchInsight, status: insightStatus } = useAction(
+    getAiJournalInsight,
+    {
+      onSuccess: (result) => {
+        if (!result?.data) return;
+        setAiInsight(result.data.message);
+        setAiSource(result.data.source);
+      },
+      onError: () => {
+        setAiInsight(fallbackInsight);
+        setAiSource("heuristic");
+      },
+    },
+  );
+
+  useEffect(() => {
+    if (step !== maxStep) {
+      setInsightRequested(false);
+      return;
+    }
+
+    if (insightRequested) return;
+    setInsightRequested(true);
+
+    fetchInsight({
+      mood: entry.mood,
+      energy: entry.energy,
+      anxiety: entry.anxiety,
+      sleepHours: entry.sleepHours,
+      sleepQuality: entry.sleepQuality,
+      notes: entry.notes,
+      tags: [...entry.symptoms, ...entry.events],
+    });
+  }, [step, maxStep, insightRequested, fetchInsight, entry]);
+
+  const insightText =
+    insightStatus === "executing"
+      ? "Analyse en cours..."
+      : aiInsight ?? fallbackInsight;
+  const insightTitle =
+    aiSource === "ai" ? "Observation IA (Beta)" : "Observation";
 
   const getMoodEmoji = () => {
     if (entry.mood < 4) return "😔";
@@ -264,6 +408,33 @@ export function JournalWizard() {
                     <span>Épuisé</span>
                     <span>Neutre</span>
                     <span>Survolté</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Anxiety Slider */}
+              <div className="space-y-6">
+                <div className="flex items-end justify-between">
+                  <label className="text-lg font-bold">Anxiété</label>
+                  <span className="text-3xl font-black text-red-500">
+                    {entry.anxiety}/10
+                  </span>
+                </div>
+                <div className="relative pt-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={entry.anxiety}
+                    onChange={(e) =>
+                      setEntry({ ...entry, anxiety: Number(e.target.value) })
+                    }
+                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-red-500"
+                  />
+                  <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
+                    <span>Calme</span>
+                    <span>Modéré</span>
+                    <span>Intense</span>
                   </div>
                 </div>
               </div>
@@ -396,53 +567,77 @@ export function JournalWizard() {
             </div>
 
             <div className="space-y-4">
-              {entry.medications.map((med) => (
-                <GlassCard
-                  key={med.id}
-                  padding="md"
-                  variant="elevated"
-                  className={cn(
-                    "flex items-center justify-between transition-all",
-                    med.taken && "border-[var(--sage)]/30 bg-[var(--sage)]/5",
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <div
+              {medicationsLoading ? (
+                <div className="space-y-3">
+                  <GlassCard padding="md" variant="elevated" className="h-20" />
+                  <GlassCard padding="md" variant="elevated" className="h-20" />
+                </div>
+              ) : medications.length > 0 ? (
+                medications.map((med) => {
+                  const isTaken = med.intakes.some((i) => !i.skipped);
+                  return (
+                    <GlassCard
+                      key={med.id}
+                      padding="md"
+                      variant="elevated"
                       className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl transition-colors",
-                        med.taken
-                          ? "bg-[var(--sage)] text-white"
-                          : "bg-gray-100 text-gray-400",
+                        "flex items-center justify-between transition-all",
+                        isTaken && "border-[var(--sage)]/30 bg-[var(--sage)]/5",
                       )}
                     >
-                      <Tablets className="size-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-gray-900">
-                        {med.name}
-                      </h4>
-                      <p className="text-sm text-gray-500">{med.dose}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => toggleMedication(med.id)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-xl px-6 py-2 font-bold transition-all",
-                      med.taken
-                        ? "bg-[var(--sage)] text-white"
-                        : "border-2 border-gray-100 bg-white text-gray-300",
-                    )}
-                  >
-                    <span>{med.taken ? "Pris" : "Marquer pris"}</span>
-                    <CheckCircle2 className="size-5" />
-                  </button>
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "flex size-12 items-center justify-center rounded-2xl transition-colors",
+                            isTaken
+                              ? "bg-[var(--sage)] text-white"
+                              : "bg-gray-100 text-gray-400",
+                          )}
+                        >
+                          <Tablets className="size-6" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-900">
+                            {med.name}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {med.dosage}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleMedicationTaken(med.id, isTaken)
+                        }
+                        disabled={isTaken || logMedicationMutation.isPending}
+                        className={cn(
+                          "flex items-center gap-2 rounded-xl px-6 py-2 font-bold transition-all",
+                          isTaken
+                            ? "bg-[var(--sage)] text-white"
+                            : "border-2 border-gray-100 bg-white text-gray-300 hover:border-[var(--sage)]/40 hover:text-[var(--sage)]",
+                        )}
+                      >
+                        <span>{isTaken ? "Pris" : "Marquer pris"}</span>
+                        <CheckCircle2 className="size-5" />
+                      </button>
+                    </GlassCard>
+                  );
+                })
+              ) : (
+                <GlassCard padding="md" variant="elevated">
+                  <p className="text-center text-sm text-gray-500">
+                    Aucun traitement configuré pour aujourd&apos;hui.
+                  </p>
                 </GlassCard>
-              ))}
+              )}
 
-              <button className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-gray-200 py-4 font-medium text-gray-400 transition-all hover:border-[var(--primary)]/50 hover:text-[var(--primary)]">
+              <Link
+                href="/medications/today"
+                className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-gray-200 py-4 font-medium text-gray-400 transition-all hover:border-[var(--primary)]/50 hover:text-[var(--primary)]"
+              >
                 <PlusCircle className="size-5" />
                 Ajouter un médicament ponctuel
-              </button>
+              </Link>
             </div>
 
             {/* Side Effects */}
@@ -581,15 +776,16 @@ export function JournalWizard() {
               </div>
               <div>
                 <h5 className="mb-1 text-sm font-bold text-[var(--primary-darkest)]">
-                  Observation IA (Bêta)
+                  {insightTitle}
                 </h5>
                 <p className="text-sm leading-relaxed text-gray-600">
-                  Vous avez noté une baisse d&apos;énergie par rapport à hier.
-                  Prenez le temps de vous reposer ce soir.{" "}
-                  <span className="mt-1 block text-xs font-medium text-gray-400">
-                    Parlez-en à votre médecin si cela persiste.
-                  </span>
+                  {insightText}
                 </p>
+                {aiSource === "heuristic" && (
+                  <span className="mt-2 block text-xs font-medium text-gray-400">
+                    Analyse locale (pas d&apos;appel IA).
+                  </span>
+                )}
               </div>
             </div>
           </section>

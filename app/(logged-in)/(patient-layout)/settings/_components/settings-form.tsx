@@ -58,6 +58,7 @@ export function SettingsForm() {
       dailyCheckInReminder?: boolean;
       dailyCheckInTime?: string;
       medicationReminders?: boolean;
+      medicationReminderTime?: string;
     }) => {
       const result = await updateNotificationPreferences(data);
       if (result.serverError) throw new Error(result.serverError);
@@ -194,6 +195,26 @@ export function SettingsForm() {
                   }
                 />
               </div>
+              {preferences.medicationReminders && (
+                <div className="ml-4 space-y-2">
+                  <Label>
+                    {t("settings.notifications.medicationReminderTime")}
+                  </Label>
+                  <Input
+                    type="time"
+                    value={preferences.medicationReminderTime ?? "09:00"}
+                    onChange={(e) =>
+                      notificationMutation.mutate({
+                        medicationReminderTime: e.target.value,
+                      })
+                    }
+                    className="w-32"
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    {t("settings.notifications.medicationReminderTimeHint")}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </CardContent>

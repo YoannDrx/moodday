@@ -46,7 +46,7 @@ export const openStripePortalAction = authAction.action(
 export const cancelSubscriptionAction = authAction
   .inputSchema(
     z.object({
-      returnUrl: z.string().url(),
+      returnUrl: z.string().min(1),
     }),
   )
   .action(async ({ parsedInput: { returnUrl }, ctx: { user } }) => {
@@ -66,9 +66,13 @@ export const cancelSubscriptionAction = authAction
     }
 
     // Create billing portal session which allows the user to cancel
+    const normalizedReturnUrl = returnUrl.startsWith("http")
+      ? returnUrl
+      : `${getServerUrl()}${returnUrl.startsWith("/") ? "" : "/"}${returnUrl}`;
+
     const stripeBilling = await getStripe().billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${getServerUrl()}${returnUrl}`,
+      return_url: normalizedReturnUrl,
     });
 
     if (!stripeBilling.url) {

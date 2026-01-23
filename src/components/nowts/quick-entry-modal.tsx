@@ -17,6 +17,7 @@ import {
 import { MoodSlider } from "./mood-slider";
 import { useI18n } from "@/i18n/provider";
 import { dialogManager } from "@/features/dialog-manager/dialog-manager";
+import { queueMoodEntry } from "@/features/pwa/offline-queue";
 
 /**
  * QuickEntryModal - Fast mood entry modal (< 30 seconds)
@@ -111,10 +112,36 @@ export function QuickEntryModal() {
   });
 
   const handleSubmit = useCallback(() => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (isEditing) {
+        toast.error("Modification hors ligne non disponible");
+        return;
+      }
+      queueMoodEntry({ value, note: note.trim() || undefined });
+      toast.success("Enregistrement hors ligne. Synchronisation automatique.");
+      setValue(5);
+      setNote("");
+      close();
+      void queryClient.invalidateQueries({ queryKey: ["moodEntries"] });
+      return;
+    }
+
     saveMutation.mutate();
-  }, [saveMutation]);
+  }, [
+    close,
+    isEditing,
+    note,
+    queryClient,
+    saveMutation,
+    value,
+  ]);
 
   const handleDelete = useCallback(() => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("Suppression hors ligne non disponible");
+      return;
+    }
+
     dialogManager.confirm({
       title: t("mood.entry.deleteTitle"),
       description: t("mood.entry.deleteDescription"),

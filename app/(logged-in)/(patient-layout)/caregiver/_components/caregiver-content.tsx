@@ -1,26 +1,56 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users,
   Eye,
   AlertTriangle,
   Clock,
   Plus,
-  MessageSquare,
   ChevronRight,
   UserPlus,
   Activity,
   Shield,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   GlassCard,
   GlassCardBadge,
@@ -41,6 +71,10 @@ import {
 import {
   getCaregiverActivity,
   getCaregiverSummary,
+  getMyCaregivers,
+  getMyPatients,
+  inviteCaregiver,
+  removeCaregiverRelationship,
 } from "@/features/caregiver/caregiver.action";
 import { useI18n } from "@/i18n/provider";
 
@@ -51,25 +85,102 @@ type CaregiverSummary = {
   concerningEvents: number;
 };
 
+const roleLabels: Record<string, string> = {
+  family: "Famille",
+  friend: "Ami(e)",
+  professional: "Professionnel",
+};
+
 export function CaregiverContent() {
   const { locale } = useI18n();
   const lang = locale === "fr" ? "fr" : "en";
+  const queryClient = useQueryClient();
+
+  // Invite dialog state
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<
+    "family" | "friend" | "professional"
+  >("family");
+  const [inviteLabel, setInviteLabel] = useState("");
+
+  const { data: patients, isLoading: patientsLoading } = useQuery({
+    queryKey: ["my-patients"],
+    queryFn: async () => {
+      const result = await getMyPatients();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
+
+  const hasPatients = (patients?.length ?? 0) > 0;
+  const activityMode = hasPatients ? "caregiver" : "patient";
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["caregiver-summary"],
+    queryKey: ["caregiver-summary", activityMode],
     queryFn: async () => {
-      const result = await getCaregiverSummary();
+      const result = await getCaregiverSummary({ mode: activityMode });
       if (result.serverError) throw new Error(result.serverError);
       return result.data as CaregiverSummary;
     },
   });
 
   const { data: activity, isLoading: activityLoading } = useQuery({
-    queryKey: ["caregiver-activity"],
+    queryKey: ["caregiver-activity", activityMode],
     queryFn: async () => {
-      const result = await getCaregiverActivity({ days: 30, limit: 10 });
+      const result = await getCaregiverActivity({
+        days: 30,
+        limit: 10,
+        mode: activityMode,
+      });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
+    },
+  });
+
+  const { data: caregivers, isLoading: caregiversLoading } = useQuery({
+    queryKey: ["my-caregivers"],
+    queryFn: async () => {
+      const result = await getMyCaregivers();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const result = await inviteCaregiver({
+        email: inviteEmail,
+        role: inviteRole,
+        label: inviteLabel || undefined,
+      });
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Invitation envoyée !");
+      setInviteDialogOpen(false);
+      setInviteEmail("");
+      setInviteLabel("");
+      void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (relationshipId: string) => {
+      const result = await removeCaregiverRelationship({ relationshipId });
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Aidant retiré du cercle");
+      void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -233,7 +344,10 @@ export function CaregiverContent() {
           <ChevronRight className="ml-auto size-5 text-gray-300 transition-transform group-hover:translate-x-1" />
         </Link>
 
-        <button className="glass-card group flex items-center gap-4 rounded-2xl p-5 transition-all hover:bg-white hover:shadow-md">
+        <button
+          className="glass-card group flex items-center gap-4 rounded-2xl p-5 transition-all hover:bg-white hover:shadow-md"
+          onClick={() => setInviteDialogOpen(true)}
+        >
           <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--lavender)]/20 text-[var(--lavender-dark)] transition-all group-hover:bg-[var(--lavender-dark)] group-hover:text-white">
             <UserPlus className="size-6" />
           </div>
@@ -446,6 +560,54 @@ export function CaregiverContent() {
 
         {/* Side Panel */}
         <div className="space-y-6 lg:col-span-4">
+          {/* My Patients (caregiver view) */}
+          {(patientsLoading || hasPatients) && (
+            <GlassCard padding="md" variant="elevated">
+              <GlassCardHeader>
+                <GlassCardTitle
+                  icon={<Users className="size-5 text-[var(--primary)]" />}
+                >
+                  Mes patients
+                </GlassCardTitle>
+              </GlassCardHeader>
+
+              <GlassCardContent className="space-y-4">
+                {patientsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(2)].map((_, i) => (
+                      <Skeleton key={i} className="h-14 rounded-xl" />
+                    ))}
+                  </div>
+                ) : patients && patients.length > 0 ? (
+                  patients.map((patient) => (
+                    <div key={patient.id} className="flex items-center gap-3">
+                      <Avatar className="size-12 border-2 border-white shadow-sm">
+                        <AvatarImage src={patient.patientImage ?? undefined} />
+                        <AvatarFallback className="bg-[var(--primary)]/10 text-[var(--primary)]">
+                          {patient.patientName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-grow">
+                        <p className="font-bold text-gray-800">
+                          {patient.patientName}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {patient.patientEmail}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-4 text-center">
+                    <p className="text-sm text-gray-500">
+                      Aucun patient assigné
+                    </p>
+                  </div>
+                )}
+              </GlassCardContent>
+            </GlassCard>
+          )}
+
           {/* My Care Circle */}
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>
@@ -457,46 +619,86 @@ export function CaregiverContent() {
             </GlassCardHeader>
 
             <GlassCardContent className="space-y-4">
-              {/* Demo caregivers */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Avatar className="size-12 border-2 border-white shadow-sm">
-                    <AvatarFallback className="bg-[var(--primary)]/10 text-[var(--primary)]">
-                      M
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white bg-[var(--sage)]" />
+              {caregiversLoading ? (
+                <div className="space-y-3">
+                  {[...Array(2)].map((_, i) => (
+                    <Skeleton key={i} className="h-14 rounded-xl" />
+                  ))}
                 </div>
-                <div className="flex-grow">
-                  <p className="font-bold text-gray-800">Marie (Maman)</p>
-                  <p className="text-xs text-gray-400">Connectée il y a 2h</p>
-                </div>
-                <button className="flex size-9 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]">
-                  <MessageSquare className="size-4" />
-                </button>
-              </div>
+              ) : caregivers && caregivers.length > 0 ? (
+                caregivers.map((caregiver) => {
+                  const displayName =
+                    caregiver.label ||
+                    caregiver.caregiverName ||
+                    caregiver.caregiverEmail ||
+                    "Aidant";
 
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Avatar className="size-12 border-2 border-white shadow-sm">
-                    <AvatarFallback className="bg-[var(--lavender)]/20 text-[var(--lavender-dark)]">
-                      D
-                    </AvatarFallback>
-                  </Avatar>
+                  return (
+                    <div key={caregiver.id} className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="size-12 border-2 border-white shadow-sm">
+                          <AvatarImage
+                            src={caregiver.caregiverImage ?? undefined}
+                          />
+                          <AvatarFallback className="bg-[var(--primary)]/10 text-[var(--primary)]">
+                            {displayName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {caregiver.status === "active" && (
+                          <span className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white bg-[var(--sage)]" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-grow">
+                        <p className="font-bold text-gray-800">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {roleLabels[caregiver.role] || caregiver.role}
+                          {caregiver.status === "pending" && " • En attente"}
+                        </p>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="flex size-9 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500">
+                            <Trash2 className="size-4" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Retirer cet aidant ?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {displayName} n&apos;aura plus accès à vos données.
+                              Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => removeMutation.mutate(caregiver.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              Retirer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-4 text-center">
+                  <p className="text-sm text-gray-500">
+                    Aucun aidant dans votre cercle
+                  </p>
                 </div>
-                <div className="flex-grow">
-                  <p className="font-bold text-gray-800">Dr. Dupont</p>
-                  <p className="text-xs text-gray-400">Psychiatre</p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="rounded-lg border-[var(--sage)]/30 bg-[var(--sage)]/10 text-[10px] font-bold text-[var(--sage-dark)]"
-                >
-                  Lecture seule
-                </Badge>
-              </div>
+              )}
 
-              <button className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]">
+              <button
+                onClick={() => setInviteDialogOpen(true)}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
                 <UserPlus className="size-4" />
                 Inviter un aidant
               </button>
@@ -529,6 +731,74 @@ export function CaregiverContent() {
           </GlassCard>
         </div>
       </div>
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inviter un aidant</DialogTitle>
+            <DialogDescription>
+              Envoyez une invitation à un proche ou un professionnel pour
+              qu&apos;il puisse suivre votre parcours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="email@exemple.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-role">Type d&apos;aidant</Label>
+              <Select
+                value={inviteRole}
+                onValueChange={(v) =>
+                  setInviteRole(v as "family" | "friend" | "professional")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family">Famille</SelectItem>
+                  <SelectItem value="friend">Ami(e)</SelectItem>
+                  <SelectItem value="professional">
+                    Professionnel de santé
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-label">Surnom (optionnel)</Label>
+              <Input
+                id="invite-label"
+                placeholder="Ex: Maman, Dr. Martin..."
+                value={inviteLabel}
+                onChange={(e) => setInviteLabel(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setInviteDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => inviteMutation.mutate()}
+              disabled={!inviteEmail || inviteMutation.isPending}
+            >
+              {inviteMutation.isPending ? "Envoi..." : "Envoyer l'invitation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,9 +10,15 @@ import { LogOut } from "lucide-react";
 export const UserDropdownLogout = () => {
   const { t } = useI18n();
   const logout = useMutation({
-    mutationFn: async () => signOut(),
-    onSuccess: () => {
-      window.location.href = "/";
+    mutationFn: async () => {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            // Le callback se déclenche après la suppression du cookie côté serveur
+            window.location.href = "/";
+          },
+        },
+      });
     },
   });
 

@@ -27,6 +27,9 @@ export const getMoodChartData = authAction
         id: true,
         value: true,
         note: true,
+        energy: true,
+        sleepHours: true,
+        anxiety: true,
         createdAt: true,
       },
     });
@@ -45,11 +48,37 @@ export const getMoodChartData = authAction
       orderBy: { changedAt: "asc" },
     });
 
+    // Medication adherence for the same period
+    const medications = await prisma.medication.findMany({
+      where: {
+        userId: user.id,
+        isArchived: false,
+        frequency: { not: "prn" },
+      },
+      include: {
+        intakes: {
+          where: {
+            takenAt: { gte: since },
+            skipped: false,
+          },
+        },
+      },
+    });
+
+    const totalMeds = medications.length;
+    const taken = medications.reduce((sum, m) => sum + m.intakes.length, 0);
+    const expected = totalMeds * days;
+    const adherencePercent =
+      expected > 0 ? Math.min(100, Math.round((taken / expected) * 100)) : null;
+
     return {
       moodEntries: moodEntries.map((entry) => ({
         id: entry.id,
         value: entry.value,
         note: entry.note,
+        energy: entry.energy,
+        sleepHours: entry.sleepHours,
+        anxiety: entry.anxiety,
         date: entry.createdAt.toISOString(),
       })),
       dosageChanges: dosageChanges.map((change) => ({
@@ -59,6 +88,7 @@ export const getMoodChartData = authAction
         newDosage: change.dosage,
         date: change.changedAt.toISOString(),
       })),
+      medicationAdherence: adherencePercent,
     };
   });
 
@@ -76,19 +106,79 @@ export const getDashboardSummary = authAction.action(
     const startOfMonth = new Date(now);
     startOfMonth.setDate(now.getDate() - 30);
 
-    // Mood data (last 7 days for mini chart)
+    // Previous week for trend calculation
+    const startOfPrevWeek = new Date(now);
+    startOfPrevWeek.setDate(now.getDate() - 14);
+
+    // Mood data (last 7 days for mini chart) - with sleep data
     const moodEntries = await prisma.moodEntry.findMany({
       where: {
         userId: user.id,
         createdAt: { gte: startOfWeek },
       },
       orderBy: { createdAt: "asc" },
-      select: { value: true, createdAt: true },
+      select: {
+        value: true,
+        createdAt: true,
+        sleepHours: true,
+        sleepQuality: true,
+        energy: true,
+      },
+    });
+
+    // Previous week mood entries for trend
+    const prevWeekMoodEntries = await prisma.moodEntry.findMany({
+      where: {
+        userId: user.id,
+        createdAt: { gte: startOfPrevWeek, lt: startOfWeek },
+      },
+      select: { value: true },
     });
 
     const weeklyMoodAvg =
       moodEntries.length > 0
         ? moodEntries.reduce((sum, e) => sum + e.value, 0) / moodEntries.length
+        : null;
+
+    const prevWeekMoodAvg =
+      prevWeekMoodEntries.length > 0
+        ? prevWeekMoodEntries.reduce((sum, e) => sum + e.value, 0) /
+          prevWeekMoodEntries.length
+        : null;
+
+    // Calculate trend percentage
+    let trendPercent: number | null = null;
+    if (
+      weeklyMoodAvg !== null &&
+      prevWeekMoodAvg !== null &&
+      prevWeekMoodAvg > 0
+    ) {
+      trendPercent = Math.round(
+        ((weeklyMoodAvg - prevWeekMoodAvg) / prevWeekMoodAvg) * 100,
+      );
+    }
+
+    // Sleep data aggregation
+    const entriesWithSleep = moodEntries.filter((e) => e.sleepHours !== null);
+    const avgSleepHours =
+      entriesWithSleep.length > 0
+        ? entriesWithSleep.reduce((sum, e) => sum + (e.sleepHours ?? 0), 0) /
+          entriesWithSleep.length
+        : null;
+
+    // Latest sleep quality
+    const latestWithSleep = moodEntries
+      .filter((e) => e.sleepHours !== null)
+      .pop();
+
+    // Energy average
+    const entriesWithEnergy = moodEntries.filter((e) => e.energy !== null);
+    const avgEnergy =
+      entriesWithEnergy.length > 0
+        ? Math.round(
+            entriesWithEnergy.reduce((sum, e) => sum + (e.energy ?? 0), 0) /
+              entriesWithEnergy.length,
+          )
         : null;
 
     // Medication adherence
@@ -163,10 +253,17 @@ export const getDashboardSummary = authAction.action(
         weeklyAverage: weeklyMoodAvg
           ? Math.round(weeklyMoodAvg * 10) / 10
           : null,
+        trendPercent,
         entries: moodEntries.map((e) => ({
           value: e.value,
           date: e.createdAt.toISOString(),
         })),
+      },
+      sleep: {
+        avgHours: avgSleepHours ? Math.round(avgSleepHours * 10) / 10 : null,
+        latestQuality: latestWithSleep?.sleepQuality ?? null,
+        latestHours: latestWithSleep?.sleepHours ?? null,
+        avgEnergy,
       },
       medications: {
         totalActive: totalMeds,
@@ -379,3 +476,89 @@ export const getPatternInsights = authAction.action(
     return insights;
   },
 );
+
+// ===== Streak Data =====
+
+export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+
+  // Get all mood entries from the last 90 days
+  const since = new Date(now);
+  since.setDate(since.getDate() - 90);
+  since.setHours(0, 0, 0, 0);
+
+  const moodEntries = await prisma.moodEntry.findMany({
+    where: {
+      userId: user.id,
+      createdAt: { gte: since },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+
+  // Create a set of days with entries (YYYY-MM-DD format)
+  const daysWithEntries = new Set<string>();
+  for (const entry of moodEntries) {
+    const dateStr = entry.createdAt.toISOString().split("T")[0];
+    daysWithEntries.add(dateStr);
+  }
+
+  // Calculate current streak (consecutive days ending today or yesterday)
+  let streakDays = 0;
+  const checkDate = new Date(now);
+
+  // Check if today has an entry, if not start from yesterday
+  const todayStr = checkDate.toISOString().split("T")[0] ?? "";
+  if (!daysWithEntries.has(todayStr)) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  // Count consecutive days (max 90 days to prevent infinite loop)
+  let counting = true;
+  let maxIterations = 90;
+  while (counting && maxIterations > 0) {
+    const dateStr = checkDate.toISOString().split("T")[0];
+    if (dateStr && daysWithEntries.has(dateStr)) {
+      streakDays++;
+      checkDate.setDate(checkDate.getDate() - 1);
+      maxIterations--;
+    } else {
+      counting = false;
+    }
+  }
+
+  // Get week progress (last 7 days, 1 = has entry, 0 = no entry)
+  const weekProgress: (0 | 1)[] = [];
+  const weekDate = new Date(now);
+  weekDate.setDate(weekDate.getDate() - 6); // Start from 6 days ago
+
+  for (let i = 0; i < 7; i++) {
+    const dateStr = weekDate.toISOString().split("T")[0];
+    weekProgress.push(daysWithEntries.has(dateStr) ? 1 : 0);
+    weekDate.setDate(weekDate.getDate() + 1);
+  }
+
+  // Generate subtitle based on streak
+  let subtitle = "";
+  if (streakDays >= 30) {
+    subtitle = `Incroyable ! ${streakDays} jours de suivi consécutifs. Votre engagement est exemplaire.`;
+  } else if (streakDays >= 14) {
+    subtitle = `Excellent rythme ! Votre suivi est complet depuis ${Math.floor(streakDays / 7)} semaines.`;
+  } else if (streakDays >= 7) {
+    subtitle = `Une semaine complète ! Continuez sur cette lancée.`;
+  } else if (streakDays >= 3) {
+    subtitle = `Bon début ! ${streakDays} jours de suite, continuez !`;
+  } else if (streakDays === 0) {
+    subtitle = `Commencez votre streak en enregistrant votre humeur aujourd'hui.`;
+  } else {
+    subtitle = `${streakDays} jour${streakDays > 1 ? "s" : ""} - chaque jour compte !`;
+  }
+
+  return {
+    streakDays,
+    weekProgress,
+    subtitle,
+    hasEntryToday: daysWithEntries.has(todayStr),
+  };
+});

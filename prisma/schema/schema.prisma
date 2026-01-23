@@ -39,6 +39,7 @@ model MoodEntry {
   energy       Int?      // 1-10 energy level
   sleepHours   Float?    // Hours of sleep
   sleepQuality String?   // "bad" | "average" | "good"
+  sleepDisturbances String[] @default([]) // "nightmares" | "multiple_awakenings" | etc.
   anxiety      Int?      // 1-10 anxiety level
   tags         String[]  @default([]) // Context tags (work, family, etc.)
   sideEffects  String[]  @default([]) // Medication side effects
@@ -182,17 +183,42 @@ model UserPreferences {
 
   // Display preferences
   defaultChartPeriod Int @default(30) // 7, 30, 90 days
+  timezone String? // IANA timezone (e.g. "Europe/Paris")
+  theme    String? // "light" | "dark" | "system" | "zen"
 
   // Notification preferences (for future PWA)
   notificationsEnabled   Boolean @default(true)
   dailyCheckInReminder   Boolean @default(true)
   dailyCheckInTime       String  @default("09:00") // HH:mm format
   medicationReminders    Boolean @default(true)
+  medicationReminderTime String  @default("09:00") // HH:mm format
+  lastDailyCheckInSentDate      String?
+  lastMedicationReminderSentDate String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("user_preferences")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PUSH NOTIFICATIONS (PWA)
+// ═══════════════════════════════════════════════════════════════
+
+model PushSubscription {
+  id             String   @id @default(cuid())
+  userId         String
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
+  expirationTime DateTime?
+  userAgent      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("push_subscription")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -244,4 +270,37 @@ model CaregiverEvent {
   @@index([subjectId])
   @@index([eventDate])
   @@map("caregiver_event")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAREGIVER RELATIONSHIPS (Système d'invitation aidants)
+// ═══════════════════════════════════════════════════════════════
+
+model CaregiverRelationship {
+  id          String @id @default(cuid())
+  patientId   String // The patient (person being cared for)
+  caregiverId String? // The caregiver (family member, professional, etc.)
+  caregiverEmail String // Email used for invitation / lookup
+
+  role        String   // "family" | "friend" | "professional"
+  label       String?  // Custom label like "Maman", "Dr. Dupont"
+  permissions String[] @default([]) // ["view_mood", "view_medications", "add_observations", etc.]
+  status      String   @default("pending") // "pending" | "active" | "declined"
+
+  inviteToken  String?   @unique // For invitation system
+  inviteExpiry DateTime? // When the invite expires
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient   User  @relation("PatientRelations", fields: [patientId], references: [id], onDelete: Cascade)
+  caregiver User? @relation("CaregiverRelations", fields: [caregiverId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, caregiverId])
+  @@unique([patientId, caregiverEmail])
+  @@index([patientId])
+  @@index([caregiverId])
+  @@index([caregiverEmail])
+  @@index([inviteToken])
+  @@map("caregiver_relationship")
 }

@@ -35,6 +35,7 @@ import {
   logMedIntake,
 } from "@/features/medication/medication.action";
 import { useI18n } from "@/i18n/provider";
+import { queueAction } from "@/features/pwa/offline-actions";
 
 const FREQUENCY_LABELS: Record<string, string> = {
   daily: "1x/jour",
@@ -71,11 +72,19 @@ export function MedicationsContent() {
 
   const intakeMutation = useMutation({
     mutationFn: async ({ medicationId }: { medicationId: string }) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        queueAction({ type: "med_intake", medicationId });
+        return { queued: true };
+      }
       const result = await logMedIntake({ medicationId });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if ((result as { queued?: boolean })?.queued) {
+        toast.success("Prise enregistrée hors ligne.");
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: ["medications"] });
       toast.success("Prise enregistrée !");
     },

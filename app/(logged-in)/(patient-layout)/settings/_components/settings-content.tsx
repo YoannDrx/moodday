@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageFormItem } from "@/features/images/image-form-item";
 import {
   GlassCard,
   GlassCardContent,
@@ -47,8 +47,31 @@ import {
   updateDisplayPreferences,
   updateNotificationPreferences,
 } from "@/features/preferences/preferences.action";
+import {
+  updateProfile,
+  deleteAccount,
+  exportUserData,
+  getSubscriptionSummary,
+} from "@/features/profile/profile.action";
 import { useI18n } from "@/i18n/provider";
-import { useSession } from "@/lib/auth-client";
+import { useSession, signOut } from "@/lib/auth-client";
+import { useTheme } from "next-themes";
+import { resolveActionResult } from "@/lib/actions/actions-utils";
+import {
+  cancelSubscriptionAction,
+  openStripePortalAction,
+} from "@app/(logged-in)/(account-layout)/account/billing/billing.action";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type TabKey =
   | "profile"
@@ -69,7 +92,14 @@ export function SettingsContent() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const { theme: activeTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
+  const [profileName, setProfileName] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState(
+    () =>
+      Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Paris",
+  );
 
   const { data: preferences, isLoading } = useQuery({
     queryKey: ["user-preferences"],
@@ -80,8 +110,85 @@ export function SettingsContent() {
     },
   });
 
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription-summary"],
+    queryFn: async () => {
+      const result = await getSubscriptionSummary();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+  });
+
+  // Initialize profile data from session/preferences
+  const user = session?.user;
+  useEffect(() => {
+    if (user?.name) {
+      setProfileName(user.name);
+    }
+  }, [user?.name]);
+
+  useEffect(() => {
+    if (user?.image !== undefined) {
+      setProfileImage(user.image ?? null);
+    }
+  }, [user?.image]);
+
+  useEffect(() => {
+    if (preferences?.timezone) {
+      setTimezone(preferences.timezone);
+    }
+  }, [preferences?.timezone]);
+
+  useEffect(() => {
+    if (preferences?.theme && preferences.theme !== activeTheme) {
+      setTheme(preferences.theme);
+    }
+  }, [preferences?.theme, activeTheme, setTheme]);
+
+  const selectedTheme = preferences?.theme ?? activeTheme ?? "light";
+  const timezoneOptions = [
+    "Europe/Paris",
+    "Europe/London",
+    "America/New_York",
+  ];
+  const timezoneLabels: Record<string, string> = {
+    "Europe/Paris": "Europe/Paris (UTC+1)",
+    "Europe/London": "Europe/London (UTC)",
+    "America/New_York": "America/New_York (UTC-5)",
+  };
+  const resolvedTimezoneOptions = timezoneOptions.includes(timezone)
+    ? timezoneOptions
+    : [timezone, ...timezoneOptions];
+
+  const subscriptionLabel = subscription?.plan
+    ? `Plan ${subscription.plan}`
+    : "Plan gratuit";
+  const statusLabels: Record<string, string> = {
+    active: "actif",
+    trialing: "essai",
+    past_due: "paiement en retard",
+    canceled: "annulé",
+    incomplete: "incomplet",
+  };
+  const subscriptionStatusLabel = subscription?.status
+    ? statusLabels[subscription.status] ?? subscription.status
+    : "inactif";
+  const renewalDate = subscription?.periodEnd
+    ? new Date(subscription.periodEnd)
+    : null;
+  const renewalText = renewalDate
+    ? `Prochain renouvellement : ${renewalDate.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })}`
+    : "Aucun abonnement actif";
+
   const displayMutation = useMutation({
-    mutationFn: async (data: { defaultChartPeriod?: number }) => {
+    mutationFn: async (data: {
+      defaultChartPeriod?: number;
+      theme?: "light" | "dark" | "system" | "zen";
+    }) => {
       const result = await updateDisplayPreferences(data);
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
@@ -101,6 +208,7 @@ export function SettingsContent() {
       dailyCheckInReminder?: boolean;
       dailyCheckInTime?: string;
       medicationReminders?: boolean;
+      medicationReminderTime?: string;
     }) => {
       const result = await updateNotificationPreferences(data);
       if (result.serverError) throw new Error(result.serverError);
@@ -115,7 +223,98 @@ export function SettingsContent() {
     },
   });
 
-  const user = session?.user;
+  const profileMutation = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      timezone?: string;
+      image?: string | null;
+    }) => {
+      const result = await updateProfile(data);
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success(t("settings.saved"));
+      // Reload session to get updated user data
+      window.location.reload();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const result = await deleteAccount();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: async () => {
+      toast.success("Compte supprimé");
+      await signOut();
+      window.location.href = "/";
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const portalMutation = useMutation({
+    mutationFn: async () => {
+      const result = await resolveActionResult(openStripePortalAction());
+      return result;
+    },
+    onSuccess: (data) => {
+      if (!data?.url) return;
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const returnUrl = `${window.location.origin}/account/billing`;
+      const result = await resolveActionResult(
+        cancelSubscriptionAction({ returnUrl }),
+      );
+      return result;
+    },
+    onSuccess: (data) => {
+      if (!data?.url) return;
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const result = await exportUserData();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: (data) => {
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `moodday-export-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Données exportées !");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-8">
@@ -190,69 +389,82 @@ export function SettingsContent() {
 
                   <GlassCardContent className="space-y-6">
                     {/* Avatar Section */}
-                    <div className="flex items-center gap-6">
-                      <Avatar className="size-20 border-4 border-white shadow-lg">
-                        <AvatarImage src={user?.image ?? undefined} />
-                        <AvatarFallback className="bg-[var(--primary)]/10 text-2xl text-[var(--primary)]">
-                          {(user?.name ?? "U")[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-800">
-                          {user?.name ?? "Utilisateur"}
-                        </h3>
-                        <p className="text-gray-500">{user?.email}</p>
-                        <button className="mt-2 text-sm font-medium text-[var(--primary)] hover:underline">
-                          Modifier la photo
-                        </button>
-                      </div>
-                    </div>
+                    {(() => {
+                      const displayName =
+                        profileName.length > 0
+                          ? profileName
+                          : (user?.name ?? "Utilisateur");
+                      return (
+                        <div className="flex items-center gap-6">
+                          <ImageFormItem
+                            className="size-20 rounded-full border-4 border-white shadow-lg"
+                            imageUrl={profileImage ?? user?.image ?? null}
+                            onChange={(url) => setProfileImage(url)}
+                          />
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-800">
+                              {displayName}
+                            </h3>
+                            <p className="text-gray-500">{user?.email}</p>
+                            <p className="mt-2 text-sm text-gray-400">
+                              Cliquez pour changer la photo
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Form Fields */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label className="text-gray-600">Prénom</Label>
-                        <Input
-                          value={(user?.name ?? "").split(" ")[0]}
-                          className="rounded-xl border-gray-200"
-                          disabled
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-gray-600">Nom</Label>
-                        <Input
-                          value={(user?.name ?? "")
-                            .split(" ")
-                            .slice(1)
-                            .join(" ")}
-                          className="rounded-xl border-gray-200"
-                          disabled
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label className="text-gray-600">Nom complet</Label>
+                      <Input
+                        value={
+                          profileName.length > 0
+                            ? profileName
+                            : (user?.name ?? "")
+                        }
+                        onChange={(e) => setProfileName(e.target.value)}
+                        placeholder="Votre nom"
+                        className="rounded-xl border-gray-200"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-gray-600">Fuseau horaire</Label>
-                      <Select defaultValue="Europe/Paris">
+                      <Select
+                        value={timezone}
+                        onValueChange={(value) => setTimezone(value)}
+                      >
                         <SelectTrigger className="rounded-xl border-gray-200">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Europe/Paris">
-                            Europe/Paris (UTC+1)
-                          </SelectItem>
-                          <SelectItem value="Europe/London">
-                            Europe/London (UTC)
-                          </SelectItem>
-                          <SelectItem value="America/New_York">
-                            America/New_York (UTC-5)
-                          </SelectItem>
+                          {resolvedTimezoneOptions.map((tz) => (
+                            <SelectItem key={tz} value={tz}>
+                              {timezoneLabels[tz] ?? tz}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <Button className="shadow-soft rounded-2xl bg-[var(--primary)] px-8 font-bold text-white hover:bg-[var(--primary-dark)]">
-                      Enregistrer les modifications
+                    <Button
+                      onClick={() =>
+                        profileMutation.mutate({
+                          name:
+                            profileName.length > 0
+                              ? profileName
+                              : (user?.name ?? ""),
+                          timezone,
+                          image: profileImage ?? undefined,
+                        })
+                      }
+                      disabled={profileMutation.isPending}
+                      className="shadow-soft rounded-2xl bg-[var(--primary)] px-8 font-bold text-white hover:bg-[var(--primary-dark)]"
+                    >
+                      {profileMutation.isPending
+                        ? "Enregistrement..."
+                        : "Enregistrer les modifications"}
                     </Button>
                   </GlassCardContent>
                 </GlassCard>
@@ -368,6 +580,30 @@ export function SettingsContent() {
                             }
                           />
                         </div>
+                        {preferences.medicationReminders && (
+                          <div className="ml-16 space-y-2">
+                            <Label className="text-gray-600">
+                              {t(
+                                "settings.notifications.medicationReminderTime",
+                              )}
+                            </Label>
+                            <Input
+                              type="time"
+                              value={preferences.medicationReminderTime ?? "09:00"}
+                              onChange={(e) =>
+                                notificationMutation.mutate({
+                                  medicationReminderTime: e.target.value,
+                                })
+                              }
+                              className="w-32 rounded-xl border-gray-200"
+                            />
+                            <p className="text-sm text-gray-400">
+                              {t(
+                                "settings.notifications.medicationReminderTimeHint",
+                              )}
+                            </p>
+                          </div>
+                        )}
                       </>
                     )}
                   </GlassCardContent>
@@ -412,12 +648,24 @@ export function SettingsContent() {
                           },
                         ].map((theme) => {
                           const Icon = theme.icon;
+                          const isActive = selectedTheme === theme.id;
                           return (
                             <button
                               key={theme.id}
+                              type="button"
+                              onClick={() => {
+                                setTheme(theme.id);
+                                displayMutation.mutate({
+                                  theme: theme.id as
+                                    | "light"
+                                    | "dark"
+                                    | "system"
+                                    | "zen",
+                                });
+                              }}
                               className={cn(
                                 "flex flex-col items-center gap-3 rounded-2xl border-2 p-6 transition-all",
-                                theme.id === "light"
+                                isActive
                                   ? "border-[var(--primary)] bg-[var(--primary)]/5"
                                   : "border-gray-200 hover:border-gray-300",
                               )}
@@ -490,42 +738,94 @@ export function SettingsContent() {
                     </GlassCardHeader>
 
                     <GlassCardContent className="space-y-4">
-                      <Link
-                        href="/export"
-                        className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+                      <button
+                        onClick={() => exportMutation.mutate()}
+                        disabled={exportMutation.isPending}
+                        className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm disabled:opacity-50"
                       >
                         <div className="flex items-center gap-4">
                           <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--sage)]/10 text-[var(--sage)]">
                             <Download className="size-6" />
                           </div>
-                          <div>
+                          <div className="text-left">
                             <p className="font-bold text-gray-800">
-                              Exporter mes données
+                              {exportMutation.isPending
+                                ? "Export en cours..."
+                                : "Exporter mes données (JSON)"}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Téléchargez toutes vos données au format JSON/PDF
+                              Téléchargez toutes vos données au format JSON
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="size-5 text-gray-400" />
+                      </button>
+
+                      <Link
+                        href="/export"
+                        className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
+                            <Download className="size-6" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-bold text-gray-800">
+                              Exporter en PDF
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Générez un rapport PDF pour votre médecin
                             </p>
                           </div>
                         </div>
                         <ChevronRight className="size-5 text-gray-400" />
                       </Link>
 
-                      <button className="flex w-full items-center justify-between rounded-2xl border border-red-200 bg-red-50/50 p-4 transition-all hover:bg-red-100/50">
-                        <div className="flex items-center gap-4">
-                          <div className="flex size-12 items-center justify-center rounded-xl bg-red-100 text-red-500">
-                            <Trash2 className="size-6" />
-                          </div>
-                          <div className="text-left">
-                            <p className="font-bold text-red-700">
-                              Supprimer mon compte
-                            </p>
-                            <p className="text-sm text-red-600">
-                              Cette action est irréversible
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight className="size-5 text-red-400" />
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="flex w-full items-center justify-between rounded-2xl border border-red-200 bg-red-50/50 p-4 transition-all hover:bg-red-100/50">
+                            <div className="flex items-center gap-4">
+                              <div className="flex size-12 items-center justify-center rounded-xl bg-red-100 text-red-500">
+                                <Trash2 className="size-6" />
+                              </div>
+                              <div className="text-left">
+                                <p className="font-bold text-red-700">
+                                  Supprimer mon compte
+                                </p>
+                                <p className="text-sm text-red-600">
+                                  Cette action est irréversible
+                                </p>
+                              </div>
+                            </div>
+                            <ChevronRight className="size-5 text-red-400" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Supprimer votre compte ?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est irréversible. Toutes vos données
+                              seront définitivement supprimées : entrées
+                              d&apos;humeur, médicaments, séances de thérapie,
+                              exercices et observations.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate()}
+                              disabled={deleteMutation.isPending}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              {deleteMutation.isPending
+                                ? "Suppression..."
+                                : "Supprimer définitivement"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </GlassCardContent>
                   </GlassCard>
 
@@ -576,16 +876,16 @@ export function SettingsContent() {
                     <div className="rounded-2xl border border-[var(--primary)]/20 bg-white p-6 text-center">
                       <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--primary)]/10 px-4 py-2 text-sm font-bold text-[var(--primary)]">
                         <Sparkles className="size-4" />
-                        Plan Pro
+                        {subscriptionLabel}
                       </div>
-                      <p className="mb-2 text-4xl font-bold text-gray-800">
-                        9,99€
-                        <span className="text-lg font-normal text-gray-500">
-                          /mois
+                      <p className="mb-2 text-sm font-semibold text-gray-700">
+                        Statut :{" "}
+                        <span className="capitalize">
+                          {subscriptionStatusLabel}
                         </span>
                       </p>
                       <p className="text-sm text-gray-500">
-                        Prochain renouvellement : 15 février 2026
+                        {renewalText}
                       </p>
                     </div>
 
@@ -618,14 +918,20 @@ export function SettingsContent() {
                       <Button
                         variant="outline"
                         className="flex-1 rounded-xl border-gray-200"
+                        onClick={() => portalMutation.mutate()}
+                        disabled={!subscription || portalMutation.isPending}
                       >
-                        Changer de plan
+                        {portalMutation.isPending
+                          ? "Redirection..."
+                          : "Changer de plan"}
                       </Button>
                       <Button
                         variant="outline"
                         className="flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                        onClick={() => cancelMutation.mutate()}
+                        disabled={!subscription || cancelMutation.isPending}
                       >
-                        Annuler
+                        {cancelMutation.isPending ? "Redirection..." : "Annuler"}
                       </Button>
                     </div>
                   </GlassCardContent>

@@ -269,6 +269,90 @@
   --sidebar-patient-primary: #3DA5B8;
 }
 
+.zen {
+  /* Zen theme - warm earth tones */
+  --background: #F4F1EA;
+  --foreground: #2F3B33;
+  --card: #FBFAF6;
+  --card-foreground: #2F3B33;
+  --popover: #FBFAF6;
+  --popover-foreground: #2F3B33;
+
+  /* Primary */
+  --primary: #3C8D7C;
+  --primary-foreground: #FFFFFF;
+  --primary-dark: #32796B;
+  --primary-light: #57A38E;
+  --primary-darkest: #275F55;
+
+  /* Secondary */
+  --secondary: #EEE9DD;
+  --secondary-foreground: #2F3B33;
+
+  /* Muted */
+  --muted: #EEE9DD;
+  --muted-foreground: #7A8075;
+
+  /* Accent */
+  --accent: #E3D5C2;
+  --accent-foreground: #2F3B33;
+
+  /* Sage colors */
+  --sage: #5C8B6B;
+  --sage-dark: #4E7C5E;
+  --sage-light: #7FA98D;
+  --sage-foreground: #FFFFFF;
+
+  /* Lavender colors */
+  --lavender: #E3D9CF;
+  --lavender-dark: #CDBFB2;
+
+  /* Warm backgrounds */
+  --warm-bg: #F4F1EA;
+  --warm-panel: #EFE7DB;
+
+  /* Destructive/Emergency */
+  --destructive: #D7605B;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders and inputs */
+  --border: rgba(47, 59, 51, 0.08);
+  --input: rgba(47, 59, 51, 0.08);
+  --ring: #3C8D7C;
+
+  /* Charts - Zen palette */
+  --chart-1: #3C8D7C;
+  --chart-2: #5C8B6B;
+  --chart-3: #CDBFB2;
+  --chart-4: #32796B;
+  --chart-5: #7FA98D;
+
+  /* Sidebar */
+  --sidebar: #F9F6F0;
+  --sidebar-foreground: #2F3B33;
+  --sidebar-primary: #3C8D7C;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(60, 141, 124, 0.1);
+  --sidebar-accent-foreground: #3C8D7C;
+  --sidebar-border: rgba(47, 59, 51, 0.08);
+  --sidebar-ring: #3C8D7C;
+
+  /* Status colors */
+  --success: #5C8B6B;
+  --success-foreground: #FFFFFF;
+
+  --warning: hsl(32deg 90% 55%);
+  --warning-foreground: #2F3B33;
+
+  --info: #3C8D7C;
+  --info-foreground: #FFFFFF;
+
+  /* Patient Sidebar */
+  --sidebar-patient: #F4F1EA;
+  --sidebar-patient-accent: rgba(60, 141, 124, 0.1);
+  --sidebar-patient-primary: #3C8D7C;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -27,6 +27,9 @@ type MoodEntry = {
   id: string;
   value: number;
   note: string | null;
+  energy?: number | null;
+  sleepHours?: number | null;
+  anxiety?: number | null;
   date: string;
 };
 
@@ -45,9 +48,21 @@ type Insight = {
 };
 
 type TrendsContentProps = {
-  chartData7?: { moodEntries: MoodEntry[]; dosageChanges: DosageChange[] };
-  chartData30?: { moodEntries: MoodEntry[]; dosageChanges: DosageChange[] };
-  chartData90?: { moodEntries: MoodEntry[]; dosageChanges: DosageChange[] };
+  chartData7?: {
+    moodEntries: MoodEntry[];
+    dosageChanges: DosageChange[];
+    medicationAdherence?: number | null;
+  };
+  chartData30?: {
+    moodEntries: MoodEntry[];
+    dosageChanges: DosageChange[];
+    medicationAdherence?: number | null;
+  };
+  chartData90?: {
+    moodEntries: MoodEntry[];
+    dosageChanges: DosageChange[];
+    medicationAdherence?: number | null;
+  };
   insights?: Insight[];
 };
 
@@ -92,8 +107,6 @@ export function TrendsContent({
     }
   };
 
-  const currentData = getCurrentChartData();
-
   // Calculate trend
   const calculateTrend = (
     avg1: string,
@@ -109,6 +122,47 @@ export function TrendsContent({
   };
 
   const trend7vs30 = calculateTrend(avg7, avg30);
+
+  const calculateCorrelation = (pairs: Array<[number, number]>) => {
+    if (pairs.length < 3) return null;
+    const meanX = pairs.reduce((sum, [x]) => sum + x, 0) / pairs.length;
+    const meanY = pairs.reduce((sum, [, y]) => sum + y, 0) / pairs.length;
+    let numerator = 0;
+    let sumSqX = 0;
+    let sumSqY = 0;
+    for (const [x, y] of pairs) {
+      const dx = x - meanX;
+      const dy = y - meanY;
+      numerator += dx * dy;
+      sumSqX += dx * dx;
+      sumSqY += dy * dy;
+    }
+    if (sumSqX === 0 || sumSqY === 0) return null;
+    const corr = numerator / Math.sqrt(sumSqX * sumSqY);
+    return Math.round(Math.abs(corr) * 100);
+  };
+
+  const buildPairs = (
+    entries: MoodEntry[] | undefined,
+    key: "sleepHours" | "energy" | "anxiety",
+  ) => {
+    if (!entries) return [];
+    return entries
+      .filter((entry) => entry[key] !== null && entry[key] !== undefined)
+      .map((entry) => [entry.value, entry[key] as number]);
+  };
+
+  const currentData = getCurrentChartData();
+  const sleepCorrelation = calculateCorrelation(
+    buildPairs(currentData?.moodEntries, "sleepHours"),
+  );
+  const energyCorrelation = calculateCorrelation(
+    buildPairs(currentData?.moodEntries, "energy"),
+  );
+  const medicationCorrelation = currentData?.medicationAdherence ?? null;
+
+  const formatPercent = (value: number | null | undefined) =>
+    value === null || value === undefined ? "--" : `${value}%`;
 
   // Insight type colors for new design
   const insightTypeStyles = {
@@ -324,13 +378,15 @@ export function TrendsContent({
                     Sommeil ↔ Humeur
                   </span>
                   <span className="text-lg font-bold text-[var(--lavender-dark)]">
-                    78%
+                    {formatPercent(sleepCorrelation)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--lavender)]/20">
                   <div
                     className="h-full rounded-full bg-[var(--lavender-dark)]"
-                    style={{ width: "78%" }}
+                    style={{
+                      width: sleepCorrelation ? `${sleepCorrelation}%` : "0%",
+                    }}
                   />
                 </div>
               </div>
@@ -341,13 +397,17 @@ export function TrendsContent({
                     Médicaments ↔ Stabilité
                   </span>
                   <span className="text-lg font-bold text-[var(--sage-dark)]">
-                    85%
+                    {formatPercent(medicationCorrelation)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--sage)]/20">
                   <div
                     className="h-full rounded-full bg-[var(--sage)]"
-                    style={{ width: "85%" }}
+                    style={{
+                      width: medicationCorrelation
+                        ? `${medicationCorrelation}%`
+                        : "0%",
+                    }}
                   />
                 </div>
               </div>
@@ -358,13 +418,15 @@ export function TrendsContent({
                     Énergie ↔ Humeur
                   </span>
                   <span className="text-lg font-bold text-[var(--primary)]">
-                    92%
+                    {formatPercent(energyCorrelation)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--primary)]/10">
                   <div
                     className="h-full rounded-full bg-[var(--primary)]"
-                    style={{ width: "92%" }}
+                    style={{
+                      width: energyCorrelation ? `${energyCorrelation}%` : "0%",
+                    }}
                   />
                 </div>
               </div>

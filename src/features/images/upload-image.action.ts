@@ -2,7 +2,7 @@
 
 import { authAction } from "@/lib/actions/safe-actions";
 import { ActionError } from "@/lib/errors/action-error";
-import { fileAdapter } from "@/lib/files/placeholder-adapter";
+import { vercelBlobAdapter } from "@/lib/files/vercel-blob-adapter";
 import { z } from "zod";
 
 export const uploadImageAction = authAction
@@ -36,7 +36,7 @@ export const uploadImageAction = authAction
       throw new ActionError("File too large (max 2mb)");
     }
 
-    const response = await fileAdapter.uploadFile({
+    const response = await vercelBlobAdapter.uploadFile({
       file,
       path: "images",
     });

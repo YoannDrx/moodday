@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BenefitRating } from "@/components/nowts/benefit-rating";
 import { createTherapySession } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
+import { queueAction } from "@/features/pwa/offline-actions";
 
 const formSchema = z.object({
   date: z.date(),
@@ -68,6 +69,18 @@ export function AddTherapySessionForm() {
   });
 
   const onSubmit = (values: FormValues) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      queueAction({
+        type: "therapy_create",
+        date: values.date.toISOString(),
+        notes: values.notes,
+        benefitRating: rating,
+      });
+      toast.success("Seance enregistree hors ligne.");
+      router.push("/therapy");
+      return;
+    }
+
     createMutation.mutate({ ...values, benefitRating: rating });
   };
 

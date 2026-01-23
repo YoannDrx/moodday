@@ -3,7 +3,8 @@ import type en from "./en";
 const fr: typeof en = {
   meta: {
     title: "Moodday",
-    description: "Boilerplate Next.js moderne avec auth, paiements et plus",
+    description:
+      "Journal clinique digital pour suivre votre parcours de santé mentale en toute sérénité",
   },
   language: {
     title: "Langue",
@@ -32,7 +33,7 @@ const fr: typeof en = {
   },
   footer: {
     description:
-      "Boilerplate Next.js moderne pour construire des applications SaaS.",
+      "Journal clinique digital pour suivre votre parcours de santé mentale.",
     product: "Produit",
     blog: "Blog",
     documentation: "Documentation",
@@ -345,6 +346,11 @@ const fr: typeof en = {
         description:
           "Garde une trace de tes médicaments et dosages. Vois les corrélations entre ton traitement et ton humeur.",
       },
+      preferences: {
+        title: "Notifications & aidants",
+        description:
+          "Configure tes rappels et, si tu le souhaites, invite un proche de confiance.",
+      },
       ready: {
         title: "Tu es prêt(e) !",
         description:
@@ -386,6 +392,8 @@ const fr: typeof en = {
       checkInTime: "Heure du rappel",
       medicationReminders: "Rappels médicaments",
       medicationRemindersHint: "Rappels pour prendre tes médicaments",
+      medicationReminderTime: "Heure du rappel médicaments",
+      medicationReminderTimeHint: "Choisissez l'heure des rappels médicaments",
     },
     saved: "Paramètres sauvegardés !",
   },

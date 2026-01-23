@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   Check,
@@ -12,7 +12,6 @@ import {
   Pill,
   Plus,
   PlusCircle,
-  Share,
   Sparkles,
   TrendingUp,
   Users,
@@ -37,20 +36,29 @@ import {
   getDashboardSummary,
   getMoodChartData,
   getPatternInsights,
+  getStreakData,
 } from "@/features/insights/insights.action";
+import {
+  getTodayIntakes,
+  logMedIntake,
+  skipMedIntake,
+} from "@/features/medication/medication.action";
+import { getMyCaregivers } from "@/features/caregiver/caregiver.action";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type DashboardContentProps = {
   userName: string;
 };
 
 export function DashboardContent({ userName }: DashboardContentProps) {
+  const queryClient = useQueryClient();
   const [currentMood, setCurrentMood] = useState(7);
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch dashboard data
-  const { data: _summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: async () => {
       const result = await getDashboardSummary();
@@ -77,6 +85,73 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     },
   });
 
+  // Fetch streak data
+  const { data: streakData, isLoading: streakLoading } = useQuery({
+    queryKey: ["streak-data"],
+    queryFn: async () => {
+      const result = await getStreakData();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+  });
+
+  // Fetch today's medications
+  const {
+    data: medications,
+    isLoading: medicationsLoading,
+    refetch: refetchMedications,
+  } = useQuery({
+    queryKey: ["today-intakes"],
+    queryFn: async () => {
+      const result = await getTodayIntakes({});
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
+
+  const { data: caregivers, isLoading: caregiversLoading } = useQuery({
+    queryKey: ["dashboard-caregivers"],
+    queryFn: async () => {
+      const result = await getMyCaregivers();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
+
+  // Handle medication intake toggle
+  const handleMedIntake = async (medicationId: string, isTaken: boolean) => {
+    try {
+      if (isTaken) {
+        // Already taken, skip for now (could add undo functionality)
+        return;
+      }
+      const result = await logMedIntake({ medicationId });
+      if (result.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
+      toast.success("Prise enregistrée !");
+      void refetchMedications();
+    } catch {
+      toast.error("Une erreur est survenue");
+    }
+  };
+
+  // Handle skip medication
+  const handleSkipMed = async (medicationId: string) => {
+    try {
+      const result = await skipMedIntake({ medicationId });
+      if (result.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
+      toast.success("Prise sautée");
+      void refetchMedications();
+    } catch {
+      toast.error("Une erreur est survenue");
+    }
+  };
+
   // Get today's date formatted
   const today = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -95,6 +170,12 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         return;
       }
       toast.success("Humeur enregistrée !");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
+        queryClient.invalidateQueries({ queryKey: ["streak-data"] }),
+        queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
+      ]);
     } catch {
       toast.error("Une erreur est survenue");
     } finally {
@@ -102,14 +183,10 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     }
   };
 
-  // Mock medications data (would come from API)
-  const medications = [
-    { id: 1, name: "Lamictal", dose: "200mg", taken: true, time: "08:00" },
-    { id: 2, name: "Vitamine D", dose: "1000UI", taken: false, time: "12:00" },
-    { id: 3, name: "Quétiapine", dose: "50mg", taken: false, time: "21:00" },
-  ];
-
-  const takenCount = medications.filter((m) => m.taken).length;
+  // Calculate taken count from real medications data
+  const takenCount =
+    medications?.filter((m) => m.intakes.length > 0 && !m.intakes[0].skipped)
+      .length ?? 0;
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-8 lg:px-6">
@@ -190,53 +267,98 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   Traitements
                 </GlassCardTitle>
                 <GlassCardBadge>
-                  {takenCount}/{medications.length}
+                  {takenCount}/{medications?.length ?? 0}
                 </GlassCardBadge>
               </GlassCardHeader>
 
               <GlassCardContent className="space-y-3">
-                {medications.map((med) => (
-                  <div
-                    key={med.id}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all",
-                      med.taken
-                        ? "border-[var(--sage)]/20 bg-[var(--sage)]/10"
-                        : "border-gray-100 bg-white hover:border-[var(--primary)]/30",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex size-10 items-center justify-center rounded-xl transition-all",
-                        med.taken
-                          ? "bg-[var(--sage)] text-white"
-                          : "bg-gray-50 text-gray-300 group-hover:text-[var(--primary)]",
-                      )}
-                    >
-                      {med.taken ? (
-                        <Check className="size-6" />
-                      ) : (
-                        <Circle className="size-6" />
-                      )}
-                    </div>
-                    <div className="flex-grow">
-                      <p
-                        className={cn(
-                          "text-sm font-bold",
-                          med.taken
-                            ? "text-[var(--sage-dark)]"
-                            : "text-gray-700",
-                        )}
-                      >
-                        {med.name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {med.dose} • {med.time}
-                      </p>
-                    </div>
-                    <ChevronRight className="size-4 text-gray-300" />
+                {medicationsLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-2xl" />
                   </div>
-                ))}
+                ) : medications && medications.length > 0 ? (
+                  medications.slice(0, 3).map((med) => {
+                    const isTaken =
+                      med.intakes.length > 0 && !med.intakes[0].skipped;
+                    const isSkipped =
+                      med.intakes.length > 0 && med.intakes[0].skipped;
+                    return (
+                      <div
+                        key={med.id}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all",
+                          isTaken
+                            ? "border-[var(--sage)]/20 bg-[var(--sage)]/10"
+                            : isSkipped
+                              ? "border-orange-200 bg-orange-50"
+                              : "border-gray-100 bg-white hover:border-[var(--primary)]/30",
+                        )}
+                        onClick={() => void handleMedIntake(med.id, isTaken)}
+                      >
+                        <div
+                          className={cn(
+                            "flex size-10 items-center justify-center rounded-xl transition-all",
+                            isTaken
+                              ? "bg-[var(--sage)] text-white"
+                              : isSkipped
+                                ? "bg-orange-400 text-white"
+                                : "bg-gray-50 text-gray-300 group-hover:text-[var(--primary)]",
+                          )}
+                        >
+                          {isTaken ? (
+                            <Check className="size-6" />
+                          ) : (
+                            <Circle className="size-6" />
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <p
+                            className={cn(
+                              "text-sm font-bold",
+                              isTaken
+                                ? "text-[var(--sage-dark)]"
+                                : "text-gray-700",
+                            )}
+                          >
+                            {med.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {med.dosage} •{" "}
+                            {med.frequency === "daily"
+                              ? "Quotidien"
+                              : med.frequency === "twice_daily"
+                                ? "2x/jour"
+                                : med.frequency}
+                          </p>
+                        </div>
+                        {!isTaken && !isSkipped && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleSkipMed(med.id);
+                            }}
+                            className="rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          >
+                            Passer
+                          </button>
+                        )}
+                        <ChevronRight className="size-4 text-gray-300" />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-4 text-center text-sm text-gray-400">
+                    Aucun traitement configuré.{" "}
+                    <Link
+                      href="/medications/new"
+                      className="text-[var(--primary)] hover:underline"
+                    >
+                      Ajouter un traitement
+                    </Link>
+                  </div>
+                )}
               </GlassCardContent>
 
               <Link
@@ -255,16 +377,41 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 >
                   Sommeil
                 </GlassCardTitle>
-                <span className="rounded-lg bg-[var(--lavender)]/20 px-2 py-1 text-xs font-bold text-[var(--lavender-dark)]">
-                  Moy. 7.5h
-                </span>
+                {summary?.sleep.avgHours && (
+                  <span className="rounded-lg bg-[var(--lavender)]/20 px-2 py-1 text-xs font-bold text-[var(--lavender-dark)]">
+                    Moy. {summary.sleep.avgHours}h
+                  </span>
+                )}
               </GlassCardHeader>
 
               <div className="mb-4 rounded-2xl border border-gray-50 bg-white p-5 text-center">
-                <p className="text-4xl font-bold text-gray-800">7h 45m</p>
-                <p className="mt-1 text-xs font-bold tracking-wider text-[var(--sage)] uppercase">
-                  Qualité excellente
-                </p>
+                {summary?.sleep.latestHours ? (
+                  <>
+                    <p className="text-4xl font-bold text-gray-800">
+                      {Math.floor(summary.sleep.latestHours)}h{" "}
+                      {Math.round((summary.sleep.latestHours % 1) * 60)}m
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-1 text-xs font-bold tracking-wider uppercase",
+                        summary.sleep.latestQuality === "good"
+                          ? "text-[var(--sage)]"
+                          : summary.sleep.latestQuality === "average"
+                            ? "text-orange-500"
+                            : "text-red-500",
+                      )}
+                    >
+                      Qualité{" "}
+                      {summary.sleep.latestQuality === "good"
+                        ? "excellente"
+                        : summary.sleep.latestQuality === "average"
+                          ? "moyenne"
+                          : "mauvaise"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-400">Pas de données</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -272,33 +419,17 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   <p className="text-[10px] font-bold text-[var(--primary-dark)] uppercase">
                     Énergie
                   </p>
-                  <p className="text-lg font-bold">6/10</p>
-                </div>
-                <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
-                  <p className="text-[10px] font-bold text-orange-600 uppercase">
-                    Réveils
+                  <p className="text-lg font-bold">
+                    {summary?.sleep.avgEnergy ?? "-"}/10
                   </p>
-                  <p className="text-lg font-bold">1 seul</p>
                 </div>
-              </div>
-
-              <div className="mt-6">
-                <p className="mb-3 text-xs font-semibold text-gray-400">
-                  Tendance de la semaine
-                </p>
-                <div className="flex h-12 items-end justify-between gap-1 px-1">
-                  {[60, 40, 80, 70, 50, 90, 75].map((height, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-full rounded-t-sm",
-                        i === 6
-                          ? "bg-[var(--primary)]"
-                          : "bg-[var(--lavender)]/30",
-                      )}
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
+                <div className="rounded-2xl border border-[var(--lavender)]/20 bg-[var(--lavender)]/10 p-4">
+                  <p className="text-[10px] font-bold text-[var(--lavender-dark)] uppercase">
+                    Humeur moy.
+                  </p>
+                  <p className="text-lg font-bold">
+                    {summary?.mood.weeklyAverage ?? "-"}/10
+                  </p>
                 </div>
               </div>
             </GlassCard>
@@ -312,9 +443,26 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 <p className="text-sm text-gray-500">7 derniers jours</p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full bg-[var(--sage)]/10 px-3 py-1 text-xs font-bold text-[var(--sage-dark)]">
-                  <TrendingUp className="size-3" /> +12%
-                </div>
+                {summary?.mood.trendPercent !== null &&
+                  summary?.mood.trendPercent !== undefined && (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold",
+                        summary.mood.trendPercent >= 0
+                          ? "bg-[var(--sage)]/10 text-[var(--sage-dark)]"
+                          : "bg-red-100 text-red-600",
+                      )}
+                    >
+                      <TrendingUp
+                        className={cn(
+                          "size-3",
+                          summary.mood.trendPercent < 0 && "rotate-180",
+                        )}
+                      />
+                      {summary.mood.trendPercent >= 0 ? "+" : ""}
+                      {summary.mood.trendPercent}%
+                    </div>
+                  )}
               </div>
             </GlassCardHeader>
 
@@ -323,7 +471,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
             ) : (
               <MoodChart
                 moodEntries={chartData?.moodEntries ?? []}
-                dosageChanges={[]}
+                dosageChanges={chartData?.dosageChanges ?? []}
                 height={200}
                 compact
               />
@@ -334,13 +482,13 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         {/* Right Column: Sidebar Stats & Caregivers */}
         <div className="space-y-8 lg:col-span-4">
           {/* Streak Card */}
-          {summaryLoading ? (
+          {streakLoading || !streakData ? (
             <Skeleton className="h-48 w-full rounded-[32px]" />
           ) : (
             <StreakCard
-              streakDays={23}
-              weekProgress={[1, 1, 1, 1, 1, 1, 0]}
-              subtitle="Excellent rythme ! Votre suivi est complet depuis 3 semaines."
+              streakDays={streakData.streakDays}
+              weekProgress={streakData.weekProgress as (0 | 1)[]}
+              subtitle={streakData.subtitle}
             />
           )}
 
@@ -420,36 +568,55 @@ export function DashboardContent({ userName }: DashboardContentProps) {
             </GlassCardHeader>
 
             <GlassCardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="size-10 rounded-full border border-white bg-gray-200 shadow-sm" />
-                  <span className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white bg-[var(--sage)]" />
-                </div>
-                <div className="flex-grow">
-                  <p className="text-sm font-bold">Marie (Maman)</p>
-                  <p className="text-[10px] font-medium text-gray-400">
-                    Connectée il y a 2h
-                  </p>
-                </div>
-                <button className="flex size-8 items-center justify-center rounded-lg bg-gray-50 text-gray-400 transition-all hover:text-[var(--primary)]">
-                  <MessageSquare className="size-4" />
-                </button>
-              </div>
+              {caregiversLoading ? (
+                <>
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </>
+              ) : caregivers && caregivers.length > 0 ? (
+                caregivers.slice(0, 2).map((caregiver) => {
+                  const displayName =
+                    caregiver.label ||
+                    caregiver.caregiverName ||
+                    caregiver.caregiverEmail ||
+                    "Aidant";
+                  const statusLabel =
+                    caregiver.status === "pending"
+                      ? "Invitation envoyée"
+                      : "Accès actif";
 
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="size-10 rounded-full border border-white bg-gray-200 shadow-sm" />
+                  return (
+                    <div key={caregiver.id} className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="size-10 border border-white shadow-sm">
+                          <AvatarImage
+                            src={caregiver.caregiverImage ?? undefined}
+                          />
+                          <AvatarFallback className="bg-[var(--primary)]/10 text-[var(--primary)]">
+                            {displayName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {caregiver.status === "active" && (
+                          <span className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-white bg-[var(--sage)]" />
+                        )}
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-bold">{displayName}</p>
+                        <p className="text-[10px] font-medium text-gray-400">
+                          {statusLabel}
+                        </p>
+                      </div>
+                      <button className="flex size-8 items-center justify-center rounded-lg bg-gray-50 text-gray-400 transition-all hover:text-[var(--primary)]">
+                        <MessageSquare className="size-4" />
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-3 text-center text-sm text-gray-400">
+                  Aucun aidant pour le moment.
                 </div>
-                <div className="flex-grow">
-                  <p className="text-sm font-bold">Dr. Dupont (Psy)</p>
-                  <p className="text-[10px] font-medium text-gray-400">
-                    A consulté le rapport hier
-                  </p>
-                </div>
-                <button className="flex size-8 items-center justify-center rounded-lg bg-gray-50 text-gray-400 transition-all hover:text-[var(--primary)]">
-                  <Share className="size-4" />
-                </button>
-              </div>
+              )}
             </GlassCardContent>
           </GlassCard>
         </div>

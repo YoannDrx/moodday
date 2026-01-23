@@ -65,6 +65,7 @@ export const completeOnboarding = authAction.action(
 // Update display preferences
 const updateDisplayPreferencesSchema = z.object({
   defaultChartPeriod: z.number().optional(),
+  theme: z.enum(["light", "dark", "system", "zen"]).optional(),
 });
 
 export const updateDisplayPreferences = authAction
@@ -88,6 +89,7 @@ const updateNotificationPreferencesSchema = z.object({
   dailyCheckInReminder: z.boolean().optional(),
   dailyCheckInTime: z.string().optional(),
   medicationReminders: z.boolean().optional(),
+  medicationReminderTime: z.string().optional(),
 });
 
 export const updateNotificationPreferences = authAction

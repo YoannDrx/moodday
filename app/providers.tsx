@@ -3,6 +3,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { DialogManagerRenderer } from "@/features/dialog-manager/dialog-manager-renderer";
 import { GlobalDialogLazy } from "@/features/global-dialog/global-dialog-lazy";
+import { PwaManager } from "@/features/pwa/pwa-manager";
 import { I18nProvider } from "@/i18n/provider";
 import type { Locale } from "@/i18n/config";
 import type { Messages } from "@/i18n/messages";
@@ -26,6 +27,7 @@ export const Providers = ({ children, locale, messages }: ProvidersProps) => {
           <Toaster />
           <DialogManagerRenderer />
           <GlobalDialogLazy />
+          <PwaManager />
           {children}
           {process.env.NODE_ENV === "development" && (
             <ReactQueryDevtools initialIsOpen={false} />

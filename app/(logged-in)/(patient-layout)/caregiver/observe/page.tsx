@@ -1,33 +1,86 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { ArrowLeft, Eye, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/nowts/layout-components";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CaregiverCheckinForm } from "@/features/caregiver/caregiver-checkin-form";
 import { CaregiverEventForm } from "@/features/caregiver/caregiver-event-form";
 import { useRouter } from "next/navigation";
-
-// Demo: In a real app, this would come from user selection or context
-const DEMO_SUBJECT = {
-  id: "demo-subject-id",
-  name: "Patient Demo",
-};
+import { useSession } from "@/lib/auth-client";
+import { getMyPatients } from "@/features/caregiver/caregiver.action";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 function ObservePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session, isPending } = useSession();
+  const { data: patients, isLoading: patientsLoading } = useQuery({
+    queryKey: ["my-patients"],
+    queryFn: async () => {
+      const result = await getMyPatients();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
   const initialTab = searchParams.get("tab") === "event" ? "event" : "checkin";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (patients && patients.length > 0 && !selectedPatientId) {
+      setSelectedPatientId(patients[0].patientId);
+    }
+  }, [patients, selectedPatientId]);
 
   const handleSuccess = () => {
     router.push("/caregiver");
   };
+
+  const resolvedPatient =
+    selectedPatientId && patients
+      ? patients.find((p) => p.patientId === selectedPatientId)
+      : patients?.[0];
+
+  const subject = resolvedPatient
+    ? { id: resolvedPatient.patientId, name: resolvedPatient.patientName }
+    : session?.user
+      ? { id: session.user.id, name: session.user.name || "Moi" }
+      : null;
+
+  if (isPending) {
+    return (
+      <div className="container mx-auto max-w-2xl px-4 py-8">
+        <Skeleton className="mb-6 h-10 w-24" />
+        <Skeleton className="mb-4 h-8 w-48" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (!subject) {
+    return (
+      <div className="container mx-auto max-w-2xl px-4 py-8">
+        <p className="text-muted-foreground">Utilisateur non connecté</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
@@ -42,11 +95,31 @@ function ObservePageContent() {
 
       <PageHeader
         title="Nouvelle observation"
-        description="Enregistre une observation ou signale un événement"
+        description={`Enregistre une observation pour ${subject.name}`}
       />
 
       <Card>
         <CardHeader>
+          {!patientsLoading && patients && patients.length > 0 && (
+            <div className="mb-6 space-y-2">
+              <Label>Patient</Label>
+              <Select
+                value={subject?.id ?? ""}
+                onValueChange={(value) => setSelectedPatientId(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patients.map((patient) => (
+                    <SelectItem key={patient.patientId} value={patient.patientId}>
+                      {patient.patientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="checkin" className="flex items-center gap-2">
@@ -64,15 +137,15 @@ function ObservePageContent() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsContent value="checkin" className="mt-0">
               <CaregiverCheckinForm
-                subjectId={DEMO_SUBJECT.id}
-                subjectName={DEMO_SUBJECT.name}
+                subjectId={subject.id}
+                subjectName={subject.name}
                 onSuccess={handleSuccess}
               />
             </TabsContent>
             <TabsContent value="event" className="mt-0">
               <CaregiverEventForm
-                subjectId={DEMO_SUBJECT.id}
-                subjectName={DEMO_SUBJECT.name}
+                subjectId={subject.id}
+                subjectName={subject.name}
                 onSuccess={handleSuccess}
               />
             </TabsContent>

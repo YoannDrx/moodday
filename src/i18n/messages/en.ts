@@ -1,7 +1,8 @@
 const en = {
   meta: {
     title: "Moodday",
-    description: "Modern Next.js boilerplate with auth, payments, and more",
+    description:
+      "Digital clinical journal to track your mental health journey with peace of mind",
   },
   language: {
     title: "Language",
@@ -29,7 +30,8 @@ const en = {
     app: "App",
   },
   footer: {
-    description: "Modern Next.js boilerplate for building SaaS applications.",
+    description:
+      "Digital clinical journal to track your mental health journey.",
     product: "Product",
     blog: "Blog",
     documentation: "Documentation",
@@ -338,6 +340,11 @@ const en = {
         description:
           "Keep track of your medications and dosages. See correlations between your treatment and your mood.",
       },
+      preferences: {
+        title: "Notifications & caregivers",
+        description:
+          "Set your reminders and, if you want, invite a trusted caregiver.",
+      },
       ready: {
         title: "You're all set!",
         description:
@@ -379,6 +386,8 @@ const en = {
       checkInTime: "Check-in time",
       medicationReminders: "Medication reminders",
       medicationRemindersHint: "Reminders to take your medications",
+      medicationReminderTime: "Medication reminder time",
+      medicationReminderTimeHint: "Choose when to receive medication reminders",
     },
     saved: "Settings saved!",
   },

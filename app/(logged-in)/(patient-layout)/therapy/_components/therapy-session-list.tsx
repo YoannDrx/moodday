@@ -1,12 +1,16 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Calendar, Trash2 } from "lucide-react";
+import { Plus, Calendar, Trash2, Pencil } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,16 +22,35 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { BenefitRating } from "@/components/nowts/benefit-rating";
 import {
   getTherapySessions,
   deleteTherapySession,
+  updateTherapySession,
 } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
+
+type EditingSession = {
+  id: string;
+  date: string;
+  notes: string;
+  benefitRating: number | null;
+};
 
 export function TherapySessionList() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [editingSession, setEditingSession] = useState<EditingSession | null>(
+    null,
+  );
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["therapySessions"],
@@ -56,6 +79,45 @@ export function TherapySessionList() {
       toast.error(error.message);
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (session: EditingSession) => {
+      const result = await updateTherapySession({
+        id: session.id,
+        date: session.date,
+        notes: session.notes,
+        benefitRating: session.benefitRating,
+      });
+      if (result.serverError) {
+        throw new Error(result.serverError);
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success(t("therapy.edit.success"));
+      setEditingSession(null);
+      void queryClient.invalidateQueries({ queryKey: ["therapySessions"] });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const openEditDialog = (session: {
+    id: string;
+    date: Date | string;
+    notes: string;
+    benefitRating: number | null;
+  }) => {
+    const dateObj =
+      session.date instanceof Date ? session.date : new Date(session.date);
+    setEditingSession({
+      id: session.id,
+      date: dateObj.toISOString().split("T")[0] ?? "",
+      notes: session.notes,
+      benefitRating: session.benefitRating,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -127,6 +189,14 @@ export function TherapySessionList() {
                     {session.notes}
                   </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => openEditDialog(session)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="shrink-0">
@@ -160,6 +230,80 @@ export function TherapySessionList() {
           ))}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editingSession !== null}
+        onOpenChange={(open) => !open && setEditingSession(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("therapy.edit.title")}</DialogTitle>
+            <DialogDescription>
+              {t("therapy.edit.description")}
+            </DialogDescription>
+          </DialogHeader>
+          {editingSession && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">{t("therapy.form.date")}</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editingSession.date}
+                  onChange={(e) =>
+                    setEditingSession({
+                      ...editingSession,
+                      date: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">{t("therapy.form.notes")}</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={editingSession.notes}
+                  onChange={(e) =>
+                    setEditingSession({
+                      ...editingSession,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows={4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("therapy.form.benefitRating")}</Label>
+                <BenefitRating
+                  value={editingSession.benefitRating ?? 0}
+                  onChange={(value) =>
+                    setEditingSession({
+                      ...editingSession,
+                      benefitRating: value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSession(null)}>
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              onClick={() =>
+                editingSession && updateMutation.mutate(editingSession)
+              }
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending
+                ? t("actions.saving")
+                : t("actions.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

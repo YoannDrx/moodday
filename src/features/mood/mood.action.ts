@@ -165,29 +165,59 @@ export const getTodayMoodEntry = authAction.action(
 const saveMoodEntrySchema = z.object({
   value: z.number().min(0).max(10),
   note: z.string().optional(),
+  // Extended mood tracking fields
+  energy: z.number().min(1).max(10).optional(),
+  sleepHours: z.number().min(0).max(24).optional(),
+  sleepQuality: z.enum(["bad", "average", "good"]).optional(),
+  sleepDisturbances: z.array(z.string()).optional(),
+  anxiety: z.number().min(1).max(10).optional(),
+  tags: z.array(z.string()).optional(),
+  sideEffects: z.array(z.string()).optional(),
 });
 
 export const saveMoodEntry = authAction
   .inputSchema(saveMoodEntrySchema)
-  .action(async ({ parsedInput: { value, note }, ctx: { user } }) => {
-    // Create a new entry (user can have multiple entries per day)
-    const entry = await prisma.moodEntry.create({
-      data: {
-        userId: user.id,
+  .action(
+    async ({
+      parsedInput: {
         value,
-        note: note ?? null,
-        syncStatus: "synced",
+        note,
+        energy,
+        sleepHours,
+        sleepQuality,
+        sleepDisturbances,
+        anxiety,
+        tags,
+        sideEffects,
       },
-      select: {
-        id: true,
-        value: true,
-        createdAt: true,
-      },
-    });
+      ctx: { user },
+    }) => {
+      // Create a new entry (user can have multiple entries per day)
+      const entry = await prisma.moodEntry.create({
+        data: {
+          userId: user.id,
+          value,
+          note: note ?? null,
+          energy: energy ?? null,
+          sleepHours: sleepHours ?? null,
+          sleepQuality: sleepQuality ?? null,
+          sleepDisturbances: sleepDisturbances ?? [],
+          anxiety: anxiety ?? null,
+          tags: tags ?? [],
+          sideEffects: sideEffects ?? [],
+          syncStatus: "synced",
+        },
+        select: {
+          id: true,
+          value: true,
+          createdAt: true,
+        },
+      });
 
-    return {
-      id: entry.id,
-      value: entry.value,
-      createdAt: entry.createdAt.toISOString(),
-    };
-  });
+      return {
+        id: entry.id,
+        value: entry.value,
+        createdAt: entry.createdAt.toISOString(),
+      };
+    },
+  );

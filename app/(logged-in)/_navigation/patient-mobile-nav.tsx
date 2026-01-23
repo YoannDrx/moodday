@@ -6,11 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import { getPatientMobileNavigation } from "./patient-navigation.links";
+import { useQuickEntryStore } from "@/features/mood/quick-entry-store";
 
 export function PatientMobileNav() {
   const { t } = useI18n();
   const pathname = usePathname();
   const allLinks = getPatientMobileNavigation(t);
+  const { open } = useQuickEntryStore();
 
   // Split links: first 2, then the rest for after the center button
   const leftLinks = allLinks.slice(0, 2);
@@ -53,12 +55,14 @@ export function PatientMobileNav() {
         })}
 
         {/* Center floating action button */}
-        <Link
-          href="/mood"
+        <button
+          type="button"
+          onClick={open}
+          aria-label={t("mood.entry.title")}
           className="shadow-soft -mt-8 flex size-14 items-center justify-center rounded-2xl border-4 border-[var(--warm-bg)] bg-[var(--primary)] text-white transition-transform active:scale-90"
         >
           <Plus className="size-8" />
-        </Link>
+        </button>
 
         {/* Right navigation items */}
         {rightLinks.map((link) => {
