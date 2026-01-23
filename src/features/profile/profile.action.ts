@@ -25,7 +25,7 @@ export const updateProfile = authAction
       preferencesUpdate.timezone = timezone;
     }
     if (image !== undefined) {
-      updateData.image = image ?? null;
+      updateData.image = image;
     }
 
     const updatedUser =

@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop -- sequential notification sending required */
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { buildPushPayload, getWebPush } from "@/lib/push";
@@ -62,7 +63,7 @@ const sendToSubscriptions = async (
       );
       sent += 1;
     } catch (error: unknown) {
-      const statusCode = (error as { statusCode?: number })?.statusCode;
+      const statusCode = (error as { statusCode?: number }).statusCode;
       if (statusCode === 404 || statusCode === 410) {
         await prisma.pushSubscription.delete({
           where: { endpoint: subscription.endpoint },

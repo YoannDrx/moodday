@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop -- sequential offline sync required */
 "use client";
 
 import { nanoid } from "nanoid";

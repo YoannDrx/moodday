@@ -31,6 +31,6 @@ export const vercelBlobAdapter: UploadFileAdapter = {
     return { error: null, data: { url: blob.url } };
   },
   uploadFiles: async (params) => {
-    return Promise.all(params.map((param) => vercelBlobAdapter.uploadFile(param)));
+    return Promise.all(params.map(async (param) => vercelBlobAdapter.uploadFile(param)));
   },
 };

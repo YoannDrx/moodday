@@ -104,7 +104,7 @@ function ObservePageContent() {
             <div className="mb-6 space-y-2">
               <Label>Patient</Label>
               <Select
-                value={subject?.id ?? ""}
+                value={subject.id}
                 onValueChange={(value) => setSelectedPatientId(value)}
               >
                 <SelectTrigger>
@@ -112,7 +112,10 @@ function ObservePageContent() {
                 </SelectTrigger>
                 <SelectContent>
                   {patients.map((patient) => (
-                    <SelectItem key={patient.patientId} value={patient.patientId}>
+                    <SelectItem
+                      key={patient.patientId}
+                      value={patient.patientId}
+                    >
                       {patient.patientName}
                     </SelectItem>
                   ))}

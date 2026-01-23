@@ -97,8 +97,7 @@ export function SettingsContent() {
   const [profileName, setProfileName] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [timezone, setTimezone] = useState(
-    () =>
-      Intl.DateTimeFormat().resolvedOptions().timeZone ?? "Europe/Paris",
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
 
   const { data: preferences, isLoading } = useQuery({
@@ -146,11 +145,7 @@ export function SettingsContent() {
   }, [preferences?.theme, activeTheme, setTheme]);
 
   const selectedTheme = preferences?.theme ?? activeTheme ?? "light";
-  const timezoneOptions = [
-    "Europe/Paris",
-    "Europe/London",
-    "America/New_York",
-  ];
+  const timezoneOptions = ["Europe/Paris", "Europe/London", "America/New_York"];
   const timezoneLabels: Record<string, string> = {
     "Europe/Paris": "Europe/Paris (UTC+1)",
     "Europe/London": "Europe/London (UTC)",
@@ -171,7 +166,7 @@ export function SettingsContent() {
     incomplete: "incomplet",
   };
   const subscriptionStatusLabel = subscription?.status
-    ? statusLabels[subscription.status] ?? subscription.status
+    ? (statusLabels[subscription.status] ?? subscription.status)
     : "inactif";
   const renewalDate = subscription?.periodEnd
     ? new Date(subscription.periodEnd)
@@ -225,9 +220,9 @@ export function SettingsContent() {
 
   const profileMutation = useMutation({
     mutationFn: async (data: {
-      name: string;
+      name?: string;
       timezone?: string;
-      image?: string | null;
+      image?: string;
     }) => {
       const result = await updateProfile(data);
       if (result.serverError) throw new Error(result.serverError);
@@ -265,7 +260,7 @@ export function SettingsContent() {
       return result;
     },
     onSuccess: (data) => {
-      if (!data?.url) return;
+      if (!data.url) return;
       window.location.href = data.url;
     },
     onError: (error) => {
@@ -282,7 +277,7 @@ export function SettingsContent() {
       return result;
     },
     onSuccess: (data) => {
-      if (!data?.url) return;
+      if (!data.url) return;
       window.location.href = data.url;
     },
     onError: (error) => {
@@ -589,7 +584,7 @@ export function SettingsContent() {
                             </Label>
                             <Input
                               type="time"
-                              value={preferences.medicationReminderTime ?? "09:00"}
+                              value={preferences.medicationReminderTime}
                               onChange={(e) =>
                                 notificationMutation.mutate({
                                   medicationReminderTime: e.target.value,
@@ -884,9 +879,7 @@ export function SettingsContent() {
                           {subscriptionStatusLabel}
                         </span>
                       </p>
-                      <p className="text-sm text-gray-500">
-                        {renewalText}
-                      </p>
+                      <p className="text-sm text-gray-500">{renewalText}</p>
                     </div>
 
                     <div className="space-y-3">
@@ -931,7 +924,9 @@ export function SettingsContent() {
                         onClick={() => cancelMutation.mutate()}
                         disabled={!subscription || cancelMutation.isPending}
                       >
-                        {cancelMutation.isPending ? "Redirection..." : "Annuler"}
+                        {cancelMutation.isPending
+                          ? "Redirection..."
+                          : "Annuler"}
                       </Button>
                     </div>
                   </GlassCardContent>

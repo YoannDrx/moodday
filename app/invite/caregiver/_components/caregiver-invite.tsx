@@ -115,7 +115,9 @@ export function CaregiverInvite() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && (
-            <p className="text-muted-foreground">Chargement de l'invitation...</p>
+            <p className="text-muted-foreground">
+              Chargement de l'invitation...
+            </p>
           )}
 
           {isError && (
@@ -141,9 +143,7 @@ export function CaregiverInvite() {
           {!isLoading && invite && invite.status === "pending" && (
             <>
               <div className="space-y-1">
-                <p className="text-lg font-semibold">
-                  {invite.patientName ?? "Un proche"}
-                </p>
+                <p className="text-lg font-semibold">{invite.patientName}</p>
                 <p className="text-muted-foreground text-sm">
                   vous invite a rejoindre son cercle Moodday.
                 </p>
@@ -151,7 +151,9 @@ export function CaregiverInvite() {
               <div className="flex gap-3">
                 <Button
                   onClick={() => acceptMutation.mutate()}
-                  disabled={acceptMutation.isPending || declineMutation.isPending}
+                  disabled={
+                    acceptMutation.isPending || declineMutation.isPending
+                  }
                   className="flex-1"
                 >
                   {acceptMutation.isPending ? "Validation..." : "Accepter"}
@@ -159,7 +161,9 @@ export function CaregiverInvite() {
                 <Button
                   variant="outline"
                   onClick={() => declineMutation.mutate()}
-                  disabled={acceptMutation.isPending || declineMutation.isPending}
+                  disabled={
+                    acceptMutation.isPending || declineMutation.isPending
+                  }
                   className="flex-1"
                 >
                   {declineMutation.isPending ? "Refus..." : "Refuser"}

@@ -123,7 +123,7 @@ export function TrendsContent({
 
   const trend7vs30 = calculateTrend(avg7, avg30);
 
-  const calculateCorrelation = (pairs: Array<[number, number]>) => {
+  const calculateCorrelation = (pairs: [number, number][]) => {
     if (pairs.length < 3) return null;
     const meanX = pairs.reduce((sum, [x]) => sum + x, 0) / pairs.length;
     const meanY = pairs.reduce((sum, [, y]) => sum + y, 0) / pairs.length;
@@ -145,11 +145,11 @@ export function TrendsContent({
   const buildPairs = (
     entries: MoodEntry[] | undefined,
     key: "sleepHours" | "energy" | "anxiety",
-  ) => {
+  ): [number, number][] => {
     if (!entries) return [];
     return entries
       .filter((entry) => entry[key] !== null && entry[key] !== undefined)
-      .map((entry) => [entry.value, entry[key] as number]);
+      .map((entry) => [entry.value, entry[key] as number] as [number, number]);
   };
 
   const currentData = getCurrentChartData();

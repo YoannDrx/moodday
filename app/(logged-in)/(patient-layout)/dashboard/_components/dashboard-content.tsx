@@ -576,10 +576,11 @@ export function DashboardContent({ userName }: DashboardContentProps) {
               ) : caregivers && caregivers.length > 0 ? (
                 caregivers.slice(0, 2).map((caregiver) => {
                   const displayName =
-                    caregiver.label ||
-                    caregiver.caregiverName ||
-                    caregiver.caregiverEmail ||
-                    "Aidant";
+                    [
+                      caregiver.label,
+                      caregiver.caregiverName,
+                      caregiver.caregiverEmail,
+                    ].find((v) => v) ?? "Aidant";
                   const statusLabel =
                     caregiver.status === "pending"
                       ? "Invitation envoyée"

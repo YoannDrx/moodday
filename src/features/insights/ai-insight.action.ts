@@ -77,7 +77,7 @@ Reponds uniquement par le texte de l'observation.`;
       const { text } = await generateText({
         model: openai(model),
         prompt,
-        maxTokens: 120,
+        maxOutputTokens: 120,
         temperature: 0.4,
       });
 

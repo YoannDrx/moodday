@@ -628,10 +628,11 @@ export function CaregiverContent() {
               ) : caregivers && caregivers.length > 0 ? (
                 caregivers.map((caregiver) => {
                   const displayName =
-                    caregiver.label ||
-                    caregiver.caregiverName ||
-                    caregiver.caregiverEmail ||
-                    "Aidant";
+                    [
+                      caregiver.label,
+                      caregiver.caregiverName,
+                      caregiver.caregiverEmail,
+                    ].find((v) => v) ?? "Aidant";
 
                   return (
                     <div key={caregiver.id} className="flex items-center gap-3">
@@ -649,9 +650,7 @@ export function CaregiverContent() {
                         )}
                       </div>
                       <div className="min-w-0 flex-grow">
-                        <p className="font-bold text-gray-800">
-                          {displayName}
-                        </p>
+                        <p className="font-bold text-gray-800">{displayName}</p>
                         <p className="text-xs text-gray-400">
                           {roleLabels[caregiver.role] || caregiver.role}
                           {caregiver.status === "pending" && " • En attente"}
@@ -669,14 +668,16 @@ export function CaregiverContent() {
                               Retirer cet aidant ?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              {displayName} n&apos;aura plus accès à vos données.
-                              Cette action est irréversible.
+                              {displayName} n&apos;aura plus accès à vos
+                              données. Cette action est irréversible.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Annuler</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => removeMutation.mutate(caregiver.id)}
+                              onClick={() =>
+                                removeMutation.mutate(caregiver.id)
+                              }
                               className="bg-red-500 hover:bg-red-600"
                             >
                               Retirer

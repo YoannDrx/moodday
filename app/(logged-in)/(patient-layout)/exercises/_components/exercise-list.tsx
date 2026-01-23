@@ -94,7 +94,7 @@ export function ExerciseList() {
       return result.data;
     },
     onSuccess: (result) => {
-      if ((result as { queued?: boolean })?.queued) {
+      if ((result as { queued?: boolean }).queued) {
         toast.success(t("exercise.log.logged"));
         return;
       }

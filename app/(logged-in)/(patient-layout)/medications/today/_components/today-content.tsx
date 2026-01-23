@@ -91,7 +91,7 @@ export function TodayContent() {
       return result.data;
     },
     onSuccess: (result) => {
-      if ((result as { queued?: boolean })?.queued) {
+      if ((result as { queued?: boolean }).queued) {
         toast.success("Prise enregistrée hors ligne.");
         return;
       }
@@ -114,7 +114,7 @@ export function TodayContent() {
       return result.data;
     },
     onSuccess: (result) => {
-      if ((result as { queued?: boolean })?.queued) {
+      if ((result as { queued?: boolean }).queued) {
         toast.success("Prise enregistrée hors ligne.");
         return;
       }

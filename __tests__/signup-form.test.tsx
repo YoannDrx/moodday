@@ -54,7 +54,9 @@ describe("SignUpCredentialsForm", () => {
 
     // Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/password does not match/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Les mots de passe ne correspondent pas/i),
+      ).toBeInTheDocument();
     });
 
     // Should not call signup API
@@ -84,7 +86,7 @@ describe("SignUpCredentialsForm", () => {
     });
 
     // Check if redirect happened
-    expect(window.location.href).toBe("http://localhost:3000/app");
+    expect(window.location.href).toBe("http://localhost:3000/dashboard");
   });
 
   it("should use custom callback URL from searchParams", async () => {

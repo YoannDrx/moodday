@@ -202,7 +202,7 @@ export function SettingsForm() {
                   </Label>
                   <Input
                     type="time"
-                    value={preferences.medicationReminderTime ?? "09:00"}
+                    value={preferences.medicationReminderTime}
                     onChange={(e) =>
                       notificationMutation.mutate({
                         medicationReminderTime: e.target.value,

@@ -22,30 +22,31 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 };
 
-const showNotification = async (title: string, options?: NotificationOptions) => {
+const showNotification = async (
+  title: string,
+  options?: NotificationOptions,
+) => {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  const registration = await navigator.serviceWorker?.getRegistration();
+  const registration = await navigator.serviceWorker.getRegistration();
   if (registration) {
     await registration.showNotification(title, options);
     return;
   }
 
-  // Fallback if service worker not available
-  new Notification(title, options);
+  // Fallback if service worker not available - intentional side effect
+  void new Notification(title, options);
 };
 
 const subscribeToPush = async (vapidKey: string) => {
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
 
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    });
-  }
+  subscription ??= await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+  });
 
   await fetch("/api/push/subscribe", {
     method: "POST",
@@ -167,8 +168,7 @@ export function PwaManager() {
         preferences.dailyCheckInReminder &&
         time === preferences.dailyCheckInTime
       ) {
-        const lastCheck =
-          window.localStorage.getItem(DAILY_CHECKIN_KEY) ?? "";
+        const lastCheck = window.localStorage.getItem(DAILY_CHECKIN_KEY) ?? "";
         if (lastCheck !== todayKey) {
           await showNotification("Moodday - Check-in", {
             body: "Pensez a enregistrer votre humeur du jour.",
@@ -180,16 +180,14 @@ export function PwaManager() {
 
       if (
         preferences.medicationReminders &&
-        time === (preferences.medicationReminderTime ?? preferences.dailyCheckInTime)
+        time === preferences.medicationReminderTime
       ) {
-        const lastReminder =
-          window.localStorage.getItem(MEDS_REMINDER_KEY) ?? "";
+        const lastReminder = window.localStorage.getItem(MEDS_REMINDER_KEY);
         if (lastReminder !== todayKey) {
           try {
             const result = await getTodayIntakes({});
             if (!result.serverError && result.data) {
               const pending = result.data.filter((med) => {
-                if (!med.intakes || med.intakes.length === 0) return true;
                 return med.intakes.every((intake) => intake.skipped);
               });
               if (pending.length > 0) {
@@ -205,7 +203,6 @@ export function PwaManager() {
           }
         }
       }
-
     }, 60_000);
 
     return () => {

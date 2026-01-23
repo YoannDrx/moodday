@@ -1,7 +1,11 @@
+/* eslint-disable no-await-in-loop -- sequential offline action processing required */
 "use client";
 
 import { nanoid } from "nanoid";
-import { logMedIntake, logPRNIntake } from "@/features/medication/medication.action";
+import {
+  logMedIntake,
+  logPRNIntake,
+} from "@/features/medication/medication.action";
 import { logExerciseCompletion } from "@/features/exercise/exercise.action";
 import { createTherapySession } from "@/features/therapy/therapy.action";
 
@@ -15,7 +19,12 @@ export type OfflineActionPayload =
   | { type: "med_intake"; medicationId: string }
   | { type: "med_prn_intake"; medicationId: string; reason?: string }
   | { type: "exercise_log"; exerciseId: string; note?: string }
-  | { type: "therapy_create"; date: string; notes: string; benefitRating?: number };
+  | {
+      type: "therapy_create";
+      date: string;
+      notes: string;
+      benefitRating?: number;
+    };
 
 export type OfflineActionEntry = {
   id: string;
@@ -69,7 +78,9 @@ export const syncQueuedActions = async () => {
       const payload = item.payload;
       switch (payload.type) {
         case "med_intake": {
-          const result = await logMedIntake({ medicationId: payload.medicationId });
+          const result = await logMedIntake({
+            medicationId: payload.medicationId,
+          });
           if (result.serverError) throw new Error(result.serverError);
           break;
         }

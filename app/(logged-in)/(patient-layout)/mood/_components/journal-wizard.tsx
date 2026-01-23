@@ -25,6 +25,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GlassCard } from "@/components/nowts/glass-card";
 import { cn } from "@/lib/utils";
 import {
@@ -217,7 +218,9 @@ export function JournalWizard() {
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         queueMoodEntry(payload);
-        toast.success("Enregistrement hors ligne. Synchronisation automatique.");
+        toast.success(
+          "Enregistrement hors ligne. Synchronisation automatique.",
+        );
         router.push("/dashboard");
         return;
       }
@@ -245,7 +248,6 @@ export function JournalWizard() {
     getAiJournalInsight,
     {
       onSuccess: (result) => {
-        if (!result?.data) return;
         setAiInsight(result.data.message);
         setAiSource(result.data.source);
       },
@@ -279,7 +281,7 @@ export function JournalWizard() {
   const insightText =
     insightStatus === "executing"
       ? "Analyse en cours..."
-      : aiInsight ?? fallbackInsight;
+      : (aiInsight ?? fallbackInsight);
   const insightTitle =
     aiSource === "ai" ? "Observation IA (Beta)" : "Observation";
 
@@ -569,8 +571,8 @@ export function JournalWizard() {
             <div className="space-y-4">
               {medicationsLoading ? (
                 <div className="space-y-3">
-                  <GlassCard padding="md" variant="elevated" className="h-20" />
-                  <GlassCard padding="md" variant="elevated" className="h-20" />
+                  <Skeleton className="h-20 rounded-[32px]" />
+                  <Skeleton className="h-20 rounded-[32px]" />
                 </div>
               ) : medications.length > 0 ? (
                 medications.map((med) => {
@@ -600,15 +602,11 @@ export function JournalWizard() {
                           <h4 className="text-lg font-bold text-gray-900">
                             {med.name}
                           </h4>
-                          <p className="text-sm text-gray-500">
-                            {med.dosage}
-                          </p>
+                          <p className="text-sm text-gray-500">{med.dosage}</p>
                         </div>
                       </div>
                       <button
-                        onClick={() =>
-                          handleMedicationTaken(med.id, isTaken)
-                        }
+                        onClick={() => handleMedicationTaken(med.id, isTaken)}
                         disabled={isTaken || logMedicationMutation.isPending}
                         className={cn(
                           "flex items-center gap-2 rounded-xl px-6 py-2 font-bold transition-all",
