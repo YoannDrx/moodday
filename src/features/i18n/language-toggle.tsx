@@ -1,8 +1,9 @@
 "use client";
 
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { localeCookieName, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/provider";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 const setLocaleCookie = (locale: Locale) => {
@@ -15,39 +16,45 @@ export function LanguageToggle() {
   const { locale, t } = useI18n();
   const router = useRouter();
 
-  const isEnglish = locale === "en";
+  const handleChange = (nextLocale: Locale) => {
+    if (nextLocale !== locale) {
+      setLocaleCookie(nextLocale);
+      router.refresh();
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className={
-          !isEnglish
-            ? "text-foreground text-xs font-semibold"
-            : "text-muted-foreground text-xs"
-        }
-        aria-hidden="true"
+    <div
+      className="flex items-center rounded-lg bg-gray-100 p-0.5 dark:bg-gray-800"
+      role="group"
+      aria-label={t("language.toggleLabel")}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleChange("fr")}
+        className={cn(
+          "h-7 px-2.5 text-xs font-medium",
+          locale === "fr"
+            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+            : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+        )}
       >
         FR
-      </span>
-      <Switch
-        checked={isEnglish}
-        onCheckedChange={(checked) => {
-          const nextLocale: Locale = checked ? "en" : "fr";
-          setLocaleCookie(nextLocale);
-          router.refresh();
-        }}
-        aria-label={t("language.toggleLabel")}
-      />
-      <span
-        className={
-          isEnglish
-            ? "text-foreground text-xs font-semibold"
-            : "text-muted-foreground text-xs"
-        }
-        aria-hidden="true"
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleChange("en")}
+        className={cn(
+          "h-7 px-2.5 text-xs font-medium",
+          locale === "en"
+            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+            : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+        )}
       >
         EN
-      </span>
+      </Button>
     </div>
   );
 }

@@ -1,69 +1,50 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
+import { useHydration } from "@/hooks/use-hydration";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Check, Heart, Sparkles, Star } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Heart,
+  type LucideIcon,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 
-const plans = [
-  {
-    name: "Gratuit",
-    description: "Pour commencer votre parcours",
-    price: { monthly: 0, yearly: 0 },
-    features: [
-      "Suivi humeur quotidien",
-      "Journal illimité",
-      "Historique 30 jours",
-      "1 médicament suivi",
-      "Export basique",
-    ],
-    cta: "Commencer gratuitement",
-    ctaLink: "/auth/signup?plan=free",
-    popular: false,
-    icon: Heart,
-  },
-  {
-    name: "Premium",
-    description: "Pour un suivi complet",
-    price: { monthly: 4.99, yearly: 39.99 },
-    features: [
-      "Tout du plan Gratuit",
-      "Historique illimité",
-      "Médicaments illimités",
-      "Analyses avancées",
-      "Export PDF médical",
-      "Rappels personnalisés",
-      "Cercle de 2 aidants",
-      "Support prioritaire",
-    ],
-    cta: "Essai gratuit 14 jours",
-    ctaLink: "/auth/signup?plan=premium",
-    popular: true,
-    icon: Sparkles,
-  },
-  {
-    name: "Famille",
-    description: "Pour vous et vos proches",
-    price: { monthly: 9.99, yearly: 79.99 },
-    features: [
-      "Tout du plan Premium",
-      "Jusqu'à 5 comptes",
-      "Cercle d'aidants élargi",
-      "Tableau de bord famille",
-      "Rapports partagés",
-      "Support dédié",
-    ],
-    cta: "Contacter l'équipe",
-    ctaLink: "/contact?plan=family",
-    popular: false,
-    icon: Star,
-  },
+const planIcons: LucideIcon[] = [Heart, Sparkles, Star];
+const planKeys = ["free", "premium", "family"] as const;
+const planPrices = [
+  { monthly: 0, yearly: 0 },
+  { monthly: 4.99, yearly: 39.99 },
+  { monthly: 9.99, yearly: 79.99 },
 ];
+const planLinks = [
+  "/auth/signup?plan=free",
+  "/auth/signup?plan=premium",
+  "/contact?plan=family",
+];
+const planPopular = [false, true, false];
 
 export function MooddayPricing() {
+  const { t, tm } = useI18n();
+  const isHydrated = useHydration();
   const [isYearly, setIsYearly] = useState(true);
+
+  const plans = planKeys.map((key, index) => ({
+    name: t(`moodday.pricing.plans.${key}.name`),
+    description: t(`moodday.pricing.plans.${key}.description`),
+    price: planPrices[index],
+    features: tm<string[]>(`moodday.pricing.plans.${key}.features`) ?? [],
+    cta: t(`moodday.pricing.plans.${key}.cta`),
+    ctaLink: planLinks[index],
+    popular: planPopular[index],
+    icon: planIcons[index],
+  }));
 
   return (
     <section id="pricing" className="relative py-20 lg:py-32">
@@ -73,24 +54,23 @@ export function MooddayPricing() {
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isHydrated ? { opacity: 0, y: 20 } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="mx-auto mb-12 max-w-2xl text-center"
         >
           <span className="bg-lavender/30 text-primary mb-4 inline-block rounded-full px-4 py-1.5 text-sm font-semibold">
-            Tarifs
+            {t("moodday.pricing.badge")}
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
-            Choisissez le plan{" "}
+            {t("moodday.pricing.title")}{" "}
             <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-              qui vous convient
+              {t("moodday.pricing.titleHighlight")}
             </span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Commencez gratuitement, évoluez selon vos besoins. Annulez à tout
-            moment.
+            {t("moodday.pricing.subtitle")}
           </p>
         </motion.div>
 
@@ -102,7 +82,7 @@ export function MooddayPricing() {
               !isYearly ? "text-gray-900 dark:text-gray-100" : "text-gray-500",
             )}
           >
-            Mensuel
+            {t("moodday.pricing.monthly")}
           </span>
           <button
             onClick={() => setIsYearly(!isYearly)}
@@ -124,9 +104,9 @@ export function MooddayPricing() {
               isYearly ? "text-gray-900 dark:text-gray-100" : "text-gray-500",
             )}
           >
-            Annuel
+            {t("moodday.pricing.yearly")}
             <span className="bg-sage/10 text-sage ml-1.5 rounded-full px-2 py-0.5 text-xs font-bold">
-              -33%
+              {t("moodday.pricing.discount")}
             </span>
           </span>
         </div>
@@ -136,37 +116,50 @@ export function MooddayPricing() {
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
+              initial={isHydrated ? { opacity: 0, y: 20 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <PricingCard plan={plan} isYearly={isYearly} />
+              <PricingCard plan={plan} isYearly={isYearly} t={t} />
             </motion.div>
           ))}
         </div>
 
         {/* Trust Badge */}
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={isHydrated ? { opacity: 0 } : false}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
           className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400"
         >
-          Paiement sécurisé par Stripe. Annulation facile, sans engagement.
+          {t("moodday.pricing.trustBadge")}
         </motion.p>
       </div>
     </section>
   );
 }
 
+type PlanType = {
+  name: string;
+  description: string;
+  price: { monthly: number; yearly: number };
+  features: string[];
+  cta: string;
+  ctaLink: string;
+  popular: boolean;
+  icon: LucideIcon;
+};
+
 function PricingCard({
   plan,
   isYearly,
+  t,
 }: {
-  plan: (typeof plans)[0];
+  plan: PlanType;
   isYearly: boolean;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const price = isYearly ? plan.price.yearly : plan.price.monthly;
   const Icon = plan.icon;
@@ -182,7 +175,7 @@ function PricingCard({
       {plan.popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
           <span className="bg-primary rounded-full px-4 py-1.5 text-sm font-bold text-white shadow-lg">
-            Le plus populaire
+            {t("moodday.pricing.mostPopular")}
           </span>
         </div>
       )}
@@ -211,17 +204,21 @@ function PricingCard({
       <div className="mb-6">
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-            {price === 0 ? "Gratuit" : `${price}€`}
+            {price === 0 ? plan.name : `${price}€`}
           </span>
           {price > 0 && (
             <span className="text-sm text-gray-500">
-              /{isYearly ? "an" : "mois"}
+              {isYearly
+                ? t("moodday.pricing.perYear")
+                : t("moodday.pricing.perMonth")}
             </span>
           )}
         </div>
         {isYearly && price > 0 && (
           <p className="text-sage mt-1 text-xs">
-            Soit {(price / 12).toFixed(2)}€/mois
+            {t("moodday.pricing.equivalent", {
+              price: (price / 12).toFixed(2),
+            })}
           </p>
         )}
       </div>

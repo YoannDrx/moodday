@@ -1,56 +1,81 @@
 "use client";
 
-import { CalendarHeart, Phone } from "lucide-react";
+import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { useI18n } from "@/i18n/provider";
+import { Phone } from "lucide-react";
 import Link from "next/link";
 
-const footerLinks = {
-  product: {
-    title: "Produit",
-    links: [
-      { label: "Fonctionnalités", href: "#features" },
-      { label: "Tarifs", href: "#pricing" },
-      { label: "Sécurité", href: "/security" },
-      { label: "FAQ", href: "/faq" },
-    ],
-  },
-  resources: {
-    title: "Ressources",
-    links: [
-      { label: "Blog", href: "/posts" },
-      { label: "Guides", href: "/docs" },
-      { label: "Aide", href: "/help" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-  legal: {
-    title: "Légal",
-    links: [
-      { label: "Conditions", href: "/legal/terms" },
-      { label: "Confidentialité", href: "/legal/privacy" },
-      { label: "RGPD", href: "/legal/gdpr" },
-      { label: "Cookies", href: "/legal/cookies" },
-    ],
-  },
-};
-
 export function MooddayFooter() {
+  const { t } = useI18n();
+
+  const footerLinks = {
+    product: {
+      title: t("moodday.footer.sections.product.title"),
+      links: [
+        {
+          label: t("moodday.footer.sections.product.features"),
+          href: "#features",
+        },
+        {
+          label: t("moodday.footer.sections.product.pricing"),
+          href: "#pricing",
+        },
+        {
+          label: t("moodday.footer.sections.product.security"),
+          href: "/security",
+        },
+        { label: t("moodday.footer.sections.product.faq"), href: "/faq" },
+      ],
+    },
+    resources: {
+      title: t("moodday.footer.sections.resources.title"),
+      links: [
+        { label: t("moodday.footer.sections.resources.blog"), href: "/posts" },
+        { label: t("moodday.footer.sections.resources.guides"), href: "/docs" },
+        { label: t("moodday.footer.sections.resources.help"), href: "/help" },
+        {
+          label: t("moodday.footer.sections.resources.contact"),
+          href: "/contact",
+        },
+      ],
+    },
+    legal: {
+      title: t("moodday.footer.sections.legal.title"),
+      links: [
+        {
+          label: t("moodday.footer.sections.legal.terms"),
+          href: "/legal/terms",
+        },
+        {
+          label: t("moodday.footer.sections.legal.privacy"),
+          href: "/legal/privacy",
+        },
+        { label: t("moodday.footer.sections.legal.gdpr"), href: "/legal/gdpr" },
+        {
+          label: t("moodday.footer.sections.legal.cookies"),
+          href: "/legal/cookies",
+        },
+      ],
+    },
+  };
+
   return (
     <footer className="relative border-t border-gray-100 bg-white/50 dark:border-gray-800 dark:bg-gray-900/50">
       {/* Emergency Banner */}
       <div className="border-b border-red-100 bg-red-50/50 py-3 dark:border-red-900/30 dark:bg-red-900/10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 px-6 text-sm lg:px-8">
           <span className="font-semibold text-red-600 dark:text-red-400">
-            Besoin d&apos;aide urgente ?
+            {t("moodday.footer.emergency.title")}
           </span>
           <a
             href="tel:3114"
             className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-1.5 font-bold text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-red-900/30 dark:hover:bg-red-900/50"
           >
             <Phone className="size-4" />
-            3114 - Numéro national de prévention du suicide
+            {t("moodday.footer.emergency.phone")}
           </a>
           <span className="text-xs text-red-500 dark:text-red-400">
-            Gratuit et confidentiel, 24h/24
+            {t("moodday.footer.emergency.subtext")}
           </span>
         </div>
       </div>
@@ -60,21 +85,12 @@ export function MooddayFooter() {
         <div className="grid gap-8 lg:grid-cols-5">
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <Link href="/" className="group inline-flex items-center gap-2">
-              <div className="bg-primary shadow-soft flex size-10 items-center justify-center rounded-xl transition-transform group-hover:rotate-6">
-                <CalendarHeart className="size-5 text-white" />
-              </div>
-              <span className="text-primary text-xl font-bold tracking-tight">
-                Moodday
-              </span>
-            </Link>
+            <MooddayLogo />
             <p className="mt-4 max-w-xs text-sm text-gray-600 dark:text-gray-400">
-              Votre compagnon digital pour suivre votre parcours de santé
-              mentale. Conçu avec des professionnels de santé.
+              {t("moodday.footer.description")}
             </p>
             <p className="mt-4 text-xs text-gray-400">
-              Moodday est un outil de suivi, pas un dispositif médical. En cas
-              de détresse, contactez un professionnel de santé.
+              {t("moodday.footer.disclaimer")}
             </p>
           </div>
 
@@ -103,7 +119,7 @@ export function MooddayFooter() {
         {/* Bottom Bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-8 md:flex-row dark:border-gray-800">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} Moodday SAS. Tous droits réservés.
+            {t("moodday.footer.copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-6">
             <Link

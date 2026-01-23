@@ -1,6 +1,8 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
+import { useHydration } from "@/hooks/use-hydration";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -9,6 +11,7 @@ import {
   CheckCircle,
   FileText,
   Heart,
+  type LucideIcon,
   Pill,
   Shield,
   User,
@@ -18,74 +21,54 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 
-const roles = {
-  patient: {
-    title: "Je suis patient(e)",
-    subtitle: "Je souhaite suivre mon parcours de santé mentale",
-    icon: User,
-    color: "primary",
-    features: [
-      {
-        icon: BarChart3,
-        title: "Suivi quotidien",
-        description:
-          "Enregistrez humeur, sommeil et traitements en 30 secondes",
-      },
-      {
-        icon: FileText,
-        title: "Export consultations",
-        description: "Générez un PDF complet pour votre psychiatre",
-      },
-      {
-        icon: Heart,
-        title: "Sans pression",
-        description: "Pas de streak ni de notifications culpabilisantes",
-      },
-      {
-        icon: Shield,
-        title: "Données privées",
-        description: "Chiffrement de bout en bout, conforme RGPD",
-      },
-    ],
-    cta: "Créer mon compte patient",
-    ctaLink: "/auth/signup?role=patient",
-  },
-  caregiver: {
-    title: "Je suis aidant(e)",
-    subtitle: "Je souhaite accompagner un proche",
-    icon: Users,
-    color: "sage",
-    features: [
-      {
-        icon: Bell,
-        title: "Alertes optionnelles",
-        description: "Soyez notifié uniquement si votre proche le souhaite",
-      },
-      {
-        icon: BarChart3,
-        title: "Vue d'ensemble",
-        description: "Consultez les tendances partagées par votre proche",
-      },
-      {
-        icon: Pill,
-        title: "Suivi médicaments",
-        description: "Aidez à la gestion des traitements si autorisé",
-      },
-      {
-        icon: Heart,
-        title: "Respect de l'autonomie",
-        description: "Le patient contrôle ce qu'il partage avec vous",
-      },
-    ],
-    cta: "Rejoindre un cercle d'aidants",
-    ctaLink: "/auth/signup?role=caregiver",
-  },
-};
+const patientFeatureIcons: LucideIcon[] = [BarChart3, FileText, Heart, Shield];
+const caregiverFeatureIcons: LucideIcon[] = [Bell, BarChart3, Pill, Heart];
 
 export function MooddayRoles() {
+  const { t, tm } = useI18n();
+  const isHydrated = useHydration();
   const [selectedRole, setSelectedRole] = useState<"patient" | "caregiver">(
     "patient",
   );
+
+  type FeatureItem = { title: string; description: string };
+
+  const patientFeatures = (
+    tm<FeatureItem[]>("moodday.roles.patient.features") ?? []
+  ).map((item, index) => ({
+    icon: patientFeatureIcons[index],
+    title: item.title,
+    description: item.description,
+  }));
+
+  const caregiverFeatures = (
+    tm<FeatureItem[]>("moodday.roles.caregiver.features") ?? []
+  ).map((item, index) => ({
+    icon: caregiverFeatureIcons[index],
+    title: item.title,
+    description: item.description,
+  }));
+
+  const roles = {
+    patient: {
+      title: t("moodday.roles.patient.title"),
+      subtitle: t("moodday.roles.patient.subtitle"),
+      icon: User,
+      color: "primary" as const,
+      features: patientFeatures,
+      cta: t("moodday.roles.patient.cta"),
+      ctaLink: "/auth/signup?role=patient",
+    },
+    caregiver: {
+      title: t("moodday.roles.caregiver.title"),
+      subtitle: t("moodday.roles.caregiver.subtitle"),
+      icon: Users,
+      color: "sage" as const,
+      features: caregiverFeatures,
+      cta: t("moodday.roles.caregiver.cta"),
+      ctaLink: "/auth/signup?role=caregiver",
+    },
+  };
 
   return (
     <section className="relative py-20 lg:py-32">
@@ -95,24 +78,23 @@ export function MooddayRoles() {
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isHydrated ? { opacity: 0, y: 20 } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="mx-auto mb-12 max-w-2xl text-center"
         >
           <span className="bg-sage/10 text-sage mb-4 inline-block rounded-full px-4 py-1.5 text-sm font-semibold">
-            Pour qui ?
+            {t("moodday.roles.badge")}
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
-            Que vous soyez{" "}
+            {t("moodday.roles.title")}{" "}
             <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-              patient ou aidant
+              {t("moodday.roles.titleHighlight")}
             </span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Moodday s&apos;adapte à votre situation pour vous accompagner au
-            mieux dans votre parcours.
+            {t("moodday.roles.subtitle")}
           </p>
         </motion.div>
 
@@ -158,7 +140,9 @@ export function MooddayRoles() {
                       : "text-gray-600 dark:text-gray-400",
                   )}
                 >
-                  {role === "patient" ? "Patient(e)" : "Aidant(e)"}
+                  {role === "patient"
+                    ? t("moodday.roles.patient.tab")
+                    : t("moodday.roles.caregiver.tab")}
                 </span>
               </button>
             );
@@ -168,7 +152,7 @@ export function MooddayRoles() {
         {/* Role Content */}
         <motion.div
           key={selectedRole}
-          initial={{ opacity: 0, y: 10 }}
+          initial={isHydrated ? { opacity: 0, y: 10 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="glass-card shadow-soft mx-auto max-w-4xl rounded-3xl p-8 lg:p-12"
@@ -246,7 +230,7 @@ export function MooddayRoles() {
 
         {/* Trust Badge */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={isHydrated ? { opacity: 0 } : false}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
@@ -254,15 +238,15 @@ export function MooddayRoles() {
         >
           <div className="flex items-center gap-2">
             <CheckCircle className="text-sage size-5" />
-            <span>Conçu avec des psychiatres</span>
+            <span>{t("moodday.roles.trust.designedWith")}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="text-sage size-5" />
-            <span>+5000 utilisateurs actifs</span>
+            <span>{t("moodday.roles.trust.activeUsers")}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="text-sage size-5" />
-            <span>Note 4.8/5 sur l&apos;App Store</span>
+            <span>{t("moodday.roles.trust.rating")}</span>
           </div>
         </motion.div>
       </div>

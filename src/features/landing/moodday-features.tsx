@@ -1,11 +1,14 @@
 "use client";
 
+import { useHydration } from "@/hooks/use-hydration";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Brain,
   FileText,
   Heart,
+  type LucideIcon,
   Moon,
   Pill,
   Shield,
@@ -13,74 +16,56 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 
-const features = [
+const featureIcons: LucideIcon[] = [
+  Brain,
+  Pill,
+  Moon,
+  BarChart3,
+  FileText,
+  Users,
+  Heart,
+  Shield,
+];
+
+const featureStyles = [
   {
-    icon: Brain,
-    title: "Suivi d'humeur intelligent",
-    description:
-      "Enregistrez votre humeur en quelques secondes avec notre échelle intuitive. Visualisez vos tendances et identifiez les patterns.",
     color: "bg-primary/10 text-primary",
     gradient: "from-primary/20 to-primary/5",
   },
+  { color: "bg-sage/10 text-sage", gradient: "from-sage/20 to-sage/5" },
   {
-    icon: Pill,
-    title: "Gestion des traitements",
-    description:
-      "Suivez vos médicaments, dosages et prises quotidiennes. Recevez des rappels et voyez les corrélations avec votre humeur.",
-    color: "bg-sage/10 text-sage",
-    gradient: "from-sage/20 to-sage/5",
-  },
-  {
-    icon: Moon,
-    title: "Journal du sommeil",
-    description:
-      "Notez vos heures de sommeil et leur qualité. Comprenez l'impact du repos sur votre bien-être mental.",
     color: "bg-lavender/30 text-primary",
     gradient: "from-lavender/30 to-lavender/10",
   },
   {
-    icon: BarChart3,
-    title: "Analyses & tendances",
-    description:
-      "Visualisez vos données sur des graphiques clairs. Identifiez les facteurs qui influencent votre état mental.",
     color: "bg-primary/10 text-primary",
     gradient: "from-primary/20 to-primary/5",
   },
+  { color: "bg-sage/10 text-sage", gradient: "from-sage/20 to-sage/5" },
   {
-    icon: FileText,
-    title: "Export PDF médical",
-    description:
-      "Générez un rapport complet pour vos consultations. Facilitez la communication avec votre psychiatre ou thérapeute.",
-    color: "bg-sage/10 text-sage",
-    gradient: "from-sage/20 to-sage/5",
-  },
-  {
-    icon: Users,
-    title: "Cercle d'aidants",
-    description:
-      "Invitez un proche de confiance à suivre votre parcours. Partagez uniquement ce que vous souhaitez.",
     color: "bg-lavender/30 text-primary",
     gradient: "from-lavender/30 to-lavender/10",
   },
   {
-    icon: Heart,
-    title: "Zéro culpabilité",
-    description:
-      "Pas de streak, pas de gamification agressive. Votre bien-être passe avant tout, à votre rythme.",
     color: "bg-primary/10 text-primary",
     gradient: "from-primary/20 to-primary/5",
   },
-  {
-    icon: Shield,
-    title: "Confidentialité totale",
-    description:
-      "Vos données sont chiffrées et vous appartiennent. Exportez ou supprimez tout à tout moment (RGPD).",
-    color: "bg-sage/10 text-sage",
-    gradient: "from-sage/20 to-sage/5",
-  },
+  { color: "bg-sage/10 text-sage", gradient: "from-sage/20 to-sage/5" },
 ];
 
 export function MooddayFeatures() {
+  const { t, tm } = useI18n();
+  const isHydrated = useHydration();
+
+  const features = (
+    tm<{ title: string; description: string }[]>("moodday.features.items") ?? []
+  ).map((item, index) => ({
+    icon: featureIcons[index],
+    title: item.title,
+    description: item.description,
+    ...featureStyles[index],
+  }));
+
   return (
     <section id="features" className="relative py-20 lg:py-32">
       {/* Background */}
@@ -89,24 +74,23 @@ export function MooddayFeatures() {
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isHydrated ? { opacity: 0, y: 20 } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-2xl text-center"
         >
           <span className="bg-primary/10 text-primary mb-4 inline-block rounded-full px-4 py-1.5 text-sm font-semibold">
-            Fonctionnalités
+            {t("moodday.features.badge")}
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
-            Tout ce dont vous avez besoin pour{" "}
+            {t("moodday.features.title")}{" "}
             <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-              prendre soin de vous
+              {t("moodday.features.titleHighlight")}
             </span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Des outils pensés avec des professionnels de santé pour vous
-            accompagner au quotidien dans votre parcours de santé mentale.
+            {t("moodday.features.subtitle")}
           </p>
         </motion.div>
 
@@ -115,7 +99,7 @@ export function MooddayFeatures() {
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
+              initial={isHydrated ? { opacity: 0, y: 20 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}

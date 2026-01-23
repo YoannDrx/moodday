@@ -1,71 +1,40 @@
 "use client";
 
+import { useHydration } from "@/hooks/use-hydration";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 
-const faqs = [
-  {
-    question: "Moodday remplace-t-il un suivi médical ?",
-    answer:
-      "Non, Moodday est un outil de suivi personnel qui complète votre prise en charge médicale. Il vous aide à mieux communiquer avec vos soignants en leur fournissant des données objectives sur votre parcours. En cas de crise, contactez toujours un professionnel de santé ou le 3114.",
-  },
-  {
-    question: "Mes données sont-elles confidentielles ?",
-    answer:
-      "Absolument. Vos données sont chiffrées de bout en bout et stockées sur des serveurs sécurisés en Europe. Nous sommes conformes au RGPD et vous pouvez exporter ou supprimer vos données à tout moment. Nous ne vendons jamais vos données à des tiers.",
-  },
-  {
-    question: "Puis-je partager mes données avec mon psychiatre ?",
-    answer:
-      "Oui, vous pouvez générer un rapport PDF complet de votre historique (humeur, médicaments, sommeil) à partager lors de vos consultations. Vous contrôlez exactement ce qui est inclus dans l'export.",
-  },
-  {
-    question: "Comment fonctionne le cercle d'aidants ?",
-    answer:
-      "Vous pouvez inviter un proche de confiance à rejoindre votre cercle d'aidants. Vous décidez exactement ce qu'il peut voir (tendances générales, alertes en cas de baisse...). L'aidant ne voit jamais vos notes personnelles sans votre autorisation explicite.",
-  },
-  {
-    question: "Y a-t-il des notifications ou des streaks ?",
-    answer:
-      "Nous avons volontairement éliminé toute forme de gamification culpabilisante. Pas de streak, pas de points, pas de notifications agressives. Vous recevez un rappel doux et configurable, et si vous manquez un jour, ce n'est pas grave. Votre bien-être passe avant les statistiques.",
-  },
-  {
-    question: "Puis-je utiliser Moodday hors connexion ?",
-    answer:
-      "Oui, l'application fonctionne hors ligne pour la saisie quotidienne. Vos données se synchronisent automatiquement dès que vous retrouvez une connexion.",
-  },
-  {
-    question: "Comment annuler mon abonnement ?",
-    answer:
-      "Vous pouvez annuler à tout moment depuis les paramètres de votre compte, sans frais ni justification. Vos données restent accessibles en lecture seule pendant 30 jours après l'annulation.",
-  },
-];
-
 export function MooddayFaq() {
+  const { t, tm } = useI18n();
+  const isHydrated = useHydration();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const faqs =
+    tm<{ question: string; answer: string }[]>("moodday.faq.items") ?? [];
 
   return (
     <section className="relative py-20 lg:py-32">
       <div className="mx-auto max-w-3xl px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isHydrated ? { opacity: 0, y: 20 } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="mb-12 text-center"
         >
           <span className="bg-primary/10 text-primary mb-4 inline-block rounded-full px-4 py-1.5 text-sm font-semibold">
-            Questions fréquentes
+            {t("moodday.faq.badge")}
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
-            Vous avez des questions ?
+            {t("moodday.faq.title")}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Trouvez des réponses aux questions les plus courantes sur Moodday.
+            {t("moodday.faq.subtitle")}
           </p>
         </motion.div>
 
@@ -74,7 +43,7 @@ export function MooddayFaq() {
           {faqs.map((faq, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 10 }}
+              initial={isHydrated ? { opacity: 0, y: 10 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -91,18 +60,18 @@ export function MooddayFaq() {
 
         {/* Contact CTA */}
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={isHydrated ? { opacity: 0 } : false}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
           className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400"
         >
-          Vous ne trouvez pas la réponse ?{" "}
+          {t("moodday.faq.contactPrompt")}{" "}
           <Link
             href="/contact"
             className="text-primary font-semibold hover:underline"
           >
-            Contactez-nous
+            {t("moodday.faq.contactLink")}
           </Link>
         </motion.p>
       </div>

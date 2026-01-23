@@ -304,3 +304,20 @@ model CaregiverRelationship {
   @@index([inviteToken])
   @@map("caregiver_relationship")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// NEWSLETTER
+// ═══════════════════════════════════════════════════════════════
+
+model NewsletterSubscriber {
+  id     String @id @default(cuid())
+  email  String @unique
+  locale String @default("fr")
+  source String @default("landing") // landing, footer, mobile_app, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("newsletter_subscriber")
+}

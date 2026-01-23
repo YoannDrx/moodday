@@ -1452,6 +1452,326 @@ const en = {
         "You don't have permission to access this resource. Please sign in or contact your administrator if you believe this is a mistake.",
     },
   },
+  moodday: {
+    nav: {
+      features: "Features",
+      pricing: "Pricing",
+      blog: "Blog",
+      contact: "Contact",
+      getStarted: "Get Started",
+      getStartedFree: "Start for free",
+    },
+    hero: {
+      badge: "Compassionate clinical journal",
+      title: "Track your",
+      titleHighlight: "mental health journey",
+      titleSuffix: "with peace of mind",
+      subtitle:
+        "A digital companion designed with psychiatrists to help you better understand your moods, track your treatments, and prepare your consultations.",
+      ctaPrimary: "Start for free",
+      ctaSecondary: "Discover features",
+      trust: {
+        gdpr: "GDPR compliant",
+        encrypted: "Encrypted data",
+        medicalPdf: "Medical PDF export",
+      },
+      mockup: {
+        greeting: "Hello Marie 👋",
+        question: "How are you feeling today?",
+        mood: "Mood",
+        adherence: "Adherence",
+        sleep: "Sleep",
+        days: "days",
+        quality: "Quality",
+        moodToday: "Today's mood",
+        veryLow: "Very low",
+        stable: "Stable",
+        excellent: "Excellent",
+        medication: "Lamictal 200mg",
+        takenAt: "Taken at 08:00",
+        nextSession: "Next session",
+        doctor: "Dr. Martin - Monday 2pm",
+        vsLastWeek: "vs last week",
+      },
+    },
+    features: {
+      badge: "Features",
+      title: "Everything you need to",
+      titleHighlight: "take care of yourself",
+      subtitle:
+        "Tools designed with healthcare professionals to support you daily in your mental health journey.",
+      items: [
+        {
+          title: "Smart mood tracking",
+          description:
+            "Record your mood in seconds with our intuitive scale. Visualize your trends and identify patterns.",
+        },
+        {
+          title: "Treatment management",
+          description:
+            "Track your medications, dosages, and daily intakes. Get reminders and see correlations with your mood.",
+        },
+        {
+          title: "Sleep journal",
+          description:
+            "Log your sleep hours and quality. Understand the impact of rest on your mental well-being.",
+        },
+        {
+          title: "Analytics & trends",
+          description:
+            "Visualize your data on clear charts. Identify factors that influence your mental state.",
+        },
+        {
+          title: "Medical PDF export",
+          description:
+            "Generate a comprehensive report for your consultations. Facilitate communication with your psychiatrist or therapist.",
+        },
+        {
+          title: "Caregiver circle",
+          description:
+            "Invite a trusted loved one to follow your journey. Share only what you wish to share.",
+        },
+        {
+          title: "Zero guilt",
+          description:
+            "No streaks, no aggressive gamification. Your well-being comes first, at your own pace.",
+        },
+        {
+          title: "Total privacy",
+          description:
+            "Your data is encrypted and belongs to you. Export or delete everything anytime (GDPR).",
+        },
+      ],
+    },
+    roles: {
+      badge: "For whom?",
+      title: "Whether you are",
+      titleHighlight: "patient or caregiver",
+      subtitle:
+        "Moodday adapts to your situation to best support you on your journey.",
+      patient: {
+        tab: "Patient",
+        title: "I am a patient",
+        subtitle: "I want to track my mental health journey",
+        cta: "Create my patient account",
+        features: [
+          {
+            title: "Daily tracking",
+            description: "Record mood, sleep, and treatments in 30 seconds",
+          },
+          {
+            title: "Consultation export",
+            description: "Generate a complete PDF for your psychiatrist",
+          },
+          {
+            title: "No pressure",
+            description: "No streaks or guilt-inducing notifications",
+          },
+          {
+            title: "Private data",
+            description: "End-to-end encryption, GDPR compliant",
+          },
+        ],
+      },
+      caregiver: {
+        tab: "Caregiver",
+        title: "I am a caregiver",
+        subtitle: "I want to support a loved one",
+        cta: "Join a caregiver circle",
+        features: [
+          {
+            title: "Optional alerts",
+            description: "Get notified only if your loved one wishes to share",
+          },
+          {
+            title: "Overview",
+            description: "View trends shared by your loved one",
+          },
+          {
+            title: "Medication tracking",
+            description: "Help manage treatments if authorized",
+          },
+          {
+            title: "Respect autonomy",
+            description: "The patient controls what they share with you",
+          },
+        ],
+      },
+      trust: {
+        designedWith: "Designed with psychiatrists",
+        activeUsers: "+5000 active users",
+        rating: "4.8/5 rating on App Store",
+      },
+    },
+    pricing: {
+      badge: "Pricing",
+      title: "Choose the plan",
+      titleHighlight: "that suits you",
+      subtitle: "Start for free, upgrade as needed. Cancel anytime.",
+      monthly: "Monthly",
+      yearly: "Yearly",
+      discount: "-33%",
+      perMonth: "/month",
+      perYear: "/year",
+      equivalent: "That's {price}/month",
+      mostPopular: "Most popular",
+      trustBadge:
+        "Secure payment via Stripe. Easy cancellation, no commitment.",
+      plans: {
+        free: {
+          name: "Free",
+          description: "To start your journey",
+          cta: "Start for free",
+          features: [
+            "Daily mood tracking",
+            "Unlimited journal",
+            "30-day history",
+            "1 medication tracked",
+            "Basic export",
+          ],
+        },
+        premium: {
+          name: "Premium",
+          description: "For complete tracking",
+          cta: "14-day free trial",
+          features: [
+            "Everything in Free",
+            "Unlimited history",
+            "Unlimited medications",
+            "Advanced analytics",
+            "Medical PDF export",
+            "Custom reminders",
+            "Circle of 2 caregivers",
+            "Priority support",
+          ],
+        },
+        family: {
+          name: "Family",
+          description: "For you and your loved ones",
+          cta: "Contact team",
+          features: [
+            "Everything in Premium",
+            "Up to 5 accounts",
+            "Expanded caregiver circle",
+            "Family dashboard",
+            "Shared reports",
+            "Dedicated support",
+          ],
+        },
+      },
+    },
+    faq: {
+      badge: "FAQ",
+      title: "You have questions?",
+      subtitle: "Find answers to the most common questions about Moodday.",
+      contactPrompt: "Can't find the answer?",
+      contactLink: "Contact us",
+      items: [
+        {
+          question: "Does Moodday replace medical care?",
+          answer:
+            "No, Moodday is a personal tracking tool that complements your medical care. It helps you communicate better with your healthcare providers by giving them objective data about your journey. In case of crisis, always contact a healthcare professional or call your local crisis line.",
+        },
+        {
+          question: "Is my data confidential?",
+          answer:
+            "Absolutely. Your data is end-to-end encrypted and stored on secure servers in Europe. We are GDPR compliant and you can export or delete your data at any time. We never sell your data to third parties.",
+        },
+        {
+          question: "Can I share my data with my psychiatrist?",
+          answer:
+            "Yes, you can generate a comprehensive PDF report of your history (mood, medications, sleep) to share during your consultations. You control exactly what is included in the export.",
+        },
+        {
+          question: "How does the caregiver circle work?",
+          answer:
+            "You can invite a trusted loved one to join your caregiver circle. You decide exactly what they can see (general trends, alerts in case of decline...). The caregiver never sees your personal notes without your explicit permission.",
+        },
+        {
+          question: "Are there notifications or streaks?",
+          answer:
+            "We deliberately eliminated all forms of guilt-inducing gamification. No streaks, no points, no aggressive notifications. You receive a gentle, configurable reminder, and if you miss a day, it's okay. Your well-being comes before statistics.",
+        },
+        {
+          question: "Can I use Moodday offline?",
+          answer:
+            "Yes, the app works offline for daily entries. Your data syncs automatically when you're back online.",
+        },
+        {
+          question: "How do I cancel my subscription?",
+          answer:
+            "You can cancel anytime from your account settings, with no fees or justification needed. Your data remains accessible in read-only mode for 30 days after cancellation.",
+        },
+      ],
+    },
+    cta: {
+      title: "Ready to take care of",
+      titleHighlight: "your mental health",
+      titleSuffix: "?",
+      subtitle:
+        "Join thousands of people who use Moodday to better understand their journey and communicate with their caregivers.",
+      ctaPrimary: "Start for free",
+      ctaSecondary: "Contact team",
+      trust: "14-day free trial • No credit card • Easy cancellation",
+    },
+    footer: {
+      emergency: {
+        title: "Need urgent help?",
+        phone: "988 - Suicide & Crisis Lifeline",
+        subtext: "Free and confidential, 24/7",
+      },
+      description:
+        "Your digital companion to track your mental health journey. Designed with healthcare professionals.",
+      disclaimer:
+        "Moodday is a tracking tool, not a medical device. If in distress, contact a healthcare professional.",
+      sections: {
+        product: {
+          title: "Product",
+          features: "Features",
+          pricing: "Pricing",
+          security: "Security",
+          faq: "FAQ",
+        },
+        resources: {
+          title: "Resources",
+          blog: "Blog",
+          guides: "Guides",
+          help: "Help",
+          contact: "Contact",
+        },
+        legal: {
+          title: "Legal",
+          terms: "Terms",
+          privacy: "Privacy",
+          gdpr: "GDPR",
+          cookies: "Cookies",
+        },
+      },
+      copyright: "© {year} Moodday SAS. All rights reserved.",
+    },
+    newsletter: {
+      title: "Stay informed",
+      subtitle: "Receive tips for your mental well-being and Moodday updates.",
+      placeholder: "Your email",
+      cta: "Subscribe",
+      success: "Thanks for subscribing!",
+      alreadySubscribed: "This email is already subscribed.",
+      subscribed: "You're subscribed!",
+      error: "An error occurred. Please try again.",
+      privacy: "We respect your privacy. Easy unsubscribe.",
+    },
+    mobileApp: {
+      badge: "Coming soon",
+      title: "Mobile app",
+      subtitle: "Take Moodday everywhere with you",
+      comingSoon: "Soon",
+      features: {
+        offline: "Offline mode",
+        notifications: "Reminders",
+        sync: "Auto sync",
+      },
+    },
+  },
 };
 
 export default en;

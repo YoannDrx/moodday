@@ -4,6 +4,7 @@ import { MooddayFeatures } from "@/features/landing/moodday-features";
 import { MooddayFooter } from "@/features/landing/moodday-footer";
 import { MooddayHeader } from "@/features/landing/moodday-header";
 import { MooddayHero } from "@/features/landing/moodday-hero";
+import { MooddayNewsletter } from "@/features/landing/moodday-newsletter";
 import { MooddayPricing } from "@/features/landing/moodday-pricing";
 import { MooddayRoles } from "@/features/landing/moodday-roles";
 
@@ -18,6 +19,7 @@ export default function HomePage() {
         <MooddayPricing />
         <MooddayFaq />
         <MooddayCta />
+        <MooddayNewsletter />
       </main>
       <MooddayFooter />
     </div>

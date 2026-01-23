@@ -1,17 +1,22 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
+import { useHydration } from "@/hooks/use-hydration";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import { ArrowRight, CalendarHeart } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 
 export function MooddayCta() {
+  const { t } = useI18n();
+  const isHydrated = useHydration();
+
   return (
     <section className="relative py-20 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isHydrated ? { opacity: 0, y: 20 } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
@@ -32,18 +37,16 @@ export function MooddayCta() {
 
             {/* Title */}
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
-              Prêt à prendre soin de{" "}
+              {t("moodday.cta.title")}{" "}
               <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-                votre santé mentale
+                {t("moodday.cta.titleHighlight")}
               </span>{" "}
-              ?
+              {t("moodday.cta.titleSuffix")}
             </h2>
 
             {/* Subtitle */}
             <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
-              Rejoignez des milliers de personnes qui utilisent Moodday pour
-              mieux comprendre leur parcours et communiquer avec leurs
-              soignants.
+              {t("moodday.cta.subtitle")}
             </p>
 
             {/* CTA Buttons */}
@@ -55,7 +58,7 @@ export function MooddayCta() {
                   "shadow-soft gap-2 rounded-2xl px-8 py-6 text-base font-bold",
                 )}
               >
-                Commencer gratuitement
+                {t("moodday.cta.ctaPrimary")}
                 <ArrowRight className="size-5" />
               </Link>
               <Link
@@ -65,13 +68,13 @@ export function MooddayCta() {
                   "rounded-2xl border-2 px-8 py-6 text-base font-semibold",
                 )}
               >
-                Contacter l&apos;équipe
+                {t("moodday.cta.ctaSecondary")}
               </Link>
             </div>
 
             {/* Trust Text */}
             <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-              Essai gratuit 14 jours • Sans carte bancaire • Annulation facile
+              {t("moodday.cta.trust")}
             </p>
           </div>
         </motion.div>

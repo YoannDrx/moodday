@@ -1,4 +1,4 @@
-const CACHE_NAME = "moodday-cache-v1";
+const CACHE_NAME = "moodday-cache-v2";
 const OFFLINE_URL = "/offline";
 const PRECACHE_ASSETS = ["/", OFFLINE_URL, "/manifest.json", "/images/icon.png"];
 
@@ -38,6 +38,22 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request).catch(() => caches.match(OFFLINE_URL)),
     );
+    return;
+  }
+
+  if (request.url.includes("/_next/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  const acceptHeader = request.headers.get("accept") || "";
+  const isRscRequest =
+    acceptHeader.includes("text/x-component") ||
+    request.headers.has("next-router-state-tree") ||
+    request.headers.get("rsc") === "1" ||
+    request.url.includes("__rsc");
+  if (isRscRequest) {
+    event.respondWith(fetch(request));
     return;
   }
 

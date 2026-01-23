@@ -1470,6 +1470,330 @@ const fr: typeof en = {
         "Vous n'avez pas la permission d'accéder à cette ressource. Veuillez vous connecter ou contacter votre administrateur si besoin.",
     },
   },
+  moodday: {
+    nav: {
+      features: "Fonctionnalités",
+      pricing: "Tarifs",
+      blog: "Blog",
+      contact: "Contact",
+      getStarted: "Commencer",
+      getStartedFree: "Commencer gratuitement",
+    },
+    hero: {
+      badge: "Journal clinique bienveillant",
+      title: "Suivez votre",
+      titleHighlight: "parcours mental",
+      titleSuffix: "en toute sérénité",
+      subtitle:
+        "Un compagnon digital conçu avec des psychiatres pour vous aider à mieux comprendre vos humeurs, suivre vos traitements et préparer vos consultations.",
+      ctaPrimary: "Commencer gratuitement",
+      ctaSecondary: "Découvrir les fonctionnalités",
+      trust: {
+        gdpr: "Conforme RGPD",
+        encrypted: "Données chiffrées",
+        medicalPdf: "Export PDF médical",
+      },
+      mockup: {
+        greeting: "Bonjour Marie 👋",
+        question: "Comment allez-vous aujourd'hui ?",
+        mood: "Humeur",
+        adherence: "Observance",
+        sleep: "Sommeil",
+        days: "jours",
+        quality: "Qualité",
+        moodToday: "Humeur du jour",
+        veryLow: "Très bas",
+        stable: "Stable",
+        excellent: "Excellent",
+        medication: "Lamictal 200mg",
+        takenAt: "Pris à 08:00",
+        nextSession: "Prochaine séance",
+        doctor: "Dr. Martin - Lundi 14h",
+        vsLastWeek: "vs semaine dernière",
+      },
+    },
+    features: {
+      badge: "Fonctionnalités",
+      title: "Tout ce dont vous avez besoin pour",
+      titleHighlight: "prendre soin de vous",
+      subtitle:
+        "Des outils pensés avec des professionnels de santé pour vous accompagner au quotidien dans votre parcours de santé mentale.",
+      items: [
+        {
+          title: "Suivi d'humeur intelligent",
+          description:
+            "Enregistrez votre humeur en quelques secondes avec notre échelle intuitive. Visualisez vos tendances et identifiez les patterns.",
+        },
+        {
+          title: "Gestion des traitements",
+          description:
+            "Suivez vos médicaments, dosages et prises quotidiennes. Recevez des rappels et voyez les corrélations avec votre humeur.",
+        },
+        {
+          title: "Journal du sommeil",
+          description:
+            "Notez vos heures de sommeil et leur qualité. Comprenez l'impact du repos sur votre bien-être mental.",
+        },
+        {
+          title: "Analyses & tendances",
+          description:
+            "Visualisez vos données sur des graphiques clairs. Identifiez les facteurs qui influencent votre état mental.",
+        },
+        {
+          title: "Export PDF médical",
+          description:
+            "Générez un rapport complet pour vos consultations. Facilitez la communication avec votre psychiatre ou thérapeute.",
+        },
+        {
+          title: "Cercle d'aidants",
+          description:
+            "Invitez un proche de confiance à suivre votre parcours. Partagez uniquement ce que vous souhaitez.",
+        },
+        {
+          title: "Zéro culpabilité",
+          description:
+            "Pas de streak, pas de gamification agressive. Votre bien-être passe avant tout, à votre rythme.",
+        },
+        {
+          title: "Confidentialité totale",
+          description:
+            "Vos données sont chiffrées et vous appartiennent. Exportez ou supprimez tout à tout moment (RGPD).",
+        },
+      ],
+    },
+    roles: {
+      badge: "Pour qui ?",
+      title: "Que vous soyez",
+      titleHighlight: "patient ou aidant",
+      subtitle:
+        "Moodday s'adapte à votre situation pour vous accompagner au mieux dans votre parcours.",
+      patient: {
+        tab: "Patient(e)",
+        title: "Je suis patient(e)",
+        subtitle: "Je souhaite suivre mon parcours de santé mentale",
+        cta: "Créer mon compte patient",
+        features: [
+          {
+            title: "Suivi quotidien",
+            description:
+              "Enregistrez humeur, sommeil et traitements en 30 secondes",
+          },
+          {
+            title: "Export consultations",
+            description: "Générez un PDF complet pour votre psychiatre",
+          },
+          {
+            title: "Sans pression",
+            description: "Pas de streak ni de notifications culpabilisantes",
+          },
+          {
+            title: "Données privées",
+            description: "Chiffrement de bout en bout, conforme RGPD",
+          },
+        ],
+      },
+      caregiver: {
+        tab: "Aidant(e)",
+        title: "Je suis aidant(e)",
+        subtitle: "Je souhaite accompagner un proche",
+        cta: "Rejoindre un cercle d'aidants",
+        features: [
+          {
+            title: "Alertes optionnelles",
+            description: "Soyez notifié uniquement si votre proche le souhaite",
+          },
+          {
+            title: "Vue d'ensemble",
+            description: "Consultez les tendances partagées par votre proche",
+          },
+          {
+            title: "Suivi médicaments",
+            description: "Aidez à la gestion des traitements si autorisé",
+          },
+          {
+            title: "Respect de l'autonomie",
+            description: "Le patient contrôle ce qu'il partage avec vous",
+          },
+        ],
+      },
+      trust: {
+        designedWith: "Conçu avec des psychiatres",
+        activeUsers: "+5000 utilisateurs actifs",
+        rating: "Note 4.8/5 sur l'App Store",
+      },
+    },
+    pricing: {
+      badge: "Tarifs",
+      title: "Choisissez le plan",
+      titleHighlight: "qui vous convient",
+      subtitle:
+        "Commencez gratuitement, évoluez selon vos besoins. Annulez à tout moment.",
+      monthly: "Mensuel",
+      yearly: "Annuel",
+      discount: "-33%",
+      perMonth: "/mois",
+      perYear: "/an",
+      equivalent: "Soit {price}/mois",
+      mostPopular: "Le plus populaire",
+      trustBadge:
+        "Paiement sécurisé par Stripe. Annulation facile, sans engagement.",
+      plans: {
+        free: {
+          name: "Gratuit",
+          description: "Pour commencer votre parcours",
+          cta: "Commencer gratuitement",
+          features: [
+            "Suivi humeur quotidien",
+            "Journal illimité",
+            "Historique 30 jours",
+            "1 médicament suivi",
+            "Export basique",
+          ],
+        },
+        premium: {
+          name: "Premium",
+          description: "Pour un suivi complet",
+          cta: "Essai gratuit 14 jours",
+          features: [
+            "Tout du plan Gratuit",
+            "Historique illimité",
+            "Médicaments illimités",
+            "Analyses avancées",
+            "Export PDF médical",
+            "Rappels personnalisés",
+            "Cercle de 2 aidants",
+            "Support prioritaire",
+          ],
+        },
+        family: {
+          name: "Famille",
+          description: "Pour vous et vos proches",
+          cta: "Contacter l'équipe",
+          features: [
+            "Tout du plan Premium",
+            "Jusqu'à 5 comptes",
+            "Cercle d'aidants élargi",
+            "Tableau de bord famille",
+            "Rapports partagés",
+            "Support dédié",
+          ],
+        },
+      },
+    },
+    faq: {
+      badge: "Questions fréquentes",
+      title: "Vous avez des questions ?",
+      subtitle:
+        "Trouvez des réponses aux questions les plus courantes sur Moodday.",
+      contactPrompt: "Vous ne trouvez pas la réponse ?",
+      contactLink: "Contactez-nous",
+      items: [
+        {
+          question: "Moodday remplace-t-il un suivi médical ?",
+          answer:
+            "Non, Moodday est un outil de suivi personnel qui complète votre prise en charge médicale. Il vous aide à mieux communiquer avec vos soignants en leur fournissant des données objectives sur votre parcours. En cas de crise, contactez toujours un professionnel de santé ou le 3114.",
+        },
+        {
+          question: "Mes données sont-elles confidentielles ?",
+          answer:
+            "Absolument. Vos données sont chiffrées de bout en bout et stockées sur des serveurs sécurisés en Europe. Nous sommes conformes au RGPD et vous pouvez exporter ou supprimer vos données à tout moment. Nous ne vendons jamais vos données à des tiers.",
+        },
+        {
+          question: "Puis-je partager mes données avec mon psychiatre ?",
+          answer:
+            "Oui, vous pouvez générer un rapport PDF complet de votre historique (humeur, médicaments, sommeil) à partager lors de vos consultations. Vous contrôlez exactement ce qui est inclus dans l'export.",
+        },
+        {
+          question: "Comment fonctionne le cercle d'aidants ?",
+          answer:
+            "Vous pouvez inviter un proche de confiance à rejoindre votre cercle d'aidants. Vous décidez exactement ce qu'il peut voir (tendances générales, alertes en cas de baisse...). L'aidant ne voit jamais vos notes personnelles sans votre autorisation explicite.",
+        },
+        {
+          question: "Y a-t-il des notifications ou des streaks ?",
+          answer:
+            "Nous avons volontairement éliminé toute forme de gamification culpabilisante. Pas de streak, pas de points, pas de notifications agressives. Vous recevez un rappel doux et configurable, et si vous manquez un jour, ce n'est pas grave. Votre bien-être passe avant les statistiques.",
+        },
+        {
+          question: "Puis-je utiliser Moodday hors connexion ?",
+          answer:
+            "Oui, l'application fonctionne hors ligne pour la saisie quotidienne. Vos données se synchronisent automatiquement dès que vous retrouvez une connexion.",
+        },
+        {
+          question: "Comment annuler mon abonnement ?",
+          answer:
+            "Vous pouvez annuler à tout moment depuis les paramètres de votre compte, sans frais ni justification. Vos données restent accessibles en lecture seule pendant 30 jours après l'annulation.",
+        },
+      ],
+    },
+    cta: {
+      title: "Prêt à prendre soin de",
+      titleHighlight: "votre santé mentale",
+      titleSuffix: "?",
+      subtitle:
+        "Rejoignez des milliers de personnes qui utilisent Moodday pour mieux comprendre leur parcours et communiquer avec leurs soignants.",
+      ctaPrimary: "Commencer gratuitement",
+      ctaSecondary: "Contacter l'équipe",
+      trust: "Essai gratuit 14 jours • Sans carte bancaire • Annulation facile",
+    },
+    footer: {
+      emergency: {
+        title: "Besoin d'aide urgente ?",
+        phone: "3114 - Numéro national de prévention du suicide",
+        subtext: "Gratuit et confidentiel, 24h/24",
+      },
+      description:
+        "Votre compagnon digital pour suivre votre parcours de santé mentale. Conçu avec des professionnels de santé.",
+      disclaimer:
+        "Moodday est un outil de suivi, pas un dispositif médical. En cas de détresse, contactez un professionnel de santé.",
+      sections: {
+        product: {
+          title: "Produit",
+          features: "Fonctionnalités",
+          pricing: "Tarifs",
+          security: "Sécurité",
+          faq: "FAQ",
+        },
+        resources: {
+          title: "Ressources",
+          blog: "Blog",
+          guides: "Guides",
+          help: "Aide",
+          contact: "Contact",
+        },
+        legal: {
+          title: "Légal",
+          terms: "Conditions",
+          privacy: "Confidentialité",
+          gdpr: "RGPD",
+          cookies: "Cookies",
+        },
+      },
+      copyright: "© {year} Moodday SAS. Tous droits réservés.",
+    },
+    newsletter: {
+      title: "Restez informé",
+      subtitle:
+        "Recevez des conseils pour votre bien-être mental et les nouveautés Moodday.",
+      placeholder: "Votre email",
+      cta: "S'inscrire",
+      success: "Merci pour votre inscription !",
+      alreadySubscribed: "Cet email est déjà inscrit.",
+      subscribed: "Vous êtes inscrit !",
+      error: "Une erreur est survenue. Réessayez.",
+      privacy: "Nous respectons votre vie privée. Désabonnement facile.",
+    },
+    mobileApp: {
+      badge: "Bientôt disponible",
+      title: "Application mobile",
+      subtitle: "Emportez Moodday partout avec vous",
+      comingSoon: "Bientôt",
+      features: {
+        offline: "Mode hors-ligne",
+        notifications: "Rappels",
+        sync: "Sync auto",
+      },
+    },
+  },
 };
 
 export default fr;
