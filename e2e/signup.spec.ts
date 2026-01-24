@@ -5,13 +5,13 @@ import { createTestAccount } from "./utils/auth-test";
 test("sign up and verify account creation", async ({ page }) => {
   const userData = await createTestAccount({
     page,
-    callbackURL: "/app",
+    callbackURL: "/dashboard",
   });
 
-  await page.waitForURL("/app");
+  await page.waitForURL("/dashboard");
 
-  // Verify we're on the app page
-  expect(page.url()).toContain("/app");
+  // Verify we're on the dashboard page
+  expect(page.url()).toContain("/dashboard");
 
   // Verify the user was created in the database
   const user = await prisma.user.findUnique({

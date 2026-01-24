@@ -127,20 +127,20 @@ export function CaregiverInvite() {
             </div>
           )}
 
-          {!isLoading && invite && invite.status === "active" && (
+          {!isLoading && invite?.status === "active" ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
               <CheckCircle2 className="size-4" />
               Vous avez deja accepte cette invitation.
             </div>
-          )}
+          ) : null}
 
-          {!isLoading && invite && invite.status === "declined" && (
+          {!isLoading && invite?.status === "declined" ? (
             <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
               Cette invitation a ete refusee.
             </div>
-          )}
+          ) : null}
 
-          {!isLoading && invite && invite.status === "pending" && (
+          {!isLoading && invite?.status === "pending" ? (
             <>
               <div className="space-y-1">
                 <p className="text-lg font-semibold">{invite.patientName}</p>
@@ -170,7 +170,7 @@ export function CaregiverInvite() {
                 </Button>
               </div>
             </>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

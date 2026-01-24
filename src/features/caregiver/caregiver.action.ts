@@ -475,7 +475,9 @@ export const createObservation = authAction
         }
 
         if (!relationship.permissions.includes("add_observations")) {
-          throw new Error("Permission insuffisante pour ajouter une observation");
+          throw new Error(
+            "Permission insuffisante pour ajouter une observation",
+          );
         }
       }
 
@@ -531,7 +533,9 @@ export const createEvent = authAction
         });
 
         if (!relationship) {
-          throw new Error("Non autorisé à signaler un événement pour ce patient");
+          throw new Error(
+            "Non autorisé à signaler un événement pour ce patient",
+          );
         }
 
         if (!relationship.permissions.includes("add_events")) {
