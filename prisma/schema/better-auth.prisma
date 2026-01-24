@@ -17,7 +17,21 @@ model User {
   accounts      Account[]
   feedbacks     Feedback[]
   subscription  Subscription?
-  
+  moodEntries      MoodEntry[]
+  medications      Medication[]
+  therapySessions  TherapySession[]
+  exercises        Exercise[]
+
+  // Caregiver relations
+  observationsMade    CaregiverObservation[] @relation("ObserverRelation")
+  observationsReceived CaregiverObservation[] @relation("SubjectRelation")
+  eventsReported      CaregiverEvent[] @relation("ReporterRelation")
+  eventsAbout         CaregiverEvent[] @relation("EventSubjectRelation")
+
+  // Caregiver relationship system
+  caregivingFor       CaregiverRelationship[] @relation("CaregiverRelations") // As caregiver
+  caregivers          CaregiverRelationship[] @relation("PatientRelations")   // As patient
+
   // Stripe integration
   stripeCustomerId String?
 

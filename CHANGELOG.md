@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-01-23
+
+FEATURE: Onboarding wizard with mood, meds, preferences, caregiver invite
+FEATURE: Quick entry modal wired to FAB + offline mood queue
+FEATURE: Anxiety score UI in journal flow
+FEATURE: Caregiver email invites + public accept/decline page
+FEATURE: Stripe portal actions wired in settings
+FEATURE: Avatar upload via Vercel Blob adapter
+FEATURE: Zen theme enabled
+FEATURE: PWA manifest + service worker + offline page
+FEATURE: Local notifications (check-in + meds reminders)
+FEATURE: Dynamic correlations in trends
+FEATURE: Push notifications serveur (VAPID + subscriptions + cron route)
+FEATURE: Offline action queue for meds/exercises/therapy + sync indicator
+FEATURE: Medication reminder time in preferences + onboarding
+FEATURE: AI journal insight action (LLM optionnel)
+
 ## 2026-01-02
 
 FEATURE: Import admin charts (MRR, user growth) from main NOW.TS

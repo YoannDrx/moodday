@@ -34,7 +34,7 @@ export const ProviderButton = (props: ProviderButtonProps) => {
       await authClient.signIn.social({
         provider: props.providerId,
         callbackURL: getCallbackUrl(
-          `/auth/last-used-provider?provider=${props.providerId}&callbackUrl=${props.callbackUrl ?? "/app"}`,
+          `/auth/last-used-provider?provider=${props.providerId}&callbackUrl=${props.callbackUrl ?? "/dashboard"}`,
         ),
       });
     },

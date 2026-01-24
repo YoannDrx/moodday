@@ -1,0 +1,133 @@
+# BMM Workflow Status - Moodday
+# Generated: 2026-01-20
+# Track: BMad Method (Greenfield)
+
+generated: "2026-01-20"
+project: "moodday"
+project_type: "Micro-SaaS santé mentale - Mood & Medication Tracker"
+selected_track: "bmad-method"
+field_type: "greenfield"
+workflow_path: "method-greenfield.yaml"
+
+# Project Context (from user input)
+project_description: |
+  Moodday est un journal clinique-friendly (PWA) pour les personnes vivant avec
+  des troubles psychiatriques (TDAH, bipolarité, dépression, anxiété).
+
+  Fonctionnalités clés:
+  - Suivi quotidien humeur (0-10) + énergie + sommeil
+  - Gestion médicamenteuse (régulier + PRN)
+  - Collaboration aidant/professionnel avec permissions granulaires
+  - Export PDF pour consultations psy
+  - IA pour détecter les patterns (sans diagnostic)
+  - 18 screens planifiés pour MVP (12 semaines)
+
+# Workflow Status Tracking
+workflow_status:
+
+  # ═══════════════════════════════════════════════════════════════
+  # PHASE 1: ANALYSIS (Optional - User Selected)
+  # ═══════════════════════════════════════════════════════════════
+  phase_1_analysis:
+    name: "Analysis"
+    status: "pending"
+
+    workflows:
+      - id: "brainstorm-project"
+        name: "Brainstorming"
+        status: "_bmad-output/analysis/brainstorming-session-2026-01-20.md"
+        agent: "analyst"
+        command: "/bmad:core:workflows:brainstorming"
+        note: "✅ Complété - 40 idées, 5 concepts MVP, cadre validé"
+
+      - id: "research"
+        name: "Research"
+        status: "optional"  # User selected: included
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:research"
+        note: "Analyse technique/concurrentielle"
+
+      - id: "product-brief"
+        name: "Product Brief"
+        status: "_bmad-output/planning-artifacts/product-brief-moodday-2026-01-20.md"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:create-product-brief"
+        note: "✅ Complété - Vision, Personas, Métriques, Scope MVP définis"
+
+  # ═══════════════════════════════════════════════════════════════
+  # PHASE 2: PLANNING (Required)
+  # ═══════════════════════════════════════════════════════════════
+  phase_2_planning:
+    name: "Planning"
+    status: "pending"
+
+    workflows:
+      - id: "prd"
+        name: "Product Requirements Document"
+        status: "_bmad-output/planning-artifacts/prd.md"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:prd"
+        note: "✅ Complété - Executive Summary, 44 FRs, 23 NFRs, 4 User Journeys"
+
+      - id: "create-ux-design"
+        name: "UX Design"
+        status: "_bmad-output/planning-artifacts/ux-design-specification.md"
+        agent: "ux-designer"
+        command: "/bmad:bmm:workflows:create-ux-design"
+        note: "✅ Complété - 14 étapes, Glass-morphism, WCAG AA, Mobile-first PWA"
+
+  # ═══════════════════════════════════════════════════════════════
+  # PHASE 3: SOLUTIONING (Required)
+  # ═══════════════════════════════════════════════════════════════
+  phase_3_solutioning:
+    name: "Solutioning"
+    status: "pending"
+
+    workflows:
+      - id: "create-architecture"
+        name: "System Architecture"
+        status: "_bmad-output/planning-artifacts/architecture.md"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:create-architecture"
+        note: "✅ Complété - 8 étapes, Stack validée, 100% coverage"
+
+      - id: "create-epics-and-stories"
+        name: "Epics & Stories"
+        status: "_bmad-output/planning-artifacts/epics.md"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:create-epics-and-stories"
+        note: "✅ Complété - 8 Epics, 42 Stories, 100% FR coverage"
+
+      - id: "test-design"
+        name: "Test Design"
+        status: "optional"
+        agent: "tea"
+        command: "/bmad:bmm:workflows:testarch-test-design"
+        output: "Review testabilité système"
+
+      - id: "implementation-readiness"
+        name: "Implementation Readiness Check"
+        status: "_bmad-output/planning-artifacts/implementation-readiness-report.md"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:check-implementation-readiness"
+        note: "✅ Complété - READY, 0 critical, 0 major, 5 minor issues"
+
+  # ═══════════════════════════════════════════════════════════════
+  # PHASE 4: IMPLEMENTATION (Required)
+  # ═══════════════════════════════════════════════════════════════
+  phase_4_implementation:
+    name: "Implementation"
+    status: "pending"
+
+    workflows:
+      - id: "sprint-planning"
+        name: "Sprint Planning"
+        status: "required"
+        agent: "sm"
+        command: "/bmad:bmm:workflows:sprint-planning"
+        note: "Crée le sprint plan - suivi dans sprint-status.yaml"
+
+# Next Action
+next_workflow: "sprint-planning"
+next_agent: "sm"
+next_command: "/bmad:bmm:workflows:sprint-planning"

@@ -1,7 +1,16 @@
 import type { NavigationGroup } from "@/features/navigation/navigation.type";
-import { Home, User } from "lucide-react";
-
-const APP_PATH = "/app";
+import {
+  BarChart3,
+  Dumbbell,
+  FileText,
+  Heart,
+  HeartHandshake,
+  Home,
+  MessageSquare,
+  Pill,
+  Settings,
+  Users,
+} from "lucide-react";
 
 type Translator = (
   key: string,
@@ -11,17 +20,70 @@ type Translator = (
 export const getAppNavigation = (t: Translator): NavigationGroup[] => {
   return [
     {
-      title: t("nav.menu"),
+      title: t("patient.nav.main"),
+      defaultOpenStartPath: "/dashboard",
       links: [
         {
-          href: APP_PATH,
+          href: "/dashboard",
           Icon: Home,
           label: t("nav.dashboard"),
         },
         {
-          href: `${APP_PATH}/users`,
-          Icon: User,
-          label: t("nav.analytics"),
+          href: "/mood",
+          Icon: Heart,
+          label: t("patient.nav.mood"),
+        },
+        {
+          href: "/trends",
+          Icon: BarChart3,
+          label: t("patient.nav.trends"),
+        },
+      ],
+    },
+    {
+      title: t("patient.nav.tracking"),
+      defaultOpenStartPath: "/medications",
+      links: [
+        {
+          href: "/medications",
+          Icon: Pill,
+          label: t("patient.nav.medications"),
+        },
+        {
+          href: "/exercises",
+          Icon: Dumbbell,
+          label: t("patient.nav.exercises"),
+        },
+        {
+          href: "/therapy",
+          Icon: MessageSquare,
+          label: t("patient.nav.therapy"),
+        },
+        {
+          href: "/caregiver",
+          Icon: Users,
+          label: t("patient.nav.caregiver"),
+        },
+      ],
+    },
+    {
+      title: t("patient.nav.tools"),
+      defaultOpenStartPath: "/export",
+      links: [
+        {
+          href: "/crisis",
+          Icon: HeartHandshake,
+          label: t("patient.nav.crisis"),
+        },
+        {
+          href: "/export",
+          Icon: FileText,
+          label: t("patient.nav.export"),
+        },
+        {
+          href: "/settings",
+          Icon: Settings,
+          label: t("settings.title"),
         },
       ],
     },

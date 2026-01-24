@@ -20,6 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t("meta.title"),
     description: t("meta.description"),
     metadataBase: new URL(getServerUrl()),
+    manifest: "/manifest.json",
+    icons: {
+      icon: "/images/icon.png",
+    },
+    themeColor: "#2BA09F",
   };
 }
 

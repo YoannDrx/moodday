@@ -46,4 +46,4 @@ src/generated
 .conductor
 
 # BMAD outputs (generated artifacts)
-_bmad-output/
+#_bmad-output/

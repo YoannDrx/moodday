@@ -21,13 +21,27 @@ pnpm dev
 
 ## Features
 
-- Authentication (GitHub, Google, Magic Links)
-- Stripe Subscriptions (Free, Pro, Ultra)
+- Mood tracking (quick entry + journal détaillé + historique)
+- Sleep & energy tracking (via journal)
+- Anxiety score tracking
+- Medication management (CRUD, intakes, PRN, dosage history)
+- Therapy notes + exercises tracking
+- Caregiver circle (invites email, observations, events)
+- Insights (mood chart + patterns + dosage markers + correlations + IA optionnelle)
+- PDF export + RGPD JSON export
+- User settings (notifications, display, theme light/dark/zen, timezone, avatar)
+- Onboarding wizard (mood + meds + preferences + caregiver invite)
+- PWA (manifest + offline page + offline queues + sync + push notifications serveur)
+- Authentication (Email, GitHub, Google)
 - PostgreSQL with Prisma
-- Transactional Emails (Resend)
-- Admin Dashboard
 - i18n (EN/FR)
 - Tests (Vitest + Playwright)
+
+> Note: les rappels par medicament et la planification cron restent a finaliser.
+
+## Project Status (2026-01-23)
+
+See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully functional, what is mock/UI-only, and what remains to implement for the MVP and beyond.
 
 ## Commands
 

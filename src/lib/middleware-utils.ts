@@ -14,7 +14,7 @@ export const handleRootRedirect = (request: NextRequest) => {
   if (!session) return null;
 
   const url = request.nextUrl.clone();
-  url.pathname = "/app";
+  url.pathname = "/dashboard";
   return NextResponse.redirect(url);
 };
 
