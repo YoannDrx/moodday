@@ -386,7 +386,7 @@ export const updateCaregiverPermissions = authAction
         where: { id: relationshipId },
       });
 
-      if (!relationship || relationship.patientId !== user.id) {
+      if (relationship?.patientId !== user.id) {
         throw new Error("Relation non trouvée ou non autorisée");
       }
 
