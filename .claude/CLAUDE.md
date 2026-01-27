@@ -1,5 +1,20 @@
 # CLAUDE.md
 
+---
+
+## ⚡ AUTO-START mgrep (à faire automatiquement)
+
+**Dès que tu commences à travailler sur ce projet, lance cette commande en background :**
+
+```bash
+mgrep watch --store "moodday" &
+```
+
+> Lance cette commande UNE SEULE FOIS au début de la session. Ne la relance pas à chaque question.
+
+---
+
+
 Guide pour Claude Code sur ce dépôt.
 
 ---
@@ -19,35 +34,30 @@ Guide pour Claude Code sur ce dépôt.
 
 ## mgrep - Assistant de recherche de code
 
-**mgrep est ton outil principal pour explorer le codebase.** Il te donne la réponse en langage naturel + la source pertinente, tout servi.
+**mgrep est l'outil principal pour explorer ce codebase.** Il retourne une réponse en langage naturel + les sources pertinentes.
 
-### Nom du store
+### Store : `moodday`
 
-Le nom du store mgrep = **le nom du dossier du projet** (ex: si le projet est dans `/Users/dev/my-saas`, le store s'appelle `my-saas`).
-
-Pour obtenir le nom du store : `basename $(pwd)` ou regarde simplement le nom du dossier courant.
-
-### Lancer le watch (synchronisation)
-
-Avant d'utiliser mgrep, lance le watcher dans un terminal séparé :
+### Lancer le watch (à faire à chaque ouverture du projet)
 
 ```bash
-pnpm mgrep
+cd ~/Projets/moodday
+mgrep watch --store "moodday"
 ```
 
-Le script détecte automatiquement le nom du dossier pour le store.
+> Garde ce terminal ouvert : il surveille les modifications en temps réel.
 
-### Commande de base
+### Commande de recherche
 
 ```bash
-mgrep "ta question en langage naturel" --store "<nom-du-dossier>" -a -m <nombre>
+mgrep "ta question en langage naturel" --store "moodday" -a -m <nombre>
 ```
 
-### Paramètres essentiels
+### Paramètres
 
-| Paramètre                 | Description                                           |
-| ------------------------- | ----------------------------------------------------- |
-| `--store "<nom-dossier>"` | **Obligatoire** - le nom du dossier du projet         |
+| Paramètre | Description |
+|-----------|-------------|
+| `--store "moodday"` | **Obligatoire** - le store indexé du projet |
 | `-a`                      | Active la réponse en langage naturel                  |
 | `-m <n>`                  | Nombre de résultats du retrieval (minimum 10)         |
 
@@ -64,10 +74,10 @@ mgrep "ta question en langage naturel" --store "<nom-du-dossier>" -a -m <nombre>
 Si la requête touche **plusieurs parties du codebase**, lance plusieurs mgrep en parallèle plutôt qu'une seule requête surchargée :
 
 ```bash
-# Exemple : comprendre le système d'auth complet (remplace <store> par le nom du dossier)
-mgrep "comment fonctionne l'authentification GitHub côté frontend" --store "<store>" -a -m 20
-mgrep "comment le token est géré côté serveur" --store "<store>" -a -m 20
-mgrep "comment les sessions sont gérées" --store "<store>" -a -m 20
+# Exemple : comprendre le système d'auth complet
+mgrep "comment fonctionne l'authentification GitHub côté frontend" --store "moodday" -a -m 20
+mgrep "comment le token est géré côté serveur" --store "moodday" -a -m 20
+mgrep "comment les sessions sont gérées" --store "moodday" -a -m 20
 ```
 
 ### Règles
