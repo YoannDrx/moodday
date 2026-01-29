@@ -1,0 +1,11 @@
+export { NavbarDark } from "./navbar-dark";
+export { HeroDashboard } from "./hero-dashboard";
+export { InteractiveMockup } from "./interactive-mockup";
+export { FeaturesHorizontal } from "./features-horizontal";
+export { SectionSecurity } from "./section-security";
+export { SectionStats } from "./section-stats";
+export { SectionMarieJourney } from "./section-marie-journey";
+export { SectionAppComing } from "./section-app-coming";
+export { SectionRoles } from "./section-roles";
+export { PricingLanding2 } from "./pricing-landing2";
+export { FooterDark } from "./footer-dark";

@@ -1452,6 +1452,287 @@ const en = {
         "You don't have permission to access this resource. Please sign in or contact your administrator if you believe this is a mistake.",
     },
   },
+  landing2: {
+    nav: {
+      features: "Features",
+      security: "Security",
+      pricing: "Pricing",
+      docs: "Docs",
+      signin: "Sign in",
+      startTrial: "Start free trial",
+    },
+    hero: {
+      badge: "v2.0 now available",
+      title: "Your mental health,",
+      titleHighlight: "visualized",
+      subtitle:
+        "A modern dashboard to track your mood, medications, and patterns. Privacy-first, data-driven.",
+      ctaPrimary: "Start for free",
+      ctaSecondary: "View features",
+      stats: {
+        users: "Users",
+        uptime: "Uptime",
+        rating: "Rating",
+      },
+    },
+    mockup: {
+      greeting: "Hello, Marie",
+      date: "Wednesday, January 28",
+      tabs: {
+        mood: "Mood tracking",
+        meds: "Medications",
+        insights: "Insights",
+        reminders: "Reminders",
+      },
+      moodPanel: {
+        title: "Today's mood",
+        veryLow: "Very low",
+        stable: "Stable",
+        excellent: "Excellent",
+        average: "7-day avg",
+        noteLabel: "Add a note",
+        notePlaceholder: "How are you feeling?",
+        saveButton: "Save",
+      },
+      medsPanel: {
+        title: "Today's medications",
+        taken: "Taken",
+        pending: "Pending",
+        morning: "Morning",
+        evening: "Evening",
+        prn: "As needed",
+        takenAt: "Taken at",
+      },
+      insightsPanel: {
+        title: "Your patterns",
+        sleepCorrelation: "Sleep correlation",
+        sleepDesc: "Better mood with 7h+ sleep",
+        weekendPattern: "Weekend pattern",
+        weekendDesc: "Mood +15% on Saturdays",
+        medicationEffect: "Medication effect",
+        medicationDesc: "Peak efficacy at D+14",
+      },
+      remindersPanel: {
+        title: "Configured reminders",
+        moodCheckin: "Mood check-in",
+        morningMeds: "Morning meds",
+        eveningMeds: "Evening meds",
+        daily: "Daily",
+        addReminder: "Add a reminder",
+      },
+    },
+    features: {
+      badge: "Features",
+      title: "Everything you need",
+      subtitle:
+        "A complete suite of tools to take care of your mental health, designed by professionals and patients.",
+      items: {
+        moodTracking: {
+          title: "Smart mood tracking",
+          description:
+            "Record your mood in seconds. Our algorithm automatically detects your patterns.",
+        },
+        medications: {
+          title: "Medication management",
+          description:
+            "Smart reminders, adherence tracking, complete history. Never miss a dose again.",
+        },
+        caregivers: {
+          title: "Caregiver circle",
+          description:
+            "Share your data with your doctor or trusted loved ones. You stay in control.",
+        },
+        pdfExport: {
+          title: "Medical PDF export",
+          description:
+            "Generate formatted reports for your consultations. Print or share with one click.",
+        },
+        privacy: {
+          title: "Privacy-first",
+          description:
+            "End-to-end encryption, GDPR compliant. Your data belongs to you.",
+        },
+        aiInsights: {
+          title: "AI Insights",
+          description:
+            "Our AI analyzes your data to detect patterns invisible to the naked eye.",
+        },
+      },
+    },
+    stats: {
+      users: "Active users",
+      checkins: "Check-ins recorded",
+      uptime: "Guaranteed uptime",
+      rating: "Average rating",
+    },
+    security: {
+      badge: "Security",
+      title: "Your health data deserves the highest level of protection",
+      subtitle:
+        "We take security seriously. Your trust is our absolute priority.",
+      features: {
+        encryption: {
+          title: "AES-256 encryption",
+          description: "Your data is encrypted at rest and in transit",
+        },
+        zeroKnowledge: {
+          title: "Zero-knowledge",
+          description: "We cannot read your health data",
+        },
+        gdpr: {
+          title: "GDPR compliant",
+          description: "Full compliance with European regulations",
+        },
+        euHosting: {
+          title: "EU hosting",
+          description: "Servers exclusively in the European Union",
+        },
+        secureAuth: {
+          title: "Secure auth",
+          description: "2FA, OAuth, and biometric authentication",
+        },
+        audits: {
+          title: "Regular audits",
+          description: "Quarterly penetration tests",
+        },
+      },
+      badges: {
+        ssl: "256-bit SSL",
+        rgpd: "GDPR",
+        hds: "HDS Ready",
+      },
+    },
+    journey: {
+      title: "A day with Moodday",
+      subtitle: "Discover how Marie uses Moodday daily",
+      morning: {
+        time: "7:00 AM",
+        title: "Morning check-in",
+        description: "Marie logs her mood in 30 seconds. It's become a reflex.",
+      },
+      midday: {
+        time: "12:30 PM",
+        title: "Smart reminder",
+        description: "A discrete notification reminds her to take her Lithium.",
+      },
+      evening: {
+        time: "9:00 PM",
+        title: "Daily insights",
+        description: "She discovers her mood improves when she sleeps well.",
+      },
+      testimonial: {
+        quote:
+          "Moodday helped me understand my cycles. I no longer suffer, I understand.",
+        author: "Marie L.",
+        role: "User for 1 year",
+      },
+    },
+    appComing: {
+      title: "Mobile app coming soon",
+      subtitle: "iOS and Android",
+      comingSoon: "Coming soon",
+      emailPlaceholder: "your@email.com",
+      submitButton: "Notify me",
+      submitting: "Subscribing...",
+      successTitle: "You're subscribed!",
+      successMessage: "We'll keep you informed of the launch.",
+      alreadySubscribed: "You're already subscribed.",
+      privacyNote: "We respect your privacy. No spam.",
+      features: {
+        title: "Exclusive mobile features",
+        offline: "Offline mode",
+        watch: "Apple Watch & Wear OS",
+        widgets: "iOS & Android widgets",
+        biometric: "Biometric unlock",
+      },
+    },
+    pricing: {
+      badge: "Pricing",
+      title: "Choose your plan",
+      subtitle: "Start for free, upgrade when you're ready.",
+      toggle: {
+        monthly: "Monthly",
+        annual: "Annual",
+        discount: "-20%",
+      },
+      perMonth: "/month",
+      billedAnnually: "Billed {amount}€/year",
+      popular: "Popular",
+      plans: {
+        free: {
+          name: "Free",
+          description: "To get started gently",
+          cta: "Start for free",
+          features: [
+            "Unlimited mood tracking",
+            "3 medications max",
+            "30-day history",
+            "Basic PDF export",
+          ],
+        },
+        pro: {
+          name: "Pro",
+          description: "For complete tracking",
+          cta: "14-day free trial",
+          features: [
+            "Everything in Free",
+            "Unlimited medications",
+            "Unlimited history",
+            "Advanced AI insights",
+            "Caregiver circle (5 people)",
+            "Custom PDF export",
+            "Priority support",
+          ],
+        },
+        family: {
+          name: "Family",
+          description: "For you and your loved ones",
+          cta: "14-day free trial",
+          features: [
+            "Everything in Pro",
+            "5 member accounts",
+            "Family dashboard",
+            "Shared alerts",
+            "Dedicated support",
+          ],
+        },
+      },
+    },
+    footer: {
+      description:
+        "Take care of your mental health with modern tools, secure and respectful of your privacy.",
+      links: {
+        product: {
+          title: "Product",
+          features: "Features",
+          pricing: "Pricing",
+          security: "Security",
+          changelog: "Changelog",
+        },
+        resources: {
+          title: "Resources",
+          docs: "Documentation",
+          blog: "Blog",
+          guides: "Guides",
+          api: "API",
+        },
+        company: {
+          title: "Company",
+          about: "About",
+          contact: "Contact",
+          careers: "Careers",
+        },
+        legal: {
+          title: "Legal",
+          privacy: "Privacy",
+          terms: "Terms",
+          cookies: "Cookies",
+        },
+      },
+      copyright: "© {year} Moodday. All rights reserved.",
+      status: "All systems operational",
+    },
+  },
   moodday: {
     nav: {
       features: "Features",

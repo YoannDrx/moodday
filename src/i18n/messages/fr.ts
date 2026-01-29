@@ -1470,6 +1470,290 @@ const fr: typeof en = {
         "Vous n'avez pas la permission d'accéder à cette ressource. Veuillez vous connecter ou contacter votre administrateur si besoin.",
     },
   },
+  landing2: {
+    nav: {
+      features: "Fonctionnalités",
+      security: "Sécurité",
+      pricing: "Tarifs",
+      docs: "Docs",
+      signin: "Connexion",
+      startTrial: "Essai gratuit",
+    },
+    hero: {
+      badge: "v2.0 maintenant disponible",
+      title: "Votre santé mentale,",
+      titleHighlight: "visualisée",
+      subtitle:
+        "Un dashboard moderne pour suivre votre humeur, vos médicaments et vos patterns. Privacy-first, data-driven.",
+      ctaPrimary: "Commencer gratuitement",
+      ctaSecondary: "Voir les fonctionnalités",
+      stats: {
+        users: "Utilisateurs",
+        uptime: "Uptime",
+        rating: "Note",
+      },
+    },
+    mockup: {
+      greeting: "Bonjour, Marie",
+      date: "Mercredi 28 janvier",
+      tabs: {
+        mood: "Suivi d'humeur",
+        meds: "Médicaments",
+        insights: "Insights",
+        reminders: "Rappels",
+      },
+      moodPanel: {
+        title: "Humeur du jour",
+        veryLow: "Très bas",
+        stable: "Stable",
+        excellent: "Excellent",
+        average: "Moyenne 7j",
+        noteLabel: "Ajouter une note",
+        notePlaceholder: "Comment vous sentez-vous ?",
+        saveButton: "Enregistrer",
+      },
+      medsPanel: {
+        title: "Médicaments du jour",
+        taken: "Pris",
+        pending: "En attente",
+        morning: "Matin",
+        evening: "Soir",
+        prn: "Si besoin",
+        takenAt: "Pris à",
+      },
+      insightsPanel: {
+        title: "Vos patterns",
+        sleepCorrelation: "Corrélation sommeil",
+        sleepDesc: "Meilleure humeur avec 7h+ de sommeil",
+        weekendPattern: "Pattern weekend",
+        weekendDesc: "Humeur +15% le samedi",
+        medicationEffect: "Effet médicament",
+        medicationDesc: "Pic d'efficacité à J+14",
+      },
+      remindersPanel: {
+        title: "Rappels configurés",
+        moodCheckin: "Check-in humeur",
+        morningMeds: "Médicaments matin",
+        eveningMeds: "Médicaments soir",
+        daily: "Quotidien",
+        addReminder: "Ajouter un rappel",
+      },
+    },
+    features: {
+      badge: "Fonctionnalités",
+      title: "Tout ce dont vous avez besoin",
+      subtitle:
+        "Une suite complète d'outils pour prendre soin de votre santé mentale, conçue par des professionnels et des patients.",
+      items: {
+        moodTracking: {
+          title: "Suivi d'humeur intelligent",
+          description:
+            "Enregistrez votre humeur en quelques secondes. Notre algorithme détecte automatiquement vos patterns.",
+        },
+        medications: {
+          title: "Gestion des médicaments",
+          description:
+            "Rappels intelligents, tracking d'adhérence, historique complet. Ne manquez plus jamais une prise.",
+        },
+        caregivers: {
+          title: "Cercle d'aidants",
+          description:
+            "Partagez vos données avec votre médecin ou vos proches de confiance. Vous gardez le contrôle.",
+        },
+        pdfExport: {
+          title: "Export PDF médical",
+          description:
+            "Générez des rapports formatés pour vos consultations. Imprimez ou partagez en un clic.",
+        },
+        privacy: {
+          title: "Privacy-first",
+          description:
+            "Chiffrement de bout en bout, conforme RGPD. Vos données vous appartiennent.",
+        },
+        aiInsights: {
+          title: "Insights IA",
+          description:
+            "Notre IA analyse vos données pour détecter des patterns invisibles à l'œil nu.",
+        },
+      },
+    },
+    stats: {
+      users: "Utilisateurs actifs",
+      checkins: "Check-ins enregistrés",
+      uptime: "Uptime garanti",
+      rating: "Note moyenne",
+    },
+    security: {
+      badge: "Sécurité",
+      title: "Vos données de santé méritent le plus haut niveau de protection",
+      subtitle:
+        "Nous prenons la sécurité au sérieux. Votre confiance est notre priorité absolue.",
+      features: {
+        encryption: {
+          title: "Chiffrement AES-256",
+          description: "Vos données sont chiffrées au repos et en transit",
+        },
+        zeroKnowledge: {
+          title: "Zero-knowledge",
+          description: "Nous ne pouvons pas lire vos données de santé",
+        },
+        gdpr: {
+          title: "Conforme RGPD",
+          description: "Respect total de la réglementation européenne",
+        },
+        euHosting: {
+          title: "Hébergement EU",
+          description: "Serveurs exclusivement en Union Européenne",
+        },
+        secureAuth: {
+          title: "Auth sécurisée",
+          description: "2FA, OAuth, et authentification biométrique",
+        },
+        audits: {
+          title: "Audits réguliers",
+          description: "Tests de pénétration trimestriels",
+        },
+      },
+      badges: {
+        ssl: "256-bit SSL",
+        rgpd: "RGPD",
+        hds: "HDS Ready",
+      },
+    },
+    journey: {
+      title: "Une journée avec Moodday",
+      subtitle: "Découvrez comment Marie utilise Moodday au quotidien",
+      morning: {
+        time: "7h00",
+        title: "Check-in matinal",
+        description:
+          "Marie note son humeur en 30 secondes. C'est devenu un réflexe.",
+      },
+      midday: {
+        time: "12h30",
+        title: "Rappel intelligent",
+        description:
+          "Une notification discrète lui rappelle sa prise de Lithium.",
+      },
+      evening: {
+        time: "21h00",
+        title: "Insights du jour",
+        description:
+          "Elle découvre que son humeur s'améliore quand elle dort bien.",
+      },
+      testimonial: {
+        quote:
+          "Moodday m'a aidée à comprendre mes cycles. Je ne subis plus, je comprends.",
+        author: "Marie L.",
+        role: "Utilisatrice depuis 1 an",
+      },
+    },
+    appComing: {
+      title: "L'application mobile arrive bientôt",
+      subtitle: "iOS et Android",
+      comingSoon: "Bientôt disponible",
+      emailPlaceholder: "votre@email.com",
+      submitButton: "M'informer",
+      submitting: "Inscription...",
+      successTitle: "Vous êtes inscrit !",
+      successMessage: "Nous vous tiendrons informé de la sortie.",
+      alreadySubscribed: "Vous êtes déjà inscrit.",
+      privacyNote: "Nous respectons votre vie privée. Pas de spam.",
+      features: {
+        title: "Fonctionnalités exclusives mobile",
+        offline: "Mode hors-ligne",
+        watch: "Apple Watch & Wear OS",
+        widgets: "Widgets iOS & Android",
+        biometric: "Déverrouillage biométrique",
+      },
+    },
+    pricing: {
+      badge: "Tarifs",
+      title: "Choisissez votre plan",
+      subtitle: "Commencez gratuitement, passez Pro quand vous êtes prêt.",
+      toggle: {
+        monthly: "Mensuel",
+        annual: "Annuel",
+        discount: "-20%",
+      },
+      perMonth: "/mois",
+      billedAnnually: "Facturé {amount}€/an",
+      popular: "Populaire",
+      plans: {
+        free: {
+          name: "Gratuit",
+          description: "Pour commencer en douceur",
+          cta: "Commencer gratuitement",
+          features: [
+            "Suivi d'humeur illimité",
+            "3 médicaments max",
+            "Historique 30 jours",
+            "Export PDF basique",
+          ],
+        },
+        pro: {
+          name: "Pro",
+          description: "Pour un suivi complet",
+          cta: "Essai gratuit 14 jours",
+          features: [
+            "Tout du plan Gratuit",
+            "Médicaments illimités",
+            "Historique illimité",
+            "Insights IA avancés",
+            "Cercle d'aidants (5 personnes)",
+            "Export PDF personnalisé",
+            "Support prioritaire",
+          ],
+        },
+        family: {
+          name: "Famille",
+          description: "Pour vous et vos proches",
+          cta: "Essai gratuit 14 jours",
+          features: [
+            "Tout du plan Pro",
+            "5 comptes membres",
+            "Dashboard famille",
+            "Alertes partagées",
+            "Support dédié",
+          ],
+        },
+      },
+    },
+    footer: {
+      description:
+        "Prenez soin de votre santé mentale avec des outils modernes, sécurisés et respectueux de votre vie privée.",
+      links: {
+        product: {
+          title: "Produit",
+          features: "Fonctionnalités",
+          pricing: "Tarifs",
+          security: "Sécurité",
+          changelog: "Changelog",
+        },
+        resources: {
+          title: "Ressources",
+          docs: "Documentation",
+          blog: "Blog",
+          guides: "Guides",
+          api: "API",
+        },
+        company: {
+          title: "Entreprise",
+          about: "À propos",
+          contact: "Contact",
+          careers: "Carrières",
+        },
+        legal: {
+          title: "Légal",
+          privacy: "Confidentialité",
+          terms: "CGU",
+          cookies: "Cookies",
+        },
+      },
+      copyright: "© {year} Moodday. Tous droits réservés.",
+      status: "Tous les systèmes opérationnels",
+    },
+  },
   moodday: {
     nav: {
       features: "Fonctionnalités",
