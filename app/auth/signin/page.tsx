@@ -1,5 +1,4 @@
-import { Typography } from "@/components/nowts/typography";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MooddayLogo } from "@/components/nowts/moodday-logo";
 import {
   Card,
   CardContent,
@@ -36,15 +35,7 @@ export default async function AuthSignInPage() {
   return (
     <Card className="mx-auto h-auto w-full max-w-md lg:max-w-lg lg:p-6">
       <CardHeader className="flex flex-col items-center justify-center gap-2">
-        <div className="mx-auto mt-4 flex flex-row items-center gap-2">
-          <Avatar className="size-8 rounded-md">
-            <AvatarImage src={SiteConfig.appIcon} alt={t("nav.logoAlt")} />
-            <AvatarFallback>
-              {SiteConfig.title.substring(0, 1).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <Typography variant="large">{SiteConfig.title}</Typography>
-        </div>
+        <MooddayLogo size="lg" href={undefined} className="mb-2" />
 
         <CardDescription className="text-center">
           {t("auth.signIn.description")}

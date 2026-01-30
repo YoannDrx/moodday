@@ -2,7 +2,7 @@
 
 import { MooddayLogo } from "@/components/nowts/moodday-logo";
 import { useI18n } from "@/i18n/provider";
-import { Github, Twitter } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
 import Link from "next/link";
 
 export function FooterDark() {
@@ -13,21 +13,15 @@ export function FooterDark() {
       { label: t("landing2.footer.links.product.features"), href: "#features" },
       { label: t("landing2.footer.links.product.pricing"), href: "#pricing" },
       { label: t("landing2.footer.links.product.security"), href: "#security" },
-      {
-        label: t("landing2.footer.links.product.changelog"),
-        href: "/changelog",
-      },
     ],
     [t("landing2.footer.links.resources.title")]: [
-      { label: t("landing2.footer.links.resources.docs"), href: "/docs" },
       { label: t("landing2.footer.links.resources.blog"), href: "/posts" },
-      { label: t("landing2.footer.links.resources.guides"), href: "/docs" },
-      { label: t("landing2.footer.links.resources.api"), href: "/docs" },
+      { label: t("landing2.footer.links.resources.guides"), href: "/guides" },
     ],
     [t("landing2.footer.links.company.title")]: [
       { label: t("landing2.footer.links.company.about"), href: "/about" },
       { label: t("landing2.footer.links.company.contact"), href: "/contact" },
-      { label: t("landing2.footer.links.company.careers"), href: "/contact" },
+      { label: t("landing2.footer.links.company.careers"), href: "/careers" },
     ],
     [t("landing2.footer.links.legal.title")]: [
       {
@@ -37,7 +31,7 @@ export function FooterDark() {
       { label: t("landing2.footer.links.legal.terms"), href: "/legal/terms" },
       {
         label: t("landing2.footer.links.legal.cookies"),
-        href: "/legal/privacy",
+        href: "/legal/cookies",
       },
     ],
   };
@@ -53,22 +47,18 @@ export function FooterDark() {
               {t("landing2.footer.description")}
             </p>
             <div className="mt-6 flex gap-4">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 items-center justify-center rounded-lg transition-colors"
-              >
-                <Github className="size-5" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 items-center justify-center rounded-lg transition-colors"
-              >
+              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
+                <Instagram className="size-5" />
+              </div>
+              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
+                <Linkedin className="size-5" />
+              </div>
+              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
+                <Facebook className="size-5" />
+              </div>
+              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
                 <Twitter className="size-5" />
-              </a>
+              </div>
             </div>
           </div>
 

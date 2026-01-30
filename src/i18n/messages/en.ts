@@ -1419,16 +1419,198 @@ const en = {
   },
   legal: {
     terms: {
-      metaTitle: "{app} - Terms",
-      metaDescription: "Terms of service",
-      title: "Terms",
-      content: "Terms demo",
+      metaTitle: "{app} - Terms of Service",
+      metaDescription: "Terms of service for the Moodday application",
+      title: "Terms of Service",
+      content: `## 1. Purpose
+
+These Terms of Service govern the use of the Moodday application, a digital clinical journal designed for personal mental health tracking.
+
+## 2. Nature of the service
+
+**Moodday is not a medical device.** The application is a personal tracking tool that allows you to:
+- Record your daily moods
+- Track your medication treatments
+- Generate reports for your medical consultations
+
+Moodday does not provide any medical advice, diagnosis, or treatment. In case of distress or emergency, immediately contact a healthcare professional or call 988 (Suicide & Crisis Lifeline).
+
+## 3. Registration and account
+
+To use Moodday, you must:
+- Be at least 16 years old
+- Provide accurate information during registration
+- Maintain the confidentiality of your credentials
+
+You are responsible for all activity under your account.
+
+## 4. Acceptable use
+
+You agree to:
+- Use the application only for your personal tracking
+- Not share your credentials
+- Not attempt to bypass security measures
+- Respect the rights of other users
+
+## 5. Caregiver circle
+
+If you invite a loved one to your caregiver circle:
+- You remain in control of the data you share
+- You can revoke this access at any time
+- The caregiver agrees to respect the confidentiality of shared information
+
+## 6. Intellectual property
+
+All application content (texts, graphics, logos, icons) are the property of Moodday SAS or its licensors. Any reproduction is prohibited without authorization.
+
+## 7. Limitation of liability
+
+Moodday cannot be held responsible for:
+- Medical decisions made based on application data
+- Temporary service interruptions
+- Data loss in case of force majeure
+
+The application is provided "as is" without warranty of fitness for any particular medical purpose.
+
+## 8. Termination
+
+You can delete your account at any time from the settings. Moodday may suspend your account in case of Terms violation.
+
+## 9. Modifications
+
+Moodday reserves the right to modify these Terms. You will be notified of significant changes by email or in-app notification.
+
+## 10. Governing law
+
+These Terms are governed by French law. Any dispute will be submitted to the competent courts of Paris.
+
+---
+
+*Last updated: January 2026*
+
+*Contact: legal@moodday.io*`,
     },
     privacy: {
-      metaTitle: "{app} - Privacy",
-      metaDescription: "Privacy policy",
-      title: "Privacy",
-      content: "Privacy demo",
+      metaTitle: "{app} - Privacy Policy",
+      metaDescription: "How Moodday protects your mental health data",
+      title: "Privacy Policy",
+      content: `## 1. Introduction
+
+At Moodday, protecting your health data is our absolute priority. This policy explains how we collect, use, and protect your personal information.
+
+## 2. Data collected
+
+### Data you provide us
+- **Account**: email, name (optional), encrypted password
+- **Daily tracking**: moods, personal notes, sleep quality
+- **Medications**: names, dosages, intake times
+- **Therapy**: session dates, notes (optional)
+
+### Automatically collected data
+- Technical logs (anonymized)
+- Aggregated usage data to improve the service
+
+**We NEVER collect**: your geolocation, contacts, messages, or any data from your other applications.
+
+## 3. Use of your data
+
+Your data is used **exclusively** to:
+- Provide the personal tracking service
+- Generate your PDF reports for consultations
+- Share with your authorized caregivers (if you wish)
+- Improve the application (aggregated and anonymized data)
+
+**We NEVER sell your data** to third parties, advertisers, or insurers.
+
+## 4. Data sharing
+
+Your data is only shared with:
+- **You**: via PDF export and GDPR export
+- **Your authorized caregivers**: only the data you choose to share
+- **Technical providers**: under strict confidentiality agreement (hosting, email)
+
+## 5. Security
+
+We implement robust security measures:
+- **Encryption**: data encrypted at rest (AES-256) and in transit (TLS 1.3)
+- **Hosting**: servers exclusively in the European Union
+- **Access**: strong authentication, 2FA available
+- **Audits**: regular security testing
+
+## 6. Your rights (GDPR)
+
+In accordance with GDPR, you have the following rights:
+- **Access**: view all your data at any time
+- **Rectification**: modify your information
+- **Erasure**: delete your account and all your data
+- **Portability**: export your data in JSON format
+- **Objection**: refuse certain processing
+
+To exercise these rights: privacy@moodday.io
+
+## 7. Data retention
+
+- **Active account**: data retained as long as your account is active
+- **After deletion**: data erased within 30 days (unless legal obligation)
+- **Backups**: deleted within 90 days
+
+## 8. Cookies
+
+We only use essential cookies:
+- Session and authentication
+- Preferences (language, theme)
+
+No advertising or tracking cookies. See our [Cookie Policy](/legal/cookies).
+
+## 9. DPO Contact
+
+For any questions regarding your data:
+- Email: privacy@moodday.io
+- Address: Moodday SAS, DPO, Paris, France
+
+## 10. Modifications
+
+We will inform you of any substantial modification to this policy by email.
+
+---
+
+*Last updated: January 2026*
+
+*Moodday SAS - Simplified joint-stock company - France*`,
+    },
+    cookies: {
+      metaTitle: "{app} - Cookie Policy",
+      metaDescription: "Our cookie policy and how we use cookies",
+      title: "Cookie Policy",
+      description: "How Moodday uses cookies and similar technologies",
+      lastUpdated: "Last updated: January 2026",
+      sections: [
+        {
+          title: "What Are Cookies?",
+          content:
+            "Cookies are small text files stored on your device when you visit a website. They help websites remember your preferences and improve your experience.",
+        },
+        {
+          title: "How We Use Cookies",
+          content:
+            "Moodday uses strictly necessary cookies to ensure the proper functioning of the application. We use:\n\n• Authentication cookies to keep you logged in\n• Security cookies to protect against fraud\n• Preference cookies to remember your settings (language, theme)",
+        },
+        {
+          title: "No Tracking Cookies",
+          content:
+            "We do NOT use advertising or tracking cookies. We do not share your data with advertisers or third-party trackers. Your mental health data is private and stays that way.",
+        },
+        {
+          title: "Managing Cookies",
+          content:
+            "You can manage cookies through your browser settings. Note that disabling essential cookies may affect the functionality of Moodday.",
+        },
+        {
+          title: "Contact Us",
+          content:
+            "If you have questions about our cookie policy, please contact us at privacy@moodday.io",
+        },
+      ],
     },
   },
   error: {
@@ -1628,7 +1810,7 @@ const en = {
       },
     },
     appComing: {
-      title: "Mobile app coming soon",
+      title: "Coming soon to mobile!",
       subtitle: "iOS and Android",
       comingSoon: "Coming soon",
       emailPlaceholder: "your@email.com",
@@ -2051,6 +2233,95 @@ const en = {
         notifications: "Reminders",
         sync: "Auto sync",
       },
+    },
+  },
+  guides: {
+    metaTitle: "Guides - {app}",
+    metaDescription:
+      "Practical guides to help you get the most out of Moodday for your mental health journey.",
+    title: "Practical Guides",
+    description:
+      "Resources and tutorials to help you use Moodday effectively and take care of your mental health.",
+    items: {
+      gettingStarted: {
+        title: "Getting Started",
+        description:
+          "Learn how to set up your account and start tracking your mood.",
+      },
+      medications: {
+        title: "Managing Medications",
+        description:
+          "How to add, track, and get reminders for your medications.",
+      },
+      caregivers: {
+        title: "Caregiver Circle",
+        description: "Share your progress with trusted loved ones.",
+      },
+      privacy: {
+        title: "Privacy & Security",
+        description: "How we protect your sensitive health data.",
+      },
+    },
+  },
+  apiDocs: {
+    metaTitle: "API Documentation - {app}",
+    metaDescription: "Developer documentation for the Moodday API.",
+    title: "API Documentation",
+    description:
+      "Integrate Moodday with your applications using our developer API.",
+    comingSoon: {
+      title: "Coming Soon",
+      description:
+        "Our API is currently in development. Contact us to join the beta program.",
+      cta: "Contact Us",
+    },
+    features: {
+      auth: {
+        title: "Secure Authentication",
+        description: "OAuth 2.0 and API key authentication",
+      },
+      realtime: {
+        title: "Real-time Sync",
+        description: "WebSocket support for live updates",
+      },
+      export: {
+        title: "Data Export",
+        description: "Export your data in JSON or CSV format",
+      },
+    },
+  },
+  careers: {
+    metaTitle: "Careers - {app}",
+    metaDescription:
+      "Join the Moodday team and help us build tools that improve mental health.",
+    title: "Join Our Team",
+    description:
+      "We're building tools that help people take care of their mental health. Want to make a difference?",
+    values: {
+      title: "Our Values",
+      items: [
+        {
+          title: "Empathy First",
+          description:
+            "We design for real people with real challenges. Compassion guides everything we do.",
+        },
+        {
+          title: "Remote & Flexible",
+          description:
+            "Work from anywhere. We trust you to manage your time and deliver great work.",
+        },
+        {
+          title: "Impact Driven",
+          description:
+            "Every feature we build aims to genuinely improve someone's mental health journey.",
+        },
+      ],
+    },
+    openPositions: {
+      title: "No Open Positions",
+      description:
+        "We don't have any open positions right now, but we're always looking for talented people. Send us a spontaneous application!",
+      cta: "Contact Us",
     },
   },
 };

@@ -64,7 +64,7 @@ export function InteractiveMockup() {
             <div className="size-3 rounded-full bg-green-500/80" />
           </div>
           <div className="bg-muted/50 text-muted-foreground ml-4 flex-1 rounded-md px-3 py-1.5 text-center text-xs">
-            app.moodday.io/dashboard
+            moodday.app/dashboard
           </div>
         </div>
 
@@ -81,7 +81,9 @@ export function InteractiveMockup() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="from-primary size-8 rounded-full bg-gradient-to-br to-emerald-500" />
+              <div className="from-primary flex size-8 items-center justify-center rounded-full bg-gradient-to-br to-emerald-500">
+                <span className="text-sm font-bold text-white">M</span>
+              </div>
             </div>
           </div>
 
@@ -123,11 +125,6 @@ export function InteractiveMockup() {
             <ChevronRight className="text-primary size-4" />
           </div>
         </div>
-      </div>
-
-      {/* Floating cursor animation */}
-      <div className="animate-float pointer-events-none absolute top-1/2 left-1/2">
-        <div className="border-primary bg-primary/30 size-4 rounded-full border-2" />
       </div>
     </div>
   );

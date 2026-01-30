@@ -77,7 +77,7 @@ export function SectionRoles() {
             </p>
             <h2 className="text-foreground mb-6 text-3xl font-bold md:text-4xl lg:text-5xl">
               {t("moodday.roles.title")}{" "}
-              <span className="from-primary bg-gradient-to-r to-emerald-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
                 {t("moodday.roles.titleHighlight")}
               </span>
             </h2>
@@ -136,7 +136,7 @@ export function SectionRoles() {
         <ScrollReveal delay={200}>
           <div
             key={selectedRole}
-            className="border-border bg-card mx-auto max-w-4xl rounded-3xl border p-8 shadow-lg lg:p-12"
+            className="border-border bg-card mx-auto max-w-5xl rounded-3xl border p-8 shadow-lg lg:p-14"
           >
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Left - Info */}
@@ -173,11 +173,11 @@ export function SectionRoles() {
               </div>
 
               {/* Right - Features */}
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2">
                 {roles[selectedRole].features.map((feature) => (
                   <div
                     key={feature.title}
-                    className="bg-muted/50 flex items-start gap-3 rounded-2xl p-4"
+                    className="bg-muted/50 flex items-start gap-3 rounded-2xl p-5"
                   >
                     <div
                       className={cn(

@@ -1,13 +1,14 @@
 import {
   NavbarDark,
-  HeroDashboard,
-  FeaturesHorizontal,
+  HeroHybrid,
+  FeaturesGrid,
   SectionStats,
   SectionRoles,
-  SectionMarieJourney,
+  SectionJourneyEnhanced,
   SectionSecurity,
-  SectionAppComing,
   PricingLanding2,
+  SectionFaq,
+  SectionCtaHybrid,
   FooterDark,
 } from "@/features/landing-variants/landing-2";
 
@@ -16,14 +17,15 @@ export default function HomePage() {
     <div className="bg-background min-h-screen">
       <NavbarDark />
       <main>
-        <HeroDashboard />
+        <HeroHybrid />
         <SectionStats />
-        <FeaturesHorizontal />
+        <FeaturesGrid />
         <SectionRoles />
-        <SectionMarieJourney />
+        <SectionJourneyEnhanced />
         <SectionSecurity />
-        <SectionAppComing />
         <PricingLanding2 />
+        <SectionFaq />
+        <SectionCtaHybrid />
       </main>
       <FooterDark />
     </div>

@@ -1437,16 +1437,201 @@ const fr: typeof en = {
   },
   legal: {
     terms: {
-      metaTitle: "{app} - Conditions",
-      metaDescription: "Conditions d'utilisation",
-      title: "Conditions",
-      content: "Démo des conditions",
+      metaTitle: "{app} - Conditions Générales d'Utilisation",
+      metaDescription:
+        "Conditions générales d'utilisation de l'application Moodday",
+      title: "Conditions Générales d'Utilisation",
+      content: `## 1. Objet
+
+Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal clinique digital destiné au suivi personnel de la santé mentale.
+
+## 2. Nature du service
+
+**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :
+- Enregistrer vos humeurs quotidiennes
+- Suivre vos traitements médicamenteux
+- Générer des rapports pour vos consultations médicales
+
+Moodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).
+
+## 3. Inscription et compte
+
+Pour utiliser Moodday, vous devez :
+- Être âgé d'au moins 16 ans
+- Fournir des informations exactes lors de l'inscription
+- Maintenir la confidentialité de vos identifiants
+
+Vous êtes responsable de toute activité effectuée sous votre compte.
+
+## 4. Utilisation acceptable
+
+Vous vous engagez à :
+- Utiliser l'application uniquement pour votre suivi personnel
+- Ne pas partager vos identifiants
+- Ne pas tenter de contourner les mesures de sécurité
+- Respecter les droits des autres utilisateurs
+
+## 5. Cercle d'aidants
+
+Si vous invitez un proche dans votre cercle d'aidants :
+- Vous restez maître des données que vous partagez
+- Vous pouvez révoquer cet accès à tout moment
+- L'aidant s'engage à respecter la confidentialité des informations partagées
+
+## 6. Propriété intellectuelle
+
+L'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.
+
+## 7. Limitation de responsabilité
+
+Moodday ne peut être tenu responsable :
+- Des décisions médicales prises sur la base des données de l'application
+- Des interruptions temporaires du service
+- Des pertes de données en cas de force majeure
+
+L'application est fournie "en l'état" sans garantie d'adéquation à un usage médical particulier.
+
+## 8. Résiliation
+
+Vous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.
+
+## 9. Modifications
+
+Moodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.
+
+## 10. Droit applicable
+
+Les présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.
+
+---
+
+*Dernière mise à jour : Janvier 2026*
+
+*Contact : legal@moodday.io*`,
     },
     privacy: {
-      metaTitle: "{app} - Confidentialité",
-      metaDescription: "Politique de confidentialité",
-      title: "Confidentialité",
-      content: "Démo de confidentialité",
+      metaTitle: "{app} - Politique de Confidentialité",
+      metaDescription: "Comment Moodday protège vos données de santé mentale",
+      title: "Politique de Confidentialité",
+      content: `## 1. Introduction
+
+Chez Moodday, la protection de vos données de santé est notre priorité absolue. Cette politique explique comment nous collectons, utilisons et protégeons vos informations personnelles.
+
+## 2. Données collectées
+
+### Données que vous nous fournissez
+- **Compte** : email, nom (optionnel), mot de passe chiffré
+- **Suivi quotidien** : humeurs, notes personnelles, qualité du sommeil
+- **Médicaments** : noms, dosages, horaires de prises
+- **Thérapie** : dates des séances, notes (optionnelles)
+
+### Données collectées automatiquement
+- Logs techniques (anonymisés)
+- Données d'utilisation agrégées pour améliorer le service
+
+**Nous ne collectons JAMAIS** : votre géolocalisation, vos contacts, vos messages, ni aucune donnée de vos autres applications.
+
+## 3. Utilisation de vos données
+
+Vos données sont utilisées **exclusivement** pour :
+- Fournir le service de suivi personnel
+- Générer vos rapports PDF pour vos consultations
+- Partager avec vos aidants autorisés (si vous le souhaitez)
+- Améliorer l'application (données agrégées et anonymisées)
+
+**Nous ne vendons JAMAIS vos données** à des tiers, annonceurs ou assureurs.
+
+## 4. Partage des données
+
+Vos données ne sont partagées qu'avec :
+- **Vous** : via l'export PDF et l'export RGPD
+- **Vos aidants autorisés** : uniquement les données que vous choisissez de partager
+- **Prestataires techniques** : sous contrat strict de confidentialité (hébergement, email)
+
+## 5. Sécurité
+
+Nous mettons en œuvre des mesures de sécurité robustes :
+- **Chiffrement** : données chiffrées au repos (AES-256) et en transit (TLS 1.3)
+- **Hébergement** : serveurs exclusivement en Union Européenne
+- **Accès** : authentification forte, 2FA disponible
+- **Audits** : tests de sécurité réguliers
+
+## 6. Vos droits (RGPD)
+
+Conformément au RGPD, vous disposez des droits suivants :
+- **Accès** : consultez toutes vos données à tout moment
+- **Rectification** : modifiez vos informations
+- **Effacement** : supprimez votre compte et toutes vos données
+- **Portabilité** : exportez vos données au format JSON
+- **Opposition** : refusez certains traitements
+
+Pour exercer ces droits : privacy@moodday.io
+
+## 7. Conservation des données
+
+- **Compte actif** : données conservées tant que votre compte est actif
+- **Après suppression** : données effacées sous 30 jours (sauf obligation légale)
+- **Sauvegardes** : supprimées sous 90 jours
+
+## 8. Cookies
+
+Nous utilisons uniquement des cookies essentiels :
+- Session et authentification
+- Préférences (langue, thème)
+
+Aucun cookie publicitaire ou de tracking. Voir notre [Politique de cookies](/legal/cookies).
+
+## 9. Contact DPO
+
+Pour toute question relative à vos données :
+- Email : privacy@moodday.io
+- Adresse : Moodday SAS, DPO, Paris, France
+
+## 10. Modifications
+
+Nous vous informerons de toute modification substantielle de cette politique par email.
+
+---
+
+*Dernière mise à jour : Janvier 2026*
+
+*Moodday SAS - Société par actions simplifiée - France*`,
+    },
+    cookies: {
+      metaTitle: "{app} - Politique de cookies",
+      metaDescription:
+        "Notre politique de cookies et comment nous les utilisons",
+      title: "Politique de cookies",
+      description:
+        "Comment Moodday utilise les cookies et technologies similaires",
+      lastUpdated: "Dernière mise à jour : Janvier 2026",
+      sections: [
+        {
+          title: "Qu'est-ce qu'un cookie ?",
+          content:
+            "Les cookies sont de petits fichiers texte stockés sur votre appareil lorsque vous visitez un site web. Ils aident les sites à mémoriser vos préférences et à améliorer votre expérience.",
+        },
+        {
+          title: "Comment nous utilisons les cookies",
+          content:
+            "Moodday utilise uniquement des cookies strictement nécessaires au bon fonctionnement de l'application. Nous utilisons :\n\n• Des cookies d'authentification pour vous garder connecté\n• Des cookies de sécurité pour vous protéger contre la fraude\n• Des cookies de préférences pour mémoriser vos paramètres (langue, thème)",
+        },
+        {
+          title: "Pas de cookies de tracking",
+          content:
+            "Nous n'utilisons PAS de cookies publicitaires ou de suivi. Nous ne partageons pas vos données avec des annonceurs ou des trackers tiers. Vos données de santé mentale sont privées et le restent.",
+        },
+        {
+          title: "Gérer les cookies",
+          content:
+            "Vous pouvez gérer les cookies via les paramètres de votre navigateur. Notez que désactiver les cookies essentiels peut affecter le fonctionnement de Moodday.",
+        },
+        {
+          title: "Nous contacter",
+          content:
+            "Si vous avez des questions sur notre politique de cookies, contactez-nous à privacy@moodday.io",
+        },
+      ],
     },
   },
   error: {
@@ -1649,7 +1834,7 @@ const fr: typeof en = {
       },
     },
     appComing: {
-      title: "L'application mobile arrive bientôt",
+      title: "Bientôt sur mobile !",
       subtitle: "iOS et Android",
       comingSoon: "Bientôt disponible",
       emailPlaceholder: "votre@email.com",
@@ -2076,6 +2261,95 @@ const fr: typeof en = {
         notifications: "Rappels",
         sync: "Sync auto",
       },
+    },
+  },
+  guides: {
+    metaTitle: "Guides - {app}",
+    metaDescription:
+      "Guides pratiques pour tirer le meilleur parti de Moodday dans votre parcours de santé mentale.",
+    title: "Guides Pratiques",
+    description:
+      "Ressources et tutoriels pour utiliser Moodday efficacement et prendre soin de votre santé mentale.",
+    items: {
+      gettingStarted: {
+        title: "Premiers pas",
+        description:
+          "Apprenez à configurer votre compte et à suivre votre humeur.",
+      },
+      medications: {
+        title: "Gérer ses médicaments",
+        description:
+          "Comment ajouter, suivre et recevoir des rappels pour vos traitements.",
+      },
+      caregivers: {
+        title: "Cercle d'aidants",
+        description: "Partagez votre évolution avec vos proches de confiance.",
+      },
+      privacy: {
+        title: "Confidentialité & Sécurité",
+        description: "Comment nous protégeons vos données de santé sensibles.",
+      },
+    },
+  },
+  apiDocs: {
+    metaTitle: "Documentation API - {app}",
+    metaDescription: "Documentation développeur pour l'API Moodday.",
+    title: "Documentation API",
+    description:
+      "Intégrez Moodday à vos applications grâce à notre API développeur.",
+    comingSoon: {
+      title: "Bientôt disponible",
+      description:
+        "Notre API est en cours de développement. Contactez-nous pour rejoindre le programme bêta.",
+      cta: "Nous contacter",
+    },
+    features: {
+      auth: {
+        title: "Authentification sécurisée",
+        description: "OAuth 2.0 et authentification par clé API",
+      },
+      realtime: {
+        title: "Synchronisation temps réel",
+        description: "Support WebSocket pour les mises à jour en direct",
+      },
+      export: {
+        title: "Export de données",
+        description: "Exportez vos données au format JSON ou CSV",
+      },
+    },
+  },
+  careers: {
+    metaTitle: "Carrières - {app}",
+    metaDescription:
+      "Rejoignez l'équipe Moodday et aidez-nous à construire des outils qui améliorent la santé mentale.",
+    title: "Rejoignez notre équipe",
+    description:
+      "Nous construisons des outils qui aident les gens à prendre soin de leur santé mentale. Envie de faire la différence ?",
+    values: {
+      title: "Nos valeurs",
+      items: [
+        {
+          title: "L'empathie avant tout",
+          description:
+            "Nous concevons pour des personnes réelles avec de vrais défis. La compassion guide tout ce que nous faisons.",
+        },
+        {
+          title: "Remote & Flexible",
+          description:
+            "Travaillez d'où vous voulez. Nous vous faisons confiance pour gérer votre temps et livrer un excellent travail.",
+        },
+        {
+          title: "Orienté impact",
+          description:
+            "Chaque fonctionnalité que nous construisons vise à améliorer le parcours de santé mentale de quelqu'un.",
+        },
+      ],
+    },
+    openPositions: {
+      title: "Pas de postes ouverts",
+      description:
+        "Nous n'avons pas de postes ouverts actuellement, mais nous recherchons toujours des talents. Envoyez-nous une candidature spontanée !",
+      cta: "Nous contacter",
     },
   },
 };
