@@ -5,7 +5,7 @@ export const SiteConfig = {
   prodUrl: "https://moodday.app",
   appId: "moodday",
   domain: "moodday.app",
-  appIcon: "/images/icon.png",
+  appIcon: "/icons/android-chrome-512x512.png",
   company: {
     name: "Moodday",
     address: "", // Add your company address
