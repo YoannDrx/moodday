@@ -23,6 +23,7 @@ import {
 } from "@/components/nowts/glass-card";
 import { BreathingWidget } from "@/components/nowts/breathing-widget";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type CrisisResource = {
   name: string;
@@ -45,6 +46,10 @@ export function CrisisContent({
   emergency,
   support,
 }: CrisisContentProps) {
+  const { t, tm } = useI18n();
+  const tips = tm<{ title: string; description: string }[]>(
+    "crisis.tips.items",
+  ) ?? [];
   return (
     <div className="mx-auto max-w-5xl px-4 pb-8">
       {/* Background Decorations */}
@@ -54,10 +59,10 @@ export function CrisisContent({
       {/* Header */}
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-          Soutien en cas de crise
+          {t("crisis.title")}
         </h1>
         <p className="text-gray-500">
-          Des ressources et outils pour vous aider dans les moments difficiles
+          {t("crisis.subtitle")}
         </p>
       </header>
 
@@ -73,11 +78,13 @@ export function CrisisContent({
           </div>
           <div className="flex-1 text-center sm:text-left">
             <h2 className="mb-1 text-xl font-bold text-red-800">
-              En cas d&apos;urgence vitale
+              {t("crisis.emergency.title")}
             </h2>
             <p className="text-red-700">
-              Appelez immédiatement le <strong>15 (SAMU)</strong> ou le{" "}
-              <strong>112 (urgence européenne)</strong>
+              {t("crisis.emergency.call")}
+              <strong>{t("crisis.emergency.samu")}</strong>{" "}
+              {t("crisis.emergency.or")}{" "}
+              <strong>{t("crisis.emergency.eu")}</strong>
             </p>
           </div>
           <div className="flex gap-3">
@@ -108,10 +115,10 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<Wind className="size-5 text-[var(--primary)]" />}
               >
-                Respiration guidée
+                {t("crisis.breathing.title")}
               </GlassCardTitle>
               <span className="rounded-lg bg-[var(--primary)]/10 px-2 py-1 text-xs font-bold text-[var(--primary)]">
-                Technique 4-7-8
+                {t("crisis.breathing.badge")}
               </span>
             </GlassCardHeader>
 
@@ -124,7 +131,7 @@ export function CrisisContent({
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>
               <GlassCardTitle icon={<Phone className="size-5 text-red-500" />}>
-                Lignes d&apos;écoute
+                {t("crisis.sections.hotlines")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -145,7 +152,7 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<AlertTriangle className="size-5 text-orange-500" />}
               >
-                Services d&apos;urgence
+                {t("crisis.sections.emergency")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -169,7 +176,7 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<MessageCircle className="size-5 text-[var(--sage)]" />}
               >
-                Associations de soutien
+                {t("crisis.sections.support")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -195,20 +202,19 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<Shield className="size-5 text-[var(--lavender-dark)]" />}
               >
-                Mon plan de sécurité
+                {t("crisis.safety.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
             <GlassCardContent>
               <p className="mb-4 text-sm text-gray-600">
-                Créez un plan personnalisé pour les moments difficiles avec vos
-                stratégies, contacts de confiance et signaux d&apos;alerte.
+                {t("crisis.safety.description")}
               </p>
               <Link
                 href="/settings?tab=safety"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--lavender-dark)] bg-white py-3 text-sm font-bold text-[var(--lavender-dark)] transition-all hover:bg-[var(--lavender)]/20"
               >
-                Configurer mon plan
+                {t("crisis.safety.cta")}
                 <ChevronRight className="size-4" />
               </Link>
             </GlassCardContent>
@@ -224,18 +230,16 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<Heart className="size-5 text-[var(--sage)]" />}
               >
-                Rappel bienveillant
+                {t("crisis.reassurance.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
             <GlassCardContent>
               <p className="text-sm leading-relaxed text-gray-700">
                 <span className="font-bold text-[var(--sage-dark)]">
-                  Demander de l&apos;aide est un signe de force.
+                  {t("crisis.reassurance.emphasis")}
                 </span>{" "}
-                Vous méritez d&apos;être soutenu(e) dans les moments difficiles.
-                Ces ressources sont là pour vous, n&apos;hésitez pas à les
-                utiliser.
+                {t("crisis.reassurance.body")}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -246,35 +250,20 @@ export function CrisisContent({
               <GlassCardTitle
                 icon={<Sparkles className="size-5 text-[var(--primary)]" />}
               >
-                Techniques d&apos;apaisement
+                {t("crisis.tips.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
             <GlassCardContent className="space-y-3">
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <p className="mb-1 font-bold text-gray-800">
-                  🧊 Technique du glaçon
-                </p>
-                <p className="text-sm text-gray-600">
-                  Tenez un glaçon dans votre main pour vous ancrer dans le
-                  présent.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <p className="mb-1 font-bold text-gray-800">
-                  👀 Règle 5-4-3-2-1
-                </p>
-                <p className="text-sm text-gray-600">
-                  Nommez 5 choses que vous voyez, 4 que vous touchez, 3 que vous
-                  entendez...
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <p className="mb-1 font-bold text-gray-800">💧 Eau froide</p>
-                <p className="text-sm text-gray-600">
-                  Passez de l&apos;eau froide sur vos poignets ou votre visage.
-                </p>
-              </div>
+              {tips.map((tip) => (
+                <div
+                  key={tip.title}
+                  className="rounded-2xl border border-gray-100 bg-white p-4"
+                >
+                  <p className="mb-1 font-bold text-gray-800">{tip.title}</p>
+                  <p className="text-sm text-gray-600">{tip.description}</p>
+                </div>
+              ))}
             </GlassCardContent>
           </GlassCard>
         </div>
@@ -292,6 +281,7 @@ function ResourceCard({
   variant: "hotline" | "emergency" | "support";
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const variantStyles = {
     hotline: {
       bg: "bg-red-50 hover:bg-red-100/80",
@@ -366,7 +356,7 @@ function ResourceCard({
           >
             <a href={`sms:${resource.sms}`}>
               <MessageCircle className="mr-1.5 size-4" />
-              SMS
+              {t("crisis.actions.sms")}
             </a>
           </Button>
         )}
@@ -379,7 +369,7 @@ function ResourceCard({
           >
             <a href={resource.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1.5 size-4" />
-              Site
+              {t("crisis.actions.website")}
             </a>
           </Button>
         )}

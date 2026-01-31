@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -35,12 +36,13 @@ import {
 } from "@/features/medication/medication.action";
 import { useI18n } from "@/i18n/provider";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
-  dosage: z.string().min(1, "Le dosage est requis"),
-  frequency: z.enum(["daily", "twice_daily", "weekly", "prn"]),
-  isPRN: z.boolean().default(false),
-});
+const getFormSchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().min(1, t("medication.validation.nameRequired")),
+    dosage: z.string().min(1, t("medication.validation.dosageRequired")),
+    frequency: z.enum(["daily", "twice_daily", "weekly", "prn"]),
+    isPRN: z.boolean().default(false),
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -48,6 +50,7 @@ export function EditMedicationForm({ medicationId }: { medicationId: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const formSchema = useMemo(() => getFormSchema(t), [t]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["medication", medicationId],

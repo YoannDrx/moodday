@@ -22,6 +22,7 @@ import {
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
 import { MoodChart } from "@/components/nowts/mood-chart";
+import { useI18n } from "@/i18n/provider";
 
 type MoodEntry = {
   id: string;
@@ -68,10 +69,10 @@ type TrendsContentProps = {
 
 type PeriodKey = "7" | "30" | "90";
 
-const periodLabels: Record<PeriodKey, string> = {
-  "7": "7 jours",
-  "30": "30 jours",
-  "90": "3 mois",
+const periodLabelKeys: Record<PeriodKey, string> = {
+  "7": "trends.periods.days7",
+  "30": "trends.periods.days30",
+  "90": "trends.periods.days90",
 };
 
 export function TrendsContent({
@@ -80,6 +81,7 @@ export function TrendsContent({
   chartData90,
   insights,
 }: TrendsContentProps) {
+  const { t } = useI18n();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("30");
 
   // Calculate averages
@@ -201,10 +203,10 @@ export function TrendsContent({
       {/* Header */}
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-          Tendances & Analyses
+          {t("trends.title")}
         </h1>
         <p className="text-gray-500">
-          Visualisez vos patterns d&apos;humeur dans le temps
+          {t("trends.subtitle")}
         </p>
       </header>
 
@@ -221,7 +223,7 @@ export function TrendsContent({
                 : "glass-card text-gray-600 hover:bg-white",
             )}
           >
-            {periodLabels[period]}
+            {t(periodLabelKeys[period])}
           </button>
         ))}
       </div>
@@ -244,7 +246,7 @@ export function TrendsContent({
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                7 derniers jours
+                {t("trends.stats.last7Days")}
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold">{avg7}/10</p>
@@ -262,7 +264,7 @@ export function TrendsContent({
                     ) : (
                       <TrendingDown className="size-3" />
                     )}
-                    vs 30j
+                    {t("trends.stats.vs30Days")}
                   </span>
                 )}
               </div>
@@ -286,7 +288,7 @@ export function TrendsContent({
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                30 derniers jours
+                {t("trends.stats.last30Days")}
               </p>
               <p className="text-2xl font-bold">{avg30}/10</p>
             </div>
@@ -309,7 +311,7 @@ export function TrendsContent({
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                3 derniers mois
+                {t("trends.stats.last90Days")}
               </p>
               <p className="text-2xl font-bold">{avg90}/10</p>
             </div>
@@ -324,14 +326,16 @@ export function TrendsContent({
             <GlassCardHeader>
               <div>
                 <h3 className="text-xl font-bold">
-                  Évolution de l&apos;humeur
+                  {t("trends.chart.title")}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {periodLabels[selectedPeriod]}
+                  {t(periodLabelKeys[selectedPeriod])}
                 </p>
               </div>
               <GlassCardBadge>
-                {currentData?.moodEntries.length ?? 0} entrées
+                {t("trends.chart.entries", {
+                  count: currentData?.moodEntries.length ?? 0,
+                })}
               </GlassCardBadge>
             </GlassCardHeader>
 
@@ -347,12 +351,12 @@ export function TrendsContent({
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-2">
                 <div className="h-0.5 w-6 bg-[var(--primary)]" />
-                <span>Humeur</span>
+                <span>{t("trends.chart.legend.mood")}</span>
               </div>
               {(currentData?.dosageChanges.length ?? 0) > 0 && (
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-0.5 border-l-2 border-dashed border-orange-400" />
-                  <span>Changement de dosage</span>
+                  <span>{t("trends.chart.legend.dosageChange")}</span>
                 </div>
               )}
             </div>
@@ -367,7 +371,7 @@ export function TrendsContent({
               <GlassCardTitle
                 icon={<Moon className="size-5 text-[var(--lavender-dark)]" />}
               >
-                Corrélations
+                {t("trends.correlations.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -375,7 +379,7 @@ export function TrendsContent({
               <div className="rounded-2xl border border-[var(--lavender)]/20 bg-[var(--lavender)]/10 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">
-                    Sommeil ↔ Humeur
+                    {t("trends.correlations.sleepMood")}
                   </span>
                   <span className="text-lg font-bold text-[var(--lavender-dark)]">
                     {formatPercent(sleepCorrelation)}
@@ -394,7 +398,7 @@ export function TrendsContent({
               <div className="rounded-2xl border border-[var(--sage)]/20 bg-[var(--sage)]/5 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">
-                    Médicaments ↔ Stabilité
+                    {t("trends.correlations.medicationStability")}
                   </span>
                   <span className="text-lg font-bold text-[var(--sage-dark)]">
                     {formatPercent(medicationCorrelation)}
@@ -415,7 +419,7 @@ export function TrendsContent({
               <div className="rounded-2xl border border-[var(--primary)]/10 bg-[var(--primary)]/5 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">
-                    Énergie ↔ Humeur
+                    {t("trends.correlations.energyMood")}
                   </span>
                   <span className="text-lg font-bold text-[var(--primary)]">
                     {formatPercent(energyCorrelation)}
@@ -441,7 +445,7 @@ export function TrendsContent({
                   <Sparkles className="size-5 text-[var(--lavender-dark)]" />
                 }
               >
-                IA Insights
+                {t("trends.insights.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -484,7 +488,9 @@ export function TrendsContent({
                             ) : (
                               <TrendingDown className="size-3" />
                             )}
-                            {insight.trend === "up" ? "En hausse" : "En baisse"}
+                            {insight.trend === "up"
+                              ? t("trends.insights.trendUp")
+                              : t("trends.insights.trendDown")}
                           </span>
                         )}
                       </div>
@@ -495,8 +501,7 @@ export function TrendsContent({
                 <div className="rounded-2xl border border-dashed border-gray-200 py-8 text-center">
                   <Sparkles className="mx-auto mb-2 size-8 text-gray-300" />
                   <p className="text-sm text-gray-400">
-                    Continuez à saisir vos données pour obtenir des insights
-                    personnalisés.
+                    {t("trends.insights.empty")}
                   </p>
                 </div>
               )}

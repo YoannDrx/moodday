@@ -3,6 +3,7 @@
 import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getI18n } from "@/i18n/server";
 
 // ===== Mood Chart Data (30 Days) =====
 
@@ -291,6 +292,7 @@ export const getDashboardSummary = authAction.action(
 
 export const getPatternInsights = authAction.action(
   async ({ ctx: { user } }) => {
+    const { t } = await getI18n();
     const now = new Date();
     const startOfMonth = new Date(now);
     startOfMonth.setDate(now.getDate() - 30);
@@ -318,22 +320,30 @@ export const getPatternInsights = authAction.action(
       const avgMood =
         moodEntries.reduce((sum, e) => sum + e.value, 0) / moodEntries.length;
 
+      const avgValue = avgMood.toFixed(1);
+
       if (avgMood >= 7) {
         insights.push({
           type: "mood",
-          message: `Humeur moyenne de ${avgMood.toFixed(1)}/10 ce mois - continue comme ça !`,
+          message: t("insights.patterns.mood.avg.high", {
+            value: avgValue,
+          }),
           trend: "up",
         });
       } else if (avgMood >= 5) {
         insights.push({
           type: "mood",
-          message: `Humeur moyenne de ${avgMood.toFixed(1)}/10 ce mois`,
+          message: t("insights.patterns.mood.avg.mid", {
+            value: avgValue,
+          }),
           trend: "neutral",
         });
       } else {
         insights.push({
           type: "mood",
-          message: `Humeur moyenne de ${avgMood.toFixed(1)}/10 - rappelle-toi que les hauts et les bas font partie du chemin`,
+          message: t("insights.patterns.mood.avg.low", {
+            value: avgValue,
+          }),
           trend: "down",
         });
       }
@@ -357,14 +367,13 @@ export const getPatternInsights = authAction.action(
         if (weekendAvg > weekdayAvg + 1) {
           insights.push({
             type: "mood",
-            message:
-              "Humeur plus haute le weekend - le repos te fait du bien !",
+            message: t("insights.patterns.mood.weekendHigher"),
             trend: "up",
           });
         } else if (weekdayAvg > weekendAvg + 1) {
           insights.push({
             type: "mood",
-            message: "Humeur plus stable en semaine - la routine t'aide",
+            message: t("insights.patterns.mood.weekdayHigher"),
             trend: "up",
           });
         }
@@ -402,19 +411,25 @@ export const getPatternInsights = authAction.action(
       if (adherence >= 90) {
         insights.push({
           type: "medication",
-          message: `Observance médicaments : ${adherence}% ce mois - excellent !`,
+          message: t("insights.patterns.medication.high", {
+            value: adherence,
+          }),
           trend: "up",
         });
       } else if (adherence >= 70) {
         insights.push({
           type: "medication",
-          message: `Observance médicaments : ${adherence}% ce mois`,
+          message: t("insights.patterns.medication.mid", {
+            value: adherence,
+          }),
           trend: "neutral",
         });
       } else if (adherence > 0) {
         insights.push({
           type: "medication",
-          message: `Observance médicaments : ${adherence}% - chaque prise compte`,
+          message: t("insights.patterns.medication.low", {
+            value: adherence,
+          }),
           trend: "down",
         });
       }
@@ -439,19 +454,26 @@ export const getPatternInsights = authAction.action(
       if (sessionsThisMonth > sessionsPrevMonth) {
         insights.push({
           type: "therapy",
-          message: `${sessionsThisMonth} séances ce mois (vs ${sessionsPrevMonth} le mois dernier) - beau travail !`,
+          message: t("insights.patterns.therapy.improved", {
+            count: sessionsThisMonth,
+            previous: sessionsPrevMonth,
+          }),
           trend: "up",
         });
       } else if (sessionsThisMonth === sessionsPrevMonth) {
         insights.push({
           type: "therapy",
-          message: `${sessionsThisMonth} séances ce mois - tu maintiens le rythme`,
+          message: t("insights.patterns.therapy.steady", {
+            count: sessionsThisMonth,
+          }),
           trend: "neutral",
         });
       } else {
         insights.push({
           type: "therapy",
-          message: `${sessionsThisMonth} séances ce mois`,
+          message: t("insights.patterns.therapy.lower", {
+            count: sessionsThisMonth,
+          }),
           trend: "neutral",
         });
       }
@@ -468,7 +490,9 @@ export const getPatternInsights = authAction.action(
     if (exerciseLogsThisMonth > 0) {
       insights.push({
         type: "exercise",
-        message: `${exerciseLogsThisMonth} exercices complétés ce mois - continue !`,
+        message: t("insights.patterns.exercise.completed", {
+          count: exerciseLogsThisMonth,
+        }),
         trend: exerciseLogsThisMonth >= 10 ? "up" : "neutral",
       });
     }
@@ -480,6 +504,7 @@ export const getPatternInsights = authAction.action(
 // ===== Streak Data =====
 
 export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
+  const { t } = await getI18n();
   const now = new Date();
   now.setHours(23, 59, 59, 999);
 
@@ -542,17 +567,21 @@ export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
   // Generate subtitle based on streak
   let subtitle = "";
   if (streakDays >= 30) {
-    subtitle = `Incroyable ! ${streakDays} jours de suivi consécutifs. Votre engagement est exemplaire.`;
+    subtitle = t("insights.streak.subtitle.long", { count: streakDays });
   } else if (streakDays >= 14) {
-    subtitle = `Excellent rythme ! Votre suivi est complet depuis ${Math.floor(streakDays / 7)} semaines.`;
+    subtitle = t("insights.streak.subtitle.weeks", {
+      weeks: Math.floor(streakDays / 7),
+    });
   } else if (streakDays >= 7) {
-    subtitle = `Une semaine complète ! Continuez sur cette lancée.`;
+    subtitle = t("insights.streak.subtitle.week");
   } else if (streakDays >= 3) {
-    subtitle = `Bon début ! ${streakDays} jours de suite, continuez !`;
+    subtitle = t("insights.streak.subtitle.goodStart", { count: streakDays });
   } else if (streakDays === 0) {
-    subtitle = `Commencez votre streak en enregistrant votre humeur aujourd'hui.`;
+    subtitle = t("insights.streak.subtitle.zero");
+  } else if (streakDays === 1) {
+    subtitle = t("insights.streak.subtitle.one", { count: streakDays });
   } else {
-    subtitle = `${streakDays} jour${streakDays > 1 ? "s" : ""} - chaque jour compte !`;
+    subtitle = t("insights.streak.subtitle.few", { count: streakDays });
   }
 
   return {

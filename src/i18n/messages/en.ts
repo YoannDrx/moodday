@@ -13,6 +13,7 @@ const en = {
   },
   nav: {
     docs: "Docs",
+    guides: "Guides",
     about: "About",
     contact: "Contact",
     features: "Features",
@@ -35,6 +36,7 @@ const en = {
     product: "Product",
     blog: "Blog",
     documentation: "Documentation",
+    guides: "Guides",
     dashboard: "Dashboard",
     account: "Account",
     company: "Company",
@@ -51,10 +53,21 @@ const en = {
     cancel: "Cancel",
     tryAgain: "Try again",
     save: "Save",
+    saving: "Saving...",
+    edit: "Edit",
+    back: "Back",
+    previous: "Previous",
+    continue: "Continue",
+    finish: "Finish",
   },
   common: {
     error: "An error occurred",
     saving: "Saving...",
+    unexpectedError: "An unexpected error occurred.",
+    redirecting: "Redirecting...",
+    selectPlaceholder: "Select an option",
+    actionFailed: "Action failed. Please try again.",
+    me: "Me",
   },
   medication: {
     add: {
@@ -85,10 +98,19 @@ const en = {
       weekly: "Weekly",
       prn: "As needed (PRN)",
     },
+    frequencyShort: {
+      daily: "Daily",
+      twiceDaily: "2x/day",
+      weekly: "Weekly",
+      prn: "PRN",
+    },
     list: {
       title: "My medications",
+      emptyTitle: "No medications yet",
       empty: "No medications yet. Add your first medication to start tracking!",
       addNew: "Add medication",
+      myTreatments: "My treatments",
+      activeCount: "{count} active",
       archived: "Archived medications",
       showArchived: "Show archived",
       hideArchived: "Hide archived",
@@ -108,6 +130,7 @@ const en = {
     prn: {
       badge: "PRN",
       section: "As needed",
+      also: "Also as needed",
       logged: "PRN medication logged!",
       takenToday: "{count}x today",
       logButton: "Log",
@@ -131,17 +154,42 @@ const en = {
     },
     intake: {
       logged: "Medication taken!",
+      loggedOffline: "Intake saved offline",
       skipped: "Medication skipped",
       undone: "Intake cancelled",
       undo: "Cancel",
       skip: "Skip today",
     },
+    status: {
+      pending: "Pending",
+      taken: "Taken",
+    },
     today: {
       title: "Today's medications",
       subtitle: "Mark your medications as taken",
+      emptyTitle: "Nothing scheduled today",
       empty: "No regular medications. Add one to start tracking!",
       allDone: "All done for today!",
+      allDoneSubtext: "Great job staying on track.",
       progress: "{taken} of {total} taken",
+      remainingSingular: "{count} remaining",
+      remainingPlural: "{count} remaining",
+      backToList: "Back to list",
+      addMedication: "Add medication",
+      regularTitle: "Regular medications",
+    },
+    quickActions: {
+      today: "Today",
+      history: "History",
+    },
+    stats: {
+      treatments: "Treatments",
+      today: "Today",
+      adherence: "Adherence",
+    },
+    validation: {
+      nameRequired: "Medication name is required",
+      dosageRequired: "Dosage is required",
     },
   },
   mood: {
@@ -151,6 +199,11 @@ const en = {
       notePlaceholder: "Add a note (optional)...",
       save: "Save my mood",
       saved: "Mood saved!",
+      savedAt: "Saved at {time}",
+      addNew: "Add new entry",
+      offlineSaved: "Saved offline",
+      offlineEditUnavailable: "Editing is unavailable offline.",
+      offlineDeleteUnavailable: "Deletion is unavailable offline.",
       update: "Update",
       updated: "Mood updated!",
       delete: "Delete",
@@ -159,6 +212,75 @@ const en = {
       deleteDescription:
         "This action cannot be undone. Your mood entry will be permanently removed.",
       deleteConfirm: "Yes, delete it",
+    },
+    journal: {
+      title: "Daily check-in",
+      saved: "Journal saved!",
+      saveError: "Unable to save your entry.",
+      insight: {
+        title: "Insight",
+        titleAi: "AI insight",
+        loading: "Generating insight...",
+        fallback: "Keep tracking to see insights here.",
+        localNotice: "Insights are generated locally when offline.",
+      },
+      step1: {
+        title: "How are you feeling?",
+        subtitle: "Rate your mood, energy, and anxiety.",
+        moodLabel: "Mood",
+        moodScale: {
+          low: "Low",
+          mid: "Okay",
+          high: "High",
+        },
+        energyLabel: "Energy",
+        energyScale: {
+          low: "Low",
+          mid: "Moderate",
+          high: "High",
+        },
+        anxietyLabel: "Anxiety",
+        anxietyScale: {
+          low: "Low",
+          mid: "Moderate",
+          high: "High",
+        },
+      },
+      step2: {
+        title: "Sleep",
+        subtitle: "How did you sleep last night?",
+        durationLabel: "Hours of sleep",
+        qualityLabel: "Sleep quality",
+        disturbancesLabel: "Disturbances",
+      },
+      step3: {
+        title: "Medications",
+        subtitle: "Mark your medications and side effects.",
+        markTaken: "Mark taken",
+        addOneOff: "Add one-off medication",
+        noMeds: "No medications configured",
+        sideEffectsTitle: "Side effects",
+        sideEffectsPlaceholder: "Any side effects today? (optional)",
+      },
+      step4: {
+        title: "Symptoms and events",
+        subtitle: "Anything notable today?",
+        symptomsLabel: "Symptoms",
+        eventsLabel: "Events",
+      },
+      step5: {
+        title: "Notes",
+        subtitle: "Anything else you'd like to remember?",
+        placeholder: "Write a short note...",
+      },
+    },
+    page: {
+      description: "Log your mood and journal entries.",
+    },
+    slider: {
+      aria: "Mood slider",
+      emojiAria: "Mood emoji {value}",
+      currentValueAria: "Current mood value {value}",
     },
     history: {
       title: "Mood History",
@@ -177,9 +299,11 @@ const en = {
       description: "Record your therapy session notes and reflections",
       submit: "Save session",
       success: "Session saved! Take care of yourself 💙",
+      offlineSaved: "Saved offline. It will sync when you are back online.",
     },
     edit: {
       title: "Edit session",
+      description: "Update your session notes and details",
       submit: "Save changes",
       success: "Session updated!",
     },
@@ -203,6 +327,9 @@ const en = {
       confirm: "Yes, delete it",
       success: "Session deleted",
     },
+    validation: {
+      notesRequired: "Notes are required",
+    },
   },
   exercise: {
     add: {
@@ -213,6 +340,7 @@ const en = {
     },
     edit: {
       title: "Edit exercise",
+      description: "Update your wellness exercise details",
       submit: "Save changes",
       success: "Exercise updated!",
     },
@@ -246,6 +374,9 @@ const en = {
     },
     unarchive: {
       success: "Exercise restored",
+    },
+    validation: {
+      nameRequired: "Exercise name is required",
     },
   },
   insights: {
@@ -283,6 +414,300 @@ const en = {
     patterns: {
       title: "Insights",
       noInsights: "Keep tracking to see insights!",
+      mood: {
+        avg: {
+          high: "Your average mood is {value}/10. Keep up the momentum.",
+          mid: "Your average mood is {value}/10. Steady and consistent.",
+          low: "Your average mood is {value}/10. Consider extra support.",
+        },
+        weekendHigher: "Your mood tends to be higher on weekends.",
+        weekdayHigher: "Your mood tends to be higher on weekdays.",
+      },
+      medication: {
+        high: "Medication adherence is {value}%. Great consistency.",
+        mid: "Medication adherence is {value}%. Keep building the habit.",
+        low: "Medication adherence is {value}%. Reminders might help.",
+      },
+      therapy: {
+        improved: "Therapy sessions increased to {count} this month.",
+        steady: "Therapy sessions stayed steady at {count} this month.",
+        lower: "Therapy sessions decreased to {count} this month.",
+      },
+      exercise: {
+        completed: "{count} exercises completed this month.",
+      },
+    },
+    streak: {
+      subtitle: {
+        long: "Amazing streak: {count} days!",
+        weeks: "{weeks} weeks in a row. Keep going!",
+        week: "A full week! Nice work.",
+        goodStart: "Great start: {count} days in a row.",
+        zero: "Start your first streak today.",
+        one: "{count} day logged. Keep it up!",
+        few: "{count} days in a row. Nice progress!",
+      },
+    },
+  },
+  dashboard: {
+    greeting: "Hello {name}",
+    today: "Today is {date}",
+    quickMood: {
+      title: "Quick mood check-in",
+      subtitle: "Log your mood in seconds",
+      badge: "Daily",
+      save: "Save mood",
+    },
+    trend: {
+      title: "Mood trend",
+      range7d: "Last 7 days",
+    },
+    medications: {
+      title: "Today's medications",
+      history: "History",
+      empty: "No medications scheduled for today.",
+    },
+    caregivers: {
+      title: "Caregiver circle",
+      empty: "No caregivers yet",
+      defaultName: "Caregiver",
+      statusActive: "Active",
+      statusPending: "Pending",
+    },
+    sleep: {
+      title: "Sleep",
+      averageHours: "{hours}h average",
+      qualityLabel: "Quality",
+      qualityPoor: "Poor",
+      qualityAverage: "Average",
+      qualityExcellent: "Excellent",
+      energyLabel: "Energy",
+      avgMoodLabel: "Avg mood",
+      noData: "No sleep data yet.",
+    },
+    insights: {
+      title: "Insights",
+      detectedLabel: "Detected pattern:",
+      sampleOne: "You tend to feel better after nights with 7+ hours of sleep.",
+      sampleTwo: "Medication adherence is linked with more stable mood scores.",
+      viewMore: "View more insights",
+    },
+  },
+  streak: {
+    title: "Your streak",
+    daySingular: "day",
+    dayPlural: "days",
+    weekProgress: "{count} of 7 days",
+  },
+  breathing: {
+    phases: {
+      inhale: "Inhale",
+      hold: "Hold",
+      exhale: "Exhale",
+      rest: "Rest",
+    },
+    ready: "Ready",
+    start: "Start",
+    pause: "Pause",
+    reset: "Reset",
+    cycleCount: "{count} cycles",
+    instructionsTitle: "How it works",
+    instructions:
+      "Follow the circle to inhale, hold, and exhale. Repeat for a few cycles.",
+  },
+  crisis: {
+    metaTitle: "Crisis resources",
+    metaDescription: "Immediate support resources and grounding tools.",
+    title: "Crisis resources",
+    subtitle: "If you feel unsafe, reach out now. You deserve support.",
+    emergency: {
+      title: "Emergency",
+      call: "Call",
+      samu: "15",
+      or: "or",
+      eu: "112",
+    },
+    sections: {
+      hotlines: "Hotlines",
+      emergency: "Emergency services",
+      support: "Support organizations",
+    },
+    breathing: {
+      title: "Guided breathing",
+      badge: "4-7-8 exercise",
+    },
+    safety: {
+      title: "Safety plan",
+      description: "Review your plan and contacts when you need them.",
+      cta: "Open safety plan",
+    },
+    reassurance: {
+      title: "You are not alone",
+      emphasis: "Help is available.",
+      body: "Reaching out can be the first step to feeling safer.",
+    },
+    tips: {
+      title: "Grounding tips",
+      items: [
+        {
+          title: "Breathe slowly",
+          description: "Inhale for 4 seconds, hold for 7, exhale for 8.",
+        },
+        {
+          title: "Name five things",
+          description:
+            "Name 5 things you see, 4 you feel, 3 you hear, 2 you smell, 1 you taste.",
+        },
+        {
+          title: "Reach out",
+          description: "Call someone you trust or a support line.",
+        },
+      ],
+    },
+    actions: {
+      sms: "Text",
+      website: "Website",
+    },
+    fab: {
+      call: "Call",
+      resources: "Resources",
+      needHelp: "Need help?",
+    },
+    resources: {
+      "3114": {
+        name: "3114 - Suicide prevention line",
+        description: "National suicide prevention hotline (France).",
+        availability: "24/7",
+      },
+      sosAmitie: {
+        name: "SOS Amitie",
+        description: "Listening service for people in distress.",
+        availability: "See website for hours",
+      },
+      filSanteJeunes: {
+        name: "Fil Sante Jeunes",
+        description: "Support line for young people.",
+        availability: "See website for hours",
+      },
+      samu: {
+        name: "SAMU",
+        description: "Emergency medical services.",
+        availability: "Emergency service",
+      },
+      suicideEcoute: {
+        name: "Suicide Ecoute",
+        description: "Listening and support in crisis.",
+        availability: "See website for hours",
+      },
+      argos: {
+        name: "SOS Argos",
+        description: "Support for people with bipolar disorder and families.",
+      },
+    },
+  },
+  labels: {
+    symptoms: {
+      anxiety: "Anxiety",
+      irritability: "Irritability",
+      ruminations: "Ruminations",
+      agitation: "Agitation",
+      brain_fog: "Brain fog",
+      tension: "Tension",
+      sadness: "Sadness",
+      euphoria: "Euphoria",
+    },
+    events: {
+      work: "Work",
+      family: "Family",
+      sport: "Sport",
+      alcohol: "Alcohol",
+      conflict: "Conflict",
+      social_outing: "Social outing",
+      bad_news: "Bad news",
+      success: "Success",
+    },
+    sleepDisturbances: {
+      nightmares: "Nightmares",
+      multiple_awakenings: "Multiple awakenings",
+      initial_insomnia: "Difficulty falling asleep",
+      agitation: "Agitation",
+      night_sweats: "Night sweats",
+      early_awakening: "Early awakening",
+    },
+    contextTags: {
+      work: "Work",
+      family: "Family",
+      social: "Social",
+      health: "Health",
+      sleep: "Sleep",
+      exercise: "Exercise",
+      medication: "Medication",
+      therapy: "Therapy",
+      stress: "Stress",
+      relaxation: "Relaxation",
+      creative: "Creative",
+      nature: "Nature",
+      travel: "Travel",
+      finance: "Finance",
+      relationship: "Relationship",
+    },
+    sideEffects: {
+      nausea: "Nausea",
+      headache: "Headache",
+      dizziness: "Dizziness",
+      fatigue: "Fatigue",
+      insomnia: "Insomnia",
+      drowsiness: "Drowsiness",
+      dry_mouth: "Dry mouth",
+      appetite_change: "Appetite change",
+      weight_change: "Weight change",
+      tremor: "Tremor",
+      anxiety: "Anxiety",
+      restlessness: "Restlessness",
+      constipation: "Constipation",
+      blurred_vision: "Blurred vision",
+      sweating: "Sweating",
+    },
+    sleepQuality: {
+      bad: "Poor",
+      average: "Average",
+      good: "Good",
+    },
+    caregiver: {
+      moodObserved: {
+        very_good: "Very good",
+        good: "Good",
+        neutral: "Neutral",
+        down: "Down",
+        very_down: "Very down",
+        concerning: "Concerning",
+      },
+      energyObserved: {
+        high: "High",
+        normal: "Normal",
+        low: "Low",
+        very_low: "Very low",
+      },
+      socialBehavior: {
+        engaged: "Engaged",
+        normal: "Normal",
+        withdrawn: "Withdrawn",
+        isolated: "Isolated",
+      },
+      sleepObserved: {
+        good: "Good sleep",
+        restless: "Restless",
+        insomnia: "Insomnia",
+        oversleeping: "Oversleeping",
+      },
+      eventTypes: {
+        compulsive_purchase: "Compulsive purchase",
+        crisis: "Crisis",
+        conflict: "Conflict",
+        milestone: "Milestone",
+        medication_issue: "Medication issue",
+        other: "Other",
+      },
     },
   },
   export: {
@@ -317,6 +742,69 @@ const en = {
     download: {
       success: "PDF downloaded!",
     },
+    pdf: {
+      title: "Moodday summary for {name}",
+      period: "Period: {start} – {end}",
+      sections: {
+        mood: "Mood",
+        medications: "Medications",
+        therapy: "Therapy ({count})",
+        exercises: "Exercises ({count})",
+      },
+      stats: {
+        average: "Average",
+        min: "Min",
+        max: "Max",
+        entries: "Entries",
+      },
+      moreEntries: "And {count} more entries...",
+      noMoodEntries: "No mood entries for this period.",
+      adherence: "Adherence",
+      intakeSingular: "intake",
+      intakePlural: "intakes",
+      dosageChanges: "Dosage changes",
+      noMedications: "No medications for this period.",
+      benefitRating: "Benefit rating: {value}/5",
+      noTherapy: "No therapy sessions for this period.",
+      footer: "Generated on {date} by Moodday",
+    },
+  },
+  trends: {
+    metaTitle: "Trends",
+    metaDescription: "Explore mood trends and correlations over time.",
+    title: "Trends",
+    subtitle: "Understand patterns across mood, sleep, and treatments.",
+    periods: {
+      days7: "Last 7 days",
+      days30: "Last 30 days",
+      days90: "Last 90 days",
+    },
+    stats: {
+      last7Days: "Last 7 days",
+      vs30Days: "vs 30 days",
+      last30Days: "Last 30 days",
+      last90Days: "Last 90 days",
+    },
+    chart: {
+      title: "Mood over time",
+      entries: "{count} entries",
+      legend: {
+        mood: "Mood",
+        dosageChange: "Dosage change",
+      },
+    },
+    correlations: {
+      title: "Correlations",
+      sleepMood: "Sleep quality vs mood",
+      medicationStability: "Medication adherence vs mood stability",
+      energyMood: "Energy vs mood",
+    },
+    insights: {
+      title: "Notable insights",
+      empty: "No insights yet. Keep tracking.",
+      trendUp: "Trend up",
+      trendDown: "Trend down",
+    },
   },
   onboarding: {
     title: "Welcome to Moodday",
@@ -324,6 +812,32 @@ const en = {
     skip: "Skip for now",
     start: "Get started",
     complete: "Welcome! You're all set.",
+    errors: {
+      missingMedicationInfo: "Add a medication name and dosage.",
+      invalidInviteEmail: "Enter a valid caregiver email.",
+    },
+    mood: {
+      label: "Mood today",
+      anxietyLabel: "Anxiety level",
+      noteLabel: "Optional note",
+      notePlaceholder: "Add a note...",
+    },
+    medication: {
+      nameLabel: "Medication name",
+      namePlaceholder: "e.g., Sertraline",
+      dosageLabel: "Dosage",
+      dosagePlaceholder: "e.g., 50mg",
+      frequencyLabel: "Frequency",
+      laterHint: "You can add more details later.",
+    },
+    preferences: {
+      invite: {
+        title: "Invite a caregiver",
+        description: "Share your progress with someone you trust.",
+        emailPlaceholder: "Caregiver email",
+        labelPlaceholder: "Optional label (e.g., Dr. Smith)",
+      },
+    },
     steps: {
       welcome: {
         title: "Welcome to Moodday",
@@ -367,8 +881,213 @@ const en = {
       crisis: "Crisis resources",
     },
   },
+  caregiver: {
+    roles: {
+      family: "Family",
+      friend: "Friend",
+      professional: "Professional",
+      default: "Caregiver",
+    },
+    dashboard: {
+      metaTitle: "Caregiver dashboard",
+      metaDescription:
+        "Support a loved one by sharing observations and events with consent.",
+      title: "Caregiver dashboard",
+      newObservation: "New observation",
+      stats: {
+        week: "This week",
+        month: "This month",
+        events: "Events",
+        concerning: "Concerning events",
+      },
+      tips: {
+        title: "Helpful tip",
+        highlight: "Stay consistent",
+        body: "Short, kind check-ins build trust and reveal patterns over time.",
+      },
+      actions: {
+        checkin: {
+          title: "Log a check-in",
+          subtitle: "Share mood, energy, sleep, and behavior.",
+        },
+        event: {
+          title: "Report an event",
+          subtitle: "Note important incidents or changes.",
+        },
+        invite: {
+          title: "Invite a caregiver",
+          subtitle: "Add someone you trust to the circle.",
+        },
+      },
+      activity: {
+        title: "Recent activity",
+        entry: "entry",
+        entries: "entries",
+        moodLabel: "Mood",
+        energyLabel: "Energy",
+        severity: "Severity",
+        badgeObservation: "Observation",
+        emptyTitle: "No activity yet",
+        emptyDescription: "Create your first check-in to start tracking.",
+        emptyCta: "Create check-in",
+      },
+      circle: {
+        title: "Caregiver circle",
+        default: "Caregiver",
+        empty: "No caregivers yet",
+        inviteCta: "Invite someone",
+        removeTitle: "Remove caregiver?",
+        removeDescription: "Access to shared data will be revoked.",
+        removeConfirm: "Remove",
+        statusPending: "Pending",
+      },
+      patients: {
+        title: "Patients",
+        empty: "No patients yet",
+      },
+      inviteDialog: {
+        title: "Invite a caregiver",
+        description: "Invite someone you trust to support you.",
+        emailLabel: "Email",
+        emailPlaceholder: "caregiver@example.com",
+        roleLabel: "Role",
+        labelLabel: "Label (optional)",
+        labelPlaceholder: "e.g., Dr. Smith",
+        send: "Send invite",
+        sending: "Sending...",
+      },
+      toasts: {
+        inviteSent: "Invite sent",
+        removed: "Caregiver removed",
+      },
+    },
+    activity: {
+      emptyTitle: "No activity yet",
+      emptyDescription: "Caregiver check-ins and events will appear here.",
+      badgeObservation: "Observation",
+      moodLabel: "Mood: {value}",
+      energyLabel: "Energy: {value}",
+      severityLabel: "Severity: {value}",
+    },
+    observe: {
+      title: "New observation",
+      description: "Share an observation or event with consent.",
+      tabCheckin: "Check-in",
+      tabEvent: "Event",
+      patientLabel: "Patient",
+      patientPlaceholder: "Select a patient",
+    },
+    checkin: {
+      for: "Check-in for {name}",
+      moodObserved: "Observed mood",
+      energyObserved: "Observed energy",
+      sleepObserved: "Sleep observed",
+      socialBehavior: "Social behavior",
+      notesLabel: "Notes",
+      notesPlaceholder: "Add optional notes...",
+      visibleLabel: "Visible to patient",
+      visibleDescription: "The patient will see this check-in.",
+      submit: "Save check-in",
+      saved: "Check-in saved",
+      saveError: "Unable to save check-in",
+    },
+    event: {
+      for: "Event for {name}",
+      typeLabel: "Event type",
+      dateLabel: "Date",
+      descriptionLabel: "Description",
+      descriptionPlaceholder: "Describe what happened...",
+      severityLabel: "Severity",
+      severityScaleMin: "Low",
+      severityScaleMax: "High",
+      severityLabels: {
+        minor: "Minor",
+        low: "Low",
+        moderate: "Moderate",
+        high: "High",
+        critical: "Critical",
+      },
+      visibleLabel: "Visible to patient",
+      visibleDescription: "The patient will see this event.",
+      submit: "Save event",
+      saved: "Event saved",
+      saveError: "Unable to save event",
+      validation: {
+        typeRequired: "Select an event type",
+        descriptionMin: "Description must be at least 10 characters",
+      },
+    },
+    invite: {
+      title: "Caregiver invite",
+      loading: "Loading invite...",
+      invalid: "This invite is invalid.",
+      accept: "Accept",
+      decline: "Decline",
+      accepting: "Accepting...",
+      declining: "Declining...",
+      accepted: "Invite accepted",
+      declined: "Invite declined",
+      alreadyAccepted: "This invite was already accepted.",
+      alreadyDeclined: "This invite was already declined.",
+      pendingSubtitle: "You have been invited to a caregiver circle.",
+      signInRequiredTitle: "Sign in required",
+      signInRequiredDescription: "Please sign in to accept this invite.",
+      notFoundTitle: "Invite not found",
+      notFoundDescription: "This invite is invalid or has expired.",
+    },
+    inviteEmail: {
+      subject: "You're invited to a Moodday caregiver circle",
+      preview: "{patientName} invited you to join Moodday",
+      greeting: "Hello,",
+      intro:
+        "{patientName} invited you to join their caregiver circle as {roleLabel}.",
+      labelLine: "Label: {label}",
+      patientFallback: "Someone you know",
+      cta: "Accept invite",
+      ignore: "If you were not expecting this, you can ignore this email.",
+    },
+    errors: {
+      selfInvite: "You cannot invite yourself.",
+      alreadyInCircle: "This caregiver is already in your circle.",
+      pendingInvite: "An invite is already pending for this person.",
+      invalidInvite: "This invite is invalid.",
+      invalidOrExpiredInvite: "This invite is invalid or expired.",
+      inviteExpired: "This invite has expired.",
+      inviteNotForYou: "This invite is not for you.",
+      inviteAlreadyAccepted: "This invite has already been accepted.",
+      acceptOwnInvite: "You cannot accept your own invite.",
+      relationshipNotFoundOrUnauthorized:
+        "Relationship not found or unauthorized.",
+      relationshipNotFound: "Relationship not found.",
+      relationshipDeleteNotAllowed: "You cannot remove this relationship.",
+      insufficientObservationPermission:
+        "You do not have permission to add observations.",
+      insufficientEventPermission:
+        "You do not have permission to report events.",
+      notAllowedObserve: "You are not allowed to add observations.",
+      notAllowedReportEvent: "You are not allowed to report events.",
+    },
+  },
   settings: {
     title: "Settings",
+    subtitle: "Manage your preferences, privacy, and subscription.",
+    tabs: {
+      profile: "Profile",
+      notifications: "Notifications",
+      appearance: "Appearance",
+      privacy: "Privacy",
+      subscription: "Subscription",
+    },
+    manageAccount: "Manage account",
+    profile: {
+      title: "Profile",
+      defaultName: "Your name",
+      changePhoto: "Change photo",
+      fullName: "Full name",
+      fullNamePlaceholder: "Your full name",
+      timezone: "Time zone",
+      save: "Save profile",
+    },
     display: {
       title: "Display",
       chartPeriod: "Default chart period",
@@ -389,6 +1108,57 @@ const en = {
       medicationReminderTime: "Medication reminder time",
       medicationReminderTimeHint: "Choose when to receive medication reminders",
     },
+    appearance: {
+      title: "Appearance",
+      themeLabel: "Theme",
+    },
+    privacy: {
+      title: "Privacy & data",
+      exportJson: "Export JSON",
+      exportJsonDescription: "Download your full data export (GDPR).",
+      exportPdf: "Export PDF",
+      exportPdfDescription: "Generate a clinical PDF summary.",
+      exportSuccess: "Export ready",
+      exporting: "Exporting...",
+      deleteTitle: "Delete account",
+      deleteWarning: "This will permanently delete your data.",
+      deleteDialogTitle: "Confirm deletion",
+      deleteDialogDescription: "This action cannot be undone.",
+      deleteConfirm: "Delete my account",
+      deleting: "Deleting...",
+      accountDeleted: "Account deleted",
+      policyTitle: "Privacy policy",
+      policyDescription: "Read how we handle your data.",
+      policyCta: "Read policy",
+    },
+    subscription: {
+      title: "Subscription",
+      statusLabel: "Status",
+      status: {
+        active: "Active",
+        trialing: "Trial",
+        pastDue: "Past due",
+        canceled: "Canceled",
+        incomplete: "Incomplete",
+        inactive: "Inactive",
+      },
+      planLabel: "Plan: {plan}",
+      planFree: "Free plan",
+      renewal: "Renews on {date}",
+      noActive: "No active subscription",
+      includedTitle: "Included features",
+      features: [
+        "Unlimited mood tracking",
+        "Medication reminders",
+        "PDF export",
+      ],
+      changePlan: "Change plan",
+    },
+    timezones: {
+      paris: "Paris",
+      london: "London",
+      newYork: "New York",
+    },
     saved: "Settings saved!",
   },
   debug: {
@@ -406,6 +1176,7 @@ const en = {
     dark: "Dark",
     light: "Light",
     system: "System",
+    zen: "Zen",
   },
   sidebar: {
     title: "Sidebar",
@@ -868,6 +1639,7 @@ const en = {
     },
   },
   auth: {
+    notSignedIn: "Please sign in to continue.",
     form: {
       name: "Name",
       email: "Email",
@@ -877,6 +1649,7 @@ const en = {
     signIn: {
       metaTitle: "Sign in to {app}",
       metaDescription: "Access your account to manage testimonials.",
+      title: "Sign in",
       description: "Sign in to continue to your dashboard.",
       emailPlaceholder: "you@example.com",
       forgotPassword: "Forgot password?",
@@ -904,6 +1677,13 @@ const en = {
       submit: "Create account",
       hasAccount: "Already have an account?",
       signIn: "Sign in",
+      validation: {
+        nameRequired: "Name is required",
+        emailInvalid: "Enter a valid email address",
+        passwordMin: "Password must be at least 8 characters",
+        verifyPasswordMin: "Confirmation must be at least 8 characters",
+        passwordMismatch: "Passwords do not match",
+      },
     },
     forgetPassword: {
       metaTitle: "Reset your {app} password",
@@ -962,290 +1742,6 @@ const en = {
     },
     logout: "Log out",
   },
-  landing: {
-    hero: {
-      titlePrefix: "Ship your SaaS",
-      titleHighlight: "in days, not months",
-      description:
-        "A modern Next.js boilerplate with authentication, payments, emails, and database - everything you need to launch fast.",
-      ctaPrimary: "Get started",
-      ctaSecondary: "View features",
-      imageAlt: "Dashboard screenshot",
-    },
-    stats: {
-      one: "Hours saved",
-      two: "Active developers",
-      three: "Projects launched",
-      four: "Setup time",
-    },
-    bento: {
-      avatarAlt: "Avatar",
-      items: {
-        ai: {
-          title: "Authentication",
-          description:
-            "Multi-provider auth with GitHub, Google, and magic links.",
-        },
-        schedule: {
-          title: "Payments",
-          description:
-            "Stripe integration with subscriptions and billing portal.",
-        },
-        calendar: {
-          title: "Database",
-          description: "PostgreSQL with Prisma ORM and multi-tenant support.",
-        },
-        analytics: {
-          title: "Email",
-          description:
-            "Beautiful transactional emails with React Email and Resend.",
-        },
-        research: {
-          title: "Organizations",
-          description: "Multi-tenant support with roles and permissions.",
-        },
-      },
-      skeleton: {
-        threadPrompt: "Create your first project",
-        threadResponse:
-          "Your Moodday project is ready! Start building your SaaS in minutes.",
-        schedulePending: "Setting up your environment...",
-        scheduleSuccess: "Your development server is running on localhost:3000",
-        researchQuestion: "What stack does Moodday use?",
-        searching: "Loading...",
-        researchAnswer:
-          "Next.js 16, TypeScript, TailwindCSS, Prisma, Better Auth, and Stripe.",
-      },
-      stats: {
-        followers: "+{count} features",
-        views: "+{count} components",
-        likes: "{count} downloads",
-        replies: "{count} stars",
-        last30Days: "Included out of the box",
-      },
-    },
-    features: {
-      badge: "Everything included.",
-      title: "Build faster with a complete",
-      titleEmphasis: "stack",
-      description:
-        "Everything you need to launch a production-ready SaaS application.",
-      items: [
-        {
-          badge: "Auth",
-          title: "Authentication ready",
-          description:
-            "Sign in with GitHub, Google, or magic links out of the box.",
-        },
-        {
-          badge: "Payments",
-          title: "Stripe integration",
-          description:
-            "Subscriptions, webhooks, and customer portal already configured.",
-        },
-        {
-          badge: "Database",
-          title: "PostgreSQL + Prisma",
-          description:
-            "Type-safe database access with migrations and seeding scripts.",
-        },
-        {
-          badge: "Email",
-          title: "Transactional emails",
-          description:
-            "Beautiful email templates with React Email and Resend integration.",
-        },
-      ],
-    },
-    pain: {
-      title: "I love building SaaS products...",
-      subtitle: "But setting up the basics takes forever",
-      without: {
-        title: "Building from scratch",
-        items: [
-          "Weeks spent on authentication setup",
-          "Complex payment integration",
-          "Database schema design",
-          "Inconsistent code patterns",
-        ],
-      },
-      with: {
-        title: "Building with Moodday",
-        items: [
-          "Auth ready in minutes",
-          "Stripe pre-configured",
-          "Proven database patterns",
-          "Consistent, scalable architecture",
-        ],
-      },
-    },
-    cta: {
-      title: "Ready to ship faster?",
-      subtitle: "Start building today.",
-      button: "Get started",
-    },
-    ctaCard: {
-      title: "Launch your SaaS today",
-      description: "Clone the repo and start building in minutes.",
-      primaryCta: "Get started",
-      secondaryCta: "View docs",
-    },
-    ctaImage: {
-      title: "Ship your product faster",
-      description: "Focus on your features, not the boilerplate.",
-      cta: "Get started",
-    },
-    faq: {
-      titleShort: "FAQ",
-      title: "Frequently Asked Questions",
-      items: [
-        {
-          question: "What is Moodday?",
-          answer:
-            "Moodday is a modern Next.js boilerplate that includes authentication, payments, database, and email - everything you need to launch a SaaS quickly.",
-        },
-        {
-          question: "What tech stack does Moodday use?",
-          answer:
-            "Next.js 16, TypeScript, TailwindCSS v4, Prisma ORM, Better Auth, Stripe, React Email, and Resend.",
-        },
-        {
-          question: "Is the code production-ready?",
-          answer:
-            "Yes, Moodday follows best practices with TypeScript strict mode, proper error handling, and scalable architecture patterns.",
-        },
-        {
-          question: "Can I use it for commercial projects?",
-          answer:
-            "Absolutely! Moodday is designed for building commercial SaaS applications.",
-        },
-        {
-          question: "How do I get started?",
-          answer:
-            "Clone the repository, run pnpm setup to configure your environment, and you're ready to build.",
-        },
-        {
-          question: "What database does it support?",
-          answer:
-            "Moodday uses PostgreSQL with Prisma ORM. NeonDB is recommended for serverless deployments.",
-        },
-        {
-          question: "Is authentication included?",
-          answer:
-            "Yes, multi-provider authentication with GitHub, Google, email/password, and magic links is pre-configured with Better Auth.",
-        },
-      ],
-    },
-    reviews: {
-      at: "at",
-      avatarAlt: "Avatar of {name}",
-      avatarAltGeneric: "Avatar",
-      triple: [
-        {
-          image: "https://i.pravatar.cc/300?u=a1",
-          name: "Sophie",
-          review:
-            "Threader **has completely transformed the way I manage my social media** content. The ability to schedule posts and use AI for content suggestions has saved me hours each week.",
-          role: "Digital Marketer",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=a2",
-          name: "Alex",
-          review:
-            "Using Threader has significantly boosted my online engagement. **The analytics tool helps me understand what works**, allowing me to refine my strategy and grow my follower base.",
-          role: "Social Media Influencer",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=a3",
-          name: "Jordan",
-          review:
-            "The ease of scheduling and the AI-generated content features are game-changers. **Threader's user-friendly interface** makes it perfect for anyone looking to enhance their online presence.",
-          role: "Entrepreneur",
-        },
-      ],
-      single: {
-        image: "https://i.pravatar.cc/300?u=5",
-        name: "Michel",
-        review:
-          "Threader **has completely transformed** the way I manage my social media content. The ability to schedule posts and use AI for content suggestions **has saved me hours each week.**",
-        role: "Digital Marketer",
-        compagnyImage:
-          "https://1000logos.net/wp-content/uploads/2017/03/McDonalds-Logo-2003.png",
-      },
-      grid: [
-        {
-          image: "https://i.pravatar.cc/300?u=b1",
-          name: "Eva",
-          review:
-            "Since I started using Threader, my content creation process has been streamlined. The AI suggestions are spot on, helping me connect better with my audience.",
-          role: "Content Creator",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b2",
-          name: "Lucas",
-          review:
-            "Threader's scheduling feature is a lifesaver. It lets me plan my content calendar efficiently and never miss optimal posting times.",
-          role: "Social Media Manager",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b3",
-          name: "Mia",
-          review:
-            "The analytics provided by Threader are invaluable. They doubled my engagement rate in just a few months.",
-          role: "Digital Marketer",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b4",
-          name: "Noah",
-          review:
-            "I was skeptical about AI-generated content, but Threader changed my mind. It feels personal and boosts interaction rates.",
-          role: "Blogger",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b5",
-          name: "Isabella",
-          review:
-            "Threader's interface is incredibly user-friendly. We onboarded our team in no time and improved performance fast.",
-          role: "Team Leader",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b6",
-          name: "Oliver",
-          review:
-            "Auto-reposting is the feature I didn't know I needed. It gets more mileage out of my best content.",
-          role: "Freelancer",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b7",
-          name: "Sophia",
-          review:
-            "Joining the Threader community opened networking opportunities with fellow creators. It's more than a tool.",
-          role: "Influencer",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b8",
-          name: "Elijah",
-          review:
-            "The calendar view helps me visualize my monthly strategy. It's a game changer for planning.",
-          role: "Strategist",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b9",
-          name: "Charlotte",
-          review:
-            "Threader's pricing is flexible for creators at every stage, from beginners to established influencers.",
-          role: "Entrepreneur",
-        },
-        {
-          image: "https://i.pravatar.cc/300?u=b10",
-          name: "James",
-          review:
-            "The customer support team is fantastic. Quick responses and helpful answers every time.",
-          role: "Customer",
-        },
-      ],
-    },
-  },
   email: {
     section: {
       title: "Stay updated",
@@ -1262,26 +1758,6 @@ const en = {
   },
   form: {
     unsavedWarning: "You have unsaved changes. Are you sure you want to leave?",
-  },
-  docs: {
-    metaTitle: "Documentation | {app}",
-    metaDescription: "Everything you need to know about using {app}",
-    title: "Documentation",
-    description: "Everything you need to know about using {app}",
-    readMore: "Read more",
-    onThisPage: "On this page",
-    requestExamples: "Request examples",
-    responseExamples: "Response examples",
-    general: "General",
-    copy: {
-      copyPage: "Copy page",
-      viewMarkdown: "View as Markdown",
-      openV0: "Open in v0",
-      openChatGpt: "Open in ChatGPT",
-      openClaude: "Open in Claude",
-      prompt:
-        "I'm looking at this {app} documentation: {url}.\nHelp me understand how to use it. Be ready to explain concepts, give examples, or help debug based on it.",
-    },
   },
   posts: {
     metaTitle: "{app} Blog",
@@ -1346,67 +1822,89 @@ const en = {
   about: {
     metaTitle: "About {app}",
     metaDescription:
-      "Learn about Moodday, the modern Next.js boilerplate designed to help developers ship SaaS products faster.",
+      "Learn how Moodday helps you track mental health with compassion, privacy, and clinical clarity.",
     hero: {
-      kicker: "About us",
-      title: "Ship faster with a proven foundation",
+      kicker: "Our story",
+      titlePrefix: "A calmer way to",
+      titleHighlight: "track mental health",
       description:
-        "A boilerplate you can trust, built by developers for developers, with continuous updates and a focus on modern best practices.",
+        "Moodday is a supportive journal that helps you understand your mood, treatments, and patterns.",
     },
-    commitment: {
-      title: "Our commitment to you",
+    mission: {
+      title: "Our mission",
       paragraphOne:
-        "Moodday is built with a long-term vision and commitment to the developer community. We understand that choosing a boilerplate means trusting it as the foundation of your product.",
+        "Make mental health tracking simple, kind, and clinically useful.",
       paragraphTwo:
-        "That's why we guarantee regular updates, continuous improvements, and clear documentation. You'll always have access to the latest patterns and best practices. We're here to help you ship faster.",
+        "Give people and clinicians a shared, trustworthy picture between visits.",
     },
-    gallery: {
-      altOne: "Content creator recording testimonial",
-      altTwo: "Team collaboration on testimonials",
-      altThree: "Digital testimonial showcase",
-      altFour: "Creator success story",
+    vision: {
+      title: "Our vision",
+      paragraphOne:
+        "A world where everyone feels supported between appointments.",
+      paragraphTwo:
+        "Private data and clear insights that make care more human.",
     },
-    reliability: {
-      title: "Our reliability promise",
-      items: [
-        {
-          label: "Weekly updates",
-          value: "100",
-          suffix: "%",
+    values: {
+      title: "Our values",
+      items: {
+        kindness: {
+          title: "Kindness first",
+          description: "We design for empathy and reduce judgment.",
         },
-        {
-          label: "Uptime guarantee",
-          value: "99.9",
-          suffix: "%",
+        privacy: {
+          title: "Privacy by default",
+          description: "Your data stays yours, with strong encryption.",
         },
-        {
-          label: "Response time",
-          value: "<24",
-          suffix: "h",
+        science: {
+          title: "Science-led",
+          description: "We follow evidence-based practices and clinical feedback.",
         },
-        {
-          label: "Years committed",
-          value: "10",
-          suffix: "+",
-        },
-      ],
+      },
+    },
+    stats: {
+      activeUsers: "Active users",
+      checkins: "Mood check-ins",
+      uptime: "Uptime",
+      appStoreRating: "App Store rating",
+    },
+    team: {
+      title: "A small team with a big purpose",
+      description:
+        "We are clinicians, designers, and engineers focused on calm, reliable care tools.",
+      joinCta: "Join the team",
+      contactCta: "Contact us",
+    },
+    privacyPromise: {
+      title: "Privacy promise",
+      description:
+        "We never sell your health data. You control what is shared and with whom.",
     },
   },
   contact: {
     metaTitle: "Contact {app}",
     metaDescription:
-      "Get in touch with the Moodday team. We're here to help with any questions about the boilerplate, features, or technical support.",
+      "Get in touch with the Moodday team. We're here to help with support, privacy, and product questions.",
     title: "Get in touch",
     description:
-      "Have questions about Moodday? Need help with setup or want to share feedback? We're here to help and always excited to hear from the community.",
-    details: {
-      location: "Location",
-      email: "Email",
-      responseTime: "Response time",
-      responseLineOne: "Usually respond within 24 hours",
-      responseLineTwo: "Monday - Friday, 9 AM - 6 PM ICT",
+      "Have questions about Moodday or need help with your account? We're here to help.",
+    cards: {
+      email: {
+        title: "Email us",
+        description: "Reach the support team for product or account questions.",
+      },
+      response: {
+        title: "Response time",
+        description: "We reply on business days.",
+        value: "Within 24 hours",
+      },
+      social: {
+        title: "Social",
+        description: "Follow updates and announcements.",
+      },
     },
     form: {
+      title: "Send a message",
+      subtitle: "We will get back to you as soon as we can.",
       firstName: "First name",
       lastName: "Last name",
       email: "Email",
@@ -1416,12 +1914,101 @@ const en = {
       success: "Your message has been sent",
       invalid: "Invalid input",
     },
+    faq: {
+      title: "Frequently asked questions",
+      items: {
+        free: {
+          question: "Is Moodday free?",
+          answer:
+            "Yes. You can start on the free plan and upgrade anytime for advanced insights and exports.",
+        },
+        security: {
+          question: "How do you protect my data?",
+          answer:
+            "We use encryption at rest and in transit, and you control what is shared.",
+        },
+        export: {
+          question: "Can I export my data for my clinician?",
+          answer:
+            "Yes. You can generate a PDF or JSON export from your dashboard.",
+        },
+      },
+      more: "Still have a question? Contact our team.",
+    },
   },
   legal: {
     terms: {
       metaTitle: "{app} - Terms of Service",
       metaDescription: "Terms of service for the Moodday application",
       title: "Terms of Service",
+      subtitle:
+        "These terms explain how Moodday works and how to use it safely.",
+      lastUpdated: "Last updated: January 2026",
+      emergency: {
+        title: "In case of emergency",
+        descriptionPrefix:
+          "If you are in distress, contact emergency services at ",
+        phone: "988",
+        descriptionSuffix: " or reach a local professional.",
+      },
+      contact: {
+        title: "Questions?",
+        descriptionPrefix: "Contact us at ",
+      },
+      sections: {
+        service: {
+          title: "Purpose of the service",
+          content:
+            "Moodday is a personal tracking tool to record mood, treatments, and insights.",
+          highlight: "Moodday is not a medical device.",
+        },
+        account: {
+          title: "Account and eligibility",
+          items: {
+            age: "You must be at least 16 years old.",
+            accurateInfo: "Provide accurate registration information.",
+            credentials: "Keep your credentials confidential.",
+            responsibility: "You are responsible for activity on your account.",
+          },
+        },
+        acceptableUse: {
+          title: "Acceptable use",
+          items: {
+            personalTracking: "Use Moodday for personal tracking only.",
+            noSharing: "Do not share your credentials.",
+            noBypass: "Do not attempt to bypass security measures.",
+            respect: "Respect other users and the law.",
+          },
+        },
+        caregiver: {
+          title: "Caregiver circle",
+          content:
+            "You control what is shared. Access can be revoked at any time.",
+        },
+        ip: {
+          title: "Intellectual property",
+          content:
+            "All content and branding are the property of Moodday or its licensors.",
+        },
+        liability: {
+          title: "Limitation of liability",
+          items: {
+            decisions: "Moodday is not responsible for medical decisions.",
+            interruptions: "Service interruptions may occur.",
+            losses: "We are not liable for data loss beyond our control.",
+          },
+          highlight: "The service is provided “as is”.",
+        },
+        termination: {
+          title: "Termination",
+          content:
+            "You can delete your account at any time from settings.",
+        },
+        law: {
+          title: "Governing law",
+          content: "These terms are governed by French law.",
+        },
+      },
       content: `## 1. Purpose
 
 These Terms of Service govern the use of the Moodday application, a digital clinical journal designed for personal mental health tracking.
@@ -1494,6 +2081,117 @@ These Terms are governed by French law. Any dispute will be submitted to the com
       metaTitle: "{app} - Privacy Policy",
       metaDescription: "How Moodday protects your mental health data",
       title: "Privacy Policy",
+      lastUpdated: "Last updated: January 2026",
+      intro: {
+        prefix: "Your privacy is",
+        highlight: "our priority.",
+        suffix: " We only collect what is needed to provide the service.",
+      },
+      sections: {
+        data: {
+          title: "Data we collect",
+          highlight: "We never collect location or contacts.",
+          items: {
+            account: {
+              label: "Account",
+              value: "Email, name (optional), encrypted password.",
+            },
+            daily: {
+              label: "Daily tracking",
+              value: "Mood, notes, sleep quality.",
+            },
+            medications: {
+              label: "Medications",
+              value: "Names, dosages, intake times.",
+            },
+            therapy: {
+              label: "Therapy",
+              value: "Session dates and notes (optional).",
+            },
+          },
+        },
+        usage: {
+          title: "How we use data",
+          highlight: "We never sell your data.",
+          items: {
+            service: {
+              label: "Provide the service",
+              value: "Track mood and treatments.",
+            },
+            reports: {
+              label: "Generate reports",
+              value: "PDF exports for consultations.",
+            },
+            sharing: {
+              label: "Caregiver sharing",
+              value: "Only with your consent.",
+            },
+            improvement: {
+              label: "Improve the app",
+              value: "Aggregated, anonymized insights.",
+            },
+          },
+        },
+        security: {
+          title: "Security",
+          items: {
+            encryption: {
+              label: "Encryption",
+              value: "AES-256 at rest, TLS in transit.",
+            },
+            hosting: {
+              label: "Hosting",
+              value: "EU-based servers.",
+            },
+            auth: {
+              label: "Authentication",
+              value: "Strong auth with optional 2FA.",
+            },
+            audit: {
+              label: "Audits",
+              value: "Regular security testing.",
+            },
+          },
+        },
+        rights: {
+          title: "Your rights",
+          items: {
+            access: {
+              label: "Access",
+              value: "View all your data anytime.",
+            },
+            rectify: {
+              label: "Rectification",
+              value: "Update your information.",
+            },
+            delete: {
+              label: "Erasure",
+              value: "Delete your account and data.",
+            },
+            portability: {
+              label: "Portability",
+              value: "Export your data in JSON.",
+            },
+          },
+        },
+      },
+      retention: {
+        title: "Data retention",
+        items: {
+          active: "Data retained while your account is active.",
+          afterDeletion: "Deleted within 30 days after account removal.",
+          backups: "Backups removed within 90 days.",
+        },
+      },
+      cookies: {
+        title: "Cookies",
+        description: "We only use essential cookies for the service.",
+        note: "No advertising or tracking cookies.",
+      },
+      contact: {
+        title: "Contact",
+        descriptionPrefix: "For privacy questions, email ",
+      },
       content: `## 1. Introduction
 
 At Moodday, protecting your health data is our absolute priority. This policy explains how we collect, use, and protect your personal information.
@@ -1584,6 +2282,50 @@ We will inform you of any substantial modification to this policy by email.
       title: "Cookie Policy",
       description: "How Moodday uses cookies and similar technologies",
       lastUpdated: "Last updated: January 2026",
+      intro: {
+        title: "Cookie overview",
+        descriptionPrefix: "Cookies help Moodday",
+        descriptionHighlight: "work securely",
+        descriptionSuffix: " and remember your preferences.",
+      },
+      usedTitle: "Cookies we use",
+      essentialBadge: "Essential",
+      types: {
+        auth: {
+          name: "Authentication",
+          description: "Keep you signed in and secure.",
+          examples: "session_token||csrf_token",
+        },
+        security: {
+          name: "Security",
+          description: "Protect against abuse and fraud.",
+          examples: "rate_limit||device_id",
+        },
+        preferences: {
+          name: "Preferences",
+          description: "Remember language and theme.",
+          examples: "locale||theme",
+        },
+      },
+      notUsed: {
+        title: "Cookies we do not use",
+        note: "We do not use advertising or tracking cookies.",
+        ads: "Advertising cookies",
+        tracking: "Tracking cookies",
+        thirdParty: "Third-party marketing cookies",
+        social: "Social media tracking cookies",
+      },
+      manage: {
+        title: "Manage cookies",
+        description:
+          "You can disable cookies in your browser settings at any time.",
+        howToLabel: "How to:",
+        howToSteps: "Open your browser settings and clear or block cookies.",
+      },
+      contact: {
+        title: "Contact",
+        descriptionPrefix: "Questions? Email ",
+      },
       sections: [
         {
           title: "What Are Cookies?",
@@ -1634,12 +2376,18 @@ We will inform you of any substantial modification to this policy by email.
         "You don't have permission to access this resource. Please sign in or contact your administrator if you believe this is a mistake.",
     },
   },
+  offline: {
+    metaTitle: "Offline",
+    title: "You're offline",
+    description: "Some features are unavailable until you reconnect.",
+  },
   landing2: {
     nav: {
       features: "Features",
       security: "Security",
       pricing: "Pricing",
       docs: "Docs",
+      guides: "Guides",
       signin: "Sign in",
       startTrial: "Start free trial",
     },
@@ -1672,6 +2420,18 @@ We will inform you of any substantial modification to this policy by email.
         stable: "Stable",
         excellent: "Excellent",
         average: "7-day avg",
+        weeklyDelta: "+12% vs last week",
+        lastUpdated: "Last updated",
+        lastUpdatedTime: "2 min ago",
+        days: {
+          mon: "Mon",
+          tue: "Tue",
+          wed: "Wed",
+          thu: "Thu",
+          fri: "Fri",
+          sat: "Sat",
+          sun: "Sun",
+        },
         noteLabel: "Add a note",
         notePlaceholder: "How are you feeling?",
         saveButton: "Save",
@@ -1680,6 +2440,14 @@ We will inform you of any substantial modification to this policy by email.
         title: "Today's medications",
         taken: "Taken",
         pending: "Pending",
+        confirm: "Confirm",
+        monthlyAdherence: "Monthly adherence",
+        progress: "{taken}/{total} taken",
+        samples: {
+          lithium: "Lithium",
+          lamotrigine: "Lamotrigine",
+          quetiapine: "Quetiapine",
+        },
         morning: "Morning",
         evening: "Evening",
         prn: "As needed",
@@ -1693,6 +2461,7 @@ We will inform you of any substantial modification to this policy by email.
         weekendDesc: "Mood +15% on Saturdays",
         medicationEffect: "Medication effect",
         medicationDesc: "Peak efficacy at D+14",
+        updatedAgo: "Updated 1h ago",
       },
       remindersPanel: {
         title: "Configured reminders",
@@ -1700,7 +2469,12 @@ We will inform you of any substantial modification to this policy by email.
         morningMeds: "Morning meds",
         eveningMeds: "Evening meds",
         daily: "Daily",
+        configure: "Configure reminders",
         addReminder: "Add a reminder",
+        samples: {
+          quetiapine: "Quetiapine 50mg",
+          sleepReminder: "Sleep routine",
+        },
       },
     },
     features: {
@@ -1787,6 +2561,29 @@ We will inform you of any substantial modification to this policy by email.
     journey: {
       title: "A day with Moodday",
       subtitle: "Discover how Marie uses Moodday daily",
+      mockups: {
+        moodLogged: "Mood logged",
+        moodLoggedTime: "8:12 AM",
+        medReminderTitle: "Medication reminder",
+        medReminderName: "Lithium",
+        medReminderFrequency: "Daily",
+        medReminderNow: "Take now",
+        medReminderConfirm: "Confirm",
+        medTakenName: "Lithium",
+        medTakenTime: "Taken at 12:30 PM",
+        insightTitle: "Weekly insight",
+        insightDescription: "Mood improved with consistent sleep.",
+        weeklyTrend: "+12% vs last week",
+        weekdays: {
+          mon: "Mon",
+          tue: "Tue",
+          wed: "Wed",
+          thu: "Thu",
+          fri: "Fri",
+          sat: "Sat",
+          sun: "Sun",
+        },
+      },
       morning: {
         time: "7:00 AM",
         title: "Morning check-in",
@@ -1812,6 +2609,8 @@ We will inform you of any substantial modification to this policy by email.
     appComing: {
       title: "Coming soon to mobile!",
       subtitle: "iOS and Android",
+      appStore: "App Store",
+      googlePlay: "Google Play",
       comingSoon: "Coming soon",
       emailPlaceholder: "your@email.com",
       submitButton: "Notify me",
@@ -1832,6 +2631,7 @@ We will inform you of any substantial modification to this policy by email.
       badge: "Pricing",
       title: "Choose your plan",
       subtitle: "Start for free, upgrade when you're ready.",
+      trustBadge: "Secure payments • Cancel anytime",
       toggle: {
         monthly: "Monthly",
         annual: "Annual",
@@ -1925,7 +2725,7 @@ We will inform you of any substantial modification to this policy by email.
       getStartedFree: "Start for free",
     },
     hero: {
-      badge: "Compassionate clinical journal",
+      badge: "Compassionate journal",
       title: "Track your",
       titleHighlight: "mental health journey",
       titleSuffix: "with peace of mind",
@@ -2129,6 +2929,7 @@ We will inform you of any substantial modification to this policy by email.
       subtitle: "Find answers to the most common questions about Moodday.",
       contactPrompt: "Can't find the answer?",
       contactLink: "Contact us",
+      contactSubtext: "Our team will respond as soon as possible.",
       items: [
         {
           question: "Does Moodday replace medical care?",
@@ -2176,6 +2977,11 @@ We will inform you of any substantial modification to this policy by email.
       ctaPrimary: "Start for free",
       ctaSecondary: "Contact team",
       trust: "14-day free trial • No credit card • Easy cancellation",
+      trustBadges: {
+        freeTrial: "14-day free trial",
+        noCreditCard: "No credit card",
+        easyCancellation: "Easy cancellation",
+      },
     },
     footer: {
       emergency: {
@@ -2187,6 +2993,11 @@ We will inform you of any substantial modification to this policy by email.
         "Your digital companion to track your mental health journey. Designed with healthcare professionals.",
       disclaimer:
         "Moodday is a tracking tool, not a medical device. If in distress, contact a healthcare professional.",
+      social: {
+        twitter: "Twitter",
+        linkedin: "LinkedIn",
+        instagram: "Instagram",
+      },
       sections: {
         product: {
           title: "Product",
@@ -2220,12 +3031,15 @@ We will inform you of any substantial modification to this policy by email.
       success: "Thanks for subscribing!",
       alreadySubscribed: "This email is already subscribed.",
       subscribed: "You're subscribed!",
+      subscribedSubtitle: "You'll receive our tips soon.",
       error: "An error occurred. Please try again.",
       privacy: "We respect your privacy. Easy unsubscribe.",
     },
     mobileApp: {
       badge: "Coming soon",
       title: "Mobile app",
+      appStore: "App Store",
+      googlePlay: "Google Play",
       subtitle: "Take Moodday everywhere with you",
       comingSoon: "Soon",
       features: {
@@ -2242,51 +3056,180 @@ We will inform you of any substantial modification to this policy by email.
     title: "Practical Guides",
     description:
       "Resources and tutorials to help you use Moodday effectively and take care of your mental health.",
+    categories: {
+      start: {
+        title: "Getting Started",
+        description: "Start using Moodday in minutes",
+      },
+      features: {
+        title: "Features",
+        description: "Master all the app features",
+      },
+      sharing: {
+        title: "Sharing & Security",
+        description: "Share your data with confidence",
+      },
+    },
+    cta: {
+      title: "Can't find what you're looking for?",
+      description: "Our team is here to help you get the most out of Moodday",
+      button: "Contact us",
+    },
+    readMore: "Read more",
     items: {
       gettingStarted: {
         title: "Getting Started",
         description:
           "Learn how to set up your account and start tracking your mood.",
+        content: `## Create your account
+
+1. **Sign up** - Go to the registration page and create your account with your email or sign in via Google/GitHub.
+
+2. **Verification** - Confirm your email by clicking the link sent to your inbox.
+
+## Customize your profile
+
+- Access **Settings** from the menu
+- Add your photo and personal information
+- Configure your notification preferences
+
+## Record your first mood
+
+1. From the dashboard, click on **"My mood"**
+2. Use the slider to indicate your mood level (0-10)
+3. Add an optional note to describe how you feel
+4. Click **"Save"**
+
+Congratulations! You've just taken your first step toward better understanding your mental health.`,
+      },
+      profile: {
+        title: "Configure your profile",
+        description:
+          "Customize your experience with your preferences and goals.",
+        content: `## Notifications
+
+- **Daily reminder** - Set the time you want to receive a reminder to log your mood
+- **Medication reminders** - Set alerts so you never miss a dose
+
+## Display preferences
+
+- **Chart period** - Choose the default period (7, 30 or 90 days)
+- **Theme** - Select light, dark or auto mode
+
+## Privacy settings
+
+- Manage who can see your data if you use the caregiver circle
+- Control the information shared in your PDF exports`,
+      },
+      moodTracking: {
+        title: "Mood Tracking",
+        description:
+          "Learn how to record and analyze your daily mood variations.",
+        content: `## Record your mood
+
+1. **The 0-10 slider** - Use the intuitive scale to indicate your mood level
+   - 0-3: Low mood
+   - 4-6: Neutral mood
+   - 7-10: Good mood
+
+2. **Notes** - Add context to your entries to better understand your patterns
+
+## Analyze your trends
+
+- View your **charts** over 7, 30 or 90 days
+- Identify **recurring patterns** (days of the week, events)
+- Observe **correlations** with your medications and sleep
+
+## Edit or delete an entry
+
+- Click on an entry in the history
+- Use the **"Edit"** button to adjust the mood or note
+- Use **"Delete"** if you want to remove an entry`,
       },
       medications: {
         title: "Managing Medications",
         description:
           "How to add, track, and get reminders for your medications.",
+        content: `## Add a medication
+
+1. Go to **"Medications"** from the menu
+2. Click **"Add medication"**
+3. Enter the name, dosage and frequency
+4. Enable the **PRN** option if you also take it "as needed"
+
+## Record your intakes
+
+- Each day, mark your medications as taken
+- For PRN, use the **"Log"** button and add an optional reason
+- View your intake history in the medication details
+
+## Dosage history
+
+- When you change dosage, the system keeps a history
+- Visualize the impact of changes on your mood
+
+## Archive a medication
+
+- When you stop a treatment, archive it rather than deleting it
+- The history is preserved for your medical consultations`,
+      },
+      reports: {
+        title: "Reports and Statistics",
+        description: "Generate PDF reports for your medical consultations.",
+        content: `## Generate a PDF export
+
+1. Go to **"Export"** from the Tools menu
+2. Select the period (2 weeks, 1 month, 3 months or custom)
+3. Click **"Preview"** to see the content
+4. Download the PDF with **"Download PDF"**
+
+## Report content
+
+- **Mood chart** over the selected period
+- **Statistics**: average, trend, number of entries
+- **Medications**: list of treatments and adherence
+- **Therapy sessions** recorded
+
+## Share with your doctor
+
+- Print the PDF for your consultation
+- Or send it by email to your healthcare professional
+
+## GDPR Export
+
+- In **Account > Export my data**, download all your data in JSON format
+- Compliant with the General Data Protection Regulation`,
       },
       caregivers: {
         title: "Caregiver Circle",
         description: "Share your progress with trusted loved ones.",
+        content: `## Invite a caregiver
+
+1. Access **"Caregiver"** from the menu
+2. Enter the email of the person to invite
+3. Define permissions (read-only or interactions)
+
+## What your caregivers can see
+
+- **General mood trends** (not detailed notes)
+- **Medication adherence** (percentage)
+- **Alerts** if you don't log in for several days
+
+## What remains private
+
+- Your personal notes
+- Details of your therapy sessions
+- The content of your daily entries
+
+## Manage access
+
+- Revoke a caregiver's access at any time
+- Modify permissions as needed
+- Receive a notification when a caregiver views your data`,
       },
       privacy: {
         title: "Privacy & Security",
         description: "How we protect your sensitive health data.",
-      },
-    },
-  },
-  apiDocs: {
-    metaTitle: "API Documentation - {app}",
-    metaDescription: "Developer documentation for the Moodday API.",
-    title: "API Documentation",
-    description:
-      "Integrate Moodday with your applications using our developer API.",
-    comingSoon: {
-      title: "Coming Soon",
-      description:
-        "Our API is currently in development. Contact us to join the beta program.",
-      cta: "Contact Us",
-    },
-    features: {
-      auth: {
-        title: "Secure Authentication",
-        description: "OAuth 2.0 and API key authentication",
-      },
-      realtime: {
-        title: "Real-time Sync",
-        description: "WebSocket support for live updates",
-      },
-      export: {
-        title: "Data Export",
-        description: "Export your data in JSON or CSV format",
       },
     },
   },

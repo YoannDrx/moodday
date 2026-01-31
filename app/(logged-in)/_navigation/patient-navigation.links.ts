@@ -108,13 +108,13 @@ export const getPatientMobileNavigation = (
     {
       href: "/trends",
       Icon: BarChart3,
-      label: "Stats",
+      label: t("patient.nav.trends"),
     },
     // Note: the center "+" button links to /mood
     {
       href: "/caregiver",
       Icon: Users,
-      label: "Aidants",
+      label: t("patient.nav.caregiver"),
     },
     {
       href: "/settings",

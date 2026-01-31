@@ -80,16 +80,15 @@ type TabKey =
   | "privacy"
   | "subscription";
 
-const tabs: { key: TabKey; label: string; icon: typeof User }[] = [
-  { key: "profile", label: "Profil", icon: User },
-  { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "appearance", label: "Apparence", icon: Palette },
-  { key: "privacy", label: "Confidentialité", icon: Shield },
-  { key: "subscription", label: "Abonnement", icon: CreditCard },
-];
-
 export function SettingsContent() {
-  const { t } = useI18n();
+  const { t, tm, locale } = useI18n();
+  const tabs: { key: TabKey; label: string; icon: typeof User }[] = [
+    { key: "profile", label: t("settings.tabs.profile"), icon: User },
+    { key: "notifications", label: t("settings.tabs.notifications"), icon: Bell },
+    { key: "appearance", label: t("settings.tabs.appearance"), icon: Palette },
+    { key: "privacy", label: t("settings.tabs.privacy"), icon: Shield },
+    { key: "subscription", label: t("settings.tabs.subscription"), icon: CreditCard },
+  ];
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const { theme: activeTheme, setTheme } = useTheme();
@@ -147,37 +146,44 @@ export function SettingsContent() {
   const selectedTheme = preferences?.theme ?? activeTheme ?? "light";
   const timezoneOptions = ["Europe/Paris", "Europe/London", "America/New_York"];
   const timezoneLabels: Record<string, string> = {
-    "Europe/Paris": "Europe/Paris (UTC+1)",
-    "Europe/London": "Europe/London (UTC)",
-    "America/New_York": "America/New_York (UTC-5)",
+    "Europe/Paris": t("settings.timezones.paris"),
+    "Europe/London": t("settings.timezones.london"),
+    "America/New_York": t("settings.timezones.newYork"),
   };
   const resolvedTimezoneOptions = timezoneOptions.includes(timezone)
     ? timezoneOptions
     : [timezone, ...timezoneOptions];
 
   const subscriptionLabel = subscription?.plan
-    ? `Plan ${subscription.plan}`
-    : "Plan gratuit";
+    ? t("settings.subscription.planLabel", { plan: subscription.plan })
+    : t("settings.subscription.planFree");
   const statusLabels: Record<string, string> = {
-    active: "actif",
-    trialing: "essai",
-    past_due: "paiement en retard",
-    canceled: "annulé",
-    incomplete: "incomplet",
+    active: t("settings.subscription.status.active"),
+    trialing: t("settings.subscription.status.trialing"),
+    past_due: t("settings.subscription.status.pastDue"),
+    canceled: t("settings.subscription.status.canceled"),
+    incomplete: t("settings.subscription.status.incomplete"),
   };
   const subscriptionStatusLabel = subscription?.status
     ? (statusLabels[subscription.status] ?? subscription.status)
-    : "inactif";
+    : t("settings.subscription.status.inactive");
   const renewalDate = subscription?.periodEnd
     ? new Date(subscription.periodEnd)
     : null;
   const renewalText = renewalDate
-    ? `Prochain renouvellement : ${renewalDate.toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })}`
-    : "Aucun abonnement actif";
+    ? t("settings.subscription.renewal", {
+        date: renewalDate.toLocaleDateString(
+          locale === "fr" ? "fr-FR" : "en-US",
+          {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          },
+        ),
+      })
+    : t("settings.subscription.noActive");
+  const subscriptionFeatures =
+    tm<string[]>("settings.subscription.features") ?? [];
 
   const displayMutation = useMutation({
     mutationFn: async (data: {
@@ -245,7 +251,7 @@ export function SettingsContent() {
       return result.data;
     },
     onSuccess: async () => {
-      toast.success("Compte supprimé");
+      toast.success(t("settings.privacy.accountDeleted"));
       await signOut();
       window.location.href = "/";
     },
@@ -304,7 +310,7 @@ export function SettingsContent() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success("Données exportées !");
+      toast.success(t("settings.privacy.exportSuccess"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -322,7 +328,7 @@ export function SettingsContent() {
         <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
           {t("settings.title")}
         </h1>
-        <p className="text-gray-500">Personnalisez votre expérience Moodday</p>
+        <p className="text-gray-500">{t("settings.subtitle")}</p>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-12">
@@ -357,7 +363,7 @@ export function SettingsContent() {
             className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white/50 p-4 text-sm font-medium text-gray-600 transition-all hover:bg-white hover:shadow-sm"
           >
             <LogOut className="size-5" />
-            Gérer mon compte
+            {t("settings.manageAccount")}
             <ChevronRight className="ml-auto size-4" />
           </Link>
         </div>
@@ -378,7 +384,7 @@ export function SettingsContent() {
                     <GlassCardTitle
                       icon={<User className="size-5 text-[var(--primary)]" />}
                     >
-                      Mon profil
+                      {t("settings.profile.title")}
                     </GlassCardTitle>
                   </GlassCardHeader>
 
@@ -388,7 +394,7 @@ export function SettingsContent() {
                       const displayName =
                         profileName.length > 0
                           ? profileName
-                          : (user?.name ?? "Utilisateur");
+                          : (user?.name ?? t("settings.profile.defaultName"));
                       return (
                         <div className="flex items-center gap-6">
                           <ImageFormItem
@@ -402,7 +408,7 @@ export function SettingsContent() {
                             </h3>
                             <p className="text-gray-500">{user?.email}</p>
                             <p className="mt-2 text-sm text-gray-400">
-                              Cliquez pour changer la photo
+                              {t("settings.profile.changePhoto")}
                             </p>
                           </div>
                         </div>
@@ -411,7 +417,9 @@ export function SettingsContent() {
 
                     {/* Form Fields */}
                     <div className="space-y-2">
-                      <Label className="text-gray-600">Nom complet</Label>
+                      <Label className="text-gray-600">
+                        {t("settings.profile.fullName")}
+                      </Label>
                       <Input
                         value={
                           profileName.length > 0
@@ -419,13 +427,15 @@ export function SettingsContent() {
                             : (user?.name ?? "")
                         }
                         onChange={(e) => setProfileName(e.target.value)}
-                        placeholder="Votre nom"
+                        placeholder={t("settings.profile.fullNamePlaceholder")}
                         className="rounded-xl border-gray-200"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-gray-600">Fuseau horaire</Label>
+                      <Label className="text-gray-600">
+                        {t("settings.profile.timezone")}
+                      </Label>
                       <Select
                         value={timezone}
                         onValueChange={(value) => setTimezone(value)}
@@ -458,8 +468,8 @@ export function SettingsContent() {
                       className="shadow-soft rounded-2xl bg-[var(--primary)] px-8 font-bold text-white hover:bg-[var(--primary-dark)]"
                     >
                       {profileMutation.isPending
-                        ? "Enregistrement..."
-                        : "Enregistrer les modifications"}
+                        ? t("common.saving")
+                        : t("settings.profile.save")}
                     </Button>
                   </GlassCardContent>
                 </GlassCard>
@@ -614,31 +624,33 @@ export function SettingsContent() {
                         <Palette className="size-5 text-[var(--primary)]" />
                       }
                     >
-                      Apparence
+                      {t("settings.appearance.title")}
                     </GlassCardTitle>
                   </GlassCardHeader>
 
                   <GlassCardContent className="space-y-6">
                     <div className="space-y-4">
-                      <Label className="text-gray-600">Thème</Label>
+                      <Label className="text-gray-600">
+                        {t("settings.appearance.themeLabel")}
+                      </Label>
                       <div className="grid grid-cols-3 gap-4">
                         {[
                           {
                             id: "light",
                             icon: Sun,
-                            label: "Clair",
+                            label: t("theme.light"),
                             bg: "bg-white",
                           },
                           {
                             id: "dark",
                             icon: Moon,
-                            label: "Sombre",
+                            label: t("theme.dark"),
                             bg: "bg-gray-900",
                           },
                           {
                             id: "zen",
                             icon: Sparkles,
-                            label: "Zen",
+                            label: t("theme.zen"),
                             bg: "bg-[var(--warm-bg)]",
                           },
                         ].map((theme) => {
@@ -728,7 +740,7 @@ export function SettingsContent() {
                           <Shield className="size-5 text-[var(--primary)]" />
                         }
                       >
-                        Confidentialité & Données
+                        {t("settings.privacy.title")}
                       </GlassCardTitle>
                     </GlassCardHeader>
 
@@ -745,11 +757,11 @@ export function SettingsContent() {
                           <div className="text-left">
                             <p className="font-bold text-gray-800">
                               {exportMutation.isPending
-                                ? "Export en cours..."
-                                : "Exporter mes données (JSON)"}
+                                ? t("settings.privacy.exporting")
+                                : t("settings.privacy.exportJson")}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Téléchargez toutes vos données au format JSON
+                              {t("settings.privacy.exportJsonDescription")}
                             </p>
                           </div>
                         </div>
@@ -766,10 +778,10 @@ export function SettingsContent() {
                           </div>
                           <div className="text-left">
                             <p className="font-bold text-gray-800">
-                              Exporter en PDF
+                              {t("settings.privacy.exportPdf")}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Générez un rapport PDF pour votre médecin
+                              {t("settings.privacy.exportPdfDescription")}
                             </p>
                           </div>
                         </div>
@@ -785,10 +797,10 @@ export function SettingsContent() {
                               </div>
                               <div className="text-left">
                                 <p className="font-bold text-red-700">
-                                  Supprimer mon compte
+                                  {t("settings.privacy.deleteTitle")}
                                 </p>
                                 <p className="text-sm text-red-600">
-                                  Cette action est irréversible
+                                  {t("settings.privacy.deleteWarning")}
                                 </p>
                               </div>
                             </div>
@@ -798,25 +810,24 @@ export function SettingsContent() {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Supprimer votre compte ?
+                              {t("settings.privacy.deleteDialogTitle")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Cette action est irréversible. Toutes vos données
-                              seront définitivement supprimées : entrées
-                              d&apos;humeur, médicaments, séances de thérapie,
-                              exercices et observations.
+                              {t("settings.privacy.deleteDialogDescription")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogCancel>
+                              {t("actions.cancel")}
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deleteMutation.mutate()}
                               disabled={deleteMutation.isPending}
                               className="bg-red-500 hover:bg-red-600"
                             >
                               {deleteMutation.isPending
-                                ? "Suppression..."
-                                : "Supprimer définitivement"}
+                                ? t("settings.privacy.deleting")
+                                : t("settings.privacy.deleteConfirm")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -832,17 +843,17 @@ export function SettingsContent() {
                         </div>
                         <div className="flex-1">
                           <p className="font-bold text-gray-800">
-                            Politique de confidentialité
+                            {t("settings.privacy.policyTitle")}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Vos données sont protégées conformément au RGPD
+                            {t("settings.privacy.policyDescription")}
                           </p>
                         </div>
                         <Link
                           href="/privacy"
                           className="text-sm font-medium text-[var(--primary)] hover:underline"
                         >
-                          Lire
+                          {t("settings.privacy.policyCta")}
                         </Link>
                       </div>
                     </GlassCardContent>
@@ -863,7 +874,7 @@ export function SettingsContent() {
                         <CreditCard className="size-5 text-[var(--primary)]" />
                       }
                     >
-                      Mon abonnement
+                      {t("settings.subscription.title")}
                     </GlassCardTitle>
                   </GlassCardHeader>
 
@@ -874,7 +885,7 @@ export function SettingsContent() {
                         {subscriptionLabel}
                       </div>
                       <p className="mb-2 text-sm font-semibold text-gray-700">
-                        Statut :{" "}
+                        {t("settings.subscription.statusLabel")}{" "}
                         <span className="capitalize">
                           {subscriptionStatusLabel}
                         </span>
@@ -884,16 +895,10 @@ export function SettingsContent() {
 
                     <div className="space-y-3">
                       <p className="text-sm font-semibold text-gray-600">
-                        Inclus dans votre plan :
+                        {t("settings.subscription.includedTitle")}
                       </p>
                       <ul className="space-y-2">
-                        {[
-                          "Historique illimité",
-                          "Analyses IA avancées",
-                          "Export PDF clinique",
-                          "Jusqu'à 5 aidants",
-                          "Support prioritaire",
-                        ].map((feature, i) => (
+                        {subscriptionFeatures.map((feature, i) => (
                           <li
                             key={i}
                             className="flex items-center gap-2 text-sm text-gray-600"
@@ -915,8 +920,8 @@ export function SettingsContent() {
                         disabled={!subscription || portalMutation.isPending}
                       >
                         {portalMutation.isPending
-                          ? "Redirection..."
-                          : "Changer de plan"}
+                          ? t("common.redirecting")
+                          : t("settings.subscription.changePlan")}
                       </Button>
                       <Button
                         variant="outline"
@@ -925,8 +930,8 @@ export function SettingsContent() {
                         disabled={!subscription || cancelMutation.isPending}
                       >
                         {cancelMutation.isPending
-                          ? "Redirection..."
-                          : "Annuler"}
+                          ? t("common.redirecting")
+                          : t("actions.cancel")}
                       </Button>
                     </div>
                   </GlassCardContent>

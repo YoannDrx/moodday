@@ -10,10 +10,10 @@ export async function Header() {
   return (
     <HeaderBase>
       <Link
-        href="/docs"
+        href="/guides"
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
-        {t("nav.docs")}
+        {t("nav.guides")}
       </Link>
       <Link
         href="/about"

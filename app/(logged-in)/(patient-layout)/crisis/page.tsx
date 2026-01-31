@@ -6,20 +6,22 @@ import { crisisResources } from "@/lib/design-tokens";
 import { CrisisContent } from "./_components/crisis-content";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
+  const { t } = await getI18n();
   return {
-    title: "Soutien en cas de crise",
-    description: "Numéros et ressources d'aide en cas de détresse",
+    title: t("crisis.metaTitle"),
+    description: t("crisis.metaDescription"),
   };
 });
 
 export default async function CrisisPage() {
-  const { locale } = await getI18n();
-  const lang = locale === "fr" ? "fr" : "en";
+  const { t } = await getI18n();
 
   // Map resources with localized descriptions
   const localizedResources = crisisResources.map((r) => ({
     ...r,
-    description: r.description?.[lang],
+    name: t(r.nameKey),
+    description: r.descriptionKey ? t(r.descriptionKey) : undefined,
+    available: r.availabilityKey ? t(r.availabilityKey) : undefined,
   }));
 
   const hotlines = localizedResources.filter((r) => r.category === "hotline");

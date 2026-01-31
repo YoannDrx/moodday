@@ -24,8 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/i18n/provider";
 
 function ObservePageContent() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -61,7 +63,7 @@ function ObservePageContent() {
   const subject = resolvedPatient
     ? { id: resolvedPatient.patientId, name: resolvedPatient.patientName }
     : session?.user
-      ? { id: session.user.id, name: session.user.name || "Moi" }
+      ? { id: session.user.id, name: session.user.name || t("common.me") }
       : null;
 
   if (isPending) {
@@ -77,7 +79,9 @@ function ObservePageContent() {
   if (!subject) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8">
-        <p className="text-muted-foreground">Utilisateur non connecté</p>
+        <p className="text-muted-foreground">
+          {t("auth.notSignedIn")}
+        </p>
       </div>
     );
   }
@@ -88,27 +92,31 @@ function ObservePageContent() {
         <Button asChild variant="ghost" size="sm">
           <Link href="/caregiver">
             <ArrowLeft className="mr-2 size-4" />
-            Retour
+            {t("actions.back")}
           </Link>
         </Button>
       </div>
 
       <PageHeader
-        title="Nouvelle observation"
-        description={`Enregistre une observation pour ${subject.name}`}
+        title={t("caregiver.observe.title")}
+        description={t("caregiver.observe.description", {
+          name: subject.name,
+        })}
       />
 
       <Card>
         <CardHeader>
           {!patientsLoading && patients && patients.length > 0 && (
             <div className="mb-6 space-y-2">
-              <Label>Patient</Label>
+              <Label>{t("caregiver.observe.patientLabel")}</Label>
               <Select
                 value={subject.id}
                 onValueChange={(value) => setSelectedPatientId(value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un patient" />
+                  <SelectValue
+                    placeholder={t("caregiver.observe.patientPlaceholder")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {patients.map((patient) => (
@@ -127,11 +135,11 @@ function ObservePageContent() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="checkin" className="flex items-center gap-2">
                 <Eye className="size-4" />
-                Check-in
+                {t("caregiver.observe.tabCheckin")}
               </TabsTrigger>
               <TabsTrigger value="event" className="flex items-center gap-2">
                 <AlertTriangle className="size-4" />
-                Événement
+                {t("caregiver.observe.tabEvent")}
               </TabsTrigger>
             </TabsList>
           </Tabs>

@@ -1,7 +1,5 @@
 export const SiteConfig = {
   title: "Moodday",
-  description:
-    "Moodday est une application web PWA de suivi psychiatrique destinée aux personnes vivant avec des troubles mentaux (TDAH, bipolarité, dépression, anxiété) .",
   prodUrl: "https://moodday.app",
   appId: "moodday",
   domain: "moodday.app",

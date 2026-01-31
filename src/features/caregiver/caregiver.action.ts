@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { sendEmail } from "@/lib/mail/send-email";
 import MarkdownEmail from "@email/markdown.email";
 import { getServerUrl } from "@/lib/server-url";
+import { getI18n } from "@/i18n/server";
 
 // ═══════════════════════════════════════════════════════════════
 // CAREGIVER RELATIONSHIP SYSTEM
@@ -23,10 +24,10 @@ const inviteCaregiverSchema = z.object({
     .default(["view_mood", "add_observations", "add_events"]),
 });
 
-const roleLabels: Record<string, string> = {
-  family: "membre de la famille",
-  friend: "ami",
-  professional: "professionnel de santé",
+const roleLabelKeys: Record<string, string> = {
+  family: "caregiver.roles.family",
+  friend: "caregiver.roles.friend",
+  professional: "caregiver.roles.professional",
 };
 
 const sendCaregiverInviteEmail = async (params: {
@@ -35,34 +36,37 @@ const sendCaregiverInviteEmail = async (params: {
   patientName: string | null | undefined;
   role: string;
   label?: string | null;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) => {
   const inviteUrl = `${getServerUrl()}/invite/caregiver?token=${params.inviteToken}`;
   const patientName = params.patientName?.trim().length
     ? params.patientName
-    : "Un proche";
-  const roleLabel = roleLabels[params.role] ?? "aidant";
+    : params.t("caregiver.inviteEmail.patientFallback");
+  const roleLabel = params.t(
+    roleLabelKeys[params.role] ?? "caregiver.roles.default",
+  );
   const labelLine = params.label?.trim()
-    ? `Il/elle vous identifie comme **${params.label}**.`
+    ? params.t("caregiver.inviteEmail.labelLine", { label: params.label })
     : "";
 
-  const markdown = `
-Bonjour,
-
-${patientName} vous invite à rejoindre son cercle Moodday en tant que ${roleLabel}.
-${labelLine}
-
-Cliquez ici pour accepter l'invitation :
-${inviteUrl}
-
-Si vous ne connaissez pas cette personne, vous pouvez ignorer cet email.
-`;
+  const markdown = [
+    params.t("caregiver.inviteEmail.greeting"),
+    "",
+    params.t("caregiver.inviteEmail.intro", { patientName, roleLabel }),
+    ...(labelLine ? [labelLine] : []),
+    "",
+    params.t("caregiver.inviteEmail.cta"),
+    inviteUrl,
+    "",
+    params.t("caregiver.inviteEmail.ignore"),
+  ].join("\n");
 
   await sendEmail({
     to: params.email,
-    subject: "Invitation à rejoindre Moodday",
+    subject: params.t("caregiver.inviteEmail.subject"),
     html: MarkdownEmail({
       markdown,
-      preview: `${patientName} vous invite sur Moodday`,
+      preview: params.t("caregiver.inviteEmail.preview", { patientName }),
     }),
   });
 };
@@ -74,9 +78,10 @@ export const inviteCaregiver = authAction
       parsedInput: { email, role, label, permissions },
       ctx: { user },
     }) => {
+      const { t } = await getI18n();
       // Check if user is trying to invite themselves
       if (email === user.email) {
-        throw new Error("Vous ne pouvez pas vous inviter vous-même");
+        throw new Error(t("caregiver.errors.selfInvite"));
       }
 
       // Check if caregiver user exists
@@ -102,7 +107,7 @@ export const inviteCaregiver = authAction
 
       if (existingRelation) {
         if (existingRelation.status === "active") {
-          throw new Error("Cette personne fait déjà partie de votre cercle");
+          throw new Error(t("caregiver.errors.alreadyInCircle"));
         }
 
         if (
@@ -110,9 +115,7 @@ export const inviteCaregiver = authAction
           existingRelation.inviteExpiry &&
           existingRelation.inviteExpiry > new Date()
         ) {
-          throw new Error(
-            "Une invitation est déjà en attente pour cette personne",
-          );
+          throw new Error(t("caregiver.errors.pendingInvite"));
         }
 
         const updated = await prisma.caregiverRelationship.update({
@@ -135,6 +138,7 @@ export const inviteCaregiver = authAction
           patientName: user.name,
           role,
           label,
+          t,
         });
 
         return {
@@ -165,6 +169,7 @@ export const inviteCaregiver = authAction
         patientName: user.name,
         role,
         label,
+        t,
       });
 
       return {
@@ -184,6 +189,7 @@ const inviteInfoSchema = z.object({
 export const getCaregiverInviteInfo = action
   .inputSchema(inviteInfoSchema)
   .action(async ({ parsedInput: { inviteToken } }) => {
+    const { t } = await getI18n();
     const relationship = await prisma.caregiverRelationship.findUnique({
       where: { inviteToken },
       include: {
@@ -192,11 +198,11 @@ export const getCaregiverInviteInfo = action
     });
 
     if (!relationship) {
-      throw new Error("Invitation invalide ou expirée");
+      throw new Error(t("caregiver.errors.invalidOrExpiredInvite"));
     }
 
     if (relationship.inviteExpiry && relationship.inviteExpiry < new Date()) {
-      throw new Error("Cette invitation a expiré");
+      throw new Error(t("caregiver.errors.inviteExpired"));
     }
 
     return {
@@ -220,6 +226,7 @@ const acceptInvitationSchema = z.object({
 export const acceptCaregiverInvitation = authAction
   .inputSchema(acceptInvitationSchema)
   .action(async ({ parsedInput: { inviteToken }, ctx: { user } }) => {
+    const { t } = await getI18n();
     const relationship = await prisma.caregiverRelationship.findUnique({
       where: { inviteToken },
       include: {
@@ -228,30 +235,30 @@ export const acceptCaregiverInvitation = authAction
     });
 
     if (!relationship) {
-      throw new Error("Invitation invalide ou expirée");
+      throw new Error(t("caregiver.errors.invalidOrExpiredInvite"));
     }
 
     if (relationship.inviteExpiry && relationship.inviteExpiry < new Date()) {
-      throw new Error("Cette invitation a expiré");
+      throw new Error(t("caregiver.errors.inviteExpired"));
     }
 
     if (relationship.status === "active") {
-      throw new Error("Cette invitation a déjà été acceptée");
+      throw new Error(t("caregiver.errors.inviteAlreadyAccepted"));
     }
 
     if (relationship.patientId === user.id) {
-      throw new Error("Vous ne pouvez pas accepter votre propre invitation");
+      throw new Error(t("caregiver.errors.acceptOwnInvite"));
     }
 
     if (
       relationship.caregiverEmail &&
       relationship.caregiverEmail !== user.email
     ) {
-      throw new Error("Cette invitation ne vous est pas destinée");
+      throw new Error(t("caregiver.errors.inviteNotForYou"));
     }
 
     if (relationship.caregiverId && relationship.caregiverId !== user.id) {
-      throw new Error("Cette invitation ne vous est pas destinée");
+      throw new Error(t("caregiver.errors.inviteNotForYou"));
     }
 
     // Update the relationship
@@ -277,23 +284,24 @@ export const acceptCaregiverInvitation = authAction
 export const declineCaregiverInvitation = authAction
   .inputSchema(acceptInvitationSchema)
   .action(async ({ parsedInput: { inviteToken }, ctx: { user } }) => {
+    const { t } = await getI18n();
     const relationship = await prisma.caregiverRelationship.findUnique({
       where: { inviteToken },
     });
 
     if (!relationship) {
-      throw new Error("Invitation invalide");
+      throw new Error(t("caregiver.errors.invalidInvite"));
     }
 
     if (
       relationship.caregiverEmail &&
       relationship.caregiverEmail !== user.email
     ) {
-      throw new Error("Cette invitation ne vous est pas destinée");
+      throw new Error(t("caregiver.errors.inviteNotForYou"));
     }
 
     if (relationship.caregiverId && relationship.caregiverId !== user.id) {
-      throw new Error("Cette invitation ne vous est pas destinée");
+      throw new Error(t("caregiver.errors.inviteNotForYou"));
     }
 
     await prisma.caregiverRelationship.update({
@@ -381,13 +389,14 @@ export const updateCaregiverPermissions = authAction
       parsedInput: { relationshipId, permissions, label },
       ctx: { user },
     }) => {
+      const { t } = await getI18n();
       // Verify the user owns this relationship (is the patient)
       const relationship = await prisma.caregiverRelationship.findUnique({
         where: { id: relationshipId },
       });
 
       if (relationship?.patientId !== user.id) {
-        throw new Error("Relation non trouvée ou non autorisée");
+        throw new Error(t("caregiver.errors.relationshipNotFoundOrUnauthorized"));
       }
 
       const updated = await prisma.caregiverRelationship.update({
@@ -411,20 +420,21 @@ const removeRelationshipSchema = z.object({
 export const removeCaregiverRelationship = authAction
   .inputSchema(removeRelationshipSchema)
   .action(async ({ parsedInput: { relationshipId }, ctx: { user } }) => {
+    const { t } = await getI18n();
     // Verify the user is either the patient or the caregiver
     const relationship = await prisma.caregiverRelationship.findUnique({
       where: { id: relationshipId },
     });
 
     if (!relationship) {
-      throw new Error("Relation non trouvée");
+      throw new Error(t("caregiver.errors.relationshipNotFound"));
     }
 
     if (
       relationship.patientId !== user.id &&
       relationship.caregiverId !== user.id
     ) {
-      throw new Error("Non autorisé à supprimer cette relation");
+      throw new Error(t("caregiver.errors.relationshipDeleteNotAllowed"));
     }
 
     await prisma.caregiverRelationship.delete({
@@ -461,6 +471,7 @@ export const createObservation = authAction
       },
       ctx: { user },
     }) => {
+      const { t } = await getI18n();
       if (subjectId !== user.id) {
         const relationship = await prisma.caregiverRelationship.findFirst({
           where: {
@@ -471,13 +482,11 @@ export const createObservation = authAction
         });
 
         if (!relationship) {
-          throw new Error("Non autorisé à observer ce patient");
+          throw new Error(t("caregiver.errors.notAllowedObserve"));
         }
 
         if (!relationship.permissions.includes("add_observations")) {
-          throw new Error(
-            "Permission insuffisante pour ajouter une observation",
-          );
+          throw new Error(t("caregiver.errors.insufficientObservationPermission"));
         }
       }
 
@@ -523,6 +532,7 @@ export const createEvent = authAction
       },
       ctx: { user },
     }) => {
+      const { t } = await getI18n();
       if (subjectId !== user.id) {
         const relationship = await prisma.caregiverRelationship.findFirst({
           where: {
@@ -533,13 +543,11 @@ export const createEvent = authAction
         });
 
         if (!relationship) {
-          throw new Error(
-            "Non autorisé à signaler un événement pour ce patient",
-          );
+          throw new Error(t("caregiver.errors.notAllowedReportEvent"));
         }
 
         if (!relationship.permissions.includes("add_events")) {
-          throw new Error("Permission insuffisante pour signaler un événement");
+          throw new Error(t("caregiver.errors.insufficientEventPermission"));
         }
       }
 

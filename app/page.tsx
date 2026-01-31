@@ -10,7 +10,7 @@ import {
   SectionFaq,
   SectionCtaHybrid,
   FooterDark,
-} from "@/features/landing-variants/landing-2";
+} from "@/features/landing";
 
 export default function HomePage() {
   return (

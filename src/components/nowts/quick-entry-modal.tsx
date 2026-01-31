@@ -114,11 +114,11 @@ export function QuickEntryModal() {
   const handleSubmit = useCallback(() => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       if (isEditing) {
-        toast.error("Modification hors ligne non disponible");
+        toast.error(t("mood.entry.offlineEditUnavailable"));
         return;
       }
       queueMoodEntry({ value, note: note.trim() || undefined });
-      toast.success("Enregistrement hors ligne. Synchronisation automatique.");
+      toast.success(t("mood.entry.offlineSaved"));
       setValue(5);
       setNote("");
       close();
@@ -138,7 +138,7 @@ export function QuickEntryModal() {
 
   const handleDelete = useCallback(() => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("Suppression hors ligne non disponible");
+      toast.error(t("mood.entry.offlineDeleteUnavailable"));
       return;
     }
 

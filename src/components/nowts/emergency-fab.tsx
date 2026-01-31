@@ -4,6 +4,7 @@ import { LifeBuoy, Phone, X } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type EmergencyFabProps = {
   className?: string;
@@ -22,6 +23,7 @@ type EmergencyFabProps = {
  */
 export function EmergencyFab({ className }: EmergencyFabProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useI18n();
 
   return (
     <div
@@ -39,7 +41,7 @@ export function EmergencyFab({ className }: EmergencyFabProps) {
             className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-bold text-red-600 shadow-lg transition-all hover:bg-red-50 active:scale-95"
           >
             <Phone className="size-5" />
-            <span>Appeler le 3114</span>
+            <span>{t("crisis.fab.call")}</span>
           </a>
 
           {/* Crisis page link */}
@@ -48,7 +50,7 @@ export function EmergencyFab({ className }: EmergencyFabProps) {
             className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-medium text-gray-700 shadow-lg transition-all hover:bg-gray-50 active:scale-95"
           >
             <LifeBuoy className="size-5 text-red-500" />
-            <span>Ressources d&apos;aide</span>
+            <span>{t("crisis.fab.resources")}</span>
           </Link>
         </>
       )}
@@ -62,7 +64,9 @@ export function EmergencyFab({ className }: EmergencyFabProps) {
             ? "bg-gray-800 hover:bg-gray-700"
             : "bg-red-500 hover:scale-110 hover:bg-red-600",
         )}
-        aria-label={isExpanded ? "Fermer" : "Besoin d'aide ?"}
+        aria-label={
+          isExpanded ? t("actions.close") : t("crisis.fab.needHelp")
+        }
       >
         {isExpanded ? (
           <X className="size-7 text-white" />
@@ -74,7 +78,7 @@ export function EmergencyFab({ className }: EmergencyFabProps) {
       {/* Tooltip on hover (only when not expanded) */}
       {!isExpanded && (
         <span className="pointer-events-none absolute top-1/2 right-full mr-4 -translate-y-1/2 rounded-xl bg-white px-4 py-2 text-sm font-bold whitespace-nowrap text-red-500 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
-          Besoin d&apos;aide ?
+          {t("crisis.fab.needHelp")}
         </span>
       )}
     </div>

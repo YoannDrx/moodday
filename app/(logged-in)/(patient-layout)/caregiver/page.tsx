@@ -1,11 +1,13 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
+import { getI18n } from "@/i18n/server";
 
 import { CaregiverContent } from "./_components/caregiver-content";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
+  const { t } = await getI18n();
   return {
-    title: "Cercle d'aidants",
-    description: "Observations et événements en tant qu'aidant",
+    title: t("caregiver.dashboard.metaTitle"),
+    description: t("caregiver.dashboard.metaDescription"),
   };
 });
 

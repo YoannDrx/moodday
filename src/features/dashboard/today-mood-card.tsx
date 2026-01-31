@@ -149,7 +149,9 @@ export function TodayMoodCard({ className }: TodayMoodCardProps) {
               </span>
               <span className="text-muted-foreground text-sm">/10</span>
             </div>
-            <p className="text-muted-foreground text-sm">Enregistré à {time}</p>
+            <p className="text-muted-foreground text-sm">
+              {t("mood.entry.savedAt", { time })}
+            </p>
           </div>
         </div>
 
@@ -159,7 +161,7 @@ export function TodayMoodCard({ className }: TodayMoodCardProps) {
           onClick={() => setIsEditing(true)}
         >
           <Plus className="mr-2 size-4" />
-          Ajouter une nouvelle entrée
+          {t("mood.entry.addNew")}
         </Button>
       </CardContent>
     </Card>

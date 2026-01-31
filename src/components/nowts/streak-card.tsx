@@ -2,6 +2,7 @@
 
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type StreakCardProps = {
   streakDays: number;
@@ -25,19 +26,23 @@ type StreakCardProps = {
  * <StreakCard
  *   streakDays={23}
  *   weekProgress={[1, 1, 1, 1, 1, 1, 0]}
- *   title="Régularité"
- *   subtitle="Excellent rythme ! Votre suivi est complet depuis 3 semaines."
+ *   title="Consistency"
+ *   subtitle="Great pace! Your tracking has been complete for 3 weeks."
  * />
  * ```
  */
 export function StreakCard({
   streakDays,
   weekProgress,
-  title = "Régularité",
+  title,
   subtitle,
   className,
 }: StreakCardProps) {
+  const { t } = useI18n();
   const completedDays = weekProgress.filter((p) => p >= 1).length;
+  const defaultTitle = t("streak.title");
+  const dayLabel =
+    streakDays === 1 ? t("streak.daySingular") : t("streak.dayPlural");
 
   return (
     <section
@@ -53,9 +58,11 @@ export function StreakCard({
 
       <div className="relative z-10">
         <p className="mb-1 text-xs font-bold tracking-widest text-[var(--primary-light)] uppercase">
-          {title}
+          {title ?? defaultTitle}
         </p>
-        <h3 className="mb-4 text-3xl font-bold">🔥 {streakDays} Jours</h3>
+        <h3 className="mb-4 text-3xl font-bold">
+          🔥 {streakDays} {dayLabel}
+        </h3>
 
         {subtitle && (
           <p className="mb-6 text-sm leading-relaxed text-[var(--primary-light)]">
@@ -79,7 +86,9 @@ export function StreakCard({
         </div>
 
         <p className="mt-3 text-center text-[10px] font-medium tracking-widest text-[var(--primary-light)] uppercase">
-          Semaine en cours : {completedDays}/7 validés
+          {t("streak.weekProgress", {
+            completed: completedDays,
+          })}
         </p>
       </div>
     </section>

@@ -1,9 +1,0 @@
-export { NavbarZen } from "./navbar-zen";
-export { HeroZen } from "./hero-zen";
-export { SectionStone } from "./section-stone";
-export { SectionWater } from "./section-water";
-export { SectionBamboo } from "./section-bamboo";
-export { FeaturesZen } from "./features-zen";
-export { TestimonialZen } from "./testimonial-zen";
-export { CtaZen } from "./cta-zen";
-export { FooterZen } from "./footer-zen";

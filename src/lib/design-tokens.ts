@@ -79,15 +79,15 @@ export const symptomOptions = [
 
 export type Symptom = (typeof symptomOptions)[number];
 
-export const symptomLabels: Record<Symptom, { fr: string; en: string }> = {
-  anxiety: { fr: "Anxiété", en: "Anxiety" },
-  irritability: { fr: "Irritabilité", en: "Irritability" },
-  ruminations: { fr: "Ruminations", en: "Ruminations" },
-  agitation: { fr: "Agitation", en: "Agitation" },
-  brain_fog: { fr: "Brouillard mental", en: "Brain fog" },
-  tension: { fr: "Tension", en: "Tension" },
-  sadness: { fr: "Tristesse", en: "Sadness" },
-  euphoria: { fr: "Euphorie", en: "Euphoria" },
+export const symptomLabels: Record<Symptom, string> = {
+  anxiety: "labels.symptoms.anxiety",
+  irritability: "labels.symptoms.irritability",
+  ruminations: "labels.symptoms.ruminations",
+  agitation: "labels.symptoms.agitation",
+  brain_fog: "labels.symptoms.brain_fog",
+  tension: "labels.symptoms.tension",
+  sadness: "labels.symptoms.sadness",
+  euphoria: "labels.symptoms.euphoria",
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -107,18 +107,15 @@ export const eventOptions = [
 
 export type EventOption = (typeof eventOptions)[number];
 
-export const eventOptionLabels: Record<
-  EventOption,
-  { fr: string; en: string }
-> = {
-  work: { fr: "Travail", en: "Work" },
-  family: { fr: "Famille", en: "Family" },
-  sport: { fr: "Sport", en: "Sport" },
-  alcohol: { fr: "Alcool", en: "Alcohol" },
-  conflict: { fr: "Conflit", en: "Conflict" },
-  social_outing: { fr: "Sortie sociale", en: "Social outing" },
-  bad_news: { fr: "Mauvaise nouvelle", en: "Bad news" },
-  success: { fr: "Succès", en: "Success" },
+export const eventOptionLabels: Record<EventOption, string> = {
+  work: "labels.events.work",
+  family: "labels.events.family",
+  sport: "labels.events.sport",
+  alcohol: "labels.events.alcohol",
+  conflict: "labels.events.conflict",
+  social_outing: "labels.events.social_outing",
+  bad_news: "labels.events.bad_news",
+  success: "labels.events.success",
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -136,16 +133,13 @@ export const sleepDisturbances = [
 
 export type SleepDisturbance = (typeof sleepDisturbances)[number];
 
-export const sleepDisturbanceLabels: Record<
-  SleepDisturbance,
-  { fr: string; en: string }
-> = {
-  nightmares: { fr: "Cauchemars", en: "Nightmares" },
-  multiple_awakenings: { fr: "Réveils multiples", en: "Multiple awakenings" },
-  initial_insomnia: { fr: "Insomnie initiale", en: "Initial insomnia" },
-  agitation: { fr: "Agitation", en: "Agitation" },
-  night_sweats: { fr: "Sueur nocturne", en: "Night sweats" },
-  early_awakening: { fr: "Réveil précoce", en: "Early awakening" },
+export const sleepDisturbanceLabels: Record<SleepDisturbance, string> = {
+  nightmares: "labels.sleepDisturbances.nightmares",
+  multiple_awakenings: "labels.sleepDisturbances.multiple_awakenings",
+  initial_insomnia: "labels.sleepDisturbances.initial_insomnia",
+  agitation: "labels.sleepDisturbances.agitation",
+  night_sweats: "labels.sleepDisturbances.night_sweats",
+  early_awakening: "labels.sleepDisturbances.early_awakening",
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -214,24 +208,23 @@ export const contextTags = [
 
 export type ContextTag = (typeof contextTags)[number];
 
-export const contextTagLabels: Record<ContextTag, { fr: string; en: string }> =
-  {
-    work: { fr: "Travail", en: "Work" },
-    family: { fr: "Famille", en: "Family" },
-    social: { fr: "Social", en: "Social" },
-    health: { fr: "Santé", en: "Health" },
-    sleep: { fr: "Sommeil", en: "Sleep" },
-    exercise: { fr: "Sport", en: "Exercise" },
-    medication: { fr: "Médicament", en: "Medication" },
-    therapy: { fr: "Thérapie", en: "Therapy" },
-    stress: { fr: "Stress", en: "Stress" },
-    relaxation: { fr: "Détente", en: "Relaxation" },
-    creative: { fr: "Créativité", en: "Creative" },
-    nature: { fr: "Nature", en: "Nature" },
-    travel: { fr: "Voyage", en: "Travel" },
-    finance: { fr: "Finances", en: "Finance" },
-    relationship: { fr: "Relation", en: "Relationship" },
-  };
+export const contextTagLabels: Record<ContextTag, string> = {
+  work: "labels.contextTags.work",
+  family: "labels.contextTags.family",
+  social: "labels.contextTags.social",
+  health: "labels.contextTags.health",
+  sleep: "labels.contextTags.sleep",
+  exercise: "labels.contextTags.exercise",
+  medication: "labels.contextTags.medication",
+  therapy: "labels.contextTags.therapy",
+  stress: "labels.contextTags.stress",
+  relaxation: "labels.contextTags.relaxation",
+  creative: "labels.contextTags.creative",
+  nature: "labels.contextTags.nature",
+  travel: "labels.contextTags.travel",
+  finance: "labels.contextTags.finance",
+  relationship: "labels.contextTags.relationship",
+};
 
 export const contextTagColors: Record<ContextTag, string> = {
   work: "#3b82f6", // blue-500
@@ -275,24 +268,23 @@ export const sideEffects = [
 
 export type SideEffect = (typeof sideEffects)[number];
 
-export const sideEffectLabels: Record<SideEffect, { fr: string; en: string }> =
-  {
-    nausea: { fr: "Nausées", en: "Nausea" },
-    headache: { fr: "Maux de tête", en: "Headache" },
-    dizziness: { fr: "Vertiges", en: "Dizziness" },
-    fatigue: { fr: "Fatigue", en: "Fatigue" },
-    insomnia: { fr: "Insomnie", en: "Insomnia" },
-    drowsiness: { fr: "Somnolence", en: "Drowsiness" },
-    dry_mouth: { fr: "Bouche sèche", en: "Dry mouth" },
-    appetite_change: { fr: "Changement d'appétit", en: "Appetite change" },
-    weight_change: { fr: "Changement de poids", en: "Weight change" },
-    tremor: { fr: "Tremblements", en: "Tremor" },
-    anxiety: { fr: "Anxiété", en: "Anxiety" },
-    restlessness: { fr: "Agitation", en: "Restlessness" },
-    constipation: { fr: "Constipation", en: "Constipation" },
-    blurred_vision: { fr: "Vision floue", en: "Blurred vision" },
-    sweating: { fr: "Transpiration", en: "Sweating" },
-  };
+export const sideEffectLabels: Record<SideEffect, string> = {
+  nausea: "labels.sideEffects.nausea",
+  headache: "labels.sideEffects.headache",
+  dizziness: "labels.sideEffects.dizziness",
+  fatigue: "labels.sideEffects.fatigue",
+  insomnia: "labels.sideEffects.insomnia",
+  drowsiness: "labels.sideEffects.drowsiness",
+  dry_mouth: "labels.sideEffects.dry_mouth",
+  appetite_change: "labels.sideEffects.appetite_change",
+  weight_change: "labels.sideEffects.weight_change",
+  tremor: "labels.sideEffects.tremor",
+  anxiety: "labels.sideEffects.anxiety",
+  restlessness: "labels.sideEffects.restlessness",
+  constipation: "labels.sideEffects.constipation",
+  blurred_vision: "labels.sideEffects.blurred_vision",
+  sweating: "labels.sideEffects.sweating",
+};
 
 export const sideEffectColors: Record<SideEffect, string> = {
   nausea: "#fbbf24", // amber-400
@@ -320,13 +312,10 @@ export const sleepQualityOptions = ["bad", "average", "good"] as const;
 
 export type SleepQuality = (typeof sleepQualityOptions)[number];
 
-export const sleepQualityLabels: Record<
-  SleepQuality,
-  { fr: string; en: string }
-> = {
-  bad: { fr: "Mauvais", en: "Bad" },
-  average: { fr: "Moyen", en: "Average" },
-  good: { fr: "Bon", en: "Good" },
+export const sleepQualityLabels: Record<SleepQuality, string> = {
+  bad: "labels.sleepQuality.bad",
+  average: "labels.sleepQuality.average",
+  good: "labels.sleepQuality.good",
 };
 
 export const sleepQualityColors: Record<SleepQuality, string> = {
@@ -356,16 +345,13 @@ export const moodObservedOptions = [
 
 export type MoodObserved = (typeof moodObservedOptions)[number];
 
-export const moodObservedLabels: Record<
-  MoodObserved,
-  { fr: string; en: string }
-> = {
-  very_good: { fr: "Très bien", en: "Very good" },
-  good: { fr: "Bien", en: "Good" },
-  neutral: { fr: "Neutre", en: "Neutral" },
-  down: { fr: "Bas", en: "Down" },
-  very_down: { fr: "Très bas", en: "Very down" },
-  concerning: { fr: "Préoccupant", en: "Concerning" },
+export const moodObservedLabels: Record<MoodObserved, string> = {
+  very_good: "labels.caregiver.moodObserved.very_good",
+  good: "labels.caregiver.moodObserved.good",
+  neutral: "labels.caregiver.moodObserved.neutral",
+  down: "labels.caregiver.moodObserved.down",
+  very_down: "labels.caregiver.moodObserved.very_down",
+  concerning: "labels.caregiver.moodObserved.concerning",
 };
 
 export const moodObservedColors: Record<MoodObserved, string> = {
@@ -386,14 +372,11 @@ export const energyObservedOptions = [
 
 export type EnergyObserved = (typeof energyObservedOptions)[number];
 
-export const energyObservedLabels: Record<
-  EnergyObserved,
-  { fr: string; en: string }
-> = {
-  high: { fr: "Élevée", en: "High" },
-  normal: { fr: "Normale", en: "Normal" },
-  low: { fr: "Basse", en: "Low" },
-  very_low: { fr: "Très basse", en: "Very low" },
+export const energyObservedLabels: Record<EnergyObserved, string> = {
+  high: "labels.caregiver.energyObserved.high",
+  normal: "labels.caregiver.energyObserved.normal",
+  low: "labels.caregiver.energyObserved.low",
+  very_low: "labels.caregiver.energyObserved.very_low",
 };
 
 export const socialBehaviorOptions = [
@@ -405,14 +388,11 @@ export const socialBehaviorOptions = [
 
 export type SocialBehavior = (typeof socialBehaviorOptions)[number];
 
-export const socialBehaviorLabels: Record<
-  SocialBehavior,
-  { fr: string; en: string }
-> = {
-  engaged: { fr: "Engagé", en: "Engaged" },
-  normal: { fr: "Normal", en: "Normal" },
-  withdrawn: { fr: "Renfermé", en: "Withdrawn" },
-  isolated: { fr: "Isolé", en: "Isolated" },
+export const socialBehaviorLabels: Record<SocialBehavior, string> = {
+  engaged: "labels.caregiver.socialBehavior.engaged",
+  normal: "labels.caregiver.socialBehavior.normal",
+  withdrawn: "labels.caregiver.socialBehavior.withdrawn",
+  isolated: "labels.caregiver.socialBehavior.isolated",
 };
 
 export const sleepObservedOptions = [
@@ -424,14 +404,11 @@ export const sleepObservedOptions = [
 
 export type SleepObserved = (typeof sleepObservedOptions)[number];
 
-export const sleepObservedLabels: Record<
-  SleepObserved,
-  { fr: string; en: string }
-> = {
-  good: { fr: "Bon", en: "Good" },
-  restless: { fr: "Agité", en: "Restless" },
-  insomnia: { fr: "Insomnie", en: "Insomnia" },
-  oversleeping: { fr: "Hypersomnie", en: "Oversleeping" },
+export const sleepObservedLabels: Record<SleepObserved, string> = {
+  good: "labels.caregiver.sleepObserved.good",
+  restless: "labels.caregiver.sleepObserved.restless",
+  insomnia: "labels.caregiver.sleepObserved.insomnia",
+  oversleeping: "labels.caregiver.sleepObserved.oversleeping",
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -449,13 +426,13 @@ export const eventTypes = [
 
 export type EventType = (typeof eventTypes)[number];
 
-export const eventTypeLabels: Record<EventType, { fr: string; en: string }> = {
-  compulsive_purchase: { fr: "Achat compulsif", en: "Compulsive purchase" },
-  crisis: { fr: "Crise", en: "Crisis" },
-  conflict: { fr: "Conflit", en: "Conflict" },
-  milestone: { fr: "Étape importante", en: "Milestone" },
-  medication_issue: { fr: "Problème médicament", en: "Medication issue" },
-  other: { fr: "Autre", en: "Other" },
+export const eventTypeLabels: Record<EventType, string> = {
+  compulsive_purchase: "labels.caregiver.eventTypes.compulsive_purchase",
+  crisis: "labels.caregiver.eventTypes.crisis",
+  conflict: "labels.caregiver.eventTypes.conflict",
+  milestone: "labels.caregiver.eventTypes.milestone",
+  medication_issue: "labels.caregiver.eventTypes.medication_issue",
+  other: "labels.caregiver.eventTypes.other",
 };
 
 export const eventTypeColors: Record<EventType, string> = {
@@ -472,75 +449,57 @@ export const eventTypeColors: Record<EventType, string> = {
 // ═══════════════════════════════════════════════════════════════
 
 export type CrisisResource = {
-  name: string;
-  description?: { fr: string; en: string };
+  nameKey: string;
+  descriptionKey?: string;
+  availabilityKey?: string;
   phone?: string;
   url?: string;
   sms?: string;
-  available?: string;
   category: "hotline" | "chat" | "emergency" | "support";
 };
 
 export const crisisResources: CrisisResource[] = [
   {
-    name: "3114 - Numéro national de prévention du suicide",
-    description: {
-      fr: "Ligne d'écoute gratuite et confidentielle pour toute personne en détresse psychologique ou inquiète pour un proche.",
-      en: "Free and confidential helpline for anyone in psychological distress or worried about a loved one.",
-    },
+    nameKey: "crisis.resources.3114.name",
+    descriptionKey: "crisis.resources.3114.description",
+    availabilityKey: "crisis.resources.3114.availability",
     phone: "3114",
     url: "https://3114.fr",
-    available: "24/7",
     category: "hotline",
   },
   {
-    name: "SOS Amitié",
-    description: {
-      fr: "Écoute anonyme et bienveillante pour les personnes en souffrance psychologique.",
-      en: "Anonymous and caring support for people in psychological distress.",
-    },
+    nameKey: "crisis.resources.sosAmitie.name",
+    descriptionKey: "crisis.resources.sosAmitie.description",
+    availabilityKey: "crisis.resources.sosAmitie.availability",
     phone: "09 72 39 40 50",
     url: "https://www.sos-amitie.com",
-    available: "24/7",
     category: "hotline",
   },
   {
-    name: "Fil Santé Jeunes",
-    description: {
-      fr: "Écoute, information et orientation pour les jeunes de 12 à 25 ans.",
-      en: "Listening, information and guidance for young people aged 12-25.",
-    },
+    nameKey: "crisis.resources.filSanteJeunes.name",
+    descriptionKey: "crisis.resources.filSanteJeunes.description",
+    availabilityKey: "crisis.resources.filSanteJeunes.availability",
     phone: "0 800 235 236",
     url: "https://www.filsantejeunes.com",
-    available: "9h-23h",
     category: "support",
   },
   {
-    name: "SAMU - Urgences médicales",
-    description: {
-      fr: "Service d'aide médicale urgente. En cas d'urgence vitale.",
-      en: "Emergency medical service. For life-threatening emergencies.",
-    },
+    nameKey: "crisis.resources.samu.name",
+    descriptionKey: "crisis.resources.samu.description",
+    availabilityKey: "crisis.resources.samu.availability",
     phone: "15",
-    available: "24/7",
     category: "emergency",
   },
   {
-    name: "Suicide Écoute",
-    description: {
-      fr: "Ligne d'écoute pour les personnes suicidaires et leurs proches.",
-      en: "Helpline for suicidal individuals and their loved ones.",
-    },
+    nameKey: "crisis.resources.suicideEcoute.name",
+    descriptionKey: "crisis.resources.suicideEcoute.description",
+    availabilityKey: "crisis.resources.suicideEcoute.availability",
     phone: "01 45 39 40 00",
-    available: "24/7",
     category: "hotline",
   },
   {
-    name: "Argos 2001 - Bipolaires",
-    description: {
-      fr: "Association d'aide aux personnes atteintes de troubles bipolaires et leurs proches.",
-      en: "Association helping people with bipolar disorder and their loved ones.",
-    },
+    nameKey: "crisis.resources.argos.name",
+    descriptionKey: "crisis.resources.argos.description",
     phone: "01 46 28 01 03",
     url: "https://www.argos2001.fr",
     category: "support",

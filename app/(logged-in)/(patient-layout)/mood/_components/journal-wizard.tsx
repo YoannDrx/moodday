@@ -42,6 +42,7 @@ import {
 } from "@/features/medication/medication.action";
 import { queueMoodEntry } from "@/features/pwa/offline-queue";
 import { getAiJournalInsight } from "@/features/insights/ai-insight.action";
+import { useI18n } from "@/i18n/provider";
 
 type JournalEntry = {
   mood: number;
@@ -88,6 +89,7 @@ const sleepDisturbanceOptions = Object.keys(
 ) as (keyof typeof sleepDisturbanceLabels)[];
 
 export function JournalWizard() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const maxStep = 5;
@@ -98,12 +100,15 @@ export function JournalWizard() {
   const [insightRequested, setInsightRequested] = useState(false);
 
   // Get today's date formatted
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  );
 
   const nextStep = () => {
     if (step < maxStep) setStep(step + 1);
@@ -168,7 +173,7 @@ export function JournalWizard() {
       return result.data;
     },
     onSuccess: () => {
-      toast.success("Prise enregistrée !");
+      toast.success(t("medication.intake.logged"));
       void refetchMedications();
     },
     onError: (error) => {
@@ -218,9 +223,7 @@ export function JournalWizard() {
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         queueMoodEntry(payload);
-        toast.success(
-          "Enregistrement hors ligne. Synchronisation automatique.",
-        );
+        toast.success(t("mood.entry.offlineSaved"));
         router.push("/dashboard");
         return;
       }
@@ -232,17 +235,16 @@ export function JournalWizard() {
         return;
       }
 
-      toast.success("Journal enregistré avec succès !");
+      toast.success(t("mood.journal.saved"));
       router.push("/dashboard");
     } catch {
-      toast.error("Une erreur est survenue lors de l'enregistrement");
+      toast.error(t("mood.journal.saveError"));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const fallbackInsight =
-    "Continuez a noter vos ressentis. Ces donnees vous aideront a mieux comprendre vos patterns.";
+  const fallbackInsight = t("mood.journal.insight.fallback");
 
   const { execute: fetchInsight, status: insightStatus } = useAction(
     getAiJournalInsight,
@@ -280,10 +282,12 @@ export function JournalWizard() {
 
   const insightText =
     insightStatus === "executing"
-      ? "Analyse en cours..."
+      ? t("mood.journal.insight.loading")
       : (aiInsight ?? fallbackInsight);
   const insightTitle =
-    aiSource === "ai" ? "Observation IA (Beta)" : "Observation";
+    aiSource === "ai"
+      ? t("mood.journal.insight.titleAi")
+      : t("mood.journal.insight.title");
 
   const getMoodEmoji = () => {
     if (entry.mood < 4) return "😔";
@@ -309,7 +313,7 @@ export function JournalWizard() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                Journal du jour
+                {t("mood.journal.title")}
               </h1>
               <p className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 {today}
@@ -337,7 +341,7 @@ export function JournalWizard() {
             disabled={isSaving}
             className="shadow-soft rounded-xl bg-[var(--primary)] px-6 py-2 text-sm font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-95"
           >
-            {isSaving ? "Enregistrement..." : "Enregistrer"}
+            {isSaving ? t("common.saving") : t("actions.save")}
           </Button>
         </div>
       </nav>
@@ -352,10 +356,10 @@ export function JournalWizard() {
                 <span className="text-5xl">{getMoodEmoji()}</span>
               </div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Comment vous sentez-vous ?
+                {t("mood.journal.step1.title")}
               </h2>
               <p className="mt-2 text-gray-500">
-                Évaluez votre état global aujourd&apos;hui
+                {t("mood.journal.step1.subtitle")}
               </p>
             </div>
 
@@ -363,7 +367,9 @@ export function JournalWizard() {
               {/* Mood Slider */}
               <div className="space-y-6">
                 <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">Humeur</label>
+                  <label className="text-lg font-bold">
+                    {t("mood.journal.step1.moodLabel")}
+                  </label>
                   <span className="text-3xl font-black text-[var(--primary)]">
                     {entry.mood}/10
                   </span>
@@ -380,9 +386,9 @@ export function JournalWizard() {
                     className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--primary)]"
                   />
                   <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>Très bas</span>
-                    <span>Stable</span>
-                    <span>Excellent</span>
+                    <span>{t("mood.journal.step1.moodScale.low")}</span>
+                    <span>{t("mood.journal.step1.moodScale.mid")}</span>
+                    <span>{t("mood.journal.step1.moodScale.high")}</span>
                   </div>
                 </div>
               </div>
@@ -390,7 +396,9 @@ export function JournalWizard() {
               {/* Energy Slider */}
               <div className="space-y-6">
                 <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">Énergie</label>
+                  <label className="text-lg font-bold">
+                    {t("mood.journal.step1.energyLabel")}
+                  </label>
                   <span className="text-3xl font-black text-[var(--sage)]">
                     {entry.energy}/10
                   </span>
@@ -407,9 +415,9 @@ export function JournalWizard() {
                     className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--sage)]"
                   />
                   <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>Épuisé</span>
-                    <span>Neutre</span>
-                    <span>Survolté</span>
+                    <span>{t("mood.journal.step1.energyScale.low")}</span>
+                    <span>{t("mood.journal.step1.energyScale.mid")}</span>
+                    <span>{t("mood.journal.step1.energyScale.high")}</span>
                   </div>
                 </div>
               </div>
@@ -417,7 +425,9 @@ export function JournalWizard() {
               {/* Anxiety Slider */}
               <div className="space-y-6">
                 <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">Anxiété</label>
+                  <label className="text-lg font-bold">
+                    {t("mood.journal.step1.anxietyLabel")}
+                  </label>
                   <span className="text-3xl font-black text-red-500">
                     {entry.anxiety}/10
                   </span>
@@ -434,9 +444,9 @@ export function JournalWizard() {
                     className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-red-500"
                   />
                   <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>Calme</span>
-                    <span>Modéré</span>
-                    <span>Intense</span>
+                    <span>{t("mood.journal.step1.anxietyScale.low")}</span>
+                    <span>{t("mood.journal.step1.anxietyScale.mid")}</span>
+                    <span>{t("mood.journal.step1.anxietyScale.high")}</span>
                   </div>
                 </div>
               </div>
@@ -452,10 +462,10 @@ export function JournalWizard() {
                 <Moon className="size-8 text-[var(--primary-darkest)]" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Qualité du sommeil
+                {t("mood.journal.step2.title")}
               </h2>
               <p className="mt-2 text-gray-500">
-                La nuit dernière a été comment ?
+                {t("mood.journal.step2.subtitle")}
               </p>
             </div>
 
@@ -466,7 +476,7 @@ export function JournalWizard() {
                 className="flex flex-col items-center justify-center space-y-4 text-center"
               >
                 <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
-                  Durée
+                  {t("mood.journal.step2.durationLabel")}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
@@ -502,7 +512,7 @@ export function JournalWizard() {
 
               <GlassCard padding="lg" variant="elevated" className="space-y-6">
                 <label className="block text-center text-xs font-bold tracking-widest text-gray-500 uppercase">
-                  Qualité perçue
+                  {t("mood.journal.step2.qualityLabel")}
                 </label>
                 <div className="flex justify-between gap-2">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -528,7 +538,7 @@ export function JournalWizard() {
 
             <GlassCard padding="lg" variant="elevated">
               <label className="mb-6 block font-bold">
-                Perturbations constatées
+                {t("mood.journal.step2.disturbancesLabel")}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {sleepDisturbanceOptions.map((disturbance) => (
@@ -542,7 +552,7 @@ export function JournalWizard() {
                         : "border-gray-100 bg-white/50 text-gray-600 hover:border-[var(--primary)]/30 hover:bg-white",
                     )}
                   >
-                    <span>{sleepDisturbanceLabels[disturbance].fr}</span>
+                    <span>{t(sleepDisturbanceLabels[disturbance])}</span>
                     {entry.sleepDisturbances.includes(disturbance) && (
                       <Check className="size-4" />
                     )}
@@ -561,10 +571,10 @@ export function JournalWizard() {
                 <Pill className="size-8 text-[var(--sage-dark)]" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Suivi du traitement
+                {t("mood.journal.step3.title")}
               </h2>
               <p className="mt-2 text-gray-500">
-                Avez-vous pris vos médicaments ?
+                {t("mood.journal.step3.subtitle")}
               </p>
             </div>
 
@@ -615,7 +625,11 @@ export function JournalWizard() {
                             : "border-2 border-gray-100 bg-white text-gray-300 hover:border-[var(--sage)]/40 hover:text-[var(--sage)]",
                         )}
                       >
-                        <span>{isTaken ? "Pris" : "Marquer pris"}</span>
+                        <span>
+                          {isTaken
+                            ? t("medication.status.taken")
+                            : t("mood.journal.step3.markTaken")}
+                        </span>
                         <CheckCircle2 className="size-5" />
                       </button>
                     </GlassCard>
@@ -624,7 +638,7 @@ export function JournalWizard() {
               ) : (
                 <GlassCard padding="md" variant="elevated">
                   <p className="text-center text-sm text-gray-500">
-                    Aucun traitement configuré pour aujourd&apos;hui.
+                    {t("mood.journal.step3.noMeds")}
                   </p>
                 </GlassCard>
               )}
@@ -634,7 +648,7 @@ export function JournalWizard() {
                 className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-gray-200 py-4 font-medium text-gray-400 transition-all hover:border-[var(--primary)]/50 hover:text-[var(--primary)]"
               >
                 <PlusCircle className="size-5" />
-                Ajouter un médicament ponctuel
+                {t("mood.journal.step3.addOneOff")}
               </Link>
             </div>
 
@@ -642,14 +656,14 @@ export function JournalWizard() {
             <GlassCard padding="lg" variant="elevated" className="mt-8">
               <h4 className="mb-4 flex items-center gap-2 font-bold">
                 <Info className="size-5 text-[var(--primary)]" />
-                Effets secondaires ?
+                {t("mood.journal.step3.sideEffectsTitle")}
               </h4>
               <textarea
                 value={entry.sideEffects}
                 onChange={(e) =>
                   setEntry({ ...entry, sideEffects: e.target.value })
                 }
-                placeholder="Bouche sèche, nausées, vertiges..."
+                placeholder={t("mood.journal.step3.sideEffectsPlaceholder")}
                 className="min-h-[100px] w-full rounded-2xl border border-gray-100 bg-white/50 p-4 transition-all outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
               />
             </GlassCard>
@@ -661,17 +675,17 @@ export function JournalWizard() {
           <section className="animate-in fade-in slide-in-from-right-4 space-y-12 duration-300">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-gray-900">
-                Symptômes & Contexte
+                {t("mood.journal.step4.title")}
               </h2>
               <p className="mt-2 text-gray-500">
-                Sélectionnez ce qui a marqué votre journée
+                {t("mood.journal.step4.subtitle")}
               </p>
             </div>
 
             {/* Symptoms Tags */}
             <div className="space-y-4">
               <label className="block px-2 text-sm font-bold tracking-widest text-gray-400 uppercase">
-                Symptômes du jour
+                {t("mood.journal.step4.symptomsLabel")}
               </label>
               <div className="flex flex-wrap gap-3">
                 {symptomOptions.map((symptom) => (
@@ -685,7 +699,7 @@ export function JournalWizard() {
                         : "border-gray-100 bg-white text-gray-600",
                     )}
                   >
-                    {symptomLabels[symptom].fr}
+                    {t(symptomLabels[symptom])}
                   </button>
                 ))}
                 <button className="rounded-2xl border-2 border-dashed border-gray-200 px-5 py-3 text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]">
@@ -697,7 +711,7 @@ export function JournalWizard() {
             {/* Events Tags */}
             <div className="space-y-4">
               <label className="block px-2 text-sm font-bold tracking-widest text-gray-400 uppercase">
-                Événements & Habitudes
+                {t("mood.journal.step4.eventsLabel")}
               </label>
               <div className="flex flex-wrap gap-3">
                 {eventOptions.map((event) => (
@@ -711,7 +725,7 @@ export function JournalWizard() {
                         : "border-gray-100 bg-white text-gray-600",
                     )}
                   >
-                    {eventOptionLabels[event].fr}
+                    {t(eventOptionLabels[event])}
                   </button>
                 ))}
                 <button className="rounded-2xl border-2 border-dashed border-gray-200 px-5 py-3 text-gray-400 transition-all hover:border-[var(--sage)] hover:text-[var(--sage)]">
@@ -729,9 +743,11 @@ export function JournalWizard() {
               <div className="mb-4 inline-flex size-16 items-center justify-center rounded-3xl bg-[var(--primary)]/10">
                 <Feather className="size-8 text-[var(--primary)]" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900">Notes Libres</h2>
+              <h2 className="text-3xl font-bold text-gray-900">
+                {t("mood.journal.step5.title")}
+              </h2>
               <p className="mt-2 text-gray-500">
-                Un dernier mot sur votre journée ?
+                {t("mood.journal.step5.subtitle")}
               </p>
             </div>
 
@@ -748,7 +764,7 @@ export function JournalWizard() {
                     notes: e.target.value.slice(0, 500),
                   })
                 }
-                placeholder="Écrivez ce que vous avez sur le cœur... (Max 500 caractères)"
+                placeholder={t("mood.journal.step5.placeholder")}
                 className="h-64 w-full resize-none border-none bg-transparent p-6 text-lg text-gray-700 outline-none placeholder:text-gray-300 focus:ring-0"
                 maxLength={500}
               />
@@ -781,7 +797,7 @@ export function JournalWizard() {
                 </p>
                 {aiSource === "heuristic" && (
                   <span className="mt-2 block text-xs font-medium text-gray-400">
-                    Analyse locale (pas d&apos;appel IA).
+                    {t("mood.journal.insight.localNotice")}
                   </span>
                 )}
               </div>
@@ -802,7 +818,7 @@ export function JournalWizard() {
             )}
           >
             <ChevronLeft className="size-5" />
-            <span className="hidden sm:inline">Précédent</span>
+            <span className="hidden sm:inline">{t("actions.previous")}</span>
           </button>
 
           {/* Mobile Progress */}
@@ -825,7 +841,11 @@ export function JournalWizard() {
             disabled={isSaving}
             className="shadow-soft flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] py-4 font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-95"
           >
-            <span>{step === maxStep ? "Terminer" : "Continuer"}</span>
+            <span>
+              {step === maxStep
+                ? t("actions.finish")
+                : t("actions.continue")}
+            </span>
             {step === maxStep ? (
               <Check className="size-5" />
             ) : (

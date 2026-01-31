@@ -24,78 +24,72 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const sections = [
-  {
-    icon: BookOpen,
-    title: "Nature du service",
-    content:
-      "Moodday est un outil de suivi personnel qui vous permet d'enregistrer vos humeurs quotidiennes, suivre vos traitements médicamenteux et générer des rapports pour vos consultations médicales.",
-    highlight: {
-      type: "warning" as const,
-      text: "Moodday n'est pas un dispositif médical et ne fournit aucun avis médical, diagnostic ou traitement.",
-    },
-  },
-  {
-    icon: UserCheck,
-    title: "Inscription et compte",
-    items: [
-      "Être âgé d'au moins 16 ans",
-      "Fournir des informations exactes lors de l'inscription",
-      "Maintenir la confidentialité de vos identifiants",
-      "Être responsable de toute activité sous votre compte",
-    ],
-  },
-  {
-    icon: Shield,
-    title: "Utilisation acceptable",
-    items: [
-      "Utiliser l'application uniquement pour votre suivi personnel",
-      "Ne pas partager vos identifiants",
-      "Ne pas tenter de contourner les mesures de sécurité",
-      "Respecter les droits des autres utilisateurs",
-    ],
-  },
-  {
-    icon: Users,
-    title: "Cercle d'aidants",
-    content:
-      "Si vous invitez un proche dans votre cercle d'aidants, vous restez maître des données que vous partagez. Vous pouvez révoquer cet accès à tout moment. L'aidant s'engage à respecter la confidentialité des informations partagées.",
-  },
-  {
-    icon: FileText,
-    title: "Propriété intellectuelle",
-    content:
-      "L'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.",
-  },
-  {
-    icon: Scale,
-    title: "Limitation de responsabilité",
-    items: [
-      "Des décisions médicales prises sur la base des données de l'application",
-      "Des interruptions temporaires du service",
-      "Des pertes de données en cas de force majeure",
-    ],
-    highlight: {
-      type: "info" as const,
-      text: "L'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.",
-    },
-  },
-  {
-    icon: XCircle,
-    title: "Résiliation",
-    content:
-      "Vous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.",
-  },
-  {
-    icon: Gavel,
-    title: "Droit applicable",
-    content:
-      "Les présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.",
-  },
-];
-
 export default async function TermsPage() {
   const { t } = await getI18n();
+  const sections = [
+    {
+      icon: BookOpen,
+      title: t("legal.terms.sections.service.title"),
+      content: t("legal.terms.sections.service.content"),
+      highlight: {
+        type: "warning" as const,
+        text: t("legal.terms.sections.service.highlight"),
+      },
+    },
+    {
+      icon: UserCheck,
+      title: t("legal.terms.sections.account.title"),
+      items: [
+        t("legal.terms.sections.account.items.age"),
+        t("legal.terms.sections.account.items.accurateInfo"),
+        t("legal.terms.sections.account.items.credentials"),
+        t("legal.terms.sections.account.items.responsibility"),
+      ],
+    },
+    {
+      icon: Shield,
+      title: t("legal.terms.sections.acceptableUse.title"),
+      items: [
+        t("legal.terms.sections.acceptableUse.items.personalTracking"),
+        t("legal.terms.sections.acceptableUse.items.noSharing"),
+        t("legal.terms.sections.acceptableUse.items.noBypass"),
+        t("legal.terms.sections.acceptableUse.items.respect"),
+      ],
+    },
+    {
+      icon: Users,
+      title: t("legal.terms.sections.caregiver.title"),
+      content: t("legal.terms.sections.caregiver.content"),
+    },
+    {
+      icon: FileText,
+      title: t("legal.terms.sections.ip.title"),
+      content: t("legal.terms.sections.ip.content"),
+    },
+    {
+      icon: Scale,
+      title: t("legal.terms.sections.liability.title"),
+      items: [
+        t("legal.terms.sections.liability.items.decisions"),
+        t("legal.terms.sections.liability.items.interruptions"),
+        t("legal.terms.sections.liability.items.losses"),
+      ],
+      highlight: {
+        type: "info" as const,
+        text: t("legal.terms.sections.liability.highlight"),
+      },
+    },
+    {
+      icon: XCircle,
+      title: t("legal.terms.sections.termination.title"),
+      content: t("legal.terms.sections.termination.content"),
+    },
+    {
+      icon: Gavel,
+      title: t("legal.terms.sections.law.title"),
+      content: t("legal.terms.sections.law.content"),
+    },
+  ];
 
   return (
     <div className="relative">
@@ -120,14 +114,13 @@ export default async function TermsPage() {
             variant="p"
             className="text-muted-foreground mt-6 text-lg"
           >
-            Conditions générales d&apos;utilisation de l&apos;application
-            Moodday
+            {t("legal.terms.subtitle")}
           </Typography>
           <Typography
             variant="p"
             className="text-muted-foreground mt-4 text-sm"
           >
-            Dernière mise à jour : Janvier 2026
+            {t("legal.terms.lastUpdated")}
           </Typography>
         </div>
       </SectionLayout>
@@ -145,15 +138,17 @@ export default async function TermsPage() {
                   variant="h3"
                   className="mb-2 font-bold text-amber-700 dark:text-amber-400"
                 >
-                  En cas de détresse ou d&apos;urgence
+                  {t("legal.terms.emergency.title")}
                 </Typography>
                 <Typography
                   variant="p"
                   className="text-amber-700 dark:text-amber-300"
                 >
-                  Contactez immédiatement un professionnel de santé ou le{" "}
-                  <span className="font-bold">3114</span> (numéro national de
-                  prévention du suicide, gratuit et confidentiel 24h/24).
+                  {t("legal.terms.emergency.descriptionPrefix")}{" "}
+                  <span className="font-bold">
+                    {t("legal.terms.emergency.phone")}
+                  </span>{" "}
+                  {t("legal.terms.emergency.descriptionSuffix")}
                 </Typography>
               </div>
             </div>
@@ -234,10 +229,10 @@ export default async function TermsPage() {
               variant="h3"
               className="text-foreground mb-2 text-lg font-bold"
             >
-              Questions sur nos CGU ?
+              {t("legal.terms.contact.title")}
             </Typography>
             <Typography variant="p" className="text-muted-foreground">
-              Contactez notre équipe juridique :{" "}
+              {t("legal.terms.contact.descriptionPrefix")}{" "}
               <a
                 href="mailto:hello@moodday.app"
                 className="text-primary hover:underline"

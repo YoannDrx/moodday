@@ -11,8 +11,8 @@ import { TrendsContent } from "./_components/trends-content";
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
   return {
-    title: "Tendances",
-    description: t("insights.chart.title"),
+    title: t("trends.metaTitle"),
+    description: t("trends.metaDescription"),
   };
 });
 

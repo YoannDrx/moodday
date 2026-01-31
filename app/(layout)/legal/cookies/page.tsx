@@ -28,44 +28,37 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const cookieTypes = [
-  {
-    icon: Lock,
-    name: "Cookies d'authentification",
-    description:
-      "Vous maintiennent connecté à votre compte de manière sécurisée",
-    essential: true,
-    examples: ["Session utilisateur", "Token de sécurité", "Remember me"],
-  },
-  {
-    icon: ShieldCheck,
-    name: "Cookies de sécurité",
-    description: "Protègent contre la fraude et les accès non autorisés",
-    essential: true,
-    examples: ["Protection CSRF", "Détection de bot", "Rate limiting"],
-  },
-  {
-    icon: Settings,
-    name: "Cookies de préférences",
-    description: "Mémorisent vos choix pour une meilleure expérience",
-    essential: true,
-    examples: [
-      "Langue préférée",
-      "Thème (clair/sombre)",
-      "Préférences d'affichage",
-    ],
-  },
-];
-
-const notUsed = [
-  { label: "Cookies publicitaires" },
-  { label: "Cookies de tracking" },
-  { label: "Cookies tiers" },
-  { label: "Cookies de réseaux sociaux" },
-];
-
 export default async function CookiesPage() {
   const { t } = await getI18n();
+  const cookieTypes = [
+    {
+      icon: Lock,
+      name: t("legal.cookies.types.auth.name"),
+      description: t("legal.cookies.types.auth.description"),
+      essential: true,
+      examples: t("legal.cookies.types.auth.examples").split("||"),
+    },
+    {
+      icon: ShieldCheck,
+      name: t("legal.cookies.types.security.name"),
+      description: t("legal.cookies.types.security.description"),
+      essential: true,
+      examples: t("legal.cookies.types.security.examples").split("||"),
+    },
+    {
+      icon: Settings,
+      name: t("legal.cookies.types.preferences.name"),
+      description: t("legal.cookies.types.preferences.description"),
+      essential: true,
+      examples: t("legal.cookies.types.preferences.examples").split("||"),
+    },
+  ];
+  const notUsed = [
+    { label: t("legal.cookies.notUsed.ads") },
+    { label: t("legal.cookies.notUsed.tracking") },
+    { label: t("legal.cookies.notUsed.thirdParty") },
+    { label: t("legal.cookies.notUsed.social") },
+  ];
 
   return (
     <div className="relative">
@@ -105,23 +98,20 @@ export default async function CookiesPage() {
         <div className="mx-auto max-w-4xl">
           {/* Introduction */}
           <div className="border-border bg-card mb-8 rounded-2xl border p-6">
-            <Typography
-              variant="h2"
-              className="text-foreground mb-4 text-xl font-bold"
-            >
-              Qu&apos;est-ce qu&apos;un cookie ?
-            </Typography>
-            <Typography variant="p" className="text-muted-foreground">
-              Les cookies sont de petits fichiers texte stockés sur votre
-              appareil lorsque vous visitez un site web. Ils aident les sites à
-              mémoriser vos préférences et à améliorer votre expérience. Chez
-              Moodday, nous utilisons uniquement les cookies{" "}
-              <span className="text-primary font-semibold">
-                strictement nécessaires
-              </span>{" "}
-              au fonctionnement de l&apos;application.
-            </Typography>
-          </div>
+          <Typography
+            variant="h2"
+            className="text-foreground mb-4 text-xl font-bold"
+          >
+            {t("legal.cookies.intro.title")}
+          </Typography>
+          <Typography variant="p" className="text-muted-foreground">
+            {t("legal.cookies.intro.descriptionPrefix")}{" "}
+            <span className="text-primary font-semibold">
+              {t("legal.cookies.intro.descriptionHighlight")}
+            </span>{" "}
+            {t("legal.cookies.intro.descriptionSuffix")}
+          </Typography>
+        </div>
 
           {/* What we DON'T use - Highlight */}
           <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
@@ -131,7 +121,7 @@ export default async function CookiesPage() {
                 variant="h2"
                 className="text-lg font-bold text-emerald-700 dark:text-emerald-400"
               >
-                Ce que nous n&apos;utilisons PAS
+                {t("legal.cookies.notUsed.title")}
               </Typography>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -151,8 +141,7 @@ export default async function CookiesPage() {
               variant="p"
               className="mt-4 text-sm font-medium text-emerald-700 dark:text-emerald-400"
             >
-              Vos données de santé mentale sont privées et le restent. Nous ne
-              partageons rien avec des annonceurs ou des trackers tiers.
+              {t("legal.cookies.notUsed.note")}
             </Typography>
           </div>
 
@@ -161,7 +150,7 @@ export default async function CookiesPage() {
             variant="h2"
             className="text-foreground mb-6 text-xl font-bold"
           >
-            Cookies que nous utilisons
+            {t("legal.cookies.usedTitle")}
           </Typography>
 
           <div className="space-y-4">
@@ -187,7 +176,7 @@ export default async function CookiesPage() {
                           </Typography>
                           {cookie.essential && (
                             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                              Essentiel
+                              {t("legal.cookies.essentialBadge")}
                             </span>
                           )}
                         </div>
@@ -222,19 +211,15 @@ export default async function CookiesPage() {
               variant="h2"
               className="text-foreground mb-4 text-xl font-bold"
             >
-              Gérer les cookies
+              {t("legal.cookies.manage.title")}
             </Typography>
             <Typography variant="p" className="text-muted-foreground mb-4">
-              Vous pouvez gérer les cookies via les paramètres de votre
-              navigateur. Cependant, notez que la désactivation des cookies
-              essentiels peut affecter le fonctionnement de Moodday
-              (impossibilité de rester connecté, par exemple).
+              {t("legal.cookies.manage.description")}
             </Typography>
             <div className="bg-muted/50 rounded-lg p-4">
               <Typography variant="p" className="text-muted-foreground text-sm">
-                <strong>Comment faire :</strong> Allez dans les paramètres de
-                votre navigateur &gt; Confidentialité &gt; Cookies et données de
-                sites
+                <strong>{t("legal.cookies.manage.howToLabel")}</strong>{" "}
+                {t("legal.cookies.manage.howToSteps")}
               </Typography>
             </div>
           </div>
@@ -245,10 +230,10 @@ export default async function CookiesPage() {
               variant="h3"
               className="text-foreground mb-2 text-lg font-bold"
             >
-              Questions sur nos cookies ?
+              {t("legal.cookies.contact.title")}
             </Typography>
             <Typography variant="p" className="text-muted-foreground">
-              Contactez-nous :{" "}
+              {t("legal.cookies.contact.descriptionPrefix")}{" "}
               <a
                 href="mailto:hello@moodday.app"
                 className="text-primary hover:underline"

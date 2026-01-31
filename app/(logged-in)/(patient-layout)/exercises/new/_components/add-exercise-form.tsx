@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,16 +23,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { createExercise } from "@/features/exercise/exercise.action";
 import { useI18n } from "@/i18n/provider";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
-  description: z.string().optional(),
-});
+const getFormSchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().min(1, t("exercise.validation.nameRequired")),
+    description: z.string().optional(),
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export function AddExerciseForm() {
   const { t } = useI18n();
   const router = useRouter();
+  const formSchema = useMemo(() => getFormSchema(t), [t]);
 
   const form = useZodForm({
     schema: formSchema,

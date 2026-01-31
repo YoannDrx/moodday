@@ -14,8 +14,10 @@ import {
   declineCaregiverInvitation,
   getCaregiverInviteInfo,
 } from "@/features/caregiver/caregiver.action";
+import { useI18n } from "@/i18n/provider";
 
 export function CaregiverInvite() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
@@ -44,7 +46,7 @@ export function CaregiverInvite() {
       return result.data;
     },
     onSuccess: () => {
-      toast.success("Invitation acceptee");
+      toast.success(t("caregiver.invite.accepted"));
       router.push("/caregiver");
     },
     onError: (error) => {
@@ -59,7 +61,7 @@ export function CaregiverInvite() {
       return result.data;
     },
     onSuccess: () => {
-      toast.success("Invitation refusee");
+      toast.success(t("caregiver.invite.declined"));
       router.push("/dashboard");
     },
     onError: (error) => {
@@ -72,11 +74,11 @@ export function CaregiverInvite() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Invitation introuvable</CardTitle>
+            <CardTitle>{t("caregiver.invite.notFoundTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Le lien d'invitation est invalide ou incomplet.
+              {t("caregiver.invite.notFoundDescription")}
             </p>
           </CardContent>
         </Card>
@@ -90,15 +92,15 @@ export function CaregiverInvite() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Connexion requise</CardTitle>
+            <CardTitle>{t("caregiver.invite.signInRequiredTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Connectez-vous pour accepter cette invitation d'aidant.
+              {t("caregiver.invite.signInRequiredDescription")}
             </p>
             <Button asChild className="w-full">
               <Link href={`/auth/signin?callbackUrl=${callbackUrl}`}>
-                Se connecter
+                {t("auth.signIn.submit")}
               </Link>
             </Button>
           </CardContent>
@@ -111,32 +113,32 @@ export function CaregiverInvite() {
     <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Invitation aidant</CardTitle>
+          <CardTitle>{t("caregiver.invite.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && (
             <p className="text-muted-foreground">
-              Chargement de l'invitation...
+              {t("caregiver.invite.loading")}
             </p>
           )}
 
           {isError && (
             <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
               <ShieldAlert className="size-4" />
-              Invitation invalide ou expiree.
+              {t("caregiver.invite.invalid")}
             </div>
           )}
 
           {!isLoading && invite?.status === "active" ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
               <CheckCircle2 className="size-4" />
-              Vous avez deja accepte cette invitation.
+              {t("caregiver.invite.alreadyAccepted")}
             </div>
           ) : null}
 
           {!isLoading && invite?.status === "declined" ? (
             <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-              Cette invitation a ete refusee.
+              {t("caregiver.invite.alreadyDeclined")}
             </div>
           ) : null}
 
@@ -145,7 +147,7 @@ export function CaregiverInvite() {
               <div className="space-y-1">
                 <p className="text-lg font-semibold">{invite.patientName}</p>
                 <p className="text-muted-foreground text-sm">
-                  vous invite a rejoindre son cercle Moodday.
+                  {t("caregiver.invite.pendingSubtitle")}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -156,7 +158,9 @@ export function CaregiverInvite() {
                   }
                   className="flex-1"
                 >
-                  {acceptMutation.isPending ? "Validation..." : "Accepter"}
+                  {acceptMutation.isPending
+                    ? t("caregiver.invite.accepting")
+                    : t("caregiver.invite.accept")}
                 </Button>
                 <Button
                   variant="outline"
@@ -166,7 +170,9 @@ export function CaregiverInvite() {
                   }
                   className="flex-1"
                 >
-                  {declineMutation.isPending ? "Refus..." : "Refuser"}
+                  {declineMutation.isPending
+                    ? t("caregiver.invite.declining")
+                    : t("caregiver.invite.decline")}
                 </Button>
               </div>
             </>

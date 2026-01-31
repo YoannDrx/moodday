@@ -14,7 +14,7 @@ export const UserDropdownLogout = () => {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            // Le callback se déclenche après la suppression du cookie côté serveur
+            // Callback fires after the server-side cookie is cleared.
             window.location.href = "/";
           },
         },

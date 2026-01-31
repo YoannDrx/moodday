@@ -118,8 +118,8 @@
   --secondary: #F4F1ED;
   --secondary-foreground: #1F2937;
 
-  /* Muted */
-  --muted: #F4F1ED;
+  /* Muted - teal tint for clear section differentiation */
+  --muted: #E0F0F0;
   --muted-foreground: #6B7280;
 
   /* Accent: Lavender */

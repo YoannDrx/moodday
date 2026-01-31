@@ -38,42 +38,37 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const values = [
-  {
-    icon: Heart,
-    title: "Bienveillance",
-    description:
-      "Pas de jugement, pas de pression. Votre bien-être passe avant les statistiques. Nous avons éliminé les streaks et la gamification culpabilisante.",
-    color: "text-rose-500",
-    bg: "bg-rose-500/10",
-  },
-  {
-    icon: Lock,
-    title: "Confidentialité",
-    description:
-      "Vos données de santé sont sacrées. Chiffrement de bout en bout, hébergement EU, zéro tracking. Nous ne vendons jamais vos données.",
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-  },
-  {
-    icon: Microscope,
-    title: "Rigueur scientifique",
-    description:
-      "Développé avec des psychiatres et basé sur les dernières recherches en santé mentale. Pas de promesses miracle, juste des outils validés.",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-  },
-];
-
-const stats = [
-  { value: "5000+", label: "Utilisateurs actifs" },
-  { value: "1M+", label: "Check-ins enregistrés" },
-  { value: "99.9%", label: "Uptime garanti" },
-  { value: "4.8/5", label: "Note App Store" },
-];
-
 export default async function AboutPage() {
-  const _i18n = await getI18n();
+  const { t } = await getI18n();
+  const values = [
+    {
+      icon: Heart,
+      title: t("about.values.items.kindness.title"),
+      description: t("about.values.items.kindness.description"),
+      color: "text-rose-500",
+      bg: "bg-rose-500/10",
+    },
+    {
+      icon: Lock,
+      title: t("about.values.items.privacy.title"),
+      description: t("about.values.items.privacy.description"),
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      icon: Microscope,
+      title: t("about.values.items.science.title"),
+      description: t("about.values.items.science.description"),
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+  ];
+  const stats = [
+    { value: "5000+", label: t("about.stats.activeUsers") },
+    { value: "1M+", label: t("about.stats.checkins") },
+    { value: "99.9%", label: t("about.stats.uptime") },
+    { value: "4.8/5", label: t("about.stats.appStoreRating") },
+  ];
 
   return (
     <div className="relative">
@@ -92,24 +87,22 @@ export default async function AboutPage() {
             variant="p"
             className="text-primary mb-2 text-sm font-semibold tracking-widest uppercase"
           >
-            À propos de Moodday
+            {t("about.hero.kicker")}
           </Typography>
           <Typography
             variant="h1"
             className="text-foreground mt-2 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
           >
-            Améliorer le suivi de la{" "}
+            {t("about.hero.titlePrefix")}{" "}
             <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-              santé mentale
+              {t("about.hero.titleHighlight")}
             </span>
           </Typography>
           <Typography
             variant="p"
             className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg"
           >
-            Moodday est né d&apos;un constat simple : les outils de suivi de
-            santé mentale existants sont souvent anxiogènes, culpabilisants ou
-            peu respectueux de la vie privée. Nous voulons changer cela.
+            {t("about.hero.description")}
           </Typography>
         </div>
       </SectionLayout>
@@ -127,18 +120,13 @@ export default async function AboutPage() {
                 variant="h2"
                 className="text-foreground mb-4 text-2xl font-bold"
               >
-                Notre mission
+                {t("about.mission.title")}
               </Typography>
               <Typography variant="p" className="text-muted-foreground mb-4">
-                Créer des outils de suivi de santé mentale qui respectent
-                vraiment les utilisateurs. Des outils bienveillants, sans
-                jugement, qui vous aident à mieux comprendre votre parcours sans
-                vous culpabiliser.
+                {t("about.mission.paragraphOne")}
               </Typography>
               <Typography variant="p" className="text-muted-foreground">
-                Nous croyons que chacun mérite d&apos;avoir accès à des
-                ressources pour prendre soin de sa santé mentale, dans le
-                respect total de sa vie privée.
+                {t("about.mission.paragraphTwo")}
               </Typography>
             </div>
 
@@ -151,17 +139,13 @@ export default async function AboutPage() {
                 variant="h2"
                 className="text-foreground mb-4 text-2xl font-bold"
               >
-                Conçu avec des professionnels
+                {t("about.vision.title")}
               </Typography>
               <Typography variant="p" className="text-muted-foreground mb-4">
-                Moodday a été développé en collaboration étroite avec des
-                psychiatres et des patients. Chaque fonctionnalité a été pensée
-                pour répondre à de vrais besoins cliniques.
+                {t("about.vision.paragraphOne")}
               </Typography>
               <Typography variant="p" className="text-muted-foreground">
-                Notre objectif : faciliter la communication entre patients et
-                soignants, et aider les professionnels à avoir une vision plus
-                complète du parcours de leurs patients.
+                {t("about.vision.paragraphTwo")}
               </Typography>
             </div>
           </div>
@@ -172,7 +156,7 @@ export default async function AboutPage() {
               variant="h2"
               className="text-foreground mb-8 text-center text-2xl font-bold"
             >
-              Nos valeurs
+              {t("about.values.title")}
             </Typography>
             <div className="grid gap-6 md:grid-cols-3">
               {values.map((value) => {
@@ -237,29 +221,26 @@ export default async function AboutPage() {
                 variant="h2"
                 className="text-foreground mb-4 text-2xl font-bold"
               >
-                Une équipe engagée
+                {t("about.team.title")}
               </Typography>
               <Typography
                 variant="p"
                 className="text-muted-foreground mx-auto mb-6 max-w-2xl"
               >
-                Derrière Moodday, une équipe passionnée qui croit profondément à
-                l&apos;importance de la santé mentale. Développeurs, designers,
-                professionnels de santé... tous unis par une même conviction :
-                chacun mérite des outils bienveillants pour son bien-être.
+                {t("about.team.description")}
               </Typography>
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
                   href="/careers"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-lg px-6 py-3 font-semibold transition-colors"
                 >
-                  Rejoindre l&apos;équipe
+                  {t("about.team.joinCta")}
                 </Link>
                 <Link
                   href="/contact"
                   className="border-border text-foreground hover:bg-muted inline-flex items-center rounded-lg border px-6 py-3 font-semibold transition-colors"
                 >
-                  Nous contacter
+                  {t("about.team.contactCta")}
                 </Link>
               </div>
             </div>
@@ -277,16 +258,13 @@ export default async function AboutPage() {
                     variant="h3"
                     className="mb-2 text-xl font-bold text-emerald-700 dark:text-emerald-400"
                   >
-                    Notre promesse de confidentialité
+                    {t("about.privacyPromise.title")}
                   </Typography>
                   <Typography
                     variant="p"
                     className="text-emerald-700 dark:text-emerald-300"
                   >
-                    Vos données de santé mentale sont chiffrées, stockées en
-                    Europe, et ne seront jamais vendues à des tiers. Vous avez
-                    le contrôle total : exportez ou supprimez vos données à tout
-                    moment. C&apos;est notre engagement.
+                    {t("about.privacyPromise.description")}
                   </Typography>
                 </div>
               </div>

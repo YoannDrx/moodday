@@ -3,7 +3,7 @@ import { CalendarHeart } from "lucide-react";
 import Link from "next/link";
 
 type MooddayLogoProps = {
-  size?: "sm" | "default" | "lg";
+  size?: "sm" | "default" | "lg" | "xl";
   showText?: boolean;
   href?: string;
   className?: string;
@@ -24,6 +24,11 @@ const sizeConfig = {
     container: "size-12",
     icon: "size-6",
     text: "text-2xl",
+  },
+  xl: {
+    container: "size-14",
+    icon: "size-7",
+    text: "text-3xl",
   },
 };
 

@@ -40,7 +40,7 @@ export function Footer() {
                       variant="link"
                       className="h-auto justify-start p-0"
                     >
-                      <Link href="/docs">{t("footer.documentation")}</Link>
+                      <Link href="/guides">{t("footer.guides")}</Link>
                     </Button>
                     <Button
                       asChild

@@ -22,66 +22,100 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const sections = [
-  {
-    icon: Eye,
-    title: "Données collectées",
-    items: [
-      {
-        label: "Compte",
-        value: "Email, nom (optionnel), mot de passe chiffré",
-      },
-      {
-        label: "Suivi quotidien",
-        value: "Humeurs, notes personnelles, qualité du sommeil",
-      },
-      {
-        label: "Médicaments",
-        value: "Noms, dosages, horaires de prises",
-      },
-      {
-        label: "Thérapie",
-        value: "Dates des séances, notes (optionnelles)",
-      },
-    ],
-    highlight:
-      "Nous ne collectons JAMAIS votre géolocalisation, vos contacts, vos messages, ni aucune donnée de vos autres applications.",
-  },
-  {
-    icon: FileText,
-    title: "Utilisation de vos données",
-    items: [
-      { label: "Service", value: "Fournir le suivi personnel" },
-      { label: "Rapports", value: "Générer vos PDF pour consultations" },
-      { label: "Partage", value: "Aidants autorisés uniquement" },
-      { label: "Amélioration", value: "Données agrégées et anonymisées" },
-    ],
-    highlight: "Nous ne vendons JAMAIS vos données à des tiers.",
-  },
-  {
-    icon: Lock,
-    title: "Sécurité",
-    items: [
-      { label: "Chiffrement", value: "AES-256 au repos, TLS 1.3 en transit" },
-      { label: "Hébergement", value: "Serveurs en Union Européenne" },
-      { label: "Authentification", value: "2FA disponible" },
-      { label: "Audits", value: "Tests de sécurité réguliers" },
-    ],
-  },
-  {
-    icon: UserCheck,
-    title: "Vos droits RGPD",
-    items: [
-      { label: "Accès", value: "Consultez toutes vos données" },
-      { label: "Rectification", value: "Modifiez vos informations" },
-      { label: "Effacement", value: "Supprimez votre compte" },
-      { label: "Portabilité", value: "Exportez en JSON" },
-    ],
-  },
-];
-
 export default async function PrivacyPage() {
   const { t } = await getI18n();
+  const sections = [
+    {
+      icon: Eye,
+      title: t("legal.privacy.sections.data.title"),
+      items: [
+        {
+          label: t("legal.privacy.sections.data.items.account.label"),
+          value: t("legal.privacy.sections.data.items.account.value"),
+        },
+        {
+          label: t("legal.privacy.sections.data.items.daily.label"),
+          value: t("legal.privacy.sections.data.items.daily.value"),
+        },
+        {
+          label: t("legal.privacy.sections.data.items.medications.label"),
+          value: t("legal.privacy.sections.data.items.medications.value"),
+        },
+        {
+          label: t("legal.privacy.sections.data.items.therapy.label"),
+          value: t("legal.privacy.sections.data.items.therapy.value"),
+        },
+      ],
+      highlight: t("legal.privacy.sections.data.highlight"),
+    },
+    {
+      icon: FileText,
+      title: t("legal.privacy.sections.usage.title"),
+      items: [
+        {
+          label: t("legal.privacy.sections.usage.items.service.label"),
+          value: t("legal.privacy.sections.usage.items.service.value"),
+        },
+        {
+          label: t("legal.privacy.sections.usage.items.reports.label"),
+          value: t("legal.privacy.sections.usage.items.reports.value"),
+        },
+        {
+          label: t("legal.privacy.sections.usage.items.sharing.label"),
+          value: t("legal.privacy.sections.usage.items.sharing.value"),
+        },
+        {
+          label: t("legal.privacy.sections.usage.items.improvement.label"),
+          value: t("legal.privacy.sections.usage.items.improvement.value"),
+        },
+      ],
+      highlight: t("legal.privacy.sections.usage.highlight"),
+    },
+    {
+      icon: Lock,
+      title: t("legal.privacy.sections.security.title"),
+      items: [
+        {
+          label: t("legal.privacy.sections.security.items.encryption.label"),
+          value: t("legal.privacy.sections.security.items.encryption.value"),
+        },
+        {
+          label: t("legal.privacy.sections.security.items.hosting.label"),
+          value: t("legal.privacy.sections.security.items.hosting.value"),
+        },
+        {
+          label: t("legal.privacy.sections.security.items.auth.label"),
+          value: t("legal.privacy.sections.security.items.auth.value"),
+        },
+        {
+          label: t("legal.privacy.sections.security.items.audit.label"),
+          value: t("legal.privacy.sections.security.items.audit.value"),
+        },
+      ],
+    },
+    {
+      icon: UserCheck,
+      title: t("legal.privacy.sections.rights.title"),
+      items: [
+        {
+          label: t("legal.privacy.sections.rights.items.access.label"),
+          value: t("legal.privacy.sections.rights.items.access.value"),
+        },
+        {
+          label: t("legal.privacy.sections.rights.items.rectify.label"),
+          value: t("legal.privacy.sections.rights.items.rectify.value"),
+        },
+        {
+          label: t("legal.privacy.sections.rights.items.delete.label"),
+          value: t("legal.privacy.sections.rights.items.delete.value"),
+        },
+        {
+          label: t("legal.privacy.sections.rights.items.portability.label"),
+          value: t("legal.privacy.sections.rights.items.portability.value"),
+        },
+      ],
+    },
+  ];
 
   return (
     <div className="relative">
@@ -112,7 +146,7 @@ export default async function PrivacyPage() {
             variant="p"
             className="text-muted-foreground mt-4 text-sm"
           >
-            Dernière mise à jour : Janvier 2026
+            {t("legal.privacy.lastUpdated")}
           </Typography>
         </div>
       </SectionLayout>
@@ -122,12 +156,11 @@ export default async function PrivacyPage() {
         <div className="mx-auto max-w-4xl">
           <div className="from-primary/5 to-primary/10 mb-12 rounded-2xl border border-emerald-500/20 bg-gradient-to-br p-6 text-center">
             <Typography variant="p" className="text-foreground text-lg">
-              Chez Moodday, la protection de vos données de santé est notre{" "}
+              {t("legal.privacy.intro.prefix")}{" "}
               <span className="text-primary font-semibold">
-                priorité absolue
+                {t("legal.privacy.intro.highlight")}
               </span>
-              . Vos informations sont chiffrées, stockées en Europe, et ne sont
-              jamais partagées sans votre consentement.
+              {t("legal.privacy.intro.suffix")}
             </Typography>
           </div>
 
@@ -194,21 +227,21 @@ export default async function PrivacyPage() {
                   variant="h3"
                   className="text-foreground text-lg font-bold"
                 >
-                  Conservation des données
+                  {t("legal.privacy.retention.title")}
                 </Typography>
               </div>
               <ul className="text-muted-foreground space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <span className="bg-primary size-1.5 rounded-full" />
-                  Compte actif : données conservées
+                  {t("legal.privacy.retention.items.active")}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="bg-primary size-1.5 rounded-full" />
-                  Après suppression : effacées sous 30 jours
+                  {t("legal.privacy.retention.items.afterDeletion")}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="bg-primary size-1.5 rounded-full" />
-                  Sauvegardes : supprimées sous 90 jours
+                  {t("legal.privacy.retention.items.backups")}
                 </li>
               </ul>
             </div>
@@ -222,18 +255,17 @@ export default async function PrivacyPage() {
                   variant="h3"
                   className="text-foreground text-lg font-bold"
                 >
-                  Cookies
+                  {t("legal.privacy.cookies.title")}
                 </Typography>
               </div>
               <Typography variant="p" className="text-muted-foreground text-sm">
-                Nous utilisons uniquement des cookies essentiels : session,
-                authentification et préférences (langue, thème).
+                {t("legal.privacy.cookies.description")}
               </Typography>
               <Typography
                 variant="p"
                 className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
               >
-                Aucun cookie publicitaire ou de tracking.
+                {t("legal.privacy.cookies.note")}
               </Typography>
             </div>
           </div>
@@ -244,10 +276,10 @@ export default async function PrivacyPage() {
               variant="h3"
               className="text-foreground mb-2 text-lg font-bold"
             >
-              Contact DPO
+              {t("legal.privacy.contact.title")}
             </Typography>
             <Typography variant="p" className="text-muted-foreground">
-              Pour toute question relative à vos données :{" "}
+              {t("legal.privacy.contact.descriptionPrefix")}{" "}
               <a
                 href="mailto:hello@moodday.app"
                 className="text-primary hover:underline"

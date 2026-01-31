@@ -18,12 +18,13 @@ import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LoginCredentialsFormType } from "./signup.schema";
-import { LoginCredentialsFormScheme } from "./signup.schema";
+import { getLoginCredentialsFormSchema } from "./signup.schema";
 
 export const SignUpCredentialsForm = () => {
   const { t } = useI18n();
+  const schema = getLoginCredentialsFormSchema(t);
   const form = useZodForm({
-    schema: LoginCredentialsFormScheme,
+    schema,
     defaultValues: {
       name: "",
       email: "",

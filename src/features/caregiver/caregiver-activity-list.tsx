@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Eye, AlertTriangle, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +29,8 @@ type CaregiverActivityListProps = {
 export function CaregiverActivityList({
   className,
 }: CaregiverActivityListProps) {
-  const { locale } = useI18n();
-  const lang = locale === "fr" ? "fr" : "en";
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "fr" ? fr : enUS;
 
   const { data: activity, isLoading } = useQuery({
     queryKey: ["caregiver-activity"],
@@ -55,8 +55,8 @@ export function CaregiverActivityList({
     return (
       <EmptyState
         icon={Eye}
-        title="Aucune activité"
-        description="Vos observations et événements apparaîtront ici"
+        title={t("caregiver.activity.emptyTitle")}
+        description={t("caregiver.activity.emptyDescription")}
         className={className}
       />
     );
@@ -67,7 +67,7 @@ export function CaregiverActivityList({
       {activity.map((item) => {
         const timeAgo = formatDistanceToNow(new Date(item.createdAt), {
           addSuffix: true,
-          locale: fr,
+          locale: dateLocale,
         });
 
         if (item.type === "observation") {
@@ -75,12 +75,14 @@ export function CaregiverActivityList({
             ? moodObservedColors[item.moodObserved as MoodObserved]
             : undefined;
           const moodLabel = item.moodObserved
-            ? moodObservedLabels[item.moodObserved as MoodObserved][lang]
+            ? t(moodObservedLabels[item.moodObserved as MoodObserved])
             : undefined;
           const energyLabel = item.energyObserved
-            ? energyObservedLabels[
-                item.energyObserved as "high" | "normal" | "low" | "very_low"
-              ][lang]
+            ? t(
+                energyObservedLabels[
+                  item.energyObserved as "high" | "normal" | "low" | "very_low"
+                ],
+              )
             : undefined;
 
           return (
@@ -97,7 +99,7 @@ export function CaregiverActivityList({
                     <Eye className="text-muted-foreground size-4" />
                     <span className="font-medium">{item.subjectName}</span>
                     <Badge variant="secondary" className="text-xs">
-                      Observation
+                      {t("caregiver.activity.badgeObservation")}
                     </Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -109,11 +111,17 @@ export function CaregiverActivityList({
                           color: moodColor,
                         }}
                       >
-                        Humeur: {moodLabel}
+                        {t("caregiver.activity.moodLabel", {
+                          value: moodLabel,
+                        })}
                       </Badge>
                     )}
                     {energyLabel && (
-                      <Badge variant="outline">Énergie: {energyLabel}</Badge>
+                      <Badge variant="outline">
+                        {t("caregiver.activity.energyLabel", {
+                          value: energyLabel,
+                        })}
+                      </Badge>
                     )}
                   </div>
                   {item.notes && (
@@ -133,7 +141,7 @@ export function CaregiverActivityList({
 
         // Event type
         const eventColor = eventTypeColors[item.eventType as EventType];
-        const eventLabel = eventTypeLabels[item.eventType as EventType][lang];
+        const eventLabel = t(eventTypeLabels[item.eventType as EventType]);
 
         return (
           <Card key={item.id} className="transition-shadow hover:shadow-md">
@@ -179,7 +187,9 @@ export function CaregiverActivityList({
                           : ""
                     }
                   >
-                    Sévérité: {item.severity}/5
+                    {t("caregiver.activity.severityLabel", {
+                      value: item.severity,
+                    })}
                   </Badge>
                 </div>
               </div>

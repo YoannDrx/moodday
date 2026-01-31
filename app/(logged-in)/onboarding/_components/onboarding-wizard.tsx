@@ -212,7 +212,7 @@ export function OnboardingWizard() {
       if (current.key === "medications") {
         if (medicationName.trim() || medicationDosage.trim()) {
           if (!medicationName.trim() || !medicationDosage.trim()) {
-            toast.error("Veuillez renseigner le nom et le dosage.");
+            toast.error(t("onboarding.errors.missingMedicationInfo"));
             return;
           }
           await medicationMutation.mutateAsync();
@@ -225,7 +225,7 @@ export function OnboardingWizard() {
         if (inviteEmail.trim().length > 0) {
           const validation = emailSchema.safeParse(inviteEmail.trim());
           if (!validation.success) {
-            toast.error("Email d'invitation invalide");
+            toast.error(t("onboarding.errors.invalidInviteEmail"));
             return;
           }
           await inviteMutation.mutateAsync();
@@ -239,7 +239,9 @@ export function OnboardingWizard() {
 
       moveToStep(currentStep + 1);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erreur inattendue");
+      toast.error(
+        error instanceof Error ? error.message : t("common.unexpectedError"),
+      );
     }
   };
 
@@ -281,7 +283,7 @@ export function OnboardingWizard() {
             <div className="space-y-6">
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <Label>Humeur</Label>
+                  <Label>{t("onboarding.mood.label")}</Label>
                   <span className="text-lg font-bold text-[var(--primary)]">
                     {moodValue}/10
                   </span>
@@ -298,7 +300,7 @@ export function OnboardingWizard() {
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <Label>Anxiété</Label>
+                  <Label>{t("onboarding.mood.anxietyLabel")}</Label>
                   <span className="text-lg font-bold text-red-500">
                     {anxietyValue}/10
                   </span>
@@ -314,11 +316,11 @@ export function OnboardingWizard() {
               </div>
 
               <div>
-                <Label>Note (optionnel)</Label>
+                <Label>{t("onboarding.mood.noteLabel")}</Label>
                 <Textarea
                   value={moodNote}
                   onChange={(e) => setMoodNote(e.target.value)}
-                  placeholder="Un mot sur votre journée..."
+                  placeholder={t("onboarding.mood.notePlaceholder")}
                   className="mt-2 min-h-[90px]"
                 />
               </div>
@@ -328,25 +330,25 @@ export function OnboardingWizard() {
           {current.key === "medications" && (
             <div className="space-y-5">
               <div>
-                <Label>Nom du traitement</Label>
+                <Label>{t("onboarding.medication.nameLabel")}</Label>
                 <Input
                   value={medicationName}
                   onChange={(e) => setMedicationName(e.target.value)}
-                  placeholder="Ex: Lamictal"
+                  placeholder={t("onboarding.medication.namePlaceholder")}
                   className="mt-2"
                 />
               </div>
               <div>
-                <Label>Dosage</Label>
+                <Label>{t("onboarding.medication.dosageLabel")}</Label>
                 <Input
                   value={medicationDosage}
                   onChange={(e) => setMedicationDosage(e.target.value)}
-                  placeholder="Ex: 200mg"
+                  placeholder={t("onboarding.medication.dosagePlaceholder")}
                   className="mt-2"
                 />
               </div>
               <div>
-                <Label>Fréquence</Label>
+                <Label>{t("onboarding.medication.frequencyLabel")}</Label>
                 <Select
                   value={medicationFrequency}
                   onValueChange={(value) =>
@@ -368,12 +370,14 @@ export function OnboardingWizard() {
                     <SelectItem value="weekly">
                       {t("medication.frequency.weekly")}
                     </SelectItem>
-                    <SelectItem value="prn">PRN</SelectItem>
+                    <SelectItem value="prn">
+                      {t("medication.frequency.prn")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <p className="text-muted-foreground text-sm">
-                Vous pourrez ajouter d'autres traitements plus tard.
+                {t("onboarding.medication.laterHint")}
               </p>
             </div>
           )}
@@ -383,7 +387,9 @@ export function OnboardingWizard() {
               <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold">Notifications</p>
+                    <p className="font-semibold">
+                      {t("settings.notifications.title")}
+                    </p>
                     <p className="text-muted-foreground text-sm">
                       {t("settings.notifications.enabledHint")}
                     </p>
@@ -461,13 +467,17 @@ export function OnboardingWizard() {
               </div>
 
               <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
-                <p className="font-semibold">Inviter un aidant (optionnel)</p>
+                <p className="font-semibold">
+                  {t("onboarding.preferences.invite.title")}
+                </p>
                 <p className="text-muted-foreground text-sm">
-                  Partagez votre suivi avec une personne de confiance.
+                  {t("onboarding.preferences.invite.description")}
                 </p>
                 <div className="mt-4 grid gap-3">
                   <Input
-                    placeholder="Email de l'aidant"
+                    placeholder={t(
+                      "onboarding.preferences.invite.emailPlaceholder",
+                    )}
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />
@@ -481,13 +491,21 @@ export function OnboardingWizard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="family">Famille</SelectItem>
-                      <SelectItem value="friend">Ami</SelectItem>
-                      <SelectItem value="professional">Professionnel</SelectItem>
+                      <SelectItem value="family">
+                        {t("caregiver.roles.family")}
+                      </SelectItem>
+                      <SelectItem value="friend">
+                        {t("caregiver.roles.friend")}
+                      </SelectItem>
+                      <SelectItem value="professional">
+                        {t("caregiver.roles.professional")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
-                    placeholder="Surnom (ex: Maman, Dr. Martin)"
+                    placeholder={t(
+                      "onboarding.preferences.invite.labelPlaceholder",
+                    )}
                     value={inviteLabel}
                     onChange={(e) => setInviteLabel(e.target.value)}
                   />

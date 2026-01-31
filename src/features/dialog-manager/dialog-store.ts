@@ -4,6 +4,11 @@ import { toast } from "sonner";
 import { create } from "zustand";
 import { DialogFactory } from "./dialog-factory";
 import type { Dialog, DialogConfig } from "./dialog-types";
+import { defaultLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/messages";
+import { createTranslator } from "@/i18n/translator";
+
+const t = createTranslator(getMessages(defaultLocale));
 
 type DialogStore = {
   dialogs: Dialog[];
@@ -70,7 +75,7 @@ export async function handleDialogAction(
   } catch (error) {
     const err = error instanceof Error ? error : new Error("Unknown error");
 
-    toast.error("Action failed", {
+    toast.error(t("common.actionFailed"), {
       description: err.message,
     });
 

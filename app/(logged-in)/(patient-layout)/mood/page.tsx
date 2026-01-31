@@ -7,7 +7,7 @@ export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
   return {
     title: t("patient.nav.mood"),
-    description: "Journal détaillé de votre journée",
+    description: t("mood.page.description"),
   };
 });
 

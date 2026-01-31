@@ -1,6 +1,7 @@
 "use client";
 
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { useI18n } from "@/i18n/provider";
 
 // Define styles
 const styles = StyleSheet.create({
@@ -181,37 +182,44 @@ type PDFDocumentProps = {
   data: ExportData;
 };
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
+const formatDate = (dateStr: string, locale: string) => {
+  return new Date(dateStr).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 };
 
-const frequencyLabels: Record<string, string> = {
-  daily: "Quotidien",
-  twice_daily: "2x/jour",
-  weekly: "Hebdomadaire",
-  prn: "Si besoin",
+const frequencyLabelKeys: Record<string, string> = {
+  daily: "medication.frequency.daily",
+  twice_daily: "medication.frequency.twiceDaily",
+  weekly: "medication.frequency.weekly",
+  prn: "medication.frequency.prn",
 };
 
 export function ExportPDFDocument({ data }: PDFDocumentProps) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Rapport de suivi - {data.userName}</Text>
+          <Text style={styles.title}>
+            {t("export.pdf.title", { name: data.userName })}
+          </Text>
           <Text style={styles.subtitle}>
-            Période: {formatDate(data.period.start)} -{" "}
-            {formatDate(data.period.end)}
+            {t("export.pdf.period", {
+              start: formatDate(data.period.start, dateLocale),
+              end: formatDate(data.period.end, dateLocale),
+            })}
           </Text>
         </View>
 
         {/* Mood Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Humeur</Text>
+          <Text style={styles.sectionTitle}>{t("export.pdf.sections.mood")}</Text>
           {data.mood.stats.count > 0 ? (
             <>
               <View style={styles.statsRow}>
@@ -219,24 +227,34 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
                   <Text style={styles.statValue}>
                     {data.mood.stats.average}/10
                   </Text>
-                  <Text style={styles.statLabel}>Moyenne</Text>
+                  <Text style={styles.statLabel}>
+                    {t("export.pdf.stats.average")}
+                  </Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{data.mood.stats.min}</Text>
-                  <Text style={styles.statLabel}>Min</Text>
+                  <Text style={styles.statLabel}>
+                    {t("export.pdf.stats.min")}
+                  </Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{data.mood.stats.max}</Text>
-                  <Text style={styles.statLabel}>Max</Text>
+                  <Text style={styles.statLabel}>
+                    {t("export.pdf.stats.max")}
+                  </Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{data.mood.stats.count}</Text>
-                  <Text style={styles.statLabel}>Entrées</Text>
+                  <Text style={styles.statLabel}>
+                    {t("export.pdf.stats.entries")}
+                  </Text>
                 </View>
               </View>
               {data.mood.entries.slice(0, 15).map((entry, i) => (
                 <View key={i} style={styles.moodEntry}>
-                  <Text style={styles.moodDate}>{formatDate(entry.date)}</Text>
+                  <Text style={styles.moodDate}>
+                    {formatDate(entry.date, dateLocale)}
+                  </Text>
                   <Text style={styles.moodValue}>{entry.value}/10</Text>
                   <Text style={styles.moodNote}>
                     {entry.note ? entry.note.slice(0, 50) : ""}
@@ -245,21 +263,27 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
               ))}
               {data.mood.entries.length > 15 && (
                 <Text style={{ color: "#9ca3af", fontSize: 8, marginTop: 3 }}>
-                  +{data.mood.entries.length - 15} entrées supplémentaires
+                  {t("export.pdf.moreEntries", {
+                    count: data.mood.entries.length - 15,
+                  })}
                 </Text>
               )}
             </>
           ) : (
-            <Text style={{ color: "#9ca3af" }}>Aucune entrée d'humeur</Text>
+            <Text style={{ color: "#9ca3af" }}>
+              {t("export.pdf.noMoodEntries")}
+            </Text>
           )}
         </View>
 
         {/* Medications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Médicaments</Text>
+          <Text style={styles.sectionTitle}>
+            {t("export.pdf.sections.medications")}
+          </Text>
           {data.medications.adherencePercent !== null && (
             <View style={styles.row}>
-              <Text style={styles.label}>Observance:</Text>
+              <Text style={styles.label}>{t("export.pdf.adherence")}:</Text>
               <Text style={styles.value}>
                 {data.medications.adherencePercent}%
               </Text>
@@ -272,16 +296,22 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
                   {med.name} - {med.dosage}
                 </Text>
                 <Text style={styles.medDetail}>
-                  {frequencyLabels[med.frequency] || med.frequency}
-                  {med.isPRN ? " (aussi PRN)" : ""} • {med.intakesCount} prises
+                  {frequencyLabelKeys[med.frequency]
+                    ? t(frequencyLabelKeys[med.frequency])
+                    : med.frequency}
+                  {med.isPRN ? ` ${t("medication.prn.also")}` : ""} •{" "}
+                  {med.intakesCount}{" "}
+                  {med.intakesCount === 1
+                    ? t("export.pdf.intakeSingular")
+                    : t("export.pdf.intakePlural")}
                 </Text>
                 {med.dosageChanges.length > 0 && (
                   <Text style={styles.medDetail}>
-                    Changements:{" "}
+                    {t("export.pdf.dosageChanges")}:{" "}
                     {med.dosageChanges
                       .map(
                         (c) =>
-                          `${formatDate(c.date)}: ${c.from ?? "?"} → ${c.to}`,
+                          `${formatDate(c.date, dateLocale)}: ${c.from ?? "?"} → ${c.to}`,
                       )
                       .join(", ")}
                   </Text>
@@ -289,22 +319,26 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
               </View>
             ))
           ) : (
-            <Text style={{ color: "#9ca3af" }}>Aucun médicament</Text>
+            <Text style={{ color: "#9ca3af" }}>
+              {t("export.pdf.noMedications")}
+            </Text>
           )}
         </View>
 
         {/* Therapy */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Thérapie ({data.therapy.count} séances)
+            {t("export.pdf.sections.therapy", { count: data.therapy.count })}
           </Text>
           {data.therapy.sessions.length > 0 ? (
             data.therapy.sessions.slice(0, 5).map((session, i) => (
               <View key={i} style={styles.therapyItem}>
                 <Text style={styles.therapyDate}>
-                  {formatDate(session.date)}
+                  {formatDate(session.date, dateLocale)}
                   {session.benefitRating
-                    ? ` - ${session.benefitRating}/5 étoiles`
+                    ? ` - ${t("export.pdf.benefitRating", {
+                        value: session.benefitRating,
+                      })}`
                     : ""}
                 </Text>
                 <Text style={styles.therapyNotes}>
@@ -314,7 +348,9 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
               </View>
             ))
           ) : (
-            <Text style={{ color: "#9ca3af" }}>Aucune séance</Text>
+            <Text style={{ color: "#9ca3af" }}>
+              {t("export.pdf.noTherapy")}
+            </Text>
           )}
         </View>
 
@@ -322,12 +358,14 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
         {data.exercises.count > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Exercices ({data.exercises.count} complétés)
+              {t("export.pdf.sections.exercises", {
+                count: data.exercises.count,
+              })}
             </Text>
             <View style={styles.exerciseList}>
               {data.exercises.logs.slice(0, 20).map((log, i) => (
                 <Text key={i} style={styles.exerciseItem}>
-                  {log.name} ({formatDate(log.date)})
+                  {log.name} ({formatDate(log.date, dateLocale)})
                 </Text>
               ))}
             </View>
@@ -336,7 +374,9 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Généré par Moodday • {new Date().toLocaleDateString("fr-FR")}
+          {t("export.pdf.footer", {
+            date: new Date().toLocaleDateString(dateLocale),
+          })}
         </Text>
       </Page>
     </Document>

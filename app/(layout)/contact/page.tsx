@@ -83,13 +83,13 @@ export default async function ContactPage() {
                 variant="h3"
                 className="text-foreground mb-2 font-bold"
               >
-                Email
+                {t("contact.cards.email.title")}
               </Typography>
               <Typography
                 variant="p"
                 className="text-muted-foreground mb-4 text-sm"
               >
-                Pour toute question générale ou demande de support
+                {t("contact.cards.email.description")}
               </Typography>
               <a
                 href="mailto:hello@moodday.app"
@@ -108,16 +108,16 @@ export default async function ContactPage() {
                 variant="h3"
                 className="text-foreground mb-2 font-bold"
               >
-                Temps de réponse
+                {t("contact.cards.response.title")}
               </Typography>
               <Typography
                 variant="p"
                 className="text-muted-foreground mb-4 text-sm"
               >
-                Notre équipe s&apos;engage à vous répondre rapidement
+                {t("contact.cards.response.description")}
               </Typography>
               <span className="text-foreground text-sm font-semibold">
-                Sous 24h en jours ouvrés
+                {t("contact.cards.response.value")}
               </span>
             </div>
 
@@ -130,13 +130,13 @@ export default async function ContactPage() {
                 variant="h3"
                 className="text-foreground mb-2 font-bold"
               >
-                Réseaux sociaux
+                {t("contact.cards.social.title")}
               </Typography>
               <Typography
                 variant="p"
                 className="text-muted-foreground mb-4 text-sm"
               >
-                Suivez-nous pour les dernières actualités
+                {t("contact.cards.social.description")}
               </Typography>
               <div className="flex gap-3">
                 <a
@@ -169,13 +169,13 @@ export default async function ContactPage() {
                       variant="h2"
                       className="text-foreground text-xl font-bold"
                     >
-                      Envoyez-nous un message
+                      {t("contact.form.title")}
                     </Typography>
                     <Typography
                       variant="p"
                       className="text-muted-foreground text-sm"
                     >
-                      Nous vous répondrons rapidement
+                      {t("contact.form.subtitle")}
                     </Typography>
                   </div>
                 </div>
@@ -321,7 +321,7 @@ export default async function ContactPage() {
                     variant="h3"
                     className="text-foreground font-bold"
                   >
-                    Questions fréquentes
+                    {t("contact.faq.title")}
                   </Typography>
                 </div>
 
@@ -331,14 +331,13 @@ export default async function ContactPage() {
                       variant="p"
                       className="text-foreground mb-1 text-sm font-semibold"
                     >
-                      Moodday est-il gratuit ?
+                      {t("contact.faq.items.free.question")}
                     </Typography>
                     <Typography
                       variant="p"
                       className="text-muted-foreground text-sm"
                     >
-                      Oui, l&apos;essentiel est gratuit. Des fonctionnalités Pro
-                      sont disponibles en option.
+                      {t("contact.faq.items.free.answer")}
                     </Typography>
                   </div>
 
@@ -347,14 +346,13 @@ export default async function ContactPage() {
                       variant="p"
                       className="text-foreground mb-1 text-sm font-semibold"
                     >
-                      Mes données sont-elles sécurisées ?
+                      {t("contact.faq.items.security.question")}
                     </Typography>
                     <Typography
                       variant="p"
                       className="text-muted-foreground text-sm"
                     >
-                      Absolument. Chiffrement AES-256, hébergement en Europe,
-                      conformité RGPD.
+                      {t("contact.faq.items.security.answer")}
                     </Typography>
                   </div>
 
@@ -363,13 +361,13 @@ export default async function ContactPage() {
                       variant="p"
                       className="text-foreground mb-1 text-sm font-semibold"
                     >
-                      Puis-je exporter mes données ?
+                      {t("contact.faq.items.export.question")}
                     </Typography>
                     <Typography
                       variant="p"
                       className="text-muted-foreground text-sm"
                     >
-                      Oui, exportez vos données en PDF ou JSON à tout moment.
+                      {t("contact.faq.items.export.answer")}
                     </Typography>
                   </div>
                 </div>
@@ -378,7 +376,7 @@ export default async function ContactPage() {
                   href="/#faq"
                   className="text-primary mt-4 block text-center text-sm font-semibold hover:underline"
                 >
-                  Voir toutes les FAQ →
+                  {t("contact.faq.more")}
                 </Link>
               </div>
             </div>

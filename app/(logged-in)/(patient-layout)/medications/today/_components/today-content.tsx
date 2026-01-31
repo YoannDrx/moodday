@@ -47,7 +47,7 @@ type PRNMedication = {
 };
 
 export function TodayContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
 
   const {
@@ -92,11 +92,11 @@ export function TodayContent() {
     },
     onSuccess: (result) => {
       if ((result as { queued?: boolean }).queued) {
-        toast.success("Prise enregistrée hors ligne.");
+        toast.success(t("medication.intake.loggedOffline"));
         return;
       }
       void queryClient.invalidateQueries({ queryKey: ["todayIntakes"] });
-      toast.success("Prise enregistrée !");
+      toast.success(t("medication.intake.logged"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -115,11 +115,11 @@ export function TodayContent() {
     },
     onSuccess: (result) => {
       if ((result as { queued?: boolean }).queued) {
-        toast.success("Prise enregistrée hors ligne.");
+        toast.success(t("medication.intake.loggedOffline"));
         return;
       }
       void queryClient.invalidateQueries({ queryKey: ["prnMedications"] });
-      toast.success("Prise enregistrée !");
+      toast.success(t("medication.intake.logged"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -141,11 +141,14 @@ export function TodayContent() {
     totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 0;
 
   // Today's date
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    },
+  );
 
   if (isError) {
     return (
@@ -171,7 +174,7 @@ export function TodayContent() {
           className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-[var(--primary)]"
         >
           <ArrowLeft className="size-4" />
-          Retour aux traitements
+          {t("medication.today.backToList")}
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
           {t("medication.today.title")}
@@ -198,7 +201,7 @@ export function TodayContent() {
               <Pill className="size-10 text-[var(--primary)]" />
             </div>
             <h3 className="mb-2 text-xl font-bold text-gray-800">
-              Aucun traitement prévu
+              {t("medication.today.emptyTitle")}
             </h3>
             <p className="mb-6 text-gray-500">{t("medication.today.empty")}</p>
             <Button
@@ -207,7 +210,7 @@ export function TodayContent() {
             >
               <Link href="/medications/new">
                 <Plus className="mr-2 size-4" />
-                Ajouter un traitement
+                {t("medication.today.addMedication")}
               </Link>
             </Button>
           </GlassCard>
@@ -253,8 +256,13 @@ export function TodayContent() {
                 </p>
                 <p className="text-sm text-gray-500">
                   {allDone
-                    ? "Excellent travail ! Revenez demain."
-                    : `${totalCount - takenCount} prise${totalCount - takenCount > 1 ? "s" : ""} restante${totalCount - takenCount > 1 ? "s" : ""}`}
+                    ? t("medication.today.allDoneSubtext")
+                    : t(
+                        totalCount - takenCount === 1
+                          ? "medication.today.remainingSingular"
+                          : "medication.today.remainingPlural",
+                        { count: totalCount - takenCount },
+                      )}
                 </p>
               </div>
             </div>
@@ -279,7 +287,7 @@ export function TodayContent() {
                 <GlassCardTitle
                   icon={<Pill className="size-5 text-[var(--primary)]" />}
                 >
-                  Traitements réguliers
+                  {t("medication.today.regularTitle")}
                 </GlassCardTitle>
                 <GlassCardBadge>
                   {takenCount}/{totalCount}
@@ -348,7 +356,9 @@ export function TodayContent() {
                           hasTaken ? "text-[var(--sage)]" : "text-gray-400",
                         )}
                       >
-                        {hasTaken ? "Pris ✓" : "En attente"}
+                        {hasTaken
+                          ? t("medication.status.taken")
+                          : t("medication.status.pending")}
                       </span>
                     </div>
                   );
@@ -367,7 +377,7 @@ export function TodayContent() {
                   {t("medication.prn.section")}
                 </GlassCardTitle>
                 <span className="rounded-lg bg-[var(--lavender)]/20 px-2 py-1 text-xs font-bold text-[var(--lavender-dark)]">
-                  Si besoin
+                  {t("medication.prn.section")}
                 </span>
               </GlassCardHeader>
 
@@ -392,9 +402,12 @@ export function TodayContent() {
                           {medication.dosage}
                           {todayIntakesCount > 0 && (
                             <span className="ml-2 text-[var(--lavender-dark)]">
-                              • {todayIntakesCount} prise
-                              {todayIntakesCount > 1 ? "s" : ""}{" "}
-                              aujourd&apos;hui
+                              {t(
+                                todayIntakesCount === 1
+                                  ? "medication.prn.takenTodaySingular"
+                                  : "medication.prn.takenTodayPlural",
+                                { count: todayIntakesCount },
+                              )}
                             </span>
                           )}
                         </p>
@@ -410,7 +423,7 @@ export function TodayContent() {
                         className="rounded-xl border-[var(--lavender)]/30 text-[var(--lavender-dark)] hover:bg-[var(--lavender)]/10"
                       >
                         <Plus className="mr-1 size-4" />
-                        Prendre
+                        {t("medication.prn.logButton")}
                       </Button>
                     </div>
                   );

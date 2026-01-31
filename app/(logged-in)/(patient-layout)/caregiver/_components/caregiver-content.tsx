@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -85,15 +85,15 @@ type CaregiverSummary = {
   concerningEvents: number;
 };
 
-const roleLabels: Record<string, string> = {
-  family: "Famille",
-  friend: "Ami(e)",
-  professional: "Professionnel",
-};
-
 export function CaregiverContent() {
-  const { locale } = useI18n();
-  const lang = locale === "fr" ? "fr" : "en";
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "fr" ? fr : enUS;
+  const localeTag = locale === "fr" ? "fr-FR" : "en-US";
+  const roleLabelKeys: Record<string, string> = {
+    family: "caregiver.roles.family",
+    friend: "caregiver.roles.friend",
+    professional: "caregiver.roles.professional",
+  };
   const queryClient = useQueryClient();
 
   // Invite dialog state
@@ -158,14 +158,14 @@ export function CaregiverContent() {
       return result.data;
     },
     onSuccess: () => {
-      toast.success("Invitation envoyée !");
+      toast.success(t("caregiver.dashboard.toasts.inviteSent"));
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteLabel("");
       void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(t(error.message));
     },
   });
 
@@ -176,20 +176,25 @@ export function CaregiverContent() {
       return result.data;
     },
     onSuccess: () => {
-      toast.success("Aidant retiré du cercle");
+      toast.success(t("caregiver.dashboard.toasts.removed"));
       void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(t(error.message));
     },
   });
 
   // Today's date
-  const today = new Date().toLocaleDateString("fr-FR", {
+  const today = new Date().toLocaleDateString(localeTag, {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+  const activityCount = activity?.length ?? 0;
+  const activityCountLabel =
+    activityCount === 1
+      ? t("caregiver.dashboard.activity.entry")
+      : t("caregiver.dashboard.activity.entries");
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-8">
@@ -202,7 +207,7 @@ export function CaregiverContent() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-              Cercle d&apos;aidants
+              {t("caregiver.dashboard.title")}
             </h1>
             <p className="text-gray-500">{today}</p>
           </div>
@@ -212,7 +217,7 @@ export function CaregiverContent() {
           >
             <Link href="/caregiver/observe">
               <Plus className="mr-2 size-4" />
-              Nouvelle observation
+              {t("caregiver.dashboard.newObservation")}
             </Link>
           </Button>
         </div>
@@ -236,7 +241,7 @@ export function CaregiverContent() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase">
-                    Cette semaine
+                    {t("caregiver.dashboard.stats.week")}
                   </p>
                   <p className="text-2xl font-bold">
                     {summary?.observationsThisWeek ?? 0}
@@ -253,7 +258,7 @@ export function CaregiverContent() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase">
-                    Ce mois
+                    {t("caregiver.dashboard.stats.month")}
                   </p>
                   <p className="text-2xl font-bold">
                     {summary?.observationsThisMonth ?? 0}
@@ -270,7 +275,7 @@ export function CaregiverContent() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase">
-                    Événements
+                    {t("caregiver.dashboard.stats.events")}
                   </p>
                   <p className="text-2xl font-bold">
                     {summary?.eventsThisMonth ?? 0}
@@ -302,7 +307,7 @@ export function CaregiverContent() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase">
-                    À surveiller
+                    {t("caregiver.dashboard.stats.concerning")}
                   </p>
                   <p className="text-2xl font-bold">
                     {summary?.concerningEvents ?? 0}
@@ -324,8 +329,12 @@ export function CaregiverContent() {
             <Eye className="size-6" />
           </div>
           <div>
-            <p className="font-bold text-gray-800">Check-in quotidien</p>
-            <p className="text-sm text-gray-500">Observer l&apos;humeur</p>
+            <p className="font-bold text-gray-800">
+              {t("caregiver.dashboard.actions.checkin.title")}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("caregiver.dashboard.actions.checkin.subtitle")}
+            </p>
           </div>
           <ChevronRight className="ml-auto size-5 text-gray-300 transition-transform group-hover:translate-x-1" />
         </Link>
@@ -338,8 +347,12 @@ export function CaregiverContent() {
             <AlertTriangle className="size-6" />
           </div>
           <div>
-            <p className="font-bold text-gray-800">Signaler un événement</p>
-            <p className="text-sm text-gray-500">Situation préoccupante</p>
+            <p className="font-bold text-gray-800">
+              {t("caregiver.dashboard.actions.event.title")}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("caregiver.dashboard.actions.event.subtitle")}
+            </p>
           </div>
           <ChevronRight className="ml-auto size-5 text-gray-300 transition-transform group-hover:translate-x-1" />
         </Link>
@@ -352,8 +365,12 @@ export function CaregiverContent() {
             <UserPlus className="size-6" />
           </div>
           <div className="text-left">
-            <p className="font-bold text-gray-800">Inviter un aidant</p>
-            <p className="text-sm text-gray-500">Partager l&apos;accès</p>
+            <p className="font-bold text-gray-800">
+              {t("caregiver.dashboard.actions.invite.title")}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("caregiver.dashboard.actions.invite.subtitle")}
+            </p>
           </div>
           <ChevronRight className="ml-auto size-5 text-gray-300 transition-transform group-hover:translate-x-1" />
         </button>
@@ -367,9 +384,11 @@ export function CaregiverContent() {
               <GlassCardTitle
                 icon={<Activity className="size-5 text-[var(--primary)]" />}
               >
-                Activité récente
+                {t("caregiver.dashboard.activity.title")}
               </GlassCardTitle>
-              <GlassCardBadge>{activity?.length ?? 0} entrées</GlassCardBadge>
+              <GlassCardBadge>
+                {activityCount} {activityCountLabel}
+              </GlassCardBadge>
             </GlassCardHeader>
 
             <GlassCardContent>
@@ -385,10 +404,10 @@ export function CaregiverContent() {
                     <Eye className="size-8 text-gray-400" />
                   </div>
                   <h3 className="mb-2 font-bold text-gray-800">
-                    Aucune activité
+                    {t("caregiver.dashboard.activity.emptyTitle")}
                   </h3>
                   <p className="mb-6 text-sm text-gray-500">
-                    Vos observations et événements apparaîtront ici
+                    {t("caregiver.dashboard.activity.emptyDescription")}
                   </p>
                   <Button
                     asChild
@@ -396,7 +415,7 @@ export function CaregiverContent() {
                   >
                     <Link href="/caregiver/observe">
                       <Plus className="mr-2 size-4" />
-                      Première observation
+                      {t("caregiver.dashboard.activity.emptyCta")}
                     </Link>
                   </Button>
                 </div>
@@ -407,7 +426,7 @@ export function CaregiverContent() {
                       new Date(item.createdAt),
                       {
                         addSuffix: true,
-                        locale: fr,
+                        locale: dateLocale,
                       },
                     );
 
@@ -415,19 +434,23 @@ export function CaregiverContent() {
                       const moodColor = item.moodObserved
                         ? moodObservedColors[item.moodObserved as MoodObserved]
                         : undefined;
-                      const moodLabel = item.moodObserved
-                        ? moodObservedLabels[item.moodObserved as MoodObserved][
-                            lang
-                          ]
+                      const moodLabelKey = item.moodObserved
+                        ? moodObservedLabels[item.moodObserved as MoodObserved]
                         : undefined;
-                      const energyLabel = item.energyObserved
+                      const moodLabel = moodLabelKey
+                        ? t(moodLabelKey)
+                        : undefined;
+                      const energyLabelKey = item.energyObserved
                         ? energyObservedLabels[
                             item.energyObserved as
                               | "high"
                               | "normal"
                               | "low"
                               | "very_low"
-                          ][lang]
+                          ]
+                        : undefined;
+                      const energyLabel = energyLabelKey
+                        ? t(energyLabelKey)
                         : undefined;
 
                       return (
@@ -451,7 +474,9 @@ export function CaregiverContent() {
                                 className="rounded-lg border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[10px] font-bold text-[var(--primary)]"
                               >
                                 <Eye className="mr-1 size-3" />
-                                Observation
+                                {t(
+                                  "caregiver.dashboard.activity.badgeObservation",
+                                )}
                               </Badge>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -463,12 +488,14 @@ export function CaregiverContent() {
                                     color: moodColor,
                                   }}
                                 >
-                                  Humeur: {moodLabel}
+                                  {t("caregiver.dashboard.activity.moodLabel")}{" "}
+                                  {moodLabel}
                                 </span>
                               )}
                               {energyLabel && (
                                 <span className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                                  Énergie: {energyLabel}
+                                  {t("caregiver.dashboard.activity.energyLabel")}{" "}
+                                  {energyLabel}
                                 </span>
                               )}
                             </div>
@@ -489,8 +516,9 @@ export function CaregiverContent() {
                     // Event type
                     const eventColor =
                       eventTypeColors[item.eventType as EventType];
-                    const eventLabel =
-                      eventTypeLabels[item.eventType as EventType][lang];
+                    const eventLabelKey =
+                      eventTypeLabels[item.eventType as EventType];
+                    const eventLabel = t(eventLabelKey);
 
                     return (
                       <div
@@ -545,7 +573,9 @@ export function CaregiverContent() {
                                     : "bg-gray-100 text-gray-600",
                               )}
                             >
-                              Sévérité: {item.severity}/5
+                              {t("caregiver.dashboard.activity.severity", {
+                                value: item.severity,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -567,7 +597,7 @@ export function CaregiverContent() {
                 <GlassCardTitle
                   icon={<Users className="size-5 text-[var(--primary)]" />}
                 >
-                  Mes patients
+                  {t("caregiver.dashboard.patients.title")}
                 </GlassCardTitle>
               </GlassCardHeader>
 
@@ -600,7 +630,7 @@ export function CaregiverContent() {
                 ) : (
                   <div className="py-4 text-center">
                     <p className="text-sm text-gray-500">
-                      Aucun patient assigné
+                      {t("caregiver.dashboard.patients.empty")}
                     </p>
                   </div>
                 )}
@@ -611,12 +641,12 @@ export function CaregiverContent() {
           {/* My Care Circle */}
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>
-              <GlassCardTitle
-                icon={<Users className="size-5 text-[var(--primary)]" />}
-              >
-                Mon cercle
-              </GlassCardTitle>
-            </GlassCardHeader>
+                <GlassCardTitle
+                  icon={<Users className="size-5 text-[var(--primary)]" />}
+                >
+                  {t("caregiver.dashboard.circle.title")}
+                </GlassCardTitle>
+              </GlassCardHeader>
 
             <GlassCardContent className="space-y-4">
               {caregiversLoading ? (
@@ -632,7 +662,7 @@ export function CaregiverContent() {
                       caregiver.label,
                       caregiver.caregiverName,
                       caregiver.caregiverEmail,
-                    ].find((v) => v) ?? "Aidant";
+                    ].find((v) => v) ?? t("caregiver.dashboard.circle.default");
 
                   return (
                     <div key={caregiver.id} className="flex items-center gap-3">
@@ -652,8 +682,13 @@ export function CaregiverContent() {
                       <div className="min-w-0 flex-grow">
                         <p className="font-bold text-gray-800">{displayName}</p>
                         <p className="text-xs text-gray-400">
-                          {roleLabels[caregiver.role] || caregiver.role}
-                          {caregiver.status === "pending" && " • En attente"}
+                          {roleLabelKeys[caregiver.role]
+                            ? t(roleLabelKeys[caregiver.role])
+                            : caregiver.role}
+                          {caregiver.status === "pending" &&
+                            ` • ${t(
+                              "caregiver.dashboard.circle.statusPending",
+                            )}`}
                         </p>
                       </div>
                       <AlertDialog>
@@ -665,22 +700,25 @@ export function CaregiverContent() {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Retirer cet aidant ?
+                              {t("caregiver.dashboard.circle.removeTitle")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              {displayName} n&apos;aura plus accès à vos
-                              données. Cette action est irréversible.
+                              {t("caregiver.dashboard.circle.removeDescription", {
+                                name: displayName,
+                              })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogCancel>
+                              {t("actions.cancel")}
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() =>
                                 removeMutation.mutate(caregiver.id)
                               }
                               className="bg-red-500 hover:bg-red-600"
                             >
-                              Retirer
+                              {t("caregiver.dashboard.circle.removeConfirm")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -691,7 +729,7 @@ export function CaregiverContent() {
               ) : (
                 <div className="py-4 text-center">
                   <p className="text-sm text-gray-500">
-                    Aucun aidant dans votre cercle
+                    {t("caregiver.dashboard.circle.empty")}
                   </p>
                 </div>
               )}
@@ -701,7 +739,7 @@ export function CaregiverContent() {
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
                 <UserPlus className="size-4" />
-                Inviter un aidant
+                {t("caregiver.dashboard.circle.inviteCta")}
               </button>
             </GlassCardContent>
           </GlassCard>
@@ -716,17 +754,16 @@ export function CaregiverContent() {
               <GlassCardTitle
                 icon={<Eye className="size-5 text-[var(--lavender-dark)]" />}
               >
-                Conseil du jour
+                {t("caregiver.dashboard.tips.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
             <GlassCardContent>
               <p className="text-sm leading-relaxed text-gray-700">
                 <span className="font-bold text-[var(--lavender-dark)]">
-                  Observez sans juger.
+                  {t("caregiver.dashboard.tips.highlight")}
                 </span>{" "}
-                Notez ce que vous voyez de manière factuelle : comportements,
-                expressions, activités. Évitez les interprétations.
+                {t("caregiver.dashboard.tips.body")}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -737,25 +774,30 @@ export function CaregiverContent() {
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Inviter un aidant</DialogTitle>
+            <DialogTitle>{t("caregiver.dashboard.inviteDialog.title")}</DialogTitle>
             <DialogDescription>
-              Envoyez une invitation à un proche ou un professionnel pour
-              qu&apos;il puisse suivre votre parcours.
+              {t("caregiver.dashboard.inviteDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="invite-email">Email</Label>
+              <Label htmlFor="invite-email">
+                {t("caregiver.dashboard.inviteDialog.emailLabel")}
+              </Label>
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="email@exemple.com"
+                placeholder={t(
+                  "caregiver.dashboard.inviteDialog.emailPlaceholder",
+                )}
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-role">Type d&apos;aidant</Label>
+              <Label htmlFor="invite-role">
+                {t("caregiver.dashboard.inviteDialog.roleLabel")}
+              </Label>
               <Select
                 value={inviteRole}
                 onValueChange={(v) =>
@@ -766,19 +808,27 @@ export function CaregiverContent() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="family">Famille</SelectItem>
-                  <SelectItem value="friend">Ami(e)</SelectItem>
+                  <SelectItem value="family">
+                    {t("caregiver.roles.family")}
+                  </SelectItem>
+                  <SelectItem value="friend">
+                    {t("caregiver.roles.friend")}
+                  </SelectItem>
                   <SelectItem value="professional">
-                    Professionnel de santé
+                    {t("caregiver.roles.professional")}
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-label">Surnom (optionnel)</Label>
+              <Label htmlFor="invite-label">
+                {t("caregiver.dashboard.inviteDialog.labelLabel")}
+              </Label>
               <Input
                 id="invite-label"
-                placeholder="Ex: Maman, Dr. Martin..."
+                placeholder={t(
+                  "caregiver.dashboard.inviteDialog.labelPlaceholder",
+                )}
                 value={inviteLabel}
                 onChange={(e) => setInviteLabel(e.target.value)}
               />
@@ -789,13 +839,15 @@ export function CaregiverContent() {
               variant="outline"
               onClick={() => setInviteDialogOpen(false)}
             >
-              Annuler
+              {t("actions.cancel")}
             </Button>
             <Button
               onClick={() => inviteMutation.mutate()}
               disabled={!inviteEmail || inviteMutation.isPending}
             >
-              {inviteMutation.isPending ? "Envoi..." : "Envoyer l'invitation"}
+              {inviteMutation.isPending
+                ? t("caregiver.dashboard.inviteDialog.sending")
+                : t("caregiver.dashboard.inviteDialog.send")}
             </Button>
           </DialogFooter>
         </DialogContent>

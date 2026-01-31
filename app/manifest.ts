@@ -1,11 +1,16 @@
 import { SiteConfig } from "@/site-config";
+import { defaultLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/messages";
+import { createTranslator } from "@/i18n/translator";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const t = createTranslator(getMessages(defaultLocale));
+
   return {
     name: SiteConfig.title,
     short_name: SiteConfig.title,
-    description: SiteConfig.description,
+    description: t("meta.description"),
     start_url: "/",
     display: "standalone",
     background_color: "#fff",

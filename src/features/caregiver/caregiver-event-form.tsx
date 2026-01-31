@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 
 import {
   Form,
@@ -43,13 +43,21 @@ import {
 import { createEvent } from "@/features/caregiver/caregiver.action";
 import { useI18n } from "@/i18n/provider";
 
-const eventSchema = z.object({
-  eventType: z.string().min(1, "Sélectionner un type d'événement"),
-  severity: z.number().min(1).max(5),
-  description: z.string().min(10, "Décrivez l'événement (min. 10 caractères)"),
-  eventDate: z.date(),
-  visibleToPatient: z.boolean(),
-});
+type Translator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
+const getEventSchema = (t: Translator) =>
+  z.object({
+    eventType: z.string().min(1, t("caregiver.event.validation.typeRequired")),
+    severity: z.number().min(1).max(5),
+    description: z
+      .string()
+      .min(10, t("caregiver.event.validation.descriptionMin")),
+    eventDate: z.date(),
+    visibleToPatient: z.boolean(),
+  });
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
@@ -60,13 +68,21 @@ type CaregiverEventFormProps = {
   className?: string;
 };
 
-const severityLabels = [
-  { value: 1, label: "Mineur", color: "#22c55e" },
-  { value: 2, label: "Léger", color: "#84cc16" },
-  { value: 3, label: "Modéré", color: "#fbbf24" },
-  { value: 4, label: "Important", color: "#f97316" },
-  { value: 5, label: "Critique", color: "#ef4444" },
-];
+const severityLabelKeys: Record<number, string> = {
+  1: "caregiver.event.severityLabels.minor",
+  2: "caregiver.event.severityLabels.low",
+  3: "caregiver.event.severityLabels.moderate",
+  4: "caregiver.event.severityLabels.high",
+  5: "caregiver.event.severityLabels.critical",
+};
+
+const severityColors: Record<number, string> = {
+  1: "#22c55e",
+  2: "#84cc16",
+  3: "#fbbf24",
+  4: "#f97316",
+  5: "#ef4444",
+};
 
 export function CaregiverEventForm({
   subjectId,
@@ -74,12 +90,12 @@ export function CaregiverEventForm({
   onSuccess,
   className,
 }: CaregiverEventFormProps) {
-  const { locale } = useI18n();
-  const lang = locale === "fr" ? "fr" : "en";
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "fr" ? fr : enUS;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<EventFormValues>({
-    resolver: zodResolver(eventSchema),
+    resolver: zodResolver(getEventSchema(t)),
     defaultValues: {
       severity: 3,
       eventDate: new Date(),
@@ -88,7 +104,8 @@ export function CaregiverEventForm({
   });
 
   const selectedSeverity = form.watch("severity");
-  const severityInfo = severityLabels.find((s) => s.value === selectedSeverity);
+  const severityLabelKey = severityLabelKeys[selectedSeverity];
+  const severityColor = severityColors[selectedSeverity];
 
   const onSubmit = async (data: EventFormValues) => {
     setIsSubmitting(true);
@@ -105,11 +122,11 @@ export function CaregiverEventForm({
         toast.error(result.serverError);
         return;
       }
-      toast.success("Événement enregistré !");
+      toast.success(t("caregiver.event.saved"));
       form.reset();
       onSuccess?.();
     } catch {
-      toast.error("Erreur lors de l'enregistrement");
+      toast.error(t("caregiver.event.saveError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -118,8 +135,7 @@ export function CaregiverEventForm({
   return (
     <Form form={form} onSubmit={onSubmit} className={`space-y-6 ${className}`}>
       <div className="text-muted-foreground mb-4 text-sm">
-        Signaler un événement pour{" "}
-        <span className="font-medium">{subjectName}</span>
+        {t("caregiver.event.for", { name: subjectName })}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -128,11 +144,11 @@ export function CaregiverEventForm({
           name="eventType"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Type d'événement</FormLabel>
+              <FormLabel>{t("caregiver.event.typeLabel")}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner..." />
+                    <SelectValue placeholder={t("common.selectPlaceholder")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -143,7 +159,7 @@ export function CaregiverEventForm({
                           className="size-2 rounded-full"
                           style={{ backgroundColor: eventTypeColors[type] }}
                         />
-                        {eventTypeLabels[type][lang]}
+                        {t(eventTypeLabels[type])}
                       </div>
                     </SelectItem>
                   ))}
@@ -159,7 +175,7 @@ export function CaregiverEventForm({
           name="eventDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Date de l'événement</FormLabel>
+              <FormLabel>{t("caregiver.event.dateLabel")}</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -167,7 +183,7 @@ export function CaregiverEventForm({
                       variant="outline"
                       className="w-full pl-3 text-left font-normal"
                     >
-                      {format(field.value, "PPP", { locale: fr })}
+                      {format(field.value, "PPP", { locale: dateLocale })}
                       <CalendarIcon className="ml-auto size-4 opacity-50" />
                     </Button>
                   </FormControl>
@@ -196,12 +212,12 @@ export function CaregiverEventForm({
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Sévérité :{" "}
+              {t("caregiver.event.severityLabel")}{" "}
               <span
                 className="font-semibold"
-                style={{ color: severityInfo?.color }}
+                style={{ color: severityColor }}
               >
-                {severityInfo?.label}
+                {severityLabelKey ? t(severityLabelKey) : ""}
               </span>
             </FormLabel>
             <FormControl>
@@ -215,8 +231,8 @@ export function CaregiverEventForm({
               />
             </FormControl>
             <div className="text-muted-foreground flex justify-between text-xs">
-              <span>Mineur</span>
-              <span>Critique</span>
+              <span>{t("caregiver.event.severityScaleMin")}</span>
+              <span>{t("caregiver.event.severityScaleMax")}</span>
             </div>
           </FormItem>
         )}
@@ -227,10 +243,10 @@ export function CaregiverEventForm({
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description de l'événement</FormLabel>
+            <FormLabel>{t("caregiver.event.descriptionLabel")}</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Décrivez ce qui s'est passé..."
+                placeholder={t("caregiver.event.descriptionPlaceholder")}
                 className="min-h-32 resize-none"
                 {...field}
               />
@@ -247,10 +263,10 @@ export function CaregiverEventForm({
           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <FormLabel className="text-base">
-                Visible par le patient
+                {t("caregiver.event.visibleLabel")}
               </FormLabel>
               <FormDescription>
-                Le patient pourra voir cet événement
+                {t("caregiver.event.visibleDescription")}
               </FormDescription>
             </div>
             <FormControl>
@@ -261,7 +277,7 @@ export function CaregiverEventForm({
       />
 
       <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? "Enregistrement..." : "Signaler l'événement"}
+        {isSubmitting ? t("common.saving") : t("caregiver.event.submit")}
       </Button>
     </Form>
   );

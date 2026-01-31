@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/provider";
 
 type BreathingPhase = "inhale" | "hold" | "exhale" | "rest";
 
@@ -19,11 +20,11 @@ type BreathingWidgetProps = {
   className?: string;
 };
 
-const phaseLabels: Record<BreathingPhase, { fr: string; en: string }> = {
-  inhale: { fr: "Inspirez", en: "Inhale" },
-  hold: { fr: "Retenez", en: "Hold" },
-  exhale: { fr: "Expirez", en: "Exhale" },
-  rest: { fr: "Pause", en: "Rest" },
+const phaseLabelKeys: Record<BreathingPhase, string> = {
+  inhale: "breathing.phases.inhale",
+  hold: "breathing.phases.hold",
+  exhale: "breathing.phases.exhale",
+  rest: "breathing.phases.rest",
 };
 
 const phaseColors: Record<BreathingPhase, string> = {
@@ -55,6 +56,7 @@ export function BreathingWidget({
   restDuration = 2,
   className,
 }: BreathingWidgetProps) {
+  const { t } = useI18n();
   const [isActive, setIsActive] = useState(false);
   const [phase, setPhase] = useState<BreathingPhase>("rest");
   const [timeLeft, setTimeLeft] = useState(0);
@@ -178,11 +180,11 @@ export function BreathingWidget({
               <>
                 <p className="text-2xl font-bold">{timeLeft}</p>
                 <p className="text-sm font-medium opacity-90">
-                  {phaseLabels[phase].fr}
+                  {t(phaseLabelKeys[phase])}
                 </p>
               </>
             ) : (
-              <p className="text-lg font-medium">Prêt ?</p>
+              <p className="text-lg font-medium">{t("breathing.ready")}</p>
             )}
           </div>
         </div>
@@ -196,7 +198,7 @@ export function BreathingWidget({
             className="gap-2 rounded-2xl bg-[var(--primary)] px-8 py-3 text-white hover:bg-[var(--primary-dark)]"
           >
             <Play className="size-5" />
-            Commencer
+            {t("breathing.start")}
           </Button>
         ) : (
           <Button
@@ -205,7 +207,7 @@ export function BreathingWidget({
             className="gap-2 rounded-2xl px-8 py-3"
           >
             <Pause className="size-5" />
-            Pause
+            {t("breathing.pause")}
           </Button>
         )}
 
@@ -216,7 +218,7 @@ export function BreathingWidget({
             className="gap-2 rounded-2xl"
           >
             <RotateCcw className="size-5" />
-            Réinitialiser
+            {t("breathing.reset")}
           </Button>
         )}
       </div>
@@ -224,19 +226,15 @@ export function BreathingWidget({
       {/* Cycle counter */}
       {cycleCount > 0 && (
         <p className="text-muted-foreground text-sm">
-          Cycle {cycleCount} • Technique 4-7-8
+          {t("breathing.cycleCount", { count: cycleCount })}
         </p>
       )}
 
       {/* Instructions */}
       {!isActive && cycleCount === 0 && (
         <div className="text-muted-foreground max-w-sm text-center text-sm">
-          <p className="mb-2 font-medium">Technique de respiration 4-7-8</p>
-          <p>
-            Inspirez pendant 4 secondes, retenez pendant 7 secondes, expirez
-            pendant 8 secondes. Cette technique aide à calmer le système
-            nerveux.
-          </p>
+          <p className="mb-2 font-medium">{t("breathing.instructionsTitle")}</p>
+          <p>{t("breathing.instructions")}</p>
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,11 +25,12 @@ import { createTherapySession } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
 
-const formSchema = z.object({
-  date: z.date(),
-  notes: z.string().min(1, "Les notes sont requises"),
-  benefitRating: z.number().min(1).max(5).optional(),
-});
+const getFormSchema = (t: (key: string) => string) =>
+  z.object({
+    date: z.date(),
+    notes: z.string().min(1, t("therapy.validation.notesRequired")),
+    benefitRating: z.number().min(1).max(5).optional(),
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -37,6 +38,7 @@ export function AddTherapySessionForm() {
   const { t } = useI18n();
   const router = useRouter();
   const [rating, setRating] = useState<number | undefined>(undefined);
+  const formSchema = useMemo(() => getFormSchema(t), [t]);
 
   const form = useZodForm({
     schema: formSchema,
@@ -76,7 +78,7 @@ export function AddTherapySessionForm() {
         notes: values.notes,
         benefitRating: rating,
       });
-      toast.success("Seance enregistree hors ligne.");
+      toast.success(t("therapy.add.offlineSaved"));
       router.push("/therapy");
       return;
     }

@@ -4,6 +4,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type MoodSliderProps = {
   value: number;
@@ -61,6 +62,7 @@ export function MoodSlider({
   className,
   disabled = false,
 }: MoodSliderProps) {
+  const { t } = useI18n();
   const color = getMoodColor(value);
   const emoji = getMoodEmoji(value);
 
@@ -79,7 +81,11 @@ export function MoodSlider({
     <div className={cn("w-full space-y-4", className)}>
       {/* Value display */}
       <div className="flex items-center justify-center gap-3">
-        <span className="text-4xl" role="img" aria-label={`Mood: ${value}/10`}>
+        <span
+          className="text-4xl"
+          role="img"
+          aria-label={t("mood.slider.emojiAria", { value })}
+        >
           {emoji}
         </span>
         <span
@@ -103,7 +109,7 @@ export function MoodSlider({
           "relative flex w-full touch-none items-center select-none",
           disabled && "cursor-not-allowed opacity-50",
         )}
-        aria-label="Mood slider"
+        aria-label={t("mood.slider.aria")}
       >
         <SliderPrimitive.Track className="relative h-3 w-full grow overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <SliderPrimitive.Range
@@ -123,7 +129,7 @@ export function MoodSlider({
             borderColor: "white",
             boxShadow: `0 4px 14px ${color}40`,
           }}
-          aria-label={`Current mood: ${value} out of 10`}
+          aria-label={t("mood.slider.currentValueAria", { value })}
         />
       </SliderPrimitive.Root>
 

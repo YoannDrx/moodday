@@ -47,12 +47,14 @@ import { getMyCaregivers } from "@/features/caregiver/caregiver.action";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useI18n } from "@/i18n/provider";
 
 type DashboardContentProps = {
   userName: string;
 };
 
 export function DashboardContent({ userName }: DashboardContentProps) {
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [currentMood, setCurrentMood] = useState(7);
   const [isSaving, setIsSaving] = useState(false);
@@ -130,10 +132,10 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         toast.error(result.serverError);
         return;
       }
-      toast.success("Prise enregistrée !");
+      toast.success(t("medication.intake.logged"));
       void refetchMedications();
     } catch {
-      toast.error("Une erreur est survenue");
+      toast.error(t("common.error"));
     }
   };
 
@@ -145,20 +147,23 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         toast.error(result.serverError);
         return;
       }
-      toast.success("Prise sautée");
+      toast.success(t("medication.intake.skipped"));
       void refetchMedications();
     } catch {
-      toast.error("Une erreur est survenue");
+      toast.error(t("common.error"));
     }
   };
 
   // Get today's date formatted
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  );
 
   // Handle mood save
   const handleSaveMood = async () => {
@@ -169,7 +174,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         toast.error(result.serverError);
         return;
       }
-      toast.success("Humeur enregistrée !");
+      toast.success(t("mood.entry.saved"));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
         queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
@@ -177,7 +182,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
       ]);
     } catch {
-      toast.error("Une erreur est survenue");
+      toast.error(t("common.error"));
     } finally {
       setIsSaving(false);
     }
@@ -198,10 +203,10 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       <header className="mb-10 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-            Bonjour {userName.split(" ")[0]} !
+            {t("dashboard.greeting", { name: userName.split(" ")[0] })}
           </h1>
           <p className="text-gray-500">
-            Aujourd&apos;hui, nous sommes le {today}
+            {t("dashboard.today", { date: today })}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -225,13 +230,13 @@ export function DashboardContent({ userName }: DashboardContentProps) {
               <GlassCardHeader>
                 <div>
                   <h2 className="mb-1 text-xl font-bold">
-                    Comment vous sentez-vous ?
+                    {t("dashboard.quickMood.title")}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Prenez un instant pour vous écouter.
+                    {t("dashboard.quickMood.subtitle")}
                   </p>
                 </div>
-                <GlassCardBadge>Saisie rapide</GlassCardBadge>
+                <GlassCardBadge>{t("dashboard.quickMood.badge")}</GlassCardBadge>
               </GlassCardHeader>
 
               <div className="my-8">
@@ -244,7 +249,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   disabled={isSaving}
                   className="shadow-soft flex-grow rounded-2xl bg-[var(--primary)] py-6 text-lg font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-[0.98]"
                 >
-                  {isSaving ? "Enregistrement..." : "Enregistrer l'humeur"}
+                  {isSaving ? t("common.saving") : t("dashboard.quickMood.save")}
                 </Button>
                 <Link
                   href="/mood"
@@ -264,7 +269,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 <GlassCardTitle
                   icon={<Pill className="size-5 text-[var(--primary)]" />}
                 >
-                  Traitements
+                  {t("dashboard.medications.title")}
                 </GlassCardTitle>
                 <GlassCardBadge>
                   {takenCount}/{medications?.length ?? 0}
@@ -324,14 +329,18 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                           >
                             {med.name}
                           </p>
-                          <p className="text-xs text-gray-400">
-                            {med.dosage} •{" "}
-                            {med.frequency === "daily"
-                              ? "Quotidien"
-                              : med.frequency === "twice_daily"
-                                ? "2x/jour"
-                                : med.frequency}
-                          </p>
+                        <p className="text-xs text-gray-400">
+                          {med.dosage} •{" "}
+                          {med.frequency === "daily"
+                            ? t("medication.frequencyShort.daily")
+                            : med.frequency === "twice_daily"
+                              ? t("medication.frequencyShort.twiceDaily")
+                              : med.frequency === "weekly"
+                                ? t("medication.frequencyShort.weekly")
+                                : med.frequency === "prn"
+                                  ? t("medication.frequencyShort.prn")
+                                  : med.frequency}
+                        </p>
                         </div>
                         {!isTaken && !isSkipped && (
                           <button
@@ -341,7 +350,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                             }}
                             className="rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           >
-                            Passer
+                            {t("medication.intake.skip")}
                           </button>
                         )}
                         <ChevronRight className="size-4 text-gray-300" />
@@ -350,12 +359,12 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   })
                 ) : (
                   <div className="py-4 text-center text-sm text-gray-400">
-                    Aucun traitement configuré.{" "}
+                    {t("dashboard.medications.empty")}{" "}
                     <Link
                       href="/medications/new"
                       className="text-[var(--primary)] hover:underline"
                     >
-                      Ajouter un traitement
+                      {t("medication.list.addNew")}
                     </Link>
                   </div>
                 )}
@@ -365,7 +374,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 href="/medications/today"
                 className="mt-4 flex w-full items-center justify-center gap-2 py-3 text-sm font-semibold text-gray-500 transition-colors hover:text-[var(--primary)]"
               >
-                <History className="size-4" /> Voir l&apos;historique
+                <History className="size-4" /> {t("dashboard.medications.history")}
               </Link>
             </GlassCard>
 
@@ -375,11 +384,13 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 <GlassCardTitle
                   icon={<Moon className="size-5 text-[var(--lavender-dark)]" />}
                 >
-                  Sommeil
+                  {t("dashboard.sleep.title")}
                 </GlassCardTitle>
                 {summary?.sleep.avgHours && (
                   <span className="rounded-lg bg-[var(--lavender)]/20 px-2 py-1 text-xs font-bold text-[var(--lavender-dark)]">
-                    Moy. {summary.sleep.avgHours}h
+                    {t("dashboard.sleep.averageHours", {
+                      hours: summary.sleep.avgHours,
+                    })}
                   </span>
                 )}
               </GlassCardHeader>
@@ -401,23 +412,25 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                             : "text-red-500",
                       )}
                     >
-                      Qualité{" "}
+                      {t("dashboard.sleep.qualityLabel")}{" "}
                       {summary.sleep.latestQuality === "good"
-                        ? "excellente"
+                        ? t("dashboard.sleep.qualityExcellent")
                         : summary.sleep.latestQuality === "average"
-                          ? "moyenne"
-                          : "mauvaise"}
+                          ? t("dashboard.sleep.qualityAverage")
+                          : t("dashboard.sleep.qualityPoor")}
                     </p>
                   </>
                 ) : (
-                  <p className="text-gray-400">Pas de données</p>
+                  <p className="text-gray-400">
+                    {t("dashboard.sleep.noData")}
+                  </p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-[var(--primary)]/10 bg-[var(--primary)]/5 p-4">
                   <p className="text-[10px] font-bold text-[var(--primary-dark)] uppercase">
-                    Énergie
+                    {t("dashboard.sleep.energyLabel")}
                   </p>
                   <p className="text-lg font-bold">
                     {summary?.sleep.avgEnergy ?? "-"}/10
@@ -425,7 +438,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 </div>
                 <div className="rounded-2xl border border-[var(--lavender)]/20 bg-[var(--lavender)]/10 p-4">
                   <p className="text-[10px] font-bold text-[var(--lavender-dark)] uppercase">
-                    Humeur moy.
+                    {t("dashboard.sleep.avgMoodLabel")}
                   </p>
                   <p className="text-lg font-bold">
                     {summary?.mood.weeklyAverage ?? "-"}/10
@@ -439,8 +452,12 @@ export function DashboardContent({ userName }: DashboardContentProps) {
           <GlassCard padding="lg" variant="elevated">
             <GlassCardHeader>
               <div>
-                <h3 className="text-xl font-bold">Tendance de l&apos;humeur</h3>
-                <p className="text-sm text-gray-500">7 derniers jours</p>
+                <h3 className="text-xl font-bold">
+                  {t("dashboard.trend.title")}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {t("dashboard.trend.range7d")}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 {summary?.mood.trendPercent !== null &&
@@ -500,7 +517,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   <Sparkles className="size-5 text-[var(--lavender-dark)]" />
                 }
               >
-                IA Insights
+                {t("dashboard.insights.title")}
               </GlassCardTitle>
             </GlassCardHeader>
 
@@ -526,17 +543,14 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   <div className="rounded-2xl border border-[var(--lavender)]/20 bg-[var(--lavender)]/10 p-4">
                     <p className="text-sm leading-relaxed text-gray-700">
                       <span className="font-bold text-[var(--lavender-dark)]">
-                        Pattern détecté :
+                        {t("dashboard.insights.detectedLabel")}
                       </span>{" "}
-                      Vos baisses d&apos;énergie semblent corrélées à un sommeil
-                      inférieur à 6h les deux nuits précédentes.
+                      {t("dashboard.insights.sampleOne")}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--sage)]/10 bg-[var(--sage)]/5 p-4">
                     <p className="text-sm leading-relaxed text-gray-700">
-                      L&apos;augmentation du{" "}
-                      <span className="font-bold">Lamictal</span> montre une
-                      stabilisation de l&apos;humeur sur les 14 derniers jours.
+                      {t("dashboard.insights.sampleTwo")}
                     </p>
                   </div>
                 </>
@@ -547,7 +561,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
               href="/trends"
               className="mt-6 flex w-full items-center justify-center rounded-xl border border-dashed border-gray-200 py-3 text-xs font-bold text-gray-400 uppercase transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >
-              Voir l&apos;analyse complète
+              {t("dashboard.insights.viewMore")}
             </Link>
           </GlassCard>
 
@@ -557,7 +571,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
               <GlassCardTitle
                 icon={<Users className="size-5 text-[var(--primary)]" />}
               >
-                Mes Aidants
+                {t("dashboard.caregivers.title")}
               </GlassCardTitle>
               <Link
                 href="/caregiver"
@@ -580,11 +594,11 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                       caregiver.label,
                       caregiver.caregiverName,
                       caregiver.caregiverEmail,
-                    ].find((v) => v) ?? "Aidant";
+                    ].find((v) => v) ?? t("dashboard.caregivers.defaultName");
                   const statusLabel =
                     caregiver.status === "pending"
-                      ? "Invitation envoyée"
-                      : "Accès actif";
+                      ? t("dashboard.caregivers.statusPending")
+                      : t("dashboard.caregivers.statusActive");
 
                   return (
                     <div key={caregiver.id} className="flex items-center gap-3">
@@ -615,7 +629,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 })
               ) : (
                 <div className="py-3 text-center text-sm text-gray-400">
-                  Aucun aidant pour le moment.
+                  {t("dashboard.caregivers.empty")}
                 </div>
               )}
             </GlassCardContent>

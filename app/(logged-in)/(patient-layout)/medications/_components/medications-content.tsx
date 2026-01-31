@@ -37,11 +37,11 @@ import {
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  daily: "1x/jour",
-  twice_daily: "2x/jour",
-  weekly: "1x/semaine",
-  prn: "Si besoin",
+const FREQUENCY_LABEL_KEYS: Record<string, string> = {
+  daily: "medication.frequencyShort.daily",
+  twice_daily: "medication.frequencyShort.twiceDaily",
+  weekly: "medication.frequencyShort.weekly",
+  prn: "medication.frequencyShort.prn",
 };
 
 type MedicationWithIntakes = {
@@ -55,7 +55,7 @@ type MedicationWithIntakes = {
 };
 
 export function MedicationsContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
 
@@ -82,11 +82,11 @@ export function MedicationsContent() {
     },
     onSuccess: (result) => {
       if ((result as { queued?: boolean }).queued) {
-        toast.success("Prise enregistrée hors ligne.");
+        toast.success(t("medication.intake.loggedOffline"));
         return;
       }
       void queryClient.invalidateQueries({ queryKey: ["medications"] });
-      toast.success("Prise enregistrée !");
+      toast.success(t("medication.intake.logged"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -113,11 +113,14 @@ export function MedicationsContent() {
     totalRegular > 0 ? Math.round((takenToday / totalRegular) * 100) : 0;
 
   // Today's date
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    },
+  );
 
   if (isError) {
     return (
@@ -174,7 +177,7 @@ export function MedicationsContent() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                Adhérence
+                {t("medication.stats.adherence")}
               </p>
               <p className="text-2xl font-bold">{adherenceRate}%</p>
             </div>
@@ -189,7 +192,7 @@ export function MedicationsContent() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                Aujourd&apos;hui
+                {t("medication.stats.today")}
               </p>
               <p className="text-2xl font-bold">
                 {takenToday}/{totalRegular}
@@ -206,7 +209,7 @@ export function MedicationsContent() {
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase">
-                Traitements
+                {t("medication.stats.treatments")}
               </p>
               <p className="text-2xl font-bold">{activeMedications.length}</p>
             </div>
@@ -221,14 +224,14 @@ export function MedicationsContent() {
           className="glass-card flex flex-1 items-center justify-center gap-2 rounded-2xl p-4 text-sm font-semibold text-gray-600 transition-all hover:bg-white hover:text-[var(--primary)]"
         >
           <Clock className="size-5" />
-          Prises du jour
+          {t("medication.quickActions.today")}
         </Link>
         <Link
           href="/medications"
           className="glass-card flex flex-1 items-center justify-center gap-2 rounded-2xl bg-white/80 p-4 text-sm font-semibold text-[var(--primary)] transition-all hover:bg-white"
         >
           <History className="size-5" />
-          Historique
+          {t("medication.quickActions.history")}
         </Link>
       </div>
 
@@ -248,7 +251,7 @@ export function MedicationsContent() {
             <Pill className="size-10 text-[var(--primary)]" />
           </div>
           <h3 className="mb-2 text-xl font-bold text-gray-800">
-            Aucun traitement
+            {t("medication.list.emptyTitle")}
           </h3>
           <p className="mb-6 text-gray-500">{t("medication.list.empty")}</p>
           <Button
@@ -257,7 +260,7 @@ export function MedicationsContent() {
           >
             <Link href="/medications/new">
               <Plus className="mr-2 size-4" />
-              Ajouter un traitement
+              {t("medication.list.addNew")}
             </Link>
           </Button>
         </GlassCard>
@@ -270,9 +273,13 @@ export function MedicationsContent() {
             <GlassCardTitle
               icon={<Pill className="size-5 text-[var(--primary)]" />}
             >
-              Mes traitements
+              {t("medication.list.myTreatments")}
             </GlassCardTitle>
-            <GlassCardBadge>{activeMedications.length} actifs</GlassCardBadge>
+            <GlassCardBadge>
+              {t("medication.list.activeCount", {
+                count: activeMedications.length,
+              })}
+            </GlassCardBadge>
           </GlassCardHeader>
 
           <GlassCardContent className="space-y-3">
@@ -338,8 +345,8 @@ function MedicationRow({
 }) {
   const { t } = useI18n();
   const hasTakenToday = medication.intakes.some((intake) => !intake.skipped);
-  const frequencyLabel =
-    FREQUENCY_LABELS[medication.frequency] ?? FREQUENCY_LABELS.daily;
+  const frequencyLabelKey =
+    FREQUENCY_LABEL_KEYS[medication.frequency] ?? FREQUENCY_LABEL_KEYS.daily;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -400,7 +407,7 @@ function MedicationRow({
             )}
           </div>
           <p className="text-sm text-gray-400">
-            {medication.dosage} • {frequencyLabel}
+            {medication.dosage} • {t(frequencyLabelKey)}
           </p>
         </div>
 
@@ -416,12 +423,12 @@ function MedicationRow({
               {hasTakenToday ? (
                 <>
                   <Check className="size-3" />
-                  Pris
+                  {t("medication.status.taken")}
                 </>
               ) : (
                 <>
                   <Clock className="size-3" />
-                  En attente
+                  {t("medication.status.pending")}
                 </>
               )}
             </span>

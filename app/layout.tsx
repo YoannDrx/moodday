@@ -21,7 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(getServerUrl()),
     manifest: "/manifest.json",
     icons: {
-      icon: "/images/icon.png",
+      icon: "/logo.svg",
+      apple: "/icons/apple-touch-icon.png",
     },
     themeColor: "#2BA09F",
   };
