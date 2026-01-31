@@ -2,12 +2,12 @@
 
 ---
 
-## ⚡ AUTO-START mgrep (à faire automatiquement)
+## ⚡ AUTO-START grepai (à faire automatiquement)
 
 **Dès que tu commences à travailler sur ce projet, lance cette commande en background :**
 
 ```bash
-mgrep watch --store "moodday" &
+~/.local/bin/grepai watch &
 ```
 
 > Lance cette commande UNE SEULE FOIS au début de la session. Ne la relance pas à chaque question.
@@ -32,17 +32,16 @@ Guide pour Claude Code sur ce dépôt.
 
 ---
 
-## mgrep - Assistant de recherche de code
+## grepai - Recherche sémantique de code (100% local et gratuit)
 
-**mgrep est l'outil principal pour explorer ce codebase.** Il retourne une réponse en langage naturel + les sources pertinentes.
+**grepai est l'outil principal pour explorer ce codebase.** Il utilise des embeddings locaux (Ollama) pour la recherche sémantique.
 
-### Store : `moodday`
 
 ### Lancer le watch (à faire à chaque ouverture du projet)
 
 ```bash
 cd ~/Projets/moodday
-mgrep watch --store "moodday"
+~/.local/bin/grepai watch
 ```
 
 > Garde ce terminal ouvert : il surveille les modifications en temps réel.
@@ -50,16 +49,13 @@ mgrep watch --store "moodday"
 ### Commande de recherche
 
 ```bash
-mgrep "ta question en langage naturel" --store "moodday" -a -m <nombre>
+~/.local/bin/grepai search "ta question en langage naturel"
 ```
 
 ### Paramètres
 
 | Paramètre | Description |
 |-----------|-------------|
-| `--store "moodday"` | **Obligatoire** - le store indexé du projet |
-| `-a`                      | Active la réponse en langage naturel                  |
-| `-m <n>`                  | Nombre de résultats du retrieval (minimum 10)         |
 
 ### Ajuster `-m` selon la complexité
 
@@ -71,19 +67,19 @@ mgrep "ta question en langage naturel" --store "moodday" -a -m <nombre>
 
 ### Stratégie pour requêtes complexes
 
-Si la requête touche **plusieurs parties du codebase**, lance plusieurs mgrep en parallèle plutôt qu'une seule requête surchargée :
+Si la requête touche **plusieurs parties du codebase**, lance plusieurs grepai en parallèle plutôt qu'une seule requête surchargée :
 
 ```bash
 # Exemple : comprendre le système d'auth complet
-mgrep "comment fonctionne l'authentification GitHub côté frontend" --store "moodday" -a -m 20
-mgrep "comment le token est géré côté serveur" --store "moodday" -a -m 20
-mgrep "comment les sessions sont gérées" --store "moodday" -a -m 20
+~/.local/bin/grepai search "comment fonctionne l'authentification GitHub côté frontend"
+~/.local/bin/grepai search "comment le token est géré côté serveur"
+~/.local/bin/grepai search "comment les sessions sont gérées"
 ```
 
 ### Règles
 
-- **OBLIGATOIRE** : Utilise mgrep pour TOUTE recherche de code. N'utilise JAMAIS grep, Grep tool, ou Glob pour chercher du code.
-- **Langage naturel** : mgrep est un agent IA comme toi. Parle-lui comme à un collègue, pas comme à un moteur de recherche.
+- **OBLIGATOIRE** : Utilise grepai pour TOUTE recherche de code. N'utilise JAMAIS grep, Grep tool, ou Glob.
+- **Langage naturel** : Parle à grepai comme à un collègue
   - ❌ `"architecture block icon color complete status"` (mots-clés robotiques)
   - ✅ `"Quelle est la couleur de l'icône des blocs d'architecture quand ils sont complétés ?"` (question naturelle)
 
@@ -93,7 +89,7 @@ mgrep "comment les sessions sont gérées" --store "moodday" -a -m 20
 
 **Les subagents n'héritent PAS des instructions de ce fichier.**
 
-Quand tu lances un subagent Explore, copie-colle les instructions sur mgrep de ce CLAUDE.md dans le prompt du subagent.
+Quand tu lances un subagent Explore, copie-colle les instructions sur grepai de ce CLAUDE.md dans le prompt du subagent.
 
 ---
 
@@ -133,7 +129,7 @@ Quand tu lances un subagent Explore, copie-colle les instructions sur mgrep de c
 - `pnpm email` - Serveur de développement emails
 - `pnpm stripe-webhooks` - Écouter les webhooks Stripe
 - `pnpm knip` - Détection de code inutilisé
-- `pnpm mgrep` - Lancer le watcher mgrep (synchronisation du code)
+- `# (supprimé - grepai est lancé automatiquement)
 
 ---
 
@@ -144,7 +140,7 @@ Le projet utilise plusieurs CLIs pour automatiser le setup et le déploiement.
 ### Installation
 
 ```bash
-npm i -g @vercel/cli neonctl @upstash/cli stripe gh @mixedbread/mgrep
+npm i -g @vercel/cli neonctl @upstash/cli stripe gh
 ```
 
 ### Liste des CLIs
@@ -156,7 +152,7 @@ npm i -g @vercel/cli neonctl @upstash/cli stripe gh @mixedbread/mgrep
 | `neon`    | `neonctl`          | `neon auth`          | PostgreSQL (NeonDB)         |
 | `upstash` | `@upstash/cli`     | `upstash auth login` | Redis (Upstash)             |
 | `stripe`  | `stripe`           | `stripe login`       | Paiements (optionnel)       |
-| `mgrep`   | `@mixedbread/mgrep`| `mgrep login`        | Recherche de code IA        |
+
 
 ---
 
