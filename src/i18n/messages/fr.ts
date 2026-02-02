@@ -1112,7 +1112,6 @@ const fr: typeof en = {
       language: "Langue",
     },
     manageAccount: "Gérer le compte",
-    saved: "Paramètres sauvegardés",
     profile: {
       title: "Profil",
       defaultName: "Votre nom",
