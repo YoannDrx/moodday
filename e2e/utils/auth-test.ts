@@ -43,7 +43,11 @@ export async function createTestAccount(options: {
   // Wait for navigation to complete - we should be redirected to the callback URL
   if (options.callbackURL) {
     await options.page.waitForLoadState("networkidle");
-    await options.page.waitForURL(new RegExp(options.callbackURL), {
+    const escapedCallback = options.callbackURL.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+    await options.page.waitForURL(new RegExp(escapedCallback), {
       timeout: 30000,
     });
   }
@@ -101,7 +105,8 @@ export async function signInAccount(options: {
 
   // Wait for navigation to complete if a callback URL is provided
   if (callbackURL) {
-    await page.waitForURL(new RegExp(callbackURL), { timeout: 30000 });
+    const escapedCallback = callbackURL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    await page.waitForURL(new RegExp(escapedCallback), { timeout: 30000 });
     await page.waitForLoadState("networkidle");
   }
 
@@ -115,16 +120,19 @@ export async function signInAccount(options: {
 export async function signOutAccount(options: { page: Page }) {
   const { page } = options;
 
-  // Navigate to account page
-  await page.goto(`/account`);
+  // Navigate to dashboard page
+  await page.goto(`/dashboard`);
   await page.waitForLoadState("networkidle");
 
-  // Click the sign out button (supports both English "Sign out" and French "Se déconnecter")
-  const signOutButton = page.getByRole("button", {
-    name: /sign out|se déconnecter/i,
-  });
-  await signOutButton.waitFor({ state: "visible", timeout: 10000 });
-  await signOutButton.click();
+  // Open the user menu dropdown
+  const userMenuButton = page.getByTestId("user-menu-button");
+  await userMenuButton.waitFor({ state: "visible", timeout: 10000 });
+  await userMenuButton.click();
+
+  // Click logout in the dropdown
+  const logoutMenuItem = page.getByTestId("dropdown-logout");
+  await logoutMenuItem.waitFor({ state: "visible", timeout: 5000 });
+  await logoutMenuItem.click();
 
   // After sign out, user is redirected to home page "/" (not /auth/signin)
   await page.waitForURL("/", { timeout: 10000 });

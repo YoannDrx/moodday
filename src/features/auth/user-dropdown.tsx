@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Monitor,
   Moon,
+  MoveUpRight,
   Settings,
   Shield,
   SunMedium,
@@ -75,9 +76,15 @@ export const UserDropdown = ({ children }: PropsWithChildren) => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/account">
+          <Link href="/settings?tab=profile">
             <Settings className="mr-2 size-4" />
-            {t("account.settings.title")}
+            {t("settings.title")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/">
+            <MoveUpRight className="mr-2 size-4" />
+            {t("nav.backToSite")}
           </Link>
         </DropdownMenuItem>
         {session.data.user.role === "admin" && (

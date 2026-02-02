@@ -153,13 +153,13 @@ export const EditProfileCardForm = ({
           <CardFooter className="flex gap-2">
             <Link
               className={buttonVariants({ size: "sm", variant: "link" })}
-              href="/account/change-email"
+              href="/settings?tab=security"
             >
               {t("account.profile.changeEmail")}
             </Link>
             <Link
               className={buttonVariants({ size: "sm", variant: "link" })}
-              href="/account/change-password"
+              href="/settings?tab=security"
             >
               {t("account.profile.changePassword")}
             </Link>

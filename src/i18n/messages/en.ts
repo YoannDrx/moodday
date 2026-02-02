@@ -29,6 +29,7 @@ const en = {
     organization: "Organization",
     account: "Account",
     app: "App",
+    backToSite: "Back to site",
   },
   footer: {
     description:
@@ -451,6 +452,7 @@ const en = {
   },
   dashboard: {
     greeting: "Hello {name}",
+    defaultName: "User",
     today: "Today is {date}",
     quickMood: {
       title: "Quick mood check-in",
@@ -569,7 +571,7 @@ const en = {
       website: "Website",
     },
     fab: {
-      call: "Call",
+      call: "Call 3114",
       resources: "Resources",
       needHelp: "Need help?",
     },
@@ -871,6 +873,7 @@ const en = {
       main: "Main",
       tracking: "Tracking",
       tools: "Tools",
+      support: "Support",
       mood: "My mood",
       medications: "Medications",
       exercises: "Exercises",
@@ -1077,6 +1080,8 @@ const en = {
       appearance: "Appearance",
       privacy: "Privacy",
       subscription: "Subscription",
+      security: "Security",
+      language: "Language",
     },
     manageAccount: "Manage account",
     profile: {
@@ -1131,6 +1136,10 @@ const en = {
       policyDescription: "Read how we handle your data.",
       policyCta: "Read policy",
     },
+    security: {
+      description:
+        "Manage sign-in details and protect your account with secure credentials.",
+    },
     subscription: {
       title: "Subscription",
       statusLabel: "Status",
@@ -1160,6 +1169,16 @@ const en = {
       newYork: "New York",
     },
     saved: "Settings saved!",
+    sidebar: {
+      profile: "Profile",
+      notifications: "Notifications",
+      appearance: "Appearance",
+      privacy: "Privacy",
+      subscription: "Subscription",
+      security: "Security",
+      language: "Language",
+    },
+    upgrade: "Upgrade to Premium",
   },
   debug: {
     title: "Debug Panel",
@@ -1246,6 +1265,11 @@ const en = {
     footer: "Cancel anytime. No hidden fees.",
     customPlan: "Need a custom plan?",
     contact: "Contact us",
+    checkoutCanceled: {
+      title: "Checkout canceled",
+      description: "No worries — you can upgrade whenever you're ready.",
+      back: "Back to pricing",
+    },
     dialog: {
       title: "Choose a plan and start growing",
       description: "Unlock full access to our features and grow your business.",
@@ -1271,49 +1295,61 @@ const en = {
       ultra: "Ultra",
     },
     descriptions: {
-      free: "Perfect for individuals and small projects",
-      pro: "Ideal for growing teams with advanced needs",
-      ultra: "Enterprise-grade for large teams and complex workflows",
+      free: "Daily mood tracking and basic journal",
+      pro: "Full tracking with unlimited medications, history and caregivers",
+      ultra: "All Pro features + priority support",
     },
     limits: {
-      projects: {
-        label: "{value} projects",
-        description: "Create and manage projects",
+      medications: {
+        label: "{value} medications",
+        labelUnlimited: "Unlimited medications",
+        description: "Track your treatments",
       },
-      storage: {
-        label: "{value} GB storage",
-        description: "Cloud storage for your files",
+      historyDays: {
+        label: "{value} days history",
+        labelUnlimited: "Full history",
+        description: "Access to your past data",
       },
-      members: {
-        label: "{value} team members",
-        description: "Invite team members to collaborate",
+      caregivers: {
+        label: "{value} caregivers",
+        labelUnlimited: "Unlimited caregivers",
+        labelNone: "No caregivers",
+        description: "Share with your loved ones",
       },
     },
     additionalFeatures: {
       free: [
         {
-          label: "Basic security",
-          description: "Standard protection for your data",
+          label: "Daily mood tracking",
+          description: "Record your mood every day",
+        },
+        {
+          label: "Basic journal",
+          description: "Write down your thoughts and emotions",
         },
       ],
       pro: [
         {
-          label: "Priority support",
-          description: "Get help when you need it most",
+          label: "PDF export",
+          description: "Export your data for your doctor",
         },
         {
-          label: "24/7 customer service",
-          description: "Round-the-clock assistance",
+          label: "AI insights",
+          description: "Personalized analysis of your trends",
         },
         {
-          label: "Advanced analytics",
-          description: "Detailed insights and reporting",
+          label: "Email support",
+          description: "Dedicated email assistance",
         },
       ],
       ultra: [
         {
           label: "Priority support",
-          description: "Get help when you need it most",
+          description: "Fast response to your requests",
+        },
+        {
+          label: "Exportable data",
+          description: "Full export of all your data",
         },
       ],
     },
@@ -1857,7 +1893,8 @@ const en = {
         },
         science: {
           title: "Science-led",
-          description: "We follow evidence-based practices and clinical feedback.",
+          description:
+            "We follow evidence-based practices and clinical feedback.",
         },
       },
     },
@@ -2001,8 +2038,7 @@ const en = {
         },
         termination: {
           title: "Termination",
-          content:
-            "You can delete your account at any time from settings.",
+          content: "You can delete your account at any time from settings.",
         },
         law: {
           title: "Governing law",
@@ -2075,7 +2111,7 @@ These Terms are governed by French law. Any dispute will be submitted to the com
 
 *Last updated: January 2026*
 
-*Contact: legal@moodday.io*`,
+*Contact: hello@moodday.app*`,
     },
     privacy: {
       metaTitle: "{app} - Privacy Policy",
@@ -2244,7 +2280,7 @@ In accordance with GDPR, you have the following rights:
 - **Portability**: export your data in JSON format
 - **Objection**: refuse certain processing
 
-To exercise these rights: privacy@moodday.io
+To exercise these rights: hello@moodday.app
 
 ## 7. Data retention
 
@@ -2263,7 +2299,7 @@ No advertising or tracking cookies. See our [Cookie Policy](/legal/cookies).
 ## 9. DPO Contact
 
 For any questions regarding your data:
-- Email: privacy@moodday.io
+- Email: hello@moodday.app
 - Address: Moodday SAS, DPO, Paris, France
 
 ## 10. Modifications
@@ -2350,7 +2386,7 @@ We will inform you of any substantial modification to this policy by email.
         {
           title: "Contact Us",
           content:
-            "If you have questions about our cookie policy, please contact us at privacy@moodday.io",
+            "If you have questions about our cookie policy, please contact us at hello@moodday.app",
         },
       ],
     },
@@ -2647,9 +2683,9 @@ We will inform you of any substantial modification to this policy by email.
           cta: "Start for free",
           features: [
             "Unlimited mood tracking",
-            "3 medications max",
-            "30-day history",
-            "Basic PDF export",
+            "2 medications max",
+            "7-day history",
+            "Basic journal",
           ],
         },
         pro: {
@@ -2661,21 +2697,21 @@ We will inform you of any substantial modification to this policy by email.
             "Unlimited medications",
             "Unlimited history",
             "Advanced AI insights",
-            "Caregiver circle (5 people)",
+            "Caregiver circle (3 people)",
             "Custom PDF export",
-            "Priority support",
+            "Email support",
           ],
         },
-        family: {
-          name: "Family",
-          description: "For you and your loved ones",
+        ultra: {
+          name: "Ultra",
+          description: "All advanced features",
           cta: "14-day free trial",
           features: [
             "Everything in Pro",
-            "5 member accounts",
-            "Family dashboard",
-            "Shared alerts",
-            "Dedicated support",
+            "Unlimited caregivers",
+            "Priority support",
+            "Data export",
+            "Advanced features",
           ],
         },
       },

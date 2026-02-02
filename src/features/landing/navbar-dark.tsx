@@ -1,9 +1,11 @@
 "use client";
 
 import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageToggle } from "@/features/i18n/language-toggle";
 import { ThemeToggle } from "@/features/theme/theme-toggle";
 import { useI18n } from "@/i18n/provider";
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -13,6 +15,8 @@ export function NavbarDark() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useI18n();
+  const { data: session } = useSession();
+  const user = session?.user;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,18 +62,43 @@ export function NavbarDark() {
             <LanguageToggle />
             <ThemeToggle />
           </div>
-          <Link
-            href="/auth/signin"
-            className="text-muted-foreground hover:text-foreground hidden text-sm font-medium transition-colors sm:inline-block"
-          >
-            {t("landing2.nav.signin")}
-          </Link>
-          <Link
-            href="/auth/signup"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/20 rounded-lg px-4 py-2 text-sm font-semibold transition-all hover:shadow-lg"
-          >
-            {t("landing2.nav.startTrial")}
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-muted-foreground hover:text-foreground hidden text-sm font-medium transition-colors sm:inline-block"
+              >
+                {t("nav.dashboard")}
+              </Link>
+              <Link
+                href="/dashboard"
+                className="ml-2 hidden sm:inline-flex"
+                aria-label={user.name ?? user.email ?? t("nav.dashboard")}
+              >
+                <Avatar className="size-9 rounded-xl border border-white/40 shadow-sm">
+                  <AvatarImage src={user.image ?? ""} alt={user.name ?? ""} />
+                  <AvatarFallback className="rounded-xl">
+                    {(user.name ?? user.email ?? "U")[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/signin"
+                className="text-muted-foreground hover:text-foreground hidden text-sm font-medium transition-colors sm:inline-block"
+              >
+                {t("landing2.nav.signin")}
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/20 rounded-lg px-4 py-2 text-sm font-semibold transition-all hover:shadow-lg"
+              >
+                {t("landing2.nav.startTrial")}
+              </Link>
+            </>
+          )}
 
           {/* Mobile menu button */}
           <button
@@ -99,13 +128,23 @@ export function NavbarDark() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/auth/signin"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground block rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-            >
-              {t("landing2.nav.signin")}
-            </Link>
+            {user ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground block rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              >
+                {t("nav.dashboard")}
+              </Link>
+            ) : (
+              <Link
+                href="/auth/signin"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground block rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              >
+                {t("landing2.nav.signin")}
+              </Link>
+            )}
             <div className="flex items-center gap-2 px-3 pt-2">
               <LanguageToggle />
               <ThemeToggle />

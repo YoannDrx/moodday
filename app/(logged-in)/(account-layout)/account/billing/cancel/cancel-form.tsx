@@ -81,7 +81,7 @@ export function CancelSubscriptionForm() {
           form={form}
           onSubmit={async () => {
             cancelSubscription({
-              returnUrl: `/account/billing`,
+              returnUrl: `/pricing`,
             });
           }}
         >
@@ -153,7 +153,7 @@ export function CancelSubscriptionForm() {
               <LoadingButton
                 type="button"
                 variant="outline"
-                onClick={() => router.push(`/account/billing`)}
+                onClick={() => router.push(`/pricing`)}
               >
                 {t("account.billing.cancelBack")}
               </LoadingButton>

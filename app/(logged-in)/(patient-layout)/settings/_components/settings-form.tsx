@@ -224,7 +224,7 @@ export function SettingsForm() {
       <Card>
         <CardContent className="pt-6">
           <Button variant="outline" asChild className="w-full">
-            <Link href="/account">{t("nav.account")}</Link>
+            <Link href="/settings?tab=profile">{t("nav.account")}</Link>
           </Button>
         </CardContent>
       </Card>

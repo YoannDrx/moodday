@@ -1,24 +1,5 @@
-import { combineWithParentMetadata } from "@/lib/metadata";
-import { getI18n } from "@/i18n/server";
-import { AccountLayout } from "../account-layout";
-import { DeleteAccountForm } from "./delete-account-form";
-import { ExportDataForm } from "./export-data-form";
+import { redirect } from "next/navigation";
 
-export const generateMetadata = combineWithParentMetadata(async () => {
-  const { t } = await getI18n();
-  return {
-    title: t("account.danger.title"),
-    description: t("account.danger.description"),
-  };
-});
-
-export default async function DeleteProfilePage() {
-  return (
-    <AccountLayout>
-      <div className="flex flex-col gap-4 lg:gap-8">
-        <ExportDataForm />
-        <DeleteAccountForm />
-      </div>
-    </AccountLayout>
-  );
+export default function DeleteProfilePage() {
+  redirect("/settings?tab=privacy");
 }

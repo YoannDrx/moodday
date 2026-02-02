@@ -20,17 +20,27 @@ const getStripeCustomerId = async (userId: string) => {
   return user.stripeCustomerId;
 };
 
-export const openStripePortalAction = authAction.action(
-  async ({ ctx: { user } }) => {
+const stripePortalSchema = z.object({
+  returnUrl: z.string().min(1).optional(),
+});
+
+export const openStripePortalAction = authAction
+  .inputSchema(stripePortalSchema)
+  .action(async ({ parsedInput, ctx: { user } }) => {
     const stripeCustomerId = await getStripeCustomerId(user.id);
 
     if (!stripeCustomerId) {
       throw new ActionError("No stripe customer id found");
     }
 
+    const returnUrl = parsedInput.returnUrl ?? "/settings?tab=subscription";
+    const normalizedReturnUrl = returnUrl.startsWith("http")
+      ? returnUrl
+      : `${getServerUrl()}${returnUrl.startsWith("/") ? "" : "/"}${returnUrl}`;
+
     const stripeBilling = await getStripe().billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${getServerUrl()}/account/billing`,
+      return_url: normalizedReturnUrl,
     });
 
     if (!stripeBilling.url) {
@@ -40,8 +50,7 @@ export const openStripePortalAction = authAction.action(
     return {
       url: stripeBilling.url,
     };
-  },
-);
+  });
 
 export const cancelSubscriptionAction = authAction
   .inputSchema(

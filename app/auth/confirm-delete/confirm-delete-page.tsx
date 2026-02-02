@@ -56,11 +56,11 @@ export function ConfirmDeletePage({
   };
 
   const handleCancel = () => {
-    router.push("/account");
+    router.push("/settings?tab=privacy");
   };
 
   if (!token) {
-    router.push("/account");
+    router.push("/settings?tab=privacy");
     return null;
   }
 

@@ -24,6 +24,7 @@ export const UserDropdownLogout = () => {
 
   return (
     <DropdownMenuItem
+      data-testid="dropdown-logout"
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();

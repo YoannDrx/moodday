@@ -5,7 +5,11 @@ import { admin, magicLink } from "better-auth/plugins";
 
 import { sendEmail } from "@/lib/mail/send-email";
 import { SiteConfig } from "@/site-config";
-import MarkdownEmail from "@email/markdown.email";
+import AccountDeletedEmail from "@email/auth/account-deleted";
+import EmailChangedEmail from "@email/auth/email-changed";
+import MagicLinkEmail from "@email/auth/magic-link";
+import ResetPasswordEmail from "@email/auth/reset-password";
+import VerifyEmail from "@email/auth/verify-email";
 import { setupResendCustomer } from "./auth/auth-config-setup";
 import { env } from "./env";
 import { logger } from "./logger";
@@ -80,16 +84,10 @@ export const auth = betterAuth({
     async sendResetPassword({ user, url }) {
       await sendEmail({
         to: user.email,
-        subject: "Reset your password",
-        html: MarkdownEmail({
-          preview: `Reset your password for ${SiteConfig.title}`,
-          markdown: `
-          Hello,
-
-          You requested to reset your password.
-
-          [Click here to reset your password](${url})
-          `,
+        subject: `Réinitialisez votre mot de passe ${SiteConfig.title} / Reset your password`,
+        html: ResetPasswordEmail({
+          userName: user.name || "Utilisateur",
+          resetUrl: url,
         }),
       });
     },
@@ -97,19 +95,13 @@ export const auth = betterAuth({
   user: {
     changeEmail: {
       enabled: true,
-      sendChangeEmailVerification: async ({ newEmail, url }) => {
+      sendChangeEmailVerification: async ({ newEmail, url, user }) => {
         await sendEmail({
           to: newEmail,
-          subject: "Change email address",
-          html: MarkdownEmail({
-            preview: `Change your email address for ${SiteConfig.title}`,
-            markdown: `
-            Hello,
-
-            You requested to change your email address.
-
-            [Click here to verify your new email address](${url})
-            `,
+          subject: `Confirmez votre nouvelle adresse email / Confirm your new email address`,
+          html: EmailChangedEmail({
+            userName: user.name || "Utilisateur",
+            verificationUrl: url,
           }),
         });
       },
@@ -120,16 +112,10 @@ export const auth = betterAuth({
         const url = `${getServerUrl()}/auth/confirm-delete?token=${token}&callbackUrl=/auth/goodbye`;
         await sendEmail({
           to: user.email,
-          subject: "Delete your account",
-          html: MarkdownEmail({
-            preview: `Delete your account from ${SiteConfig.title}`,
-            markdown: `
-            Hello,
-
-            You requested to delete your account.
-
-            [Click here to confirm account deletion](${url})
-            `,
+          subject: `Suppression de votre compte ${SiteConfig.title} / Delete your account`,
+          html: AccountDeletedEmail({
+            userName: user.name || "Utilisateur",
+            confirmUrl: url,
           }),
         });
       },
@@ -139,16 +125,10 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
-        subject: "Verify your email address",
-        html: MarkdownEmail({
-          preview: `Verify your email for ${SiteConfig.title}`,
-          markdown: `
-          Hello,
-
-          Welcome to ${SiteConfig.title}! Please verify your email address.
-
-          [Click here to verify your email](${url})
-          `,
+        subject: `Vérifiez votre email ${SiteConfig.title} / Verify your email`,
+        html: VerifyEmail({
+          userName: user.name || "Utilisateur",
+          verificationUrl: url,
         }),
       });
     },
@@ -159,16 +139,9 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, url }) => {
         await sendEmail({
           to: email,
-          subject: "Sign in to your account",
-          html: MarkdownEmail({
-            preview: `Magic link to login ${SiteConfig.title}`,
-            markdown: `
-            Hello,
-
-            You requested a magic link to sign in to your account.
-
-            [Click here to sign in](${url})
-            `,
+          subject: `Votre lien de connexion ${SiteConfig.title} / Your login link`,
+          html: MagicLinkEmail({
+            magicLinkUrl: url,
           }),
         });
       },

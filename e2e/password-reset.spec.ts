@@ -8,17 +8,17 @@ test("password reset flow", async ({ page }) => {
   // 1. Create a test account
   const userData = await createTestAccount({
     page,
-    callbackURL: "/account",
+    callbackURL: "/settings?tab=profile",
   });
 
   // Wait to be on the account page
   // Wait 2 seconds to ensure everything is loaded
 
-  await page.waitForURL(/\/account/, { timeout: 10000 });
+  await page.waitForURL(/\/settings\?tab=profile/, { timeout: 10000 });
 
   // 2. Sign out (redirects to "/" after signout, not "/auth/signin")
-
-  await page.getByRole("button", { name: /sign out|déconnexion/i }).click();
+  await page.getByTestId("user-menu-button").click();
+  await page.getByTestId("dropdown-logout").click();
   // After sign out, user is redirected to home page "/"
   await page.waitForURL("/", { timeout: 10000 });
 

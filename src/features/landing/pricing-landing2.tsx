@@ -16,16 +16,16 @@ import { useState } from "react";
 import { ScrollReveal } from "./shared";
 
 const planIcons: LucideIcon[] = [Heart, Sparkles, Star];
-const planKeys = ["free", "pro", "family"] as const;
+const planKeys = ["free", "pro", "ultra"] as const;
 const planPrices = [
   { monthly: 0, annual: 0 },
   { monthly: 9.99, annual: 7.99 },
-  { monthly: 19.99, annual: 14.99 },
+  { monthly: 19.99, annual: 15.99 },
 ];
 const planLinks = [
   "/auth/signup?plan=free",
   "/auth/signup?plan=pro",
-  "/contact?plan=family",
+  "/auth/signup?plan=ultra",
 ];
 const planPopular = [false, true, false];
 

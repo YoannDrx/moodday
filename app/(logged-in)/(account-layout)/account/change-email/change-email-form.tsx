@@ -55,7 +55,7 @@ export function ChangeEmailForm() {
     },
     onSuccess: () => {
       toast.success(t("account.email.verifySent"));
-      router.push("/account");
+      router.refresh();
     },
   });
 

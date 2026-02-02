@@ -66,7 +66,7 @@ const BaseSidebar = async () => {
             </SidebarMenuButtonLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButtonLink href="/account">
+            <SidebarMenuButtonLink href="/settings?tab=profile">
               <User />
               <span>{t("nav.account")}</span>
             </SidebarMenuButtonLink>

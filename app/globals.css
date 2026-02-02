@@ -180,8 +180,8 @@
   --info-foreground: #FFFFFF;
 
   /* Patient Sidebar */
-  --sidebar-patient: #F8F7F3;
-  --sidebar-patient-accent: rgba(43, 160, 159, 0.1);
+  --sidebar-patient: #FFFFFF;
+  --sidebar-patient-accent: rgba(43, 160, 159, 0.08);
   --sidebar-patient-primary: #2BA09F;
 }
 
@@ -264,8 +264,8 @@
   --info-foreground: #1A1D21;
 
   /* Patient Sidebar */
-  --sidebar-patient: #1F232A;
-  --sidebar-patient-accent: rgba(61, 165, 184, 0.15);
+  --sidebar-patient: #242830;
+  --sidebar-patient-accent: rgba(61, 165, 184, 0.12);
   --sidebar-patient-primary: #3DA5B8;
 }
 

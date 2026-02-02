@@ -72,6 +72,8 @@ export function PricingCard({
     tm<{ label: string; description: string }[]>(
       `plans.additionalFeatures.${plan.name}`,
     ) ?? [];
+  const additionalIcons =
+    ADDITIONAL_FEATURES[plan.name as keyof typeof ADDITIONAL_FEATURES] ?? [];
 
   return (
     <Card
@@ -171,11 +173,12 @@ export function PricingCard({
             })}
 
             {/* Additional features based on plan */}
-            {ADDITIONAL_FEATURES[
-              plan.name as keyof typeof ADDITIONAL_FEATURES
-            ].map((feature, index) => {
-              const Icon = feature.icon;
+            {additionalIcons.map((Icon, index) => {
               const translated = additionalFeatures.at(index);
+
+              if (!translated) {
+                return null;
+              }
 
               return (
                 <li key={index} className="flex items-start">
@@ -184,12 +187,10 @@ export function PricingCard({
                   </div>
                   <div>
                     <p className="font-medium">
-                      {translated ? translated.label : feature.label}
+                      {translated.label}
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {translated
-                        ? translated.description
-                        : feature.description}
+                      {translated.description}
                     </p>
                   </div>
                 </li>

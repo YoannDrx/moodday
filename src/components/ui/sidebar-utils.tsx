@@ -83,8 +83,13 @@ export const SidebarSubButtonLink = ({
   );
 };
 
-export const SidebarNavigationMenu = (props: { link: NavigationGroup }) => {
-  const { link } = props;
+export const SidebarNavigationMenu = (props: {
+  link: NavigationGroup;
+  menuClassName?: string;
+  buttonClassName?: string;
+  subButtonClassName?: string;
+}) => {
+  const { link, menuClassName, buttonClassName, subButtonClassName } = props;
   const pathname = usePathname();
 
   // Collect all hrefs for best match calculation
@@ -96,7 +101,7 @@ export const SidebarNavigationMenu = (props: { link: NavigationGroup }) => {
   const bestMatch = findBestMatch(pathname, allHrefs);
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className={menuClassName}>
       {link.links.map((item) => {
         if (item.links) {
           return (
@@ -109,6 +114,7 @@ export const SidebarNavigationMenu = (props: { link: NavigationGroup }) => {
                 <SidebarMenuButtonLinkWithActive
                   href={item.href}
                   isActive={bestMatch === item.href}
+                  className={buttonClassName}
                 >
                   <item.Icon />
                   <span>{item.label}</span>
@@ -121,12 +127,15 @@ export const SidebarNavigationMenu = (props: { link: NavigationGroup }) => {
                   <SidebarMenuSub>
                     {item.links.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.label}>
-                        <SidebarSubButtonLink href={subItem.href}>
-                          <subItem.Icon />
-                          <span>{subItem.label}</span>
-                        </SidebarSubButtonLink>
-                      </SidebarMenuSubItem>
-                    ))}
+                      <SidebarSubButtonLink
+                        href={subItem.href}
+                        className={subButtonClassName}
+                      >
+                        <subItem.Icon />
+                        <span>{subItem.label}</span>
+                      </SidebarSubButtonLink>
+                    </SidebarMenuSubItem>
+                  ))}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
@@ -139,6 +148,7 @@ export const SidebarNavigationMenu = (props: { link: NavigationGroup }) => {
             <SidebarMenuButtonLinkWithActive
               href={item.href}
               isActive={bestMatch === item.href}
+              className={buttonClassName}
             >
               <item.Icon />
               <span>{item.label}</span>

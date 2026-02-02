@@ -1,14 +1,21 @@
 import type { NavigationGroup } from "@/features/navigation/navigation.type";
 import {
   BarChart3,
+  Bell,
+  CreditCard,
   Dumbbell,
   FileText,
+  Globe,
   Heart,
   HeartHandshake,
   Home,
+  Lock,
   MessageSquare,
+  Palette,
   Pill,
   Settings,
+  Shield,
+  User,
   Users,
 } from "lucide-react";
 
@@ -59,17 +66,17 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
           Icon: MessageSquare,
           label: t("patient.nav.therapy"),
         },
+      ],
+    },
+    {
+      title: t("patient.nav.support"),
+      defaultOpenStartPath: "/caregiver",
+      links: [
         {
           href: "/caregiver",
           Icon: Users,
           label: t("patient.nav.caregiver"),
         },
-      ],
-    },
-    {
-      title: t("patient.nav.tools"),
-      defaultOpenStartPath: "/export",
-      links: [
         {
           href: "/crisis",
           Icon: HeartHandshake,
@@ -80,10 +87,46 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
           Icon: FileText,
           label: t("patient.nav.export"),
         },
+      ],
+    },
+    {
+      title: t("settings.title"),
+      defaultOpenStartPath: "/settings",
+      links: [
         {
-          href: "/settings",
-          Icon: Settings,
-          label: t("settings.title"),
+          href: "/settings?tab=profile",
+          Icon: User,
+          label: t("settings.sidebar.profile"),
+        },
+        {
+          href: "/settings?tab=notifications",
+          Icon: Bell,
+          label: t("settings.sidebar.notifications"),
+        },
+        {
+          href: "/settings?tab=appearance",
+          Icon: Palette,
+          label: t("settings.sidebar.appearance"),
+        },
+        {
+          href: "/settings?tab=privacy",
+          Icon: Shield,
+          label: t("settings.sidebar.privacy"),
+        },
+        {
+          href: "/settings?tab=subscription",
+          Icon: CreditCard,
+          label: t("settings.sidebar.subscription"),
+        },
+        {
+          href: "/settings?tab=security",
+          Icon: Lock,
+          label: t("settings.sidebar.security"),
+        },
+        {
+          href: "/settings?tab=language",
+          Icon: Globe,
+          label: t("settings.sidebar.language"),
         },
       ],
     },

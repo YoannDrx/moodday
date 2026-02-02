@@ -31,6 +31,7 @@ const fr: typeof en = {
     organization: "Organisation",
     account: "Compte",
     app: "Application",
+    backToSite: "Retour au site",
   },
   footer: {
     description:
@@ -437,7 +438,8 @@ const fr: typeof en = {
       },
       therapy: {
         improved: "Les séances de thérapie ont augmenté à {count} ce mois-ci.",
-        steady: "Les séances de thérapie sont restées stables à {count} ce mois-ci.",
+        steady:
+          "Les séances de thérapie sont restées stables à {count} ce mois-ci.",
         lower: "Les séances de thérapie ont diminué à {count} ce mois-ci.",
       },
       exercise: {
@@ -458,6 +460,7 @@ const fr: typeof en = {
   },
   dashboard: {
     greeting: "Bonjour {name}",
+    defaultName: "Utilisateur",
     today: "Nous sommes le {date}",
     quickMood: {
       title: "Check-in d'humeur rapide",
@@ -548,7 +551,8 @@ const fr: typeof en = {
     },
     safety: {
       title: "Plan de sécurité",
-      description: "Revoyez votre plan et vos contacts quand vous en avez besoin.",
+      description:
+        "Revoyez votre plan et vos contacts quand vous en avez besoin.",
       cta: "Ouvrir le plan de sécurité",
     },
     reassurance: {
@@ -579,7 +583,7 @@ const fr: typeof en = {
       website: "Site web",
     },
     fab: {
-      call: "Appeler",
+      call: "Appeler le 3114",
       resources: "Ressources",
       needHelp: "Besoin d'aide ?",
     },
@@ -807,7 +811,8 @@ const fr: typeof en = {
     correlations: {
       title: "Corrélations",
       sleepMood: "Qualité du sommeil vs humeur",
-      medicationStability: "Observance des médicaments vs stabilité de l'humeur",
+      medicationStability:
+        "Observance des médicaments vs stabilité de l'humeur",
       energyMood: "Énergie vs humeur",
     },
     insights: {
@@ -882,6 +887,7 @@ const fr: typeof en = {
       main: "Principal",
       tracking: "Suivi",
       tools: "Outils",
+      support: "Support",
       mood: "Mon humeur",
       medications: "Traitements",
       exercises: "Exercices",
@@ -919,7 +925,8 @@ const fr: typeof en = {
       actions: {
         checkin: {
           title: "Saisir un check-in",
-          subtitle: "Partagez l'humeur, l'énergie, le sommeil et le comportement.",
+          subtitle:
+            "Partagez l'humeur, l'énergie, le sommeil et le comportement.",
         },
         event: {
           title: "Signaler un événement",
@@ -939,7 +946,8 @@ const fr: typeof en = {
         severity: "Gravité",
         badgeObservation: "Observation",
         emptyTitle: "Aucune activité pour l'instant",
-        emptyDescription: "Créez votre premier check-in pour commencer le suivi.",
+        emptyDescription:
+          "Créez votre premier check-in pour commencer le suivi.",
         emptyCta: "Créer un check-in",
       },
       circle: {
@@ -974,7 +982,8 @@ const fr: typeof en = {
     },
     activity: {
       emptyTitle: "Aucune activité pour l'instant",
-      emptyDescription: "Les check-ins et événements des aidants apparaîtront ici.",
+      emptyDescription:
+        "Les check-ins et événements des aidants apparaîtront ici.",
       badgeObservation: "Observation",
       moodLabel: "Humeur : {value}",
       energyLabel: "Énergie : {value}",
@@ -982,7 +991,8 @@ const fr: typeof en = {
     },
     observe: {
       title: "Nouvelle observation",
-      description: "Partagez une observation ou un événement avec consentement.",
+      description:
+        "Partagez une observation ou un événement avec consentement.",
       tabCheckin: "Check-in",
       tabEvent: "Événement",
       patientLabel: "Patient",
@@ -1042,7 +1052,8 @@ const fr: typeof en = {
       alreadyDeclined: "Cette invitation a déjà été refusée.",
       pendingSubtitle: "Vous avez été invité(e) à un cercle d'aidants.",
       signInRequiredTitle: "Connexion requise",
-      signInRequiredDescription: "Veuillez vous connecter pour accepter cette invitation.",
+      signInRequiredDescription:
+        "Veuillez vous connecter pour accepter cette invitation.",
       notFoundTitle: "Invitation introuvable",
       notFoundDescription: "Cette invitation est invalide ou a expiré.",
     },
@@ -1070,24 +1081,30 @@ const fr: typeof en = {
       relationshipNotFoundOrUnauthorized:
         "Relation introuvable ou non autorisée.",
       relationshipNotFound: "Relation introuvable.",
-      relationshipDeleteNotAllowed: "Vous ne pouvez pas supprimer cette relation.",
+      relationshipDeleteNotAllowed:
+        "Vous ne pouvez pas supprimer cette relation.",
       insufficientObservationPermission:
         "Vous n'avez pas l'autorisation d'ajouter des observations.",
       insufficientEventPermission:
         "Vous n'avez pas l'autorisation de signaler des événements.",
-      notAllowedObserve: "Vous n'êtes pas autorisé(e) à ajouter des observations.",
-      notAllowedReportEvent: "Vous n'êtes pas autorisé(e) à signaler des événements.",
+      notAllowedObserve:
+        "Vous n'êtes pas autorisé(e) à ajouter des observations.",
+      notAllowedReportEvent:
+        "Vous n'êtes pas autorisé(e) à signaler des événements.",
     },
   },
   settings: {
     title: "Paramètres",
-    subtitle: "Gérez vos préférences, votre confidentialité et votre abonnement.",
+    subtitle:
+      "Gérez vos préférences, votre confidentialité et votre abonnement.",
     tabs: {
       profile: "Profil",
       notifications: "Notifications",
       appearance: "Apparence",
       privacy: "Confidentialité",
       subscription: "Abonnement",
+      security: "Sécurité",
+      language: "Langue",
     },
     manageAccount: "Gérer le compte",
     profile: {
@@ -1126,7 +1143,8 @@ const fr: typeof en = {
     privacy: {
       title: "Confidentialité et données",
       exportJson: "Exporter JSON",
-      exportJsonDescription: "Téléchargez l'export complet de vos données (RGPD).",
+      exportJsonDescription:
+        "Téléchargez l'export complet de vos données (RGPD).",
       exportPdf: "Exporter PDF",
       exportPdfDescription: "Générez un résumé clinique au format PDF.",
       exportSuccess: "Export prêt",
@@ -1141,6 +1159,10 @@ const fr: typeof en = {
       policyTitle: "Politique de confidentialité",
       policyDescription: "Découvrez comment nous traitons vos données.",
       policyCta: "Lire la politique",
+    },
+    security: {
+      description:
+        "Gérez vos informations de connexion et protégez votre compte.",
     },
     subscription: {
       title: "Abonnement",
@@ -1171,6 +1193,16 @@ const fr: typeof en = {
       newYork: "New York",
     },
     saved: "Paramètres sauvegardés !",
+    sidebar: {
+      profile: "Profil",
+      notifications: "Notifications",
+      appearance: "Apparence",
+      privacy: "Confidentialité",
+      subscription: "Abonnement",
+      security: "Sécurité",
+      language: "Langue",
+    },
+    upgrade: "Passer à Premium",
   },
   debug: {
     title: "Panneau de debug",
@@ -1258,6 +1290,12 @@ const fr: typeof en = {
     footer: "Annulez à tout moment. Aucun frais caché.",
     customPlan: "Besoin d'une offre sur mesure ?",
     contact: "Contactez-nous",
+    checkoutCanceled: {
+      title: "Paiement annulé",
+      description:
+        "Pas de souci — vous pourrez changer d'offre quand vous le souhaitez.",
+      back: "Retour aux tarifs",
+    },
     dialog: {
       title: "Choisissez une offre et lancez-vous",
       description:
@@ -1284,49 +1322,61 @@ const fr: typeof en = {
       ultra: "Ultra",
     },
     descriptions: {
-      free: "Parfait pour les particuliers et les petits projets",
-      pro: "Idéal pour les équipes en croissance avec des besoins avancés",
-      ultra: "Offre entreprise pour grandes équipes et workflows complexes",
+      free: "Suivi d'humeur quotidien et journal basique",
+      pro: "Suivi complet avec médicaments illimités, historique et aidants",
+      ultra: "Toutes les fonctionnalités Pro + support prioritaire",
     },
     limits: {
-      projects: {
-        label: "{value} projets",
-        description: "Créer et gérer des projets",
+      medications: {
+        label: "{value} médicaments",
+        labelUnlimited: "Médicaments illimités",
+        description: "Suivre vos traitements",
       },
-      storage: {
-        label: "{value} Go de stockage",
-        description: "Stockage cloud pour vos fichiers",
+      historyDays: {
+        label: "Historique {value} jours",
+        labelUnlimited: "Historique complet",
+        description: "Accès à vos données passées",
       },
-      members: {
-        label: "{value} membres d'équipe",
-        description: "Inviter des membres pour collaborer",
+      caregivers: {
+        label: "{value} aidants",
+        labelUnlimited: "Aidants illimités",
+        labelNone: "Pas d'aidants",
+        description: "Partager avec vos proches",
       },
     },
     additionalFeatures: {
       free: [
         {
-          label: "Sécurité de base",
-          description: "Protection standard pour vos données",
+          label: "Suivi d'humeur quotidien",
+          description: "Enregistrez votre humeur chaque jour",
+        },
+        {
+          label: "Journal basique",
+          description: "Notez vos pensées et émotions",
         },
       ],
       pro: [
         {
-          label: "Support prioritaire",
-          description: "Obtenez de l'aide quand vous en avez besoin",
+          label: "Export PDF",
+          description: "Exportez vos données pour votre médecin",
         },
         {
-          label: "Service client 24/7",
-          description: "Assistance disponible à toute heure",
+          label: "Insights IA",
+          description: "Analyses personnalisées de vos tendances",
         },
         {
-          label: "Analyses avancées",
-          description: "Insights détaillés et rapports",
+          label: "Support par email",
+          description: "Assistance dédiée par email",
         },
       ],
       ultra: [
         {
           label: "Support prioritaire",
-          description: "Obtenez de l'aide quand vous en avez besoin",
+          description: "Réponse rapide à vos demandes",
+        },
+        {
+          label: "Données exportables",
+          description: "Export complet de toutes vos données",
         },
       ],
     },
@@ -1700,7 +1750,8 @@ const fr: typeof en = {
         nameRequired: "Le nom est requis",
         emailInvalid: "Saisissez une adresse e-mail valide",
         passwordMin: "Le mot de passe doit contenir au moins 8 caractères",
-        verifyPasswordMin: "La confirmation doit contenir au moins 8 caractères",
+        verifyPasswordMin:
+          "La confirmation doit contenir au moins 8 caractères",
         passwordMismatch: "Les mots de passe ne correspondent pas",
       },
     },
@@ -1862,8 +1913,7 @@ const fr: typeof en = {
     },
     vision: {
       title: "Notre vision",
-      paragraphOne:
-        "Un monde où chacun se sent soutenu entre les rendez-vous.",
+      paragraphOne: "Un monde où chacun se sent soutenu entre les rendez-vous.",
       paragraphTwo:
         "Des données privées et des insights clairs pour rendre le soin plus humain.",
     },
@@ -1876,7 +1926,8 @@ const fr: typeof en = {
         },
         privacy: {
           title: "Confidentialité par défaut",
-          description: "Vos données restent les vôtres, avec un chiffrement robuste.",
+          description:
+            "Vos données restent les vôtres, avec un chiffrement robuste.",
         },
         science: {
           title: "Guidé par la science",
@@ -1914,7 +1965,8 @@ const fr: typeof en = {
     cards: {
       email: {
         title: "Nous écrire",
-        description: "Contactez l'équipe support pour vos questions produit ou compte.",
+        description:
+          "Contactez l'équipe support pour vos questions produit ou compte.",
       },
       response: {
         title: "Délai de réponse",
@@ -2000,7 +2052,8 @@ const fr: typeof en = {
         acceptableUse: {
           title: "Utilisation acceptable",
           items: {
-            personalTracking: "Utilisez Moodday uniquement pour votre suivi personnel.",
+            personalTracking:
+              "Utilisez Moodday uniquement pour votre suivi personnel.",
             noSharing: "Ne partagez pas vos identifiants.",
             noBypass: "N'essayez pas de contourner les mesures de sécurité.",
             respect: "Respectez les autres utilisateurs et la loi.",
@@ -2037,7 +2090,7 @@ const fr: typeof en = {
         },
       },
       content:
-        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal clinique digital destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports pour vos consultations médicales\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sous votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : legal@moodday.io*",
+        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal clinique digital destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports pour vos consultations médicales\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sous votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
     },
     privacy: {
       metaTitle: "{app} - Politique de Confidentialité",
@@ -2047,12 +2100,14 @@ const fr: typeof en = {
       intro: {
         prefix: "Votre confidentialité est",
         highlight: "notre priorité.",
-        suffix: " Nous ne collectons que ce qui est nécessaire pour fournir le service.",
+        suffix:
+          " Nous ne collectons que ce qui est nécessaire pour fournir le service.",
       },
       sections: {
         data: {
           title: "Données collectées",
-          highlight: "Nous ne collectons jamais la localisation ou les contacts.",
+          highlight:
+            "Nous ne collectons jamais la localisation ou les contacts.",
           items: {
             account: {
               label: "Compte",
@@ -2141,13 +2196,15 @@ const fr: typeof en = {
         title: "Conservation des données",
         items: {
           active: "Données conservées tant que votre compte est actif.",
-          afterDeletion: "Supprimées dans les 30 jours après la suppression du compte.",
+          afterDeletion:
+            "Supprimées dans les 30 jours après la suppression du compte.",
           backups: "Sauvegardes supprimées sous 90 jours.",
         },
       },
       cookies: {
         title: "Cookies",
-        description: "Nous utilisons uniquement des cookies essentiels pour le service.",
+        description:
+          "Nous utilisons uniquement des cookies essentiels pour le service.",
         note: "Aucun cookie publicitaire ou de suivi.",
       },
       contact: {
@@ -2155,7 +2212,7 @@ const fr: typeof en = {
         descriptionPrefix: "Pour les questions de confidentialité, écrivez à ",
       },
       content:
-        "## 1. Introduction\n\nChez Moodday, la protection de vos données de santé est notre priorité absolue. Cette politique explique comment nous collectons, utilisons et protégeons vos informations personnelles.\n\n## 2. Données collectées\n\n### Données que vous nous fournissez\n- **Compte** : email, nom (optionnel), mot de passe chiffré\n- **Suivi quotidien** : humeurs, notes personnelles, qualité du sommeil\n- **Médicaments** : noms, dosages, horaires de prises\n- **Thérapie** : dates des séances, notes (optionnelles)\n\n### Données collectées automatiquement\n- Logs techniques (anonymisés)\n- Données d'utilisation agrégées pour améliorer le service\n\n**Nous ne collectons JAMAIS** : votre géolocalisation, vos contacts, vos messages, ni aucune donnée de vos autres applications.\n\n## 3. Utilisation de vos données\n\nVos données sont utilisées **exclusivement** pour :\n- Fournir le service de suivi personnel\n- Générer vos rapports PDF pour vos consultations\n- Partager avec vos aidants autorisés (si vous le souhaitez)\n- Améliorer l'application (données agrégées et anonymisées)\n\n**Nous ne vendons JAMAIS vos données** à des tiers, annonceurs ou assureurs.\n\n## 4. Partage des données\n\nVos données ne sont partagées qu'avec :\n- **Vous** : via l'export PDF et l'export RGPD\n- **Vos aidants autorisés** : uniquement les données que vous choisissez de partager\n- **Prestataires techniques** : sous contrat strict de confidentialité (hébergement, email)\n\n## 5. Sécurité\n\nNous mettons en œuvre des mesures de sécurité robustes :\n- **Chiffrement** : données chiffrées au repos (AES-256) et en transit (TLS 1.3)\n- **Hébergement** : serveurs exclusivement en Union Européenne\n- **Accès** : authentification forte, 2FA disponible\n- **Audits** : tests de sécurité réguliers\n\n## 6. Vos droits (RGPD)\n\nConformément au RGPD, vous disposez des droits suivants :\n- **Accès** : consultez toutes vos données à tout moment\n- **Rectification** : modifiez vos informations\n- **Effacement** : supprimez votre compte et toutes vos données\n- **Portabilité** : exportez vos données au format JSON\n- **Opposition** : refusez certains traitements\n\nPour exercer ces droits : privacy@moodday.io\n\n## 7. Conservation des données\n\n- **Compte actif** : données conservées tant que votre compte est actif\n- **Après suppression** : données effacées sous 30 jours (sauf obligation légale)\n- **Sauvegardes** : supprimées sous 90 jours\n\n## 8. Cookies\n\nNous utilisons uniquement des cookies essentiels :\n- Session et authentification\n- Préférences (langue, thème)\n\nAucun cookie publicitaire ou de tracking. Voir notre [Politique de cookies](/legal/cookies).\n\n## 9. Contact DPO\n\nPour toute question relative à vos données :\n- Email : privacy@moodday.io\n- Adresse : Moodday SAS, DPO, Paris, France\n\n## 10. Modifications\n\nNous vous informerons de toute modification substantielle de cette politique par email.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Moodday SAS - Société par actions simplifiée - France*",
+        "## 1. Introduction\n\nChez Moodday, la protection de vos données de santé est notre priorité absolue. Cette politique explique comment nous collectons, utilisons et protégeons vos informations personnelles.\n\n## 2. Données collectées\n\n### Données que vous nous fournissez\n- **Compte** : email, nom (optionnel), mot de passe chiffré\n- **Suivi quotidien** : humeurs, notes personnelles, qualité du sommeil\n- **Médicaments** : noms, dosages, horaires de prises\n- **Thérapie** : dates des séances, notes (optionnelles)\n\n### Données collectées automatiquement\n- Logs techniques (anonymisés)\n- Données d'utilisation agrégées pour améliorer le service\n\n**Nous ne collectons JAMAIS** : votre géolocalisation, vos contacts, vos messages, ni aucune donnée de vos autres applications.\n\n## 3. Utilisation de vos données\n\nVos données sont utilisées **exclusivement** pour :\n- Fournir le service de suivi personnel\n- Générer vos rapports PDF pour vos consultations\n- Partager avec vos aidants autorisés (si vous le souhaitez)\n- Améliorer l'application (données agrégées et anonymisées)\n\n**Nous ne vendons JAMAIS vos données** à des tiers, annonceurs ou assureurs.\n\n## 4. Partage des données\n\nVos données ne sont partagées qu'avec :\n- **Vous** : via l'export PDF et l'export RGPD\n- **Vos aidants autorisés** : uniquement les données que vous choisissez de partager\n- **Prestataires techniques** : sous contrat strict de confidentialité (hébergement, email)\n\n## 5. Sécurité\n\nNous mettons en œuvre des mesures de sécurité robustes :\n- **Chiffrement** : données chiffrées au repos (AES-256) et en transit (TLS 1.3)\n- **Hébergement** : serveurs exclusivement en Union Européenne\n- **Accès** : authentification forte, 2FA disponible\n- **Audits** : tests de sécurité réguliers\n\n## 6. Vos droits (RGPD)\n\nConformément au RGPD, vous disposez des droits suivants :\n- **Accès** : consultez toutes vos données à tout moment\n- **Rectification** : modifiez vos informations\n- **Effacement** : supprimez votre compte et toutes vos données\n- **Portabilité** : exportez vos données au format JSON\n- **Opposition** : refusez certains traitements\n\nPour exercer ces droits : hello@moodday.app\n\n## 7. Conservation des données\n\n- **Compte actif** : données conservées tant que votre compte est actif\n- **Après suppression** : données effacées sous 30 jours (sauf obligation légale)\n- **Sauvegardes** : supprimées sous 90 jours\n\n## 8. Cookies\n\nNous utilisons uniquement des cookies essentiels :\n- Session et authentification\n- Préférences (langue, thème)\n\nAucun cookie publicitaire ou de tracking. Voir notre [Politique de cookies](/legal/cookies).\n\n## 9. Contact DPO\n\nPour toute question relative à vos données :\n- Email : hello@moodday.app\n- Adresse : Moodday SAS, DPO, Paris, France\n\n## 10. Modifications\n\nNous vous informerons de toute modification substantielle de cette politique par email.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Moodday SAS - Société par actions simplifiée - France*",
     },
     cookies: {
       metaTitle: "{app} - Politique de cookies",
@@ -2234,7 +2291,7 @@ const fr: typeof en = {
         {
           title: "Nous contacter",
           content:
-            "Si vous avez des questions sur notre politique de cookies, contactez-nous à privacy@moodday.io",
+            "Si vous avez des questions sur notre politique de cookies, contactez-nous à hello@moodday.app",
         },
       ],
     },
@@ -2535,9 +2592,9 @@ const fr: typeof en = {
           cta: "Commencer gratuitement",
           features: [
             "Suivi d'humeur illimité",
-            "3 médicaments max",
-            "Historique 30 jours",
-            "Export PDF basique",
+            "2 médicaments max",
+            "Historique 7 jours",
+            "Journal basique",
           ],
         },
         pro: {
@@ -2549,21 +2606,21 @@ const fr: typeof en = {
             "Médicaments illimités",
             "Historique illimité",
             "Insights IA avancés",
-            "Cercle d'aidants (5 personnes)",
+            "Cercle d'aidants (3 personnes)",
             "Export PDF personnalisé",
-            "Support prioritaire",
+            "Support par email",
           ],
         },
-        family: {
-          name: "Famille",
-          description: "Pour vous et vos proches",
+        ultra: {
+          name: "Ultra",
+          description: "Toutes les fonctionnalités avancées",
           cta: "Essai gratuit 14 jours",
           features: [
             "Tout du plan Pro",
-            "5 comptes membres",
-            "Dashboard famille",
-            "Alertes partagées",
-            "Support dédié",
+            "Aidants illimités",
+            "Support prioritaire",
+            "Données exportables",
+            "Fonctionnalités avancées",
           ],
         },
       },

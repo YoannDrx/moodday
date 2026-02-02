@@ -54,7 +54,9 @@ export function Footer() {
                       variant="link"
                       className="h-auto justify-start p-0"
                     >
-                      <Link href="/account">{t("footer.account")}</Link>
+                      <Link href="/settings?tab=profile">
+                        {t("footer.account")}
+                      </Link>
                     </Button>
                   </nav>
                 </div>

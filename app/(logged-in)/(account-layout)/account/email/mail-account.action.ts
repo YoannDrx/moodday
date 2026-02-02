@@ -45,3 +45,35 @@ export const toggleSubscribedAction = authAction
       updateContact,
     };
   });
+
+export const getEmailPreferencesAction = authAction.action(
+  async ({ ctx }) => {
+    if (!env.RESEND_AUDIENCE_ID) {
+      return { available: false, unsubscribed: false };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: ctx.user.id,
+      },
+      select: {
+        resendContactId: true,
+      },
+    });
+
+    if (!user?.resendContactId) {
+      return { available: false, unsubscribed: false };
+    }
+
+    const { data: resendUser } = await getResend().contacts.get({
+      audienceId: env.RESEND_AUDIENCE_ID,
+      id: user.resendContactId,
+    });
+
+    if (!resendUser) {
+      return { available: false, unsubscribed: false };
+    }
+
+    return { available: true, unsubscribed: resendUser.unsubscribed };
+  },
+);

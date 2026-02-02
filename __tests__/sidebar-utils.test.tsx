@@ -143,7 +143,7 @@ describe("SidebarNavigationMenu", () => {
 
   it("renders nested navigation structure correctly", async () => {
     const { usePathname } = await import("next/navigation");
-    vi.mocked(usePathname).mockReturnValue("/settings/account");
+    vi.mocked(usePathname).mockReturnValue("/settings/profile");
 
     const navigationGroup: NavigationGroup = {
       title: "Settings",
@@ -154,9 +154,9 @@ describe("SidebarNavigationMenu", () => {
           label: "Settings",
           links: [
             {
-              href: "/settings/account",
+              href: "/settings/profile",
               Icon: User,
-              label: "Account Settings",
+              label: "Profile Settings",
             },
           ],
         },

@@ -12,18 +12,24 @@ export const SidebarUserButton = () => {
 
   return (
     <UserDropdown>
-      <SidebarMenuButton variant="outline" className="h-12">
-        <Avatar className="size-8 rounded-lg">
+      <SidebarMenuButton
+        variant="outline"
+        className="h-12 rounded-xl border-gray-200 bg-gray-50/50 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100/80"
+        data-testid="user-menu-button"
+      >
+        <Avatar className="size-8 rounded-lg shadow-sm ring-2 ring-white">
           <AvatarImage src={data?.image ?? ""} alt={data?.name[0]} />
-          <AvatarFallback className="rounded-lg">
+          <AvatarFallback className="rounded-lg bg-gradient-to-br from-[var(--primary)] to-teal-400 text-white">
             {data?.name[0] ?? data?.email[0]}
           </AvatarFallback>
         </Avatar>
         <div className="grid flex-1 text-left text-sm leading-tight">
-          <span className="truncate font-semibold">{data?.name}</span>
-          <span className="truncate text-xs">{data?.email}</span>
+          <span className="truncate font-semibold text-gray-900">
+            {data?.name}
+          </span>
+          <span className="truncate text-xs text-gray-500">{data?.email}</span>
         </div>
-        <ChevronsUpDown className="ml-auto size-4" />
+        <ChevronsUpDown className="ml-auto size-4 text-gray-400" />
       </SidebarMenuButton>
     </UserDropdown>
   );

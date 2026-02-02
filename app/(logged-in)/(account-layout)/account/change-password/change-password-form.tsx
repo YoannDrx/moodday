@@ -68,7 +68,7 @@ export function ChangePasswordForm() {
     },
     onSuccess: () => {
       toast.success(t("account.password.success"));
-      router.push("/account");
+      router.refresh();
     },
   });
 

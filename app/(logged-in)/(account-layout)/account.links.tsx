@@ -12,17 +12,17 @@ export const getAccountNavigation = (t: Translator): NavigationGroup[] => {
       title: t("account.profile.section"),
       links: [
         {
-          href: "/account",
+          href: "/settings?tab=profile",
           Icon: User2,
           label: t("account.profile.profile"),
         },
         {
-          href: "/account/email",
+          href: "/settings?tab=notifications",
           Icon: Mail,
           label: t("account.profile.mail"),
         },
         {
-          href: "/account/danger",
+          href: "/settings?tab=privacy",
           Icon: AlertCircle,
           label: t("account.profile.danger"),
         },
@@ -32,7 +32,7 @@ export const getAccountNavigation = (t: Translator): NavigationGroup[] => {
       title: t("nav.app"),
       links: [
         {
-          href: "/app",
+          href: "/dashboard",
           Icon: LayoutDashboard,
           label: t("nav.dashboard"),
         },

@@ -13,7 +13,10 @@ export const generateMetadata = combineWithParentMetadata(async () => {
 });
 
 export default async function DashboardPage() {
+  const { t } = await getI18n();
   const user = await getRequiredUser();
 
-  return <DashboardContent userName={user.name || "Utilisateur"} />;
+  return (
+    <DashboardContent userName={user.name || t("dashboard.defaultName")} />
+  );
 }

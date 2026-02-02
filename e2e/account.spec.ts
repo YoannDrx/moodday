@@ -12,24 +12,25 @@ test.describe("account", () => {
   test("delete account flow", async ({ page }) => {
     const userData = await createTestAccount({
       page,
-      callbackURL: "/account",
+      callbackURL: "/settings?tab=privacy",
     });
 
-    await page.getByRole("link", { name: "Danger" }).click();
-    await page.waitForURL(/\/account\/danger/, { timeout: 10000 });
-    await page.getByRole("button", { name: "Delete" }).click();
+    await page.waitForURL(/\/settings\?tab=privacy/, { timeout: 10000 });
+    await page
+      .getByRole("button", { name: /Delete account|Supprimer le compte/i })
+      .click();
 
     // Wait for the confirm dialog to appear (i18n: "Confirm deletion")
-    const deleteDialog = page.getByRole("alertdialog", {
-      name: /Confirm deletion|Confirmer la suppression/i,
-    });
+    const deleteDialog = page.getByRole("alertdialog");
     await expect(deleteDialog).toBeVisible();
 
     const confirmInput = deleteDialog.getByRole("textbox");
     // i18n: confirmation text is "Delete account" or "Supprimer le compte"
     await confirmInput.fill("Delete account");
 
-    const deleteButton = deleteDialog.getByRole("button", { name: /delete/i });
+    const deleteButton = deleteDialog.getByRole("button", {
+      name: /Delete account|Supprimer le compte/i,
+    });
     await expect(deleteButton).toBeEnabled();
     await deleteButton.click();
 
@@ -76,27 +77,32 @@ test.describe("account", () => {
   });
 
   test("update name flow", async ({ page }) => {
-    await createTestAccount({ page, callbackURL: "/account" });
-
-    await page.getByRole("heading", { name: "Settings", level: 2 }).waitFor({
-      timeout: 10000,
-    });
+    await createTestAccount({ page, callbackURL: "/settings?tab=profile" });
+    await page.waitForURL(/\/settings\?tab=profile/, { timeout: 10000 });
 
     const newName = faker.person.fullName();
-    const input = page.getByRole("textbox", { name: "Name" });
+    const input = page.getByRole("textbox", { name: /Full name|Nom complet/i });
     await input.fill(newName);
-    await page.getByRole("button", { name: /save/i }).click();
+    await page
+      .getByRole("button", { name: /Save profile|Enregistrer le profil/i })
+      .click();
 
-    await expect(page.getByText("Profile updated")).toBeVisible();
+    await expect(
+      page.getByText(/Settings saved|Paramètres sauvegardés/i),
+    ).toBeVisible();
     await page.reload();
-    const updatedInput = page.getByRole("textbox", { name: "Name" });
+    const updatedInput = page.getByRole("textbox", {
+      name: /Full name|Nom complet/i,
+    });
     await expect(updatedInput).toHaveValue(newName);
   });
 
   test("change password flow", async ({ page }) => {
-    const userData = await createTestAccount({ page, callbackURL: "/account" });
-
-    await page.getByRole("link", { name: /change password/i }).click();
+    const userData = await createTestAccount({
+      page,
+      callbackURL: "/settings?tab=security",
+    });
+    await page.waitForURL(/\/settings\?tab=security/, { timeout: 10000 });
 
     const newPassword = faker.internet.password({
       length: 12,

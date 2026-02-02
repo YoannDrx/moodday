@@ -1,1 +1,1 @@
-export const BILLING_URL = "/account/billing";
+export const BILLING_URL = "/pricing";

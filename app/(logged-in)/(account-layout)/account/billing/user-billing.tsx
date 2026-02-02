@@ -31,7 +31,10 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { openStripePortalAction } from "./billing.action";
+import {
+  cancelSubscriptionAction,
+  openStripePortalAction,
+} from "./billing.action";
 
 export function UserBilling(props: { subscription: UserActiveSubscription }) {
   const subscription = props.subscription;
@@ -39,13 +42,8 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "fr" ? fr : enUS;
 
-  // Get plan limits and fake current usage
+  // Get plan limits
   const planLimits = getPlanLimits(subscription.plan);
-  const fakeUsage = {
-    projects: Math.floor(planLimits.projects * 0.6), // 60% usage
-    storage: Math.floor(planLimits.storage * 0.45), // 45% usage
-    members: Math.floor(planLimits.members * 0.8), // 80% usage
-  };
 
   const manageSubscriptionMutation = useMutation({
     mutationFn: async () => {
@@ -55,9 +53,27 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
         throw new Error(t("account.billing.noStripeCustomer"));
       }
 
-      const stripeBilling = await resolveActionResult(openStripePortalAction());
+      const stripeBilling = await resolveActionResult(
+        openStripePortalAction({ returnUrl: "/pricing" }),
+      );
 
       router.push(stripeBilling.url);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const result = await resolveActionResult(
+        cancelSubscriptionAction({ returnUrl: "/pricing" }),
+      );
+      return result;
+    },
+    onSuccess: (data) => {
+      if (!data.url) return;
+      router.push(data.url);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -103,7 +119,7 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
             {!subscription.cancelAtPeriodEnd && (
               <Button
                 variant="outline"
-                onClick={() => router.push(`/account/billing/cancel`)}
+                onClick={() => cancelSubscriptionMutation.mutate()}
               >
                 <XCircle className="mr-2 size-4" />
                 {t("account.billing.cancel")}
@@ -197,29 +213,31 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
             <CardTitle>{t("account.billing.limitsTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {Object.entries(planLimits).map(([key, total]) => {
+            {Object.entries(planLimits).map(([key, value]) => {
               const limitConfig =
                 LIMITS_CONFIG[key as keyof typeof LIMITS_CONFIG];
 
               const Icon = limitConfig.icon;
-              const used = fakeUsage[key as keyof typeof fakeUsage];
-              const percentage = (used / total) * 100;
+
+              // Determine the label based on the value
+              const getLimitLabel = () => {
+                if (value === -1) {
+                  return t(`plans.limits.${key}.labelUnlimited`);
+                }
+                if (value === 0 && key === "caregivers") {
+                  return t(`plans.limits.${key}.labelNone`);
+                }
+                return t(`plans.limits.${key}.label`, { value });
+              };
 
               return (
                 <div key={key} className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icon className="text-primary size-4" />
-                      <Typography variant="muted" className="text-sm">
-                        {t(`plans.limits.${key}.label`, { value: total })}
-                      </Typography>
-                    </div>
-                    <Typography variant="muted" className="text-xs">
-                      {used.toLocaleString(locale)} /{" "}
-                      {total.toLocaleString(locale)}
+                  <div className="flex items-center gap-2">
+                    <Icon className="text-primary size-4" />
+                    <Typography className="text-sm">
+                      {getLimitLabel()}
                     </Typography>
                   </div>
-                  <Progress value={percentage} className="h-1" />
                   <Typography variant="muted" className="text-xs">
                     {t(`plans.limits.${key}.description`)}
                   </Typography>
