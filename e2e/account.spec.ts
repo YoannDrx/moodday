@@ -12,10 +12,10 @@ test.describe("account", () => {
   test("delete account flow", async ({ page }) => {
     const userData = await createTestAccount({
       page,
-      callbackURL: "/settings?tab=privacy",
+      callbackURL: "/settings/privacy",
     });
 
-    await page.waitForURL(/\/settings\?tab=privacy/, { timeout: 10000 });
+    await page.waitForURL(/\/settings\/privacy/, { timeout: 10000 });
     await page
       .getByRole("button", { name: /Delete account|Supprimer le compte/i })
       .click();
@@ -77,8 +77,8 @@ test.describe("account", () => {
   });
 
   test("update name flow", async ({ page }) => {
-    await createTestAccount({ page, callbackURL: "/settings?tab=profile" });
-    await page.waitForURL(/\/settings\?tab=profile/, { timeout: 10000 });
+    await createTestAccount({ page, callbackURL: "/settings/profile" });
+    await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
     const newName = faker.person.fullName();
     const input = page.getByRole("textbox", { name: /Full name|Nom complet/i });
@@ -100,9 +100,9 @@ test.describe("account", () => {
   test("change password flow", async ({ page }) => {
     const userData = await createTestAccount({
       page,
-      callbackURL: "/settings?tab=security",
+      callbackURL: "/settings/security",
     });
-    await page.waitForURL(/\/settings\?tab=security/, { timeout: 10000 });
+    await page.waitForURL(/\/settings\/security/, { timeout: 10000 });
 
     const newPassword = faker.internet.password({
       length: 12,
