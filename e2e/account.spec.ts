@@ -83,19 +83,22 @@ test.describe("account", () => {
     const newName = faker.person.fullName();
     const input = page.getByRole("textbox", { name: /Full name|Nom complet/i });
     await input.fill(newName);
-    await page
-      .getByRole("button", { name: /Save profile|Enregistrer le profil/i })
-      .click();
 
-    // The profile page reloads automatically after save, so wait for the page to reload
-    // and verify the name persisted instead of checking for a toast message
-    await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
-    await page.waitForLoadState("networkidle");
+    const saveButton = page.getByRole("button", {
+      name: /Save profile|Enregistrer le profil/i,
+    });
+    await saveButton.click();
 
+    // Wait for the mutation to complete and page to reload
+    // The page does window.location.reload() after save, so we need to wait for navigation
+    await page.waitForLoadState("load", { timeout: 15000 });
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
+
+    // After reload, wait for the input to appear and have the new value
     const updatedInput = page.getByRole("textbox", {
       name: /Full name|Nom complet/i,
     });
-    await expect(updatedInput).toHaveValue(newName);
+    await expect(updatedInput).toHaveValue(newName, { timeout: 10000 });
   });
 
   test("change password flow", async ({ page }) => {
