@@ -17,10 +17,14 @@ Guide pour Claude Code sur le projet Moodday.
 
 ---
 
-## grepai
+## grepai - OBLIGATOIRE
 
-> Les instructions complètes de grepai sont dans `~/.claude/CLAUDE.md` (fichier global).
-> **Au début de chaque session**, exécute le script d'auto-start défini dans ce fichier global.
+**Tu DOIS utiliser grepai (via MCP) pour TOUTE recherche de code.**
+
+- ❌ INTERDIT : Grep, Glob, grep, find, rg
+- ✅ OBLIGATOIRE : `mcp__grepai__grepai_search`
+
+Voir `~/.claude/CLAUDE.md` pour les instructions complètes.
 
 ---
 
@@ -60,7 +64,6 @@ Guide pour Claude Code sur le projet Moodday.
 - `pnpm email` - Serveur de développement emails
 - `pnpm stripe-webhooks` - Écouter les webhooks Stripe
 - `pnpm knip` - Détection de code inutilisé
-- `# (supprimé - grepai est lancé automatiquement)
 
 ---
 
