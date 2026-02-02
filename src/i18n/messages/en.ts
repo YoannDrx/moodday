@@ -1089,6 +1089,7 @@ const en = {
       language: "Language",
     },
     manageAccount: "Manage account",
+    saved: "Settings saved",
     profile: {
       title: "Profile",
       defaultName: "Your name",
