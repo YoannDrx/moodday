@@ -1,3 +1,4 @@
+// Account management E2E tests
 import { prisma } from "@/lib/prisma";
 import { getServerUrl } from "@/lib/server-url";
 import { faker } from "@faker-js/faker";
