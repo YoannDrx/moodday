@@ -44,7 +44,7 @@ const getFormSchema = (t: (key: string) => string) =>
     isPRN: z.boolean().default(false),
   });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
 export function EditMedicationForm({ medicationId }: { medicationId: string }) {
   const { t } = useI18n();

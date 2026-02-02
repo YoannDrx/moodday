@@ -59,7 +59,7 @@ const getEventSchema = (t: Translator) =>
     visibleToPatient: z.boolean(),
   });
 
-type EventFormValues = z.infer<typeof eventSchema>;
+type EventFormValues = z.infer<ReturnType<typeof getEventSchema>>;
 
 type CaregiverEventFormProps = {
   subjectId: string;
@@ -213,10 +213,7 @@ export function CaregiverEventForm({
           <FormItem>
             <FormLabel>
               {t("caregiver.event.severityLabel")}{" "}
-              <span
-                className="font-semibold"
-                style={{ color: severityColor }}
-              >
+              <span className="font-semibold" style={{ color: severityColor }}>
                 {severityLabelKey ? t(severityLabelKey) : ""}
               </span>
             </FormLabel>

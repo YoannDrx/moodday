@@ -29,7 +29,7 @@ const getFormSchema = (t: (key: string) => string) =>
     description: z.string().optional(),
   });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
 export function AddExerciseForm() {
   const { t } = useI18n();

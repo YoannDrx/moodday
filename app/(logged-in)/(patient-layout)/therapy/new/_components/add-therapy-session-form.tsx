@@ -32,7 +32,7 @@ const getFormSchema = (t: (key: string) => string) =>
     benefitRating: z.number().min(1).max(5).optional(),
   });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
 export function AddTherapySessionForm() {
   const { t } = useI18n();
