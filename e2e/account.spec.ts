@@ -87,10 +87,11 @@ test.describe("account", () => {
       .getByRole("button", { name: /Save profile|Enregistrer le profil/i })
       .click();
 
-    await expect(
-      page.getByText(/Settings saved|Paramètres sauvegardés/i),
-    ).toBeVisible();
-    await page.reload();
+    // The profile page reloads automatically after save, so wait for the page to reload
+    // and verify the name persisted instead of checking for a toast message
+    await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
+    await page.waitForLoadState("networkidle");
+
     const updatedInput = page.getByRole("textbox", {
       name: /Full name|Nom complet/i,
     });
