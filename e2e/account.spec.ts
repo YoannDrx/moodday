@@ -80,21 +80,33 @@ test.describe("account", () => {
     await createTestAccount({ page, callbackURL: "/settings/profile" });
     await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
-    const newName = faker.person.fullName();
+    // Wait for the form to be ready
     const input = page.getByRole("textbox", { name: /Full name|Nom complet/i });
+    await expect(input).toBeVisible({ timeout: 10000 });
+
+    // Clear the input and fill with new name
+    const newName = faker.person.fullName();
+    await input.clear();
     await input.fill(newName);
+
+    // Verify the input has the new value before clicking save
+    await expect(input).toHaveValue(newName);
 
     const saveButton = page.getByRole("button", {
       name: /Save profile|Enregistrer le profil/i,
     });
-    await saveButton.click();
 
-    // Wait for the mutation to complete and page to reload
-    // The page does window.location.reload() after save, so we need to wait for navigation
-    await page.waitForLoadState("load", { timeout: 15000 });
+    // Click and wait for the page to reload
+    // Use Promise.all to avoid race condition between click and navigation
+    await Promise.all([
+      page.waitForEvent("load", { timeout: 20000 }),
+      saveButton.click(),
+    ]);
+
+    // Wait for network to be idle after reload
     await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-    // After reload, wait for the input to appear and have the new value
+    // After reload, verify the name persisted
     const updatedInput = page.getByRole("textbox", {
       name: /Full name|Nom complet/i,
     });
