@@ -6,7 +6,7 @@ import { ArrowLeft, Eye, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
-import { PageHeader } from "@/components/nowts/layout-components";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,42 +68,45 @@ function ObservePageContent() {
 
   if (isPending) {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-8">
+      <PageLayout
+        title={t("caregiver.observe.title")}
+        maxWidth="4xl"
+        showBlobs={false}
+      >
         <Skeleton className="mb-6 h-10 w-24" />
         <Skeleton className="mb-4 h-8 w-48" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageLayout>
     );
   }
 
   if (!subject) {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-8">
-        <p className="text-muted-foreground">
-          {t("auth.notSignedIn")}
-        </p>
-      </div>
+      <PageLayout
+        title={t("caregiver.observe.title")}
+        maxWidth="4xl"
+        showBlobs={false}
+      >
+        <p className="text-muted-foreground">{t("auth.notSignedIn")}</p>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6">
+    <PageLayout
+      title={t("caregiver.observe.title")}
+      subtitle={t("caregiver.observe.description", { name: subject.name })}
+      maxWidth="4xl"
+      showBlobs={false}
+      headerRight={
         <Button asChild variant="ghost" size="sm">
           <Link href="/caregiver">
             <ArrowLeft className="mr-2 size-4" />
             {t("actions.back")}
           </Link>
         </Button>
-      </div>
-
-      <PageHeader
-        title={t("caregiver.observe.title")}
-        description={t("caregiver.observe.description", {
-          name: subject.name,
-        })}
-      />
-
+      }
+    >
       <Card>
         <CardHeader>
           {!patientsLoading && patients && patients.length > 0 && (
@@ -163,7 +166,7 @@ function ObservePageContent() {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 }
 
@@ -171,9 +174,7 @@ export default function ObservePage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-2xl px-4 py-8">
-          Chargement...
-        </div>
+        <div className="mx-auto max-w-4xl px-4 pb-8 lg:px-6">Chargement...</div>
       }
     >
       <ObservePageContent />

@@ -16,7 +16,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -48,6 +47,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  GlassCard,
+  GlassCardBadge,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
+import {
   getExercises,
   archiveExercise,
   unarchiveExercise,
@@ -56,6 +63,7 @@ import {
 } from "@/features/exercise/exercise.action";
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
+import { cn } from "@/lib/utils";
 
 type EditingExercise = {
   id: string;
@@ -64,7 +72,7 @@ type EditingExercise = {
 };
 
 export function ExerciseList() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [editingExercise, setEditingExercise] =
@@ -174,134 +182,206 @@ export function ExerciseList() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Card className="p-8 text-center">
-        <p className="text-muted-foreground">{t("common.error")}</p>
-      </Card>
-    );
-  }
-
   const exercises = data ?? [];
   const activeExercises = exercises.filter((e) => !e.isArchived);
   const archivedExercises = exercises.filter((e) => e.isArchived);
 
-  return (
-    <div className="space-y-6">
-      {/* Add button */}
-      <div className="flex justify-end">
-        <Button asChild>
-          <Link href="/exercises/new">
-            <Plus className="mr-2 size-4" />
-            {t("exercise.list.addNew")}
-          </Link>
-        </Button>
-      </div>
+  // Today's date
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    },
+  );
 
-      {/* Empty state */}
-      {activeExercises.length === 0 && !showArchived && (
-        <Card className="p-8 text-center">
-          <Dumbbell className="text-muted-foreground mx-auto mb-4 size-12" />
-          <p className="text-muted-foreground">{t("exercise.list.empty")}</p>
-        </Card>
+  return (
+    <PageLayout
+      title={t("exercise.list.title")}
+      subtitle={today}
+      maxWidth="5xl"
+      blobVariant="sage"
+      action={{
+        label: t("exercise.list.addNew"),
+        href: "/exercises/new",
+        icon: Plus,
+      }}
+    >
+      {/* Loading state */}
+      {isLoading && (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-3xl" />
+          ))}
+        </div>
       )}
 
-      {/* Active exercises */}
-      {activeExercises.length > 0 && (
-        <div className="space-y-3">
-          {activeExercises.map((exercise) => {
-            const todayCount = exercise.logs.length;
-            const isPending = logMutation.isPending;
+      {/* Error state */}
+      {isError && (
+        <GlassCard padding="lg" className="text-center">
+          <p className="text-gray-500">{t("common.error")}</p>
+        </GlassCard>
+      )}
 
-            return (
-              <Card key={exercise.id} className="flex items-center gap-4 p-4">
-                <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-full">
-                  <Dumbbell className="text-primary size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{exercise.name}</p>
-                  {exercise.description && (
-                    <p className="text-muted-foreground line-clamp-1 text-sm">
-                      {exercise.description}
-                    </p>
+      {/* Empty state */}
+      {!isLoading &&
+        !isError &&
+        activeExercises.length === 0 &&
+        !showArchived && (
+          <GlassCard padding="lg" className="py-16 text-center">
+            <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[var(--primary)]/10">
+              <Dumbbell className="size-10 text-[var(--primary)]" />
+            </div>
+            <h3 className="mb-2 text-xl font-bold text-gray-800">
+              {t("exercise.list.emptyTitle")}
+            </h3>
+            <p className="mb-6 text-gray-500">{t("exercise.list.empty")}</p>
+            <Button
+              asChild
+              className="shadow-soft rounded-2xl bg-[var(--primary)] px-8 py-3 font-bold text-white"
+            >
+              <Link href="/exercises/new">
+                <Plus className="mr-2 size-4" />
+                {t("exercise.list.addNew")}
+              </Link>
+            </Button>
+          </GlassCard>
+        )}
+
+      {/* Active exercises */}
+      {!isLoading && !isError && activeExercises.length > 0 && (
+        <GlassCard padding="md" variant="elevated">
+          <GlassCardHeader>
+            <GlassCardTitle
+              icon={<Dumbbell className="size-5 text-[var(--primary)]" />}
+            >
+              {t("exercise.list.myExercises")}
+            </GlassCardTitle>
+            <GlassCardBadge>
+              {t("exercise.list.activeCount", {
+                count: activeExercises.length,
+              })}
+            </GlassCardBadge>
+          </GlassCardHeader>
+
+          <GlassCardContent className="space-y-3">
+            {activeExercises.map((exercise) => {
+              const todayCount = exercise.logs.length;
+              const isPending = logMutation.isPending;
+
+              return (
+                <div
+                  key={exercise.id}
+                  className={cn(
+                    "flex items-center gap-4 rounded-2xl border p-4 transition-all",
+                    todayCount > 0
+                      ? "border-[var(--sage)]/20 bg-[var(--sage)]/5"
+                      : "border-gray-100 bg-white hover:border-[var(--primary)]/30 hover:shadow-sm",
                   )}
-                </div>
-                {todayCount > 0 && (
-                  <Badge variant="secondary">
-                    {t("exercise.log.todayCount", { count: todayCount })}
-                  </Badge>
-                )}
-                <Button
-                  size="sm"
-                  onClick={() => logMutation.mutate(exercise.id)}
-                  disabled={isPending}
                 >
-                  <Check className="mr-1 size-4" />
-                  {t("exercise.log.button")}
-                </Button>
-                <AlertDialog>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => openEditDialog(exercise)}
-                      >
-                        <Pencil className="mr-2 size-4" />
-                        {t("actions.edit")}
-                      </DropdownMenuItem>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem>
-                          <Archive className="mr-2 size-4" />
-                          {t("exercise.archive.confirm")}
+                  <div
+                    className={cn(
+                      "flex size-12 shrink-0 items-center justify-center rounded-xl",
+                      todayCount > 0
+                        ? "bg-[var(--sage)] text-white"
+                        : "bg-[var(--primary)]/10 text-[var(--primary)]",
+                    )}
+                  >
+                    <Dumbbell className="size-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={cn(
+                        "font-bold",
+                        todayCount > 0
+                          ? "text-[var(--sage-dark)]"
+                          : "text-gray-800",
+                      )}
+                    >
+                      {exercise.name}
+                    </p>
+                    {exercise.description && (
+                      <p className="line-clamp-1 text-sm text-gray-400">
+                        {exercise.description}
+                      </p>
+                    )}
+                  </div>
+                  {todayCount > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="rounded-lg border-[var(--sage)]/30 bg-[var(--sage)]/10 text-[10px] font-bold text-[var(--sage-dark)]"
+                    >
+                      {t("exercise.log.todayCount", { count: todayCount })}
+                    </Badge>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => logMutation.mutate(exercise.id)}
+                    disabled={isPending}
+                    className="rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)]"
+                  >
+                    <Check className="mr-1 size-4" />
+                    {t("exercise.log.button")}
+                  </Button>
+                  <AlertDialog>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => openEditDialog(exercise)}
+                        >
+                          <Pencil className="mr-2 size-4" />
+                          {t("actions.edit")}
                         </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {t("exercise.archive.title")}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t("exercise.archive.description")}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>
-                        {t("actions.cancel")}
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => archiveMutation.mutate(exercise.id)}
-                      >
-                        {t("exercise.archive.confirm")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </Card>
-            );
-          })}
-        </div>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem>
+                            <Archive className="mr-2 size-4" />
+                            {t("exercise.archive.confirm")}
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {t("exercise.archive.title")}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t("exercise.archive.description")}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>
+                          {t("actions.cancel")}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => archiveMutation.mutate(exercise.id)}
+                        >
+                          {t("exercise.archive.confirm")}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              );
+            })}
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Show archived toggle */}
       {(archivedExercises.length > 0 || showArchived) && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <span className="text-muted-foreground text-sm">
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-gray-100 bg-white/50 px-4 py-3">
+          <span className="text-sm text-gray-500">
             {showArchived
               ? t("exercise.list.hideArchived")
               : t("exercise.list.showArchived")}
@@ -312,33 +392,37 @@ export function ExerciseList() {
 
       {/* Archived exercises */}
       {showArchived && archivedExercises.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-muted-foreground text-lg font-semibold">
-            <Archive className="mr-2 inline size-4" />
-            {t("exercise.list.archived")}
-          </h2>
-          {archivedExercises.map((exercise) => (
-            <Card
-              key={exercise.id}
-              className="flex items-center gap-4 p-4 opacity-60"
-            >
-              <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-full">
-                <Dumbbell className="text-muted-foreground size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{exercise.name}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => unarchiveMutation.mutate(exercise.id)}
+        <GlassCard padding="md" variant="default" className="mt-6 opacity-75">
+          <GlassCardHeader>
+            <GlassCardTitle icon={<Archive className="size-5 text-gray-400" />}>
+              {t("exercise.list.archived")}
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-3">
+            {archivedExercises.map((exercise) => (
+              <div
+                key={exercise.id}
+                className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 opacity-60"
               >
-                <Undo2 className="mr-1 size-4" />
-                {t("exercise.unarchive.success")}
-              </Button>
-            </Card>
-          ))}
-        </div>
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                  <Dumbbell className="size-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-gray-600">{exercise.name}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => unarchiveMutation.mutate(exercise.id)}
+                  className="rounded-xl"
+                >
+                  <Undo2 className="mr-1 size-4" />
+                  {t("exercise.unarchive.button")}
+                </Button>
+              </div>
+            ))}
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Edit Dialog */}
@@ -403,6 +487,6 @@ export function ExerciseList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

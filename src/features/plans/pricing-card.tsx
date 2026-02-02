@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,29 +11,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useSession } from "@/lib/auth-client";
-import type { AppAuthPlan } from "@/lib/auth/stripe/auth-plans";
 import {
   ADDITIONAL_FEATURES,
   LIMITS_CONFIG,
-} from "@/lib/auth/stripe/auth-plans";
+  type AppAuthPlanData,
+} from "@/lib/auth/stripe/auth-plans-data";
 import { BILLING_URL } from "@/lib/LINKS";
 import { cn } from "@/lib/utils";
 import { Clock } from "lucide-react";
+import Link from "next/link";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/provider";
 import { LoadingButton } from "../form/submit-button";
 import { upgradeUserAction } from "./plans.action";
 
+export type PricingMode = "landing" | "dashboard";
+
 export function PricingCard({
   plan,
   isYearly,
+  mode = "dashboard",
 }: {
-  plan: AppAuthPlan;
+  plan: AppAuthPlanData;
   isYearly?: boolean;
+  mode?: PricingMode;
 }) {
   const { locale, t, tm } = useI18n();
-  // Get the current user
+  // Get the current user (only needed in dashboard mode)
   const { data: session } = useSession();
 
   const { execute: upgradeUser, isPending } = useAction(upgradeUserAction, {
@@ -73,7 +79,7 @@ export function PricingCard({
       `plans.additionalFeatures.${plan.name}`,
     ) ?? [];
   const additionalIcons =
-    ADDITIONAL_FEATURES[plan.name as keyof typeof ADDITIONAL_FEATURES] ?? [];
+    ADDITIONAL_FEATURES[plan.name as keyof typeof ADDITIONAL_FEATURES];
 
   return (
     <Card
@@ -186,9 +192,7 @@ export function PricingCard({
                     <Icon className="size-5" />
                   </div>
                   <div>
-                    <p className="font-medium">
-                      {translated.label}
-                    </p>
+                    <p className="font-medium">{translated.label}</p>
                     <p className="text-muted-foreground text-sm">
                       {translated.description}
                     </p>
@@ -201,32 +205,49 @@ export function PricingCard({
       </CardContent>
 
       <CardFooter className="pt-6 pb-8">
-        <LoadingButton
-          loading={isPending}
-          size="lg"
-          className={cn(
-            "w-full text-base font-medium",
-            plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
-          )}
-          onClick={() => {
-            if (!session?.user) {
-              toast.error(t("pricingCard.signInRequired"));
-              return;
-            }
-            upgradeUser({
-              plan: plan.name,
-              annual: isYearly,
-              successUrl: `${BILLING_URL}/success`,
-              cancelUrl: `${BILLING_URL}/cancel`,
-            });
-          }}
-        >
-          {plan.price === 0
-            ? t("pricingCard.ctaFree")
-            : isYearly
-              ? t("pricingCard.ctaYearly")
-              : t("pricingCard.ctaMonthly")}
-        </LoadingButton>
+        {mode === "landing" ? (
+          <Link
+            href={`/auth/signup?plan=${plan.name}`}
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "w-full text-base font-medium",
+              plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
+            )}
+          >
+            {plan.price === 0
+              ? t("pricingCard.ctaFree")
+              : isYearly
+                ? t("pricingCard.ctaYearly")
+                : t("pricingCard.ctaMonthly")}
+          </Link>
+        ) : (
+          <LoadingButton
+            loading={isPending}
+            size="lg"
+            className={cn(
+              "w-full text-base font-medium",
+              plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
+            )}
+            onClick={() => {
+              if (!session?.user) {
+                toast.error(t("pricingCard.signInRequired"));
+                return;
+              }
+              upgradeUser({
+                plan: plan.name,
+                annual: isYearly,
+                successUrl: `${BILLING_URL}/success`,
+                cancelUrl: `${BILLING_URL}/cancel`,
+              });
+            }}
+          >
+            {plan.price === 0
+              ? t("pricingCard.ctaFree")
+              : isYearly
+                ? t("pricingCard.ctaYearly")
+                : t("pricingCard.ctaMonthly")}
+          </LoadingButton>
+        )}
       </CardFooter>
     </Card>
   );

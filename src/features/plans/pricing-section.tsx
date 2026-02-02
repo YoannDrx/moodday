@@ -3,13 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/i18n/provider";
-import { AUTH_PLANS } from "@/lib/auth/stripe/auth-plans";
+import { AUTH_PLANS_DATA } from "@/lib/auth/stripe/auth-plans-data";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
-import { PricingCard } from "./pricing-card";
+import { PricingCard, type PricingMode } from "./pricing-card";
 
-export function Pricing() {
+export function Pricing({ mode = "dashboard" }: { mode?: PricingMode }) {
   const [isYearly, setIsYearly] = useState(false);
   const { t } = useI18n();
 
@@ -67,8 +67,13 @@ export function Pricing() {
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           }}
         >
-          {AUTH_PLANS.filter((p) => !p.isHidden).map((plan) => (
-            <PricingCard key={plan.name} plan={plan} isYearly={isYearly} />
+          {AUTH_PLANS_DATA.filter((p) => !p.isHidden).map((plan) => (
+            <PricingCard
+              key={plan.name}
+              plan={plan}
+              isYearly={isYearly}
+              mode={mode}
+            />
           ))}
         </div>
 

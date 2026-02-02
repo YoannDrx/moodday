@@ -21,6 +21,7 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { BreathingWidget } from "@/components/nowts/breathing-widget";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/provider";
@@ -47,25 +48,14 @@ export function CrisisContent({
   support,
 }: CrisisContentProps) {
   const { t, tm } = useI18n();
-  const tips = tm<{ title: string; description: string }[]>(
-    "crisis.tips.items",
-  ) ?? [];
+  const tips =
+    tm<{ title: string; description: string }[]>("crisis.tips.items") ?? [];
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-8">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-          {t("crisis.title")}
-        </h1>
-        <p className="text-gray-500">
-          {t("crisis.subtitle")}
-        </p>
-      </header>
-
+    <PageLayout
+      title={t("crisis.title")}
+      subtitle={t("crisis.subtitle")}
+      maxWidth="5xl"
+    >
       {/* Emergency Banner */}
       <GlassCard
         padding="lg"
@@ -268,7 +258,7 @@ export function CrisisContent({
           </GlassCard>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
 

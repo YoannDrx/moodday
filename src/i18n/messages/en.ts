@@ -216,6 +216,7 @@ const en = {
     },
     journal: {
       title: "Daily check-in",
+      stepLabel: "Step {current} of {total}",
       saved: "Journal saved!",
       saveError: "Unable to save your entry.",
       insight: {
@@ -319,6 +320,8 @@ const en = {
     },
     list: {
       title: "Therapy sessions",
+      mySessions: "My sessions",
+      sessionCount: "{count} sessions",
       empty: "No sessions yet. Record your first therapy session!",
       addNew: "Add session",
     },
@@ -354,6 +357,8 @@ const en = {
     },
     list: {
       title: "My exercises",
+      myExercises: "My exercises",
+      activeCount: "{count} active",
       empty: "No exercises yet. Add your first wellness exercise!",
       addNew: "Add exercise",
       archived: "Archived exercises",

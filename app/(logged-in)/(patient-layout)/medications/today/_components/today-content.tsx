@@ -22,6 +22,7 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { cn } from "@/lib/utils";
 import {
   getTodayIntakes,
@@ -152,36 +153,36 @@ export function TodayContent() {
 
   if (isError) {
     return (
-      <div className="mx-auto max-w-2xl px-4 pb-8">
+      <PageLayout
+        title={t("medication.today.title")}
+        subtitle={today}
+        maxWidth="4xl"
+        blobVariant="sage"
+      >
         <GlassCard padding="lg" className="text-center">
           <AlertCircle className="mx-auto mb-4 size-12 text-red-400" />
           <p className="text-gray-500">{t("common.error")}</p>
         </GlassCard>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-8">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-sage -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-8">
+    <PageLayout
+      title={t("medication.today.title")}
+      subtitle={today}
+      maxWidth="4xl"
+      blobVariant="sage"
+      headerRight={
         <Link
           href="/medications"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-[var(--primary)]"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-[var(--primary)]"
         >
           <ArrowLeft className="size-4" />
           {t("medication.today.backToList")}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-          {t("medication.today.title")}
-        </h1>
-        <p className="text-gray-500">{today}</p>
-      </header>
-
+      }
+    >
       {/* Loading state */}
       {isLoading && (
         <div className="space-y-4">
@@ -433,6 +434,6 @@ export function TodayContent() {
           )}
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

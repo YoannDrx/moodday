@@ -58,6 +58,7 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { cn } from "@/lib/utils";
 import {
   moodObservedLabels,
@@ -197,32 +198,16 @@ export function CaregiverContent() {
       : t("caregiver.dashboard.activity.entries");
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-8">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-              {t("caregiver.dashboard.title")}
-            </h1>
-            <p className="text-gray-500">{today}</p>
-          </div>
-          <Button
-            asChild
-            className="shadow-soft rounded-2xl bg-[var(--primary)] px-6 font-bold text-white transition-all hover:bg-[var(--primary-dark)]"
-          >
-            <Link href="/caregiver/observe">
-              <Plus className="mr-2 size-4" />
-              {t("caregiver.dashboard.newObservation")}
-            </Link>
-          </Button>
-        </div>
-      </header>
-
+    <PageLayout
+      title={t("caregiver.dashboard.title")}
+      subtitle={today}
+      maxWidth="5xl"
+      action={{
+        label: t("caregiver.dashboard.newObservation"),
+        href: "/caregiver/observe",
+        icon: Plus,
+      }}
+    >
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryLoading ? (
@@ -494,7 +479,9 @@ export function CaregiverContent() {
                               )}
                               {energyLabel && (
                                 <span className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                                  {t("caregiver.dashboard.activity.energyLabel")}{" "}
+                                  {t(
+                                    "caregiver.dashboard.activity.energyLabel",
+                                  )}{" "}
                                   {energyLabel}
                                 </span>
                               )}
@@ -641,12 +628,12 @@ export function CaregiverContent() {
           {/* My Care Circle */}
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>
-                <GlassCardTitle
-                  icon={<Users className="size-5 text-[var(--primary)]" />}
-                >
-                  {t("caregiver.dashboard.circle.title")}
-                </GlassCardTitle>
-              </GlassCardHeader>
+              <GlassCardTitle
+                icon={<Users className="size-5 text-[var(--primary)]" />}
+              >
+                {t("caregiver.dashboard.circle.title")}
+              </GlassCardTitle>
+            </GlassCardHeader>
 
             <GlassCardContent className="space-y-4">
               {caregiversLoading ? (
@@ -703,9 +690,12 @@ export function CaregiverContent() {
                               {t("caregiver.dashboard.circle.removeTitle")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              {t("caregiver.dashboard.circle.removeDescription", {
-                                name: displayName,
-                              })}
+                              {t(
+                                "caregiver.dashboard.circle.removeDescription",
+                                {
+                                  name: displayName,
+                                },
+                              )}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -774,7 +764,9 @@ export function CaregiverContent() {
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("caregiver.dashboard.inviteDialog.title")}</DialogTitle>
+            <DialogTitle>
+              {t("caregiver.dashboard.inviteDialog.title")}
+            </DialogTitle>
             <DialogDescription>
               {t("caregiver.dashboard.inviteDialog.description")}
             </DialogDescription>
@@ -852,6 +844,6 @@ export function CaregiverContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

@@ -39,14 +39,32 @@ export const upgradeUserAction = authAction
       // Get the full user from database to access stripeCustomerId
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { stripeCustomerId: true },
+        select: { stripeCustomerId: true, email: true, name: true },
       });
 
-      if (!dbUser?.stripeCustomerId) {
-        throw new ActionError("No Stripe customer ID found");
+      if (!dbUser) {
+        throw new ActionError("User not found");
       }
 
-      const customerId = dbUser.stripeCustomerId;
+      // Create Stripe customer if not exists
+      let customerId = dbUser.stripeCustomerId;
+      if (!customerId) {
+        const stripeCustomer = await getStripe().customers.create({
+          email: dbUser.email,
+          name: dbUser.name,
+          metadata: {
+            userId: user.id,
+          },
+        });
+
+        // Update user with Stripe customer ID
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { stripeCustomerId: stripeCustomer.id },
+        });
+
+        customerId = stripeCustomer.id;
+      }
 
       // Create checkout session
       const session = await getStripe().checkout.sessions.create({

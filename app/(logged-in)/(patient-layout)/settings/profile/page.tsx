@@ -1,15 +1,16 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
-import { TherapySessionList } from "./_components/therapy-session-list";
+
+import { ProfileContent } from "./_components/profile-content";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
   return {
-    title: t("therapy.list.title"),
-    description: t("therapy.list.title"),
+    title: t("settings.profile.title"),
+    description: t("settings.subtitle"),
   };
 });
 
-export default async function TherapyPage() {
-  return <TherapySessionList />;
+export default function ProfilePage() {
+  return <ProfileContent />;
 }

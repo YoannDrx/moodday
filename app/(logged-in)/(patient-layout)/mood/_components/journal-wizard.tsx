@@ -20,13 +20,15 @@ import {
   Sparkles,
   Star,
   Tablets,
+  Zap,
+  Heart,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GlassCard } from "@/components/nowts/glass-card";
 import { cn } from "@/lib/utils";
 import {
   symptomLabels,
@@ -88,6 +90,15 @@ const sleepDisturbanceOptions = Object.keys(
   sleepDisturbanceLabels,
 ) as (keyof typeof sleepDisturbanceLabels)[];
 
+// Step configuration
+const steps = [
+  { id: 1, icon: Heart, color: "var(--primary)" },
+  { id: 2, icon: Moon, color: "var(--lavender)" },
+  { id: 3, icon: Pill, color: "var(--sage)" },
+  { id: 4, icon: Zap, color: "var(--primary)" },
+  { id: 5, icon: Feather, color: "var(--sage)" },
+];
+
 export function JournalWizard() {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -106,7 +117,6 @@ export function JournalWizard() {
       weekday: "long",
       day: "numeric",
       month: "long",
-      year: "numeric",
     },
   );
 
@@ -189,7 +199,6 @@ export function JournalWizard() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Map sleepQuality from 1-5 scale to string
       const sleepQualityMap: Record<number, "bad" | "average" | "good"> = {
         1: "bad",
         2: "bad",
@@ -198,10 +207,7 @@ export function JournalWizard() {
         5: "good",
       };
 
-      // Combine symptoms and events as tags
       const tags = [...entry.symptoms, ...entry.events];
-
-      // Parse sideEffects from string to array
       const sideEffectsArray = entry.sideEffects
         ? entry.sideEffects
             .split(",")
@@ -295,565 +301,531 @@ export function JournalWizard() {
     return "😊";
   };
 
+  const currentStepConfig = steps[step - 1];
+  const StepIcon = currentStepConfig.icon;
+
   return (
-    <div className="min-h-screen pb-32">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[100px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[100px]" />
-
-      {/* Navigation Header */}
-      <nav className="glass-card sticky top-0 z-50 border-b border-gray-100 px-4 py-4 lg:px-6">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="rounded-full p-2 transition-colors hover:bg-gray-100"
-            >
-              <ArrowLeft className="size-6 text-gray-500" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {t("mood.journal.title")}
-              </h1>
-              <p className="text-xs font-medium tracking-wider text-gray-500 uppercase">
-                {today}
-              </p>
-            </div>
-          </div>
-
-          {/* Desktop Progress */}
-          <div className="hidden items-center gap-2 md:flex">
-            {Array.from({ length: maxStep }).map((_, i) => (
-              <div
-                key={i}
-                className="h-2 w-12 overflow-hidden rounded-full bg-gray-200"
-              >
-                <div
-                  className="h-full bg-[var(--primary)] transition-all duration-300"
-                  style={{ width: step >= i + 1 ? "100%" : "0%" }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="shadow-soft rounded-xl bg-[var(--primary)] px-6 py-2 text-sm font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-95"
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Header minimaliste */}
+      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 px-4 py-4 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-2xl items-center justify-between">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
-            {isSaving ? t("common.saving") : t("actions.save")}
-          </Button>
+            <ArrowLeft className="size-5" />
+            <span className="text-sm font-medium">{t("actions.back")}</span>
+          </Link>
+
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Calendar className="size-4" />
+            <span className="font-medium capitalize">{today}</span>
+          </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-3xl px-4 pt-8 lg:px-6">
-        {/* Step 1: Mood & Energy */}
-        {step === 1 && (
-          <section className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
-            <div className="mb-10 text-center">
-              <div className="shadow-soft mb-4 inline-block animate-bounce rounded-3xl bg-white p-4">
-                <span className="text-5xl">{getMoodEmoji()}</span>
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                {t("mood.journal.step1.title")}
-              </h2>
-              <p className="mt-2 text-gray-500">
-                {t("mood.journal.step1.subtitle")}
-              </p>
-            </div>
+      {/* Main content - centré */}
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-xl">
+          {/* Progress Steps */}
+          <div className="mb-8 flex items-center justify-center gap-2">
+            {steps.map((s, index) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isCompleted = step > s.id;
 
-            <GlassCard padding="lg" variant="elevated" className="space-y-12">
-              {/* Mood Slider */}
-              <div className="space-y-6">
-                <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">
-                    {t("mood.journal.step1.moodLabel")}
-                  </label>
-                  <span className="text-3xl font-black text-[var(--primary)]">
-                    {entry.mood}/10
-                  </span>
-                </div>
-                <div className="relative pt-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={entry.mood}
-                    onChange={(e) =>
-                      setEntry({ ...entry, mood: Number(e.target.value) })
-                    }
-                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--primary)]"
-                  />
-                  <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>{t("mood.journal.step1.moodScale.low")}</span>
-                    <span>{t("mood.journal.step1.moodScale.mid")}</span>
-                    <span>{t("mood.journal.step1.moodScale.high")}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Energy Slider */}
-              <div className="space-y-6">
-                <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">
-                    {t("mood.journal.step1.energyLabel")}
-                  </label>
-                  <span className="text-3xl font-black text-[var(--sage)]">
-                    {entry.energy}/10
-                  </span>
-                </div>
-                <div className="relative pt-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={entry.energy}
-                    onChange={(e) =>
-                      setEntry({ ...entry, energy: Number(e.target.value) })
-                    }
-                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--sage)]"
-                  />
-                  <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>{t("mood.journal.step1.energyScale.low")}</span>
-                    <span>{t("mood.journal.step1.energyScale.mid")}</span>
-                    <span>{t("mood.journal.step1.energyScale.high")}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Anxiety Slider */}
-              <div className="space-y-6">
-                <div className="flex items-end justify-between">
-                  <label className="text-lg font-bold">
-                    {t("mood.journal.step1.anxietyLabel")}
-                  </label>
-                  <span className="text-3xl font-black text-red-500">
-                    {entry.anxiety}/10
-                  </span>
-                </div>
-                <div className="relative pt-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={entry.anxiety}
-                    onChange={(e) =>
-                      setEntry({ ...entry, anxiety: Number(e.target.value) })
-                    }
-                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-red-500"
-                  />
-                  <div className="mt-4 flex justify-between px-1 text-xs font-bold tracking-widest text-gray-400 uppercase">
-                    <span>{t("mood.journal.step1.anxietyScale.low")}</span>
-                    <span>{t("mood.journal.step1.anxietyScale.mid")}</span>
-                    <span>{t("mood.journal.step1.anxietyScale.high")}</span>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-          </section>
-        )}
-
-        {/* Step 2: Sleep */}
-        {step === 2 && (
-          <section className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
-            <div className="mb-10 text-center">
-              <div className="mb-4 inline-flex size-16 items-center justify-center rounded-3xl bg-[var(--lavender)]/30">
-                <Moon className="size-8 text-[var(--primary-darkest)]" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                {t("mood.journal.step2.title")}
-              </h2>
-              <p className="mt-2 text-gray-500">
-                {t("mood.journal.step2.subtitle")}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <GlassCard
-                padding="lg"
-                variant="elevated"
-                className="flex flex-col items-center justify-center space-y-4 text-center"
-              >
-                <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
-                  {t("mood.journal.step2.durationLabel")}
-                </label>
-                <div className="flex items-center gap-3">
+              return (
+                <div key={s.id} className="flex items-center">
+                  {/* Step circle */}
                   <button
-                    onClick={() =>
-                      setEntry({
-                        ...entry,
-                        sleepHours: Math.max(0, entry.sleepHours - 0.5),
-                      })
-                    }
-                    className="flex size-10 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
-                  >
-                    <Minus className="size-5" />
-                  </button>
-                  <div className="text-4xl font-black text-gray-900">
-                    {entry.sleepHours}
-                    <span className="ml-1 text-lg font-bold text-gray-400">
-                      h
-                    </span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setEntry({
-                        ...entry,
-                        sleepHours: Math.min(24, entry.sleepHours + 0.5),
-                      })
-                    }
-                    className="flex size-10 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
-                  >
-                    <Plus className="size-5" />
-                  </button>
-                </div>
-              </GlassCard>
-
-              <GlassCard padding="lg" variant="elevated" className="space-y-6">
-                <label className="block text-center text-xs font-bold tracking-widest text-gray-500 uppercase">
-                  {t("mood.journal.step2.qualityLabel")}
-                </label>
-                <div className="flex justify-between gap-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <button
-                      key={i}
-                      onClick={() => setEntry({ ...entry, sleepQuality: i })}
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl transition-all duration-300",
-                        entry.sleepQuality >= i
-                          ? "scale-110 bg-[var(--primary)] text-white shadow-lg"
-                          : "bg-gray-100 text-gray-400",
-                      )}
-                    >
-                      <Star
-                        className="size-6"
-                        fill={entry.sleepQuality >= i ? "currentColor" : "none"}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </GlassCard>
-            </div>
-
-            <GlassCard padding="lg" variant="elevated">
-              <label className="mb-6 block font-bold">
-                {t("mood.journal.step2.disturbancesLabel")}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {sleepDisturbanceOptions.map((disturbance) => (
-                  <button
-                    key={disturbance}
-                    onClick={() => toggleSleepDisturbance(disturbance)}
+                    onClick={() => setStep(s.id)}
                     className={cn(
-                      "flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-medium transition-all",
-                      entry.sleepDisturbances.includes(disturbance)
-                        ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary-darkest)]"
-                        : "border-gray-100 bg-white/50 text-gray-600 hover:border-[var(--primary)]/30 hover:bg-white",
+                      "flex size-10 items-center justify-center rounded-full border-2 transition-all duration-300",
+                      isActive
+                        ? "scale-110 border-[var(--primary)] bg-[var(--primary)] text-white shadow-lg"
+                        : isCompleted
+                          ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                          : "border-gray-200 bg-white text-gray-400",
                     )}
                   >
-                    <span>{t(sleepDisturbanceLabels[disturbance])}</span>
-                    {entry.sleepDisturbances.includes(disturbance) && (
-                      <Check className="size-4" />
+                    {isCompleted ? (
+                      <Check className="size-4" strokeWidth={3} />
+                    ) : (
+                      <Icon className="size-4" />
                     )}
                   </button>
-                ))}
-              </div>
-            </GlassCard>
-          </section>
-        )}
 
-        {/* Step 3: Medications */}
-        {step === 3 && (
-          <section className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
-            <div className="mb-10 text-center">
-              <div className="mb-4 inline-flex size-16 items-center justify-center rounded-3xl bg-[var(--sage)]/20">
-                <Pill className="size-8 text-[var(--sage-dark)]" />
+                  {/* Connector line */}
+                  {index < steps.length - 1 && (
+                    <div
+                      className={cn(
+                        "mx-1 h-0.5 w-6 rounded-full transition-all duration-300",
+                        step > s.id ? "bg-[var(--primary)]" : "bg-gray-200",
+                      )}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Main Card */}
+          <div className="overflow-hidden rounded-3xl border-2 border-[var(--primary)]/20 bg-white shadow-xl">
+            {/* Card Header avec icône et titre */}
+            <div
+              className="border-b border-gray-100 px-8 py-6"
+              style={{
+                background: `linear-gradient(135deg, ${currentStepConfig.color}08, ${currentStepConfig.color}03)`,
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex size-14 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: `${currentStepConfig.color}15` }}
+                >
+                  <StepIcon
+                    className="size-7"
+                    style={{ color: currentStepConfig.color }}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-bold tracking-widest text-gray-400 uppercase">
+                    {t("mood.journal.stepLabel", {
+                      current: step,
+                      total: maxStep,
+                    })}
+                  </p>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {step === 1 && t("mood.journal.step1.title")}
+                    {step === 2 && t("mood.journal.step2.title")}
+                    {step === 3 && t("mood.journal.step3.title")}
+                    {step === 4 && t("mood.journal.step4.title")}
+                    {step === 5 && t("mood.journal.step5.title")}
+                  </h2>
+                </div>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                {t("mood.journal.step3.title")}
-              </h2>
-              <p className="mt-2 text-gray-500">
-                {t("mood.journal.step3.subtitle")}
-              </p>
             </div>
 
-            <div className="space-y-4">
-              {medicationsLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-20 rounded-[32px]" />
-                  <Skeleton className="h-20 rounded-[32px]" />
+            {/* Card Content */}
+            <div className="p-8">
+              {/* Step 1: Mood & Energy */}
+              {step === 1 && (
+                <div className="animate-in fade-in slide-in-from-right-4 space-y-10 duration-300">
+                  {/* Emoji indicator */}
+                  <div className="flex justify-center">
+                    <div className="rounded-2xl bg-gray-50 p-4">
+                      <span className="text-5xl">{getMoodEmoji()}</span>
+                    </div>
+                  </div>
+
+                  {/* Mood Slider */}
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between">
+                      <label className="font-bold text-gray-700">
+                        {t("mood.journal.step1.moodLabel")}
+                      </label>
+                      <span className="text-2xl font-black text-[var(--primary)]">
+                        {entry.mood}/10
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={entry.mood}
+                      onChange={(e) =>
+                        setEntry({ ...entry, mood: Number(e.target.value) })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--primary)]"
+                    />
+                    <div className="flex justify-between text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                      <span>{t("mood.journal.step1.moodScale.low")}</span>
+                      <span>{t("mood.journal.step1.moodScale.high")}</span>
+                    </div>
+                  </div>
+
+                  {/* Energy Slider */}
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between">
+                      <label className="font-bold text-gray-700">
+                        {t("mood.journal.step1.energyLabel")}
+                      </label>
+                      <span className="text-2xl font-black text-[var(--sage)]">
+                        {entry.energy}/10
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={entry.energy}
+                      onChange={(e) =>
+                        setEntry({ ...entry, energy: Number(e.target.value) })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--sage)]"
+                    />
+                  </div>
+
+                  {/* Anxiety Slider */}
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between">
+                      <label className="font-bold text-gray-700">
+                        {t("mood.journal.step1.anxietyLabel")}
+                      </label>
+                      <span className="text-2xl font-black text-red-500">
+                        {entry.anxiety}/10
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={entry.anxiety}
+                      onChange={(e) =>
+                        setEntry({ ...entry, anxiety: Number(e.target.value) })
+                      }
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-red-500"
+                    />
+                  </div>
                 </div>
-              ) : medications.length > 0 ? (
-                medications.map((med) => {
-                  const isTaken = med.intakes.some((i) => !i.skipped);
-                  return (
-                    <GlassCard
-                      key={med.id}
-                      padding="md"
-                      variant="elevated"
-                      className={cn(
-                        "flex items-center justify-between transition-all",
-                        isTaken && "border-[var(--sage)]/30 bg-[var(--sage)]/5",
-                      )}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={cn(
-                            "flex size-12 items-center justify-center rounded-2xl transition-colors",
-                            isTaken
-                              ? "bg-[var(--sage)] text-white"
-                              : "bg-gray-100 text-gray-400",
-                          )}
-                        >
-                          <Tablets className="size-6" />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-bold text-gray-900">
-                            {med.name}
-                          </h4>
-                          <p className="text-sm text-gray-500">{med.dosage}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleMedicationTaken(med.id, isTaken)}
-                        disabled={isTaken || logMedicationMutation.isPending}
-                        className={cn(
-                          "flex items-center gap-2 rounded-xl px-6 py-2 font-bold transition-all",
-                          isTaken
-                            ? "bg-[var(--sage)] text-white"
-                            : "border-2 border-gray-100 bg-white text-gray-300 hover:border-[var(--sage)]/40 hover:text-[var(--sage)]",
-                        )}
-                      >
-                        <span>
-                          {isTaken
-                            ? t("medication.status.taken")
-                            : t("mood.journal.step3.markTaken")}
-                        </span>
-                        <CheckCircle2 className="size-5" />
-                      </button>
-                    </GlassCard>
-                  );
-                })
-              ) : (
-                <GlassCard padding="md" variant="elevated">
-                  <p className="text-center text-sm text-gray-500">
-                    {t("mood.journal.step3.noMeds")}
-                  </p>
-                </GlassCard>
               )}
 
-              <Link
-                href="/medications/today"
-                className="flex w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-gray-200 py-4 font-medium text-gray-400 transition-all hover:border-[var(--primary)]/50 hover:text-[var(--primary)]"
-              >
-                <PlusCircle className="size-5" />
-                {t("mood.journal.step3.addOneOff")}
-              </Link>
-            </div>
+              {/* Step 2: Sleep */}
+              {step === 2 && (
+                <div className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
+                  {/* Sleep duration */}
+                  <div className="flex flex-col items-center gap-4 rounded-2xl bg-gray-50 p-6">
+                    <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                      {t("mood.journal.step2.durationLabel")}
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() =>
+                          setEntry({
+                            ...entry,
+                            sleepHours: Math.max(0, entry.sleepHours - 0.5),
+                          })
+                        }
+                        className="flex size-12 items-center justify-center rounded-full bg-white shadow-sm transition-all hover:shadow-md active:scale-95"
+                      >
+                        <Minus className="size-5 text-gray-600" />
+                      </button>
+                      <div className="text-5xl font-black text-gray-900">
+                        {entry.sleepHours}
+                        <span className="ml-1 text-xl font-bold text-gray-400">
+                          h
+                        </span>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setEntry({
+                            ...entry,
+                            sleepHours: Math.min(24, entry.sleepHours + 0.5),
+                          })
+                        }
+                        className="flex size-12 items-center justify-center rounded-full bg-white shadow-sm transition-all hover:shadow-md active:scale-95"
+                      >
+                        <Plus className="size-5 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Side Effects */}
-            <GlassCard padding="lg" variant="elevated" className="mt-8">
-              <h4 className="mb-4 flex items-center gap-2 font-bold">
-                <Info className="size-5 text-[var(--primary)]" />
-                {t("mood.journal.step3.sideEffectsTitle")}
-              </h4>
-              <textarea
-                value={entry.sideEffects}
-                onChange={(e) =>
-                  setEntry({ ...entry, sideEffects: e.target.value })
-                }
-                placeholder={t("mood.journal.step3.sideEffectsPlaceholder")}
-                className="min-h-[100px] w-full rounded-2xl border border-gray-100 bg-white/50 p-4 transition-all outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
-              />
-            </GlassCard>
-          </section>
-        )}
+                  {/* Sleep quality */}
+                  <div className="space-y-4">
+                    <label className="block text-center text-xs font-bold tracking-widest text-gray-500 uppercase">
+                      {t("mood.journal.step2.qualityLabel")}
+                    </label>
+                    <div className="flex justify-center gap-3">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <button
+                          key={i}
+                          onClick={() =>
+                            setEntry({ ...entry, sleepQuality: i })
+                          }
+                          className={cn(
+                            "flex size-12 items-center justify-center rounded-xl transition-all duration-200",
+                            entry.sleepQuality >= i
+                              ? "scale-110 bg-[var(--primary)] text-white shadow-lg"
+                              : "bg-gray-100 text-gray-300 hover:bg-gray-200",
+                          )}
+                        >
+                          <Star
+                            className="size-6"
+                            fill={
+                              entry.sleepQuality >= i ? "currentColor" : "none"
+                            }
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-        {/* Step 4: Symptoms & Events */}
-        {step === 4 && (
-          <section className="animate-in fade-in slide-in-from-right-4 space-y-12 duration-300">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900">
-                {t("mood.journal.step4.title")}
-              </h2>
-              <p className="mt-2 text-gray-500">
-                {t("mood.journal.step4.subtitle")}
-              </p>
-            </div>
-
-            {/* Symptoms Tags */}
-            <div className="space-y-4">
-              <label className="block px-2 text-sm font-bold tracking-widest text-gray-400 uppercase">
-                {t("mood.journal.step4.symptomsLabel")}
-              </label>
-              <div className="flex flex-wrap gap-3">
-                {symptomOptions.map((symptom) => (
-                  <button
-                    key={symptom}
-                    onClick={() => toggleSymptom(symptom)}
-                    className={cn(
-                      "rounded-2xl border px-5 py-3 text-sm font-semibold transition-all duration-300",
-                      entry.symptoms.includes(symptom)
-                        ? "scale-105 border-[var(--primary)] bg-[var(--primary)] text-white shadow-lg"
-                        : "border-gray-100 bg-white text-gray-600",
-                    )}
-                  >
-                    {t(symptomLabels[symptom])}
-                  </button>
-                ))}
-                <button className="rounded-2xl border-2 border-dashed border-gray-200 px-5 py-3 text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]">
-                  <Plus className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Events Tags */}
-            <div className="space-y-4">
-              <label className="block px-2 text-sm font-bold tracking-widest text-gray-400 uppercase">
-                {t("mood.journal.step4.eventsLabel")}
-              </label>
-              <div className="flex flex-wrap gap-3">
-                {eventOptions.map((event) => (
-                  <button
-                    key={event}
-                    onClick={() => toggleEvent(event)}
-                    className={cn(
-                      "rounded-2xl border px-5 py-3 text-sm font-semibold transition-all duration-300",
-                      entry.events.includes(event)
-                        ? "scale-105 border-[var(--sage)] bg-[var(--sage)] text-white shadow-lg"
-                        : "border-gray-100 bg-white text-gray-600",
-                    )}
-                  >
-                    {t(eventOptionLabels[event])}
-                  </button>
-                ))}
-                <button className="rounded-2xl border-2 border-dashed border-gray-200 px-5 py-3 text-gray-400 transition-all hover:border-[var(--sage)] hover:text-[var(--sage)]">
-                  <Plus className="size-4" />
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Step 5: Notes & Summary */}
-        {step === 5 && (
-          <section className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
-            <div className="mb-8 text-center">
-              <div className="mb-4 inline-flex size-16 items-center justify-center rounded-3xl bg-[var(--primary)]/10">
-                <Feather className="size-8 text-[var(--primary)]" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                {t("mood.journal.step5.title")}
-              </h2>
-              <p className="mt-2 text-gray-500">
-                {t("mood.journal.step5.subtitle")}
-              </p>
-            </div>
-
-            <GlassCard
-              padding="none"
-              variant="elevated"
-              className="rounded-3xl"
-            >
-              <textarea
-                value={entry.notes}
-                onChange={(e) =>
-                  setEntry({
-                    ...entry,
-                    notes: e.target.value.slice(0, 500),
-                  })
-                }
-                placeholder={t("mood.journal.step5.placeholder")}
-                className="h-64 w-full resize-none border-none bg-transparent p-6 text-lg text-gray-700 outline-none placeholder:text-gray-300 focus:ring-0"
-                maxLength={500}
-              />
-              <div className="flex items-center justify-between rounded-b-3xl border-t border-gray-50 bg-gray-50/30 p-4">
-                <div className="flex gap-2">
-                  <button className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-white">
-                    <Image className="size-5" />
-                  </button>
-                  <button className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-white">
-                    <Mic className="size-5" />
-                  </button>
+                  {/* Sleep disturbances */}
+                  <div className="space-y-4">
+                    <label className="block font-bold text-gray-700">
+                      {t("mood.journal.step2.disturbancesLabel")}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {sleepDisturbanceOptions.map((disturbance) => (
+                        <button
+                          key={disturbance}
+                          onClick={() => toggleSleepDisturbance(disturbance)}
+                          className={cn(
+                            "flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all",
+                            entry.sleepDisturbances.includes(disturbance)
+                              ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary-darkest)]"
+                              : "border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200",
+                          )}
+                        >
+                          <span>{t(sleepDisturbanceLabels[disturbance])}</span>
+                          {entry.sleepDisturbances.includes(disturbance) && (
+                            <Check className="size-4" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-gray-400">
-                  {entry.notes.length}/500
-                </span>
-              </div>
-            </GlassCard>
+              )}
 
-            {/* AI Insight */}
-            <div className="flex gap-4 rounded-3xl border border-[var(--primary)]/10 bg-[var(--primary)]/5 p-6">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                <Sparkles className="size-5 text-[var(--primary)]" />
-              </div>
-              <div>
-                <h5 className="mb-1 text-sm font-bold text-[var(--primary-darkest)]">
-                  {insightTitle}
-                </h5>
-                <p className="text-sm leading-relaxed text-gray-600">
-                  {insightText}
-                </p>
-                {aiSource === "heuristic" && (
-                  <span className="mt-2 block text-xs font-medium text-gray-400">
-                    {t("mood.journal.insight.localNotice")}
-                  </span>
-                )}
-              </div>
+              {/* Step 3: Medications */}
+              {step === 3 && (
+                <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
+                  {medicationsLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-16 rounded-xl" />
+                      <Skeleton className="h-16 rounded-xl" />
+                    </div>
+                  ) : medications.length > 0 ? (
+                    <div className="space-y-3">
+                      {medications.map((med) => {
+                        const isTaken = med.intakes.some((i) => !i.skipped);
+                        return (
+                          <div
+                            key={med.id}
+                            className={cn(
+                              "flex items-center justify-between rounded-xl border p-4 transition-all",
+                              isTaken
+                                ? "border-[var(--sage)]/30 bg-[var(--sage)]/5"
+                                : "border-gray-100 bg-gray-50",
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "flex size-10 items-center justify-center rounded-xl transition-colors",
+                                  isTaken
+                                    ? "bg-[var(--sage)] text-white"
+                                    : "bg-white text-gray-400",
+                                )}
+                              >
+                                <Tablets className="size-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900">
+                                  {med.name}
+                                </h4>
+                                <p className="text-sm text-gray-500">
+                                  {med.dosage}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleMedicationTaken(med.id, isTaken)
+                              }
+                              disabled={
+                                isTaken || logMedicationMutation.isPending
+                              }
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all",
+                                isTaken
+                                  ? "bg-[var(--sage)] text-white"
+                                  : "border border-gray-200 bg-white text-gray-400 hover:border-[var(--sage)] hover:text-[var(--sage)]",
+                              )}
+                            >
+                              <CheckCircle2 className="size-4" />
+                              {isTaken
+                                ? t("medication.status.taken")
+                                : t("mood.journal.step3.markTaken")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-gray-50 p-6 text-center">
+                      <p className="text-sm text-gray-500">
+                        {t("mood.journal.step3.noMeds")}
+                      </p>
+                    </div>
+                  )}
+
+                  <Link
+                    href="/medications/today"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-400 transition-all hover:border-[var(--primary)]/50 hover:text-[var(--primary)]"
+                  >
+                    <PlusCircle className="size-4" />
+                    {t("mood.journal.step3.addOneOff")}
+                  </Link>
+
+                  {/* Side Effects */}
+                  <div className="space-y-3 border-t border-gray-100 pt-6">
+                    <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                      <Info className="size-4 text-[var(--primary)]" />
+                      {t("mood.journal.step3.sideEffectsTitle")}
+                    </h4>
+                    <textarea
+                      value={entry.sideEffects}
+                      onChange={(e) =>
+                        setEntry({ ...entry, sideEffects: e.target.value })
+                      }
+                      placeholder={t(
+                        "mood.journal.step3.sideEffectsPlaceholder",
+                      )}
+                      className="min-h-[80px] w-full rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm transition-all outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Symptoms & Events */}
+              {step === 4 && (
+                <div className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
+                  {/* Symptoms */}
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold tracking-widest text-gray-400 uppercase">
+                      {t("mood.journal.step4.symptomsLabel")}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {symptomOptions.map((symptom) => (
+                        <button
+                          key={symptom}
+                          onClick={() => toggleSymptom(symptom)}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                            entry.symptoms.includes(symptom)
+                              ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+                          )}
+                        >
+                          {t(symptomLabels[symptom])}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Events */}
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold tracking-widest text-gray-400 uppercase">
+                      {t("mood.journal.step4.eventsLabel")}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {eventOptions.map((event) => (
+                        <button
+                          key={event}
+                          onClick={() => toggleEvent(event)}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                            entry.events.includes(event)
+                              ? "border-[var(--sage)] bg-[var(--sage)] text-white"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+                          )}
+                        >
+                          {t(eventOptionLabels[event])}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Notes & Summary */}
+              {step === 5 && (
+                <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
+                  <div className="overflow-hidden rounded-xl border border-gray-100">
+                    <textarea
+                      value={entry.notes}
+                      onChange={(e) =>
+                        setEntry({
+                          ...entry,
+                          notes: e.target.value.slice(0, 500),
+                        })
+                      }
+                      placeholder={t("mood.journal.step5.placeholder")}
+                      className="h-40 w-full resize-none border-none bg-gray-50 p-4 text-gray-700 outline-none placeholder:text-gray-400"
+                      maxLength={500}
+                    />
+                    <div className="flex items-center justify-between border-t border-gray-100 bg-white px-4 py-2">
+                      <div className="flex gap-1">
+                        <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100">
+                          <Image className="size-4" />
+                        </button>
+                        <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100">
+                          <Mic className="size-4" />
+                        </button>
+                      </div>
+                      <span className="text-xs font-medium text-gray-400">
+                        {entry.notes.length}/500
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* AI Insight */}
+                  <div className="flex gap-4 rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                      <Sparkles className="size-4 text-[var(--primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="mb-1 text-sm font-bold text-gray-800">
+                        {insightTitle}
+                      </h5>
+                      <p className="text-sm leading-relaxed text-gray-600">
+                        {insightText}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </section>
-        )}
-      </main>
 
-      {/* Fixed Bottom Controls */}
-      <div className="glass-card fixed bottom-0 left-0 z-50 w-full border-t border-gray-100 p-4 lg:p-6">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <button
-            onClick={prevStep}
-            disabled={step === 1}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 py-4 font-bold text-gray-500 transition-all md:border-none",
-              step === 1 ? "opacity-30" : "hover:bg-gray-100",
-            )}
-          >
-            <ChevronLeft className="size-5" />
-            <span className="hidden sm:inline">{t("actions.previous")}</span>
-          </button>
-
-          {/* Mobile Progress */}
-          <div className="flex flex-[2] items-center justify-center gap-2 md:hidden">
-            {Array.from({ length: maxStep }).map((_, i) => (
-              <div
-                key={i}
+            {/* Card Footer - Navigation */}
+            <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-8 py-5">
+              <button
+                onClick={prevStep}
+                disabled={step === 1}
                 className={cn(
-                  "rounded-full transition-all duration-300",
-                  step === i + 1
-                    ? "h-1.5 w-8 bg-[var(--primary)]"
-                    : "size-2 bg-gray-200",
+                  "flex items-center gap-2 rounded-xl px-5 py-3 font-semibold transition-all",
+                  step === 1
+                    ? "cursor-not-allowed text-gray-300"
+                    : "text-gray-600 hover:bg-white hover:shadow-sm",
                 )}
-              />
-            ))}
-          </div>
+              >
+                <ChevronLeft className="size-5" />
+                {t("actions.previous")}
+              </button>
 
-          <button
-            onClick={step === maxStep ? handleSave : nextStep}
-            disabled={isSaving}
-            className="shadow-soft flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] py-4 font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-95"
-          >
-            <span>
-              {step === maxStep
-                ? t("actions.finish")
-                : t("actions.continue")}
-            </span>
-            {step === maxStep ? (
-              <Check className="size-5" />
-            ) : (
-              <ChevronRight className="size-5" />
-            )}
-          </button>
+              <button
+                onClick={step === maxStep ? handleSave : nextStep}
+                disabled={isSaving}
+                className="flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 font-bold text-white shadow-lg transition-all hover:bg-[var(--primary-dark)] hover:shadow-xl active:scale-[0.98]"
+              >
+                {step === maxStep ? (
+                  <>
+                    {isSaving ? t("common.saving") : t("actions.finish")}
+                    <Check className="size-5" />
+                  </>
+                ) : (
+                  <>
+                    {t("actions.continue")}
+                    <ChevronRight className="size-5" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

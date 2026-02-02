@@ -21,6 +21,7 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { useI18n } from "@/i18n/provider";
 
@@ -195,21 +196,11 @@ export function TrendsContent({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-8">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-          {t("trends.title")}
-        </h1>
-        <p className="text-gray-500">
-          {t("trends.subtitle")}
-        </p>
-      </header>
-
+    <PageLayout
+      title={t("trends.title")}
+      subtitle={t("trends.subtitle")}
+      maxWidth="7xl"
+    >
       {/* Period Selector */}
       <div className="mb-8 flex gap-2">
         {(["7", "30", "90"] as PeriodKey[]).map((period) => (
@@ -325,9 +316,7 @@ export function TrendsContent({
           <GlassCard padding="lg" variant="elevated">
             <GlassCardHeader>
               <div>
-                <h3 className="text-xl font-bold">
-                  {t("trends.chart.title")}
-                </h3>
+                <h3 className="text-xl font-bold">{t("trends.chart.title")}</h3>
                 <p className="text-sm text-gray-500">
                   {t(periodLabelKeys[selectedPeriod])}
                 </p>
@@ -509,6 +498,6 @@ export function TrendsContent({
           </GlassCard>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

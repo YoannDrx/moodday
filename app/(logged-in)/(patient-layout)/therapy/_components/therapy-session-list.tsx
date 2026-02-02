@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  GlassCard,
+  GlassCardBadge,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { BenefitRating } from "@/components/nowts/benefit-rating";
 import {
   getTherapySessions,
@@ -37,6 +44,7 @@ import {
   updateTherapySession,
 } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
+import { cn } from "@/lib/utils";
 
 type EditingSession = {
   id: string;
@@ -46,7 +54,7 @@ type EditingSession = {
 };
 
 export function TherapySessionList() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [editingSession, setEditingSession] = useState<EditingSession | null>(
     null,
@@ -119,63 +127,120 @@ export function TherapySessionList() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Card className="p-8 text-center">
-        <p className="text-muted-foreground">{t("common.error")}</p>
-      </Card>
-    );
-  }
-
   const sessions = data?.sessions ?? [];
 
+  // Today's date
+  const today = new Date().toLocaleDateString(
+    locale === "fr" ? "fr-FR" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    },
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Add button */}
-      <div className="flex justify-end">
-        <Button asChild>
-          <Link href="/therapy/new">
-            <Plus className="mr-2 size-4" />
-            {t("therapy.list.addNew")}
-          </Link>
-        </Button>
-      </div>
+    <PageLayout
+      title={t("therapy.list.title")}
+      subtitle={today}
+      maxWidth="5xl"
+      action={{
+        label: t("therapy.list.addNew"),
+        href: "/therapy/new",
+        icon: Plus,
+      }}
+    >
+      {/* Loading state */}
+      {isLoading && (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-3xl" />
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {isError && (
+        <GlassCard padding="lg" className="text-center">
+          <p className="text-gray-500">{t("common.error")}</p>
+        </GlassCard>
+      )}
 
       {/* Empty state */}
-      {sessions.length === 0 && (
-        <Card className="p-8 text-center">
-          <Calendar className="text-muted-foreground mx-auto mb-4 size-12" />
-          <p className="text-muted-foreground">{t("therapy.list.empty")}</p>
-        </Card>
+      {!isLoading && !isError && sessions.length === 0 && (
+        <GlassCard padding="lg" className="py-16 text-center">
+          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[var(--primary)]/10">
+            <Calendar className="size-10 text-[var(--primary)]" />
+          </div>
+          <h3 className="mb-2 text-xl font-bold text-gray-800">
+            {t("therapy.list.emptyTitle")}
+          </h3>
+          <p className="mb-6 text-gray-500">{t("therapy.list.empty")}</p>
+          <Button
+            asChild
+            className="shadow-soft rounded-2xl bg-[var(--primary)] px-8 py-3 font-bold text-white"
+          >
+            <Link href="/therapy/new">
+              <Plus className="mr-2 size-4" />
+              {t("therapy.list.addNew")}
+            </Link>
+          </Button>
+        </GlassCard>
       )}
 
       {/* Sessions list */}
-      {sessions.length > 0 && (
-        <div className="space-y-3">
-          {sessions.map((session) => (
-            <Card key={session.id} className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-full">
-                  <Calendar className="text-primary size-5" />
+      {!isLoading && !isError && sessions.length > 0 && (
+        <GlassCard padding="md" variant="elevated">
+          <GlassCardHeader>
+            <GlassCardTitle
+              icon={<Calendar className="size-5 text-[var(--primary)]" />}
+            >
+              {t("therapy.list.mySessions")}
+            </GlassCardTitle>
+            <GlassCardBadge>
+              {t("therapy.list.sessionCount", { count: sessions.length })}
+            </GlassCardBadge>
+          </GlassCardHeader>
+
+          <GlassCardContent className="space-y-3">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={cn(
+                  "flex items-start gap-4 rounded-2xl border p-4 transition-all",
+                  session.benefitRating && session.benefitRating >= 4
+                    ? "border-[var(--sage)]/20 bg-[var(--sage)]/5"
+                    : "border-gray-100 bg-white hover:border-[var(--primary)]/30 hover:shadow-sm",
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex size-12 shrink-0 items-center justify-center rounded-xl",
+                    session.benefitRating && session.benefitRating >= 4
+                      ? "bg-[var(--sage)] text-white"
+                      : "bg-[var(--primary)]/10 text-[var(--primary)]",
+                  )}
+                >
+                  <Calendar className="size-6" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <time className="font-medium">
-                      {new Date(session.date).toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                    <time
+                      className={cn(
+                        "font-bold",
+                        session.benefitRating && session.benefitRating >= 4
+                          ? "text-[var(--sage-dark)]"
+                          : "text-gray-800",
+                      )}
+                    >
+                      {new Date(session.date).toLocaleDateString(
+                        locale === "fr" ? "fr-FR" : "en-US",
+                        {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        },
+                      )}
                     </time>
                     {session.benefitRating && (
                       <BenefitRating
@@ -185,21 +250,25 @@ export function TherapySessionList() {
                       />
                     )}
                   </div>
-                  <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
+                  <p className="mt-1 line-clamp-2 text-sm text-gray-400">
                     {session.notes}
                   </p>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0"
+                  className="shrink-0 text-gray-400 hover:text-gray-600"
                   onClick={() => openEditDialog(session)}
                 >
                   <Pencil className="size-4" />
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-gray-400 hover:text-red-500"
+                    >
                       <Trash2 className="size-4" />
                     </Button>
                   </AlertDialogTrigger>
@@ -226,9 +295,9 @@ export function TherapySessionList() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Edit Dialog */}
@@ -304,6 +373,6 @@ export function TherapySessionList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

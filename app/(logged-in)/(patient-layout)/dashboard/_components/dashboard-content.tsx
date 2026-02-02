@@ -31,6 +31,7 @@ import {
 import { MoodSlider } from "@/components/nowts/mood-slider";
 import { StreakCard } from "@/components/nowts/streak-card";
 import { MoodChart } from "@/components/nowts/mood-chart";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { saveMoodEntry } from "@/features/mood/mood.action";
 import {
   getDashboardSummary,
@@ -194,29 +195,16 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       .length ?? 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-8 lg:px-6">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-10 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-            {t("dashboard.greeting", { name: userName.split(" ")[0] })}
-          </h1>
-          <p className="text-gray-500">
-            {t("dashboard.today", { date: today })}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="glass-card relative flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]">
-            <Bell className="size-6" />
-            <span className="absolute top-3 right-3 size-2 rounded-full bg-[var(--destructive)] ring-2 ring-white" />
-          </button>
-        </div>
-      </header>
-
+    <PageLayout
+      title={t("dashboard.greeting", { name: userName.split(" ")[0] })}
+      subtitle={t("dashboard.today", { date: today })}
+      headerRight={
+        <button className="glass-card relative flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]">
+          <Bell className="size-6" />
+          <span className="absolute top-3 right-3 size-2 rounded-full bg-[var(--destructive)] ring-2 ring-white" />
+        </button>
+      }
+    >
       <div className="grid gap-8 lg:grid-cols-12">
         {/* Left Column: Core Tracking */}
         <div className="space-y-8 lg:col-span-8">
@@ -236,7 +224,9 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                     {t("dashboard.quickMood.subtitle")}
                   </p>
                 </div>
-                <GlassCardBadge>{t("dashboard.quickMood.badge")}</GlassCardBadge>
+                <GlassCardBadge>
+                  {t("dashboard.quickMood.badge")}
+                </GlassCardBadge>
               </GlassCardHeader>
 
               <div className="my-8">
@@ -249,7 +239,9 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   disabled={isSaving}
                   className="shadow-soft flex-grow rounded-2xl bg-[var(--primary)] py-6 text-lg font-bold text-white transition-all hover:bg-[var(--primary-dark)] active:scale-[0.98]"
                 >
-                  {isSaving ? t("common.saving") : t("dashboard.quickMood.save")}
+                  {isSaving
+                    ? t("common.saving")
+                    : t("dashboard.quickMood.save")}
                 </Button>
                 <Link
                   href="/mood"
@@ -329,18 +321,18 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                           >
                             {med.name}
                           </p>
-                        <p className="text-xs text-gray-400">
-                          {med.dosage} •{" "}
-                          {med.frequency === "daily"
-                            ? t("medication.frequencyShort.daily")
-                            : med.frequency === "twice_daily"
-                              ? t("medication.frequencyShort.twiceDaily")
-                              : med.frequency === "weekly"
-                                ? t("medication.frequencyShort.weekly")
-                                : med.frequency === "prn"
-                                  ? t("medication.frequencyShort.prn")
-                                  : med.frequency}
-                        </p>
+                          <p className="text-xs text-gray-400">
+                            {med.dosage} •{" "}
+                            {med.frequency === "daily"
+                              ? t("medication.frequencyShort.daily")
+                              : med.frequency === "twice_daily"
+                                ? t("medication.frequencyShort.twiceDaily")
+                                : med.frequency === "weekly"
+                                  ? t("medication.frequencyShort.weekly")
+                                  : med.frequency === "prn"
+                                    ? t("medication.frequencyShort.prn")
+                                    : med.frequency}
+                          </p>
                         </div>
                         {!isTaken && !isSkipped && (
                           <button
@@ -374,7 +366,8 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 href="/medications/today"
                 className="mt-4 flex w-full items-center justify-center gap-2 py-3 text-sm font-semibold text-gray-500 transition-colors hover:text-[var(--primary)]"
               >
-                <History className="size-4" /> {t("dashboard.medications.history")}
+                <History className="size-4" />{" "}
+                {t("dashboard.medications.history")}
               </Link>
             </GlassCard>
 
@@ -421,9 +414,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                     </p>
                   </>
                 ) : (
-                  <p className="text-gray-400">
-                    {t("dashboard.sleep.noData")}
-                  </p>
+                  <p className="text-gray-400">{t("dashboard.sleep.noData")}</p>
                 )}
               </div>
 
@@ -636,6 +627,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
           </GlassCard>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

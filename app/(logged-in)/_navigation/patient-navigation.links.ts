@@ -94,37 +94,37 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
       defaultOpenStartPath: "/settings",
       links: [
         {
-          href: "/settings?tab=profile",
+          href: "/settings/profile",
           Icon: User,
           label: t("settings.sidebar.profile"),
         },
         {
-          href: "/settings?tab=notifications",
+          href: "/settings/notifications",
           Icon: Bell,
           label: t("settings.sidebar.notifications"),
         },
         {
-          href: "/settings?tab=appearance",
+          href: "/settings/appearance",
           Icon: Palette,
           label: t("settings.sidebar.appearance"),
         },
         {
-          href: "/settings?tab=privacy",
+          href: "/settings/privacy",
           Icon: Shield,
           label: t("settings.sidebar.privacy"),
         },
         {
-          href: "/settings?tab=subscription",
+          href: "/settings/subscription",
           Icon: CreditCard,
           label: t("settings.sidebar.subscription"),
         },
         {
-          href: "/settings?tab=security",
+          href: "/settings/security",
           Icon: Lock,
           label: t("settings.sidebar.security"),
         },
         {
-          href: "/settings?tab=language",
+          href: "/settings/language",
           Icon: Globe,
           label: t("settings.sidebar.language"),
         },

@@ -220,6 +220,7 @@ const fr: typeof en = {
     },
     journal: {
       title: "Check-in quotidien",
+      stepLabel: "Étape {current} sur {total}",
       saved: "Journal enregistré !",
       saveError: "Impossible d'enregistrer votre entrée.",
       insight: {
@@ -325,6 +326,8 @@ const fr: typeof en = {
     },
     list: {
       title: "Séances de thérapie",
+      mySessions: "Mes séances",
+      sessionCount: "{count} séances",
       empty: "Pas encore de séances. Note ta première séance de thérapie !",
       addNew: "Ajouter une séance",
     },
@@ -360,6 +363,8 @@ const fr: typeof en = {
     },
     list: {
       title: "Mes exercices",
+      myExercises: "Mes exercices",
+      activeCount: "{count} actifs",
       empty:
         "Pas encore d'exercices. Ajoute ton premier exercice de bien-être !",
       addNew: "Ajouter un exercice",

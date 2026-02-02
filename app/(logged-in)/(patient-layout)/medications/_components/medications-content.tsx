@@ -29,6 +29,7 @@ import {
   GlassCardHeader,
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { cn } from "@/lib/utils";
 import {
   getMedications,
@@ -132,32 +133,16 @@ export function MedicationsContent() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-8">
-      {/* Background Decorations */}
-      <div className="blob blob-primary -top-[200px] -left-[100px]" />
-      <div className="blob blob-lavender -right-[100px] -bottom-[200px]" />
-
-      {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-              {t("medication.list.title")}
-            </h1>
-            <p className="text-gray-500">{today}</p>
-          </div>
-          <Button
-            asChild
-            className="shadow-soft rounded-2xl bg-[var(--primary)] px-6 font-bold text-white transition-all hover:bg-[var(--primary-dark)]"
-          >
-            <Link href="/medications/new">
-              <Plus className="mr-2 size-4" />
-              {t("medication.list.addNew")}
-            </Link>
-          </Button>
-        </div>
-      </header>
-
+    <PageLayout
+      title={t("medication.list.title")}
+      subtitle={today}
+      maxWidth="5xl"
+      action={{
+        label: t("medication.list.addNew"),
+        href: "/medications/new",
+        icon: Plus,
+      }}
+    >
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         {/* Adherence Card */}
@@ -328,7 +313,7 @@ export function MedicationsContent() {
           </GlassCardContent>
         </GlassCard>
       )}
-    </div>
+    </PageLayout>
   );
 }
 

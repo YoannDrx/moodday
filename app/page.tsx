@@ -6,11 +6,11 @@ import {
   SectionRoles,
   SectionJourneyEnhanced,
   SectionSecurity,
-  PricingLanding2,
   SectionFaq,
   SectionCtaHybrid,
   FooterDark,
 } from "@/features/landing";
+import { Pricing } from "@/features/plans/pricing-section";
 
 export default function HomePage() {
   return (
@@ -23,7 +23,7 @@ export default function HomePage() {
         <SectionRoles />
         <SectionJourneyEnhanced />
         <SectionSecurity />
-        <PricingLanding2 />
+        <Pricing mode="landing" />
         <SectionFaq />
         <SectionCtaHybrid />
       </main>

@@ -1,5 +1,6 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
+import { PageLayout } from "@/components/nowts/page-layout";
 import { MedicationDetail } from "./_components/medication-detail";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
@@ -19,11 +20,12 @@ export default async function MedicationDetailPage({ params }: Props) {
   const { t } = await getI18n();
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">
-        {t("medication.detail.title")}
-      </h1>
+    <PageLayout
+      title={t("medication.detail.title")}
+      maxWidth="3xl"
+      showBlobs={false}
+    >
       <MedicationDetail medicationId={id} />
-    </div>
+    </PageLayout>
   );
 }
