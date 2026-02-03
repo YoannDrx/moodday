@@ -366,7 +366,7 @@ function MiddayMockup() {
 
 function EveningMockup() {
   const { t } = useI18n();
-  const moodData = [45, 58, 62, 55, 72, 78, 75];
+  const moodData = [42, 55, 48, 62, 58, 72, 75];
   const days = [
     t("landing2.journey.mockups.weekdays.mon"),
     t("landing2.journey.mockups.weekdays.tue"),
@@ -376,6 +376,51 @@ function EveningMockup() {
     t("landing2.journey.mockups.weekdays.sat"),
     t("landing2.journey.mockups.weekdays.sun"),
   ];
+
+  // SVG chart dimensions
+  const width = 280;
+  const height = 90;
+  const padding = { top: 12, bottom: 18, left: 16, right: 16 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+
+  // Calculate points
+  const points = moodData.map((value, idx) => ({
+    x: padding.left + (idx / (moodData.length - 1)) * chartWidth,
+    y: padding.top + chartHeight - (value / 100) * chartHeight,
+  }));
+
+  // Create smooth curve path using cubic bezier
+  const createSmoothPath = () => {
+    if (points.length < 2) return "";
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] || p2;
+
+      const tension = 0.3;
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+
+    return path;
+  };
+
+  // Create area path (curve + bottom fill)
+  const createAreaPath = () => {
+    const curvePath = createSmoothPath();
+    const lastPoint = points[points.length - 1];
+    const firstPoint = points[0];
+    return `${curvePath} L ${lastPoint.x} ${height - padding.bottom} L ${firstPoint.x} ${height - padding.bottom} Z`;
+  };
 
   return (
     <div className="space-y-4">
@@ -393,17 +438,52 @@ function EveningMockup() {
           </span>
         </div>
 
-        <div className="flex h-20 items-end justify-between gap-1">
-          {moodData.map((value, idx) => (
-            <div key={idx} className="flex flex-1 flex-col items-center gap-1">
-              <div
-                className="w-full rounded-t bg-gradient-to-t from-purple-500 to-indigo-500 transition-all"
-                style={{ height: `${value}%` }}
-              />
-              <span className="text-muted-foreground text-xs">{days[idx]}</span>
-            </div>
+        {/* SVG Line Chart */}
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-24 w-full"
+          preserveAspectRatio="none"
+        >
+          {/* Filled area under curve */}
+          <path
+            d={createAreaPath()}
+            className="fill-purple-500/15 transition-all duration-500"
+          />
+
+          {/* Main curve line */}
+          <path
+            d={createSmoothPath()}
+            fill="none"
+            className="stroke-purple-500 transition-all duration-500"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Data points */}
+          {points.map((point, idx) => (
+            <circle
+              key={idx}
+              cx={point.x}
+              cy={point.y}
+              r="4"
+              className="fill-purple-500 transition-all duration-300"
+            />
           ))}
-        </div>
+
+          {/* Day labels */}
+          {points.map((point, idx) => (
+            <text
+              key={`label-${idx}`}
+              x={point.x}
+              y={height - 3}
+              textAnchor="middle"
+              className="fill-gray-400 text-[8px]"
+            >
+              {days[idx]}
+            </text>
+          ))}
+        </svg>
       </div>
 
       <div className="rounded-xl bg-white/50 p-4 dark:bg-gray-800/50">
