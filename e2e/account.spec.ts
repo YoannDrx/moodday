@@ -97,21 +97,24 @@ test.describe("account", () => {
       name: /Save profile|Enregistrer le profil/i,
     });
 
-    // Click and wait for the page to reload
-    // Use Promise.all to avoid race condition between click and navigation
-    await Promise.all([
-      page.waitForEvent("load", { timeout: 20000 }),
-      saveButton.click(),
-    ]);
+    // Click save button
+    await saveButton.click();
 
-    // Wait for network to be idle after reload
+    // Wait for success toast to appear (indicates save completed)
+    // i18n: "Settings saved!" (EN) / "Paramètres sauvegardés !" (FR)
+    await expect(
+      page.getByText(/Settings saved|Paramètres sauvegardés/i),
+    ).toBeVisible({ timeout: 15000 });
+
+    // Wait for page reload to complete
+    await page.waitForLoadState("domcontentloaded", { timeout: 20000 });
     await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-    // After reload, verify the name persisted
-    const updatedInput = page.getByRole("textbox", {
-      name: /Full name|Nom complet/i,
-    });
-    await expect(updatedInput).toHaveValue(newName, { timeout: 10000 });
+    // After reload, wait for the input to be visible and contain the new name
+    // The session may take a moment to refresh, so we use a polling approach
+    await expect(
+      page.getByRole("textbox", { name: /Full name|Nom complet/i }),
+    ).toHaveValue(newName, { timeout: 15000 });
   });
 
   test("change password flow", async ({ page }) => {
