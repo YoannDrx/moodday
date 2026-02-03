@@ -321,3 +321,46 @@ model NewsletterSubscriber {
   @@index([email])
   @@map("newsletter_subscriber")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL TRACKING
+// ═══════════════════════════════════════════════════════════════
+
+model EmailLog {
+  id String @id @default(cuid())
+
+  // Identifiants
+  resendId String? @unique
+
+  // Contenu
+  to       String
+  subject  String
+  template String // "verify-email", "trial-welcome", etc.
+
+  // Contexte
+  userId   String?
+  metadata Json?
+
+  // Statut Resend: sent | delivered | bounced | complained | opened | clicked
+  status String @default("sent")
+
+  // Timestamps
+  sentAt       DateTime  @default(now())
+  deliveredAt  DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+  bouncedAt    DateTime?
+  complainedAt DateTime?
+
+  // Error
+  error String?
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([resendId])
+  @@index([userId])
+  @@index([template])
+  @@index([status])
+  @@map("email_log")
+}

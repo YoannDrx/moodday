@@ -89,6 +89,10 @@ export const auth = betterAuth({
           userName: user.name || "Utilisateur",
           resetUrl: url,
         }),
+        tracking: {
+          template: "reset-password",
+          userId: user.id,
+        },
       });
     },
   },
@@ -103,6 +107,11 @@ export const auth = betterAuth({
             userName: user.name || "Utilisateur",
             verificationUrl: url,
           }),
+          tracking: {
+            template: "email-changed",
+            userId: user.id,
+            metadata: { newEmail },
+          },
         });
       },
     },
@@ -117,6 +126,10 @@ export const auth = betterAuth({
             userName: user.name || "Utilisateur",
             confirmUrl: url,
           }),
+          tracking: {
+            template: "account-deleted",
+            userId: user.id,
+          },
         });
       },
     },
@@ -130,6 +143,10 @@ export const auth = betterAuth({
           userName: user.name || "Utilisateur",
           verificationUrl: url,
         }),
+        tracking: {
+          template: "verify-email",
+          userId: user.id,
+        },
       });
     },
   },
@@ -143,6 +160,9 @@ export const auth = betterAuth({
           html: MagicLinkEmail({
             magicLinkUrl: url,
           }),
+          tracking: {
+            template: "magic-link",
+          },
         });
       },
     }),

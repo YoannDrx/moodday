@@ -14,6 +14,10 @@ export const contactSupportAction = action
       text: message,
       html: `<p>${message}</p>`,
       replyTo: email,
+      tracking: {
+        template: "support",
+        metadata: { userEmail: email, supportSubject: subject },
+      },
     });
     return { message: "Your message has been sent to support." };
   });

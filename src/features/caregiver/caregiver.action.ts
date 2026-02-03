@@ -68,6 +68,10 @@ const sendCaregiverInviteEmail = async (params: {
       markdown,
       preview: params.t("caregiver.inviteEmail.preview", { patientName }),
     }),
+    tracking: {
+      template: "caregiver-invite",
+      metadata: { role: params.role, label: params.label },
+    },
   });
 };
 
@@ -396,7 +400,9 @@ export const updateCaregiverPermissions = authAction
       });
 
       if (relationship?.patientId !== user.id) {
-        throw new Error(t("caregiver.errors.relationshipNotFoundOrUnauthorized"));
+        throw new Error(
+          t("caregiver.errors.relationshipNotFoundOrUnauthorized"),
+        );
       }
 
       const updated = await prisma.caregiverRelationship.update({
@@ -486,7 +492,9 @@ export const createObservation = authAction
         }
 
         if (!relationship.permissions.includes("add_observations")) {
-          throw new Error(t("caregiver.errors.insufficientObservationPermission"));
+          throw new Error(
+            t("caregiver.errors.insufficientObservationPermission"),
+          );
         }
       }
 

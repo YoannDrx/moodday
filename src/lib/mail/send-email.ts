@@ -1,5 +1,7 @@
+import type { Prisma } from "@/generated/prisma";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 import { pretty, render } from "@react-email/render";
 import { nanoid } from "nanoid";
 import { resendMailAdapter } from "./resend";
@@ -51,25 +53,34 @@ export type MailAdapter = {
 // If you use another mail adapter, you can replace the mailAdapter with your own
 const mailAdapter: MailAdapter = resendMailAdapter;
 
+type EmailTrackingParams = {
+  template: string;
+  userId?: string;
+  metadata?: Prisma.InputJsonValue;
+};
+
 type SendEmailParams = Omit<EmailParams, "from" | "html"> & {
   from?: string;
   html?: string | React.ReactElement;
+  tracking?: EmailTrackingParams;
 };
 
 export const sendEmail = async (params: SendEmailParams) => {
+  const { tracking, ...emailParams } = params;
+
   if (env.NODE_ENV === "development") {
-    params.subject = `[DEV] ${params.subject}`;
+    emailParams.subject = `[DEV] ${emailParams.subject}`;
   }
 
   // Avoid sending emails to playwright-test emails
   if (
-    Array.isArray(params.to)
-      ? params.to.some((to) => to.startsWith("playwright-test-"))
-      : params.to.startsWith("playwright-test-")
+    Array.isArray(emailParams.to)
+      ? emailParams.to.some((to) => to.startsWith("playwright-test-"))
+      : emailParams.to.startsWith("playwright-test-")
   ) {
     logger.info("[sendEmail] Sending email to playwright-test", {
-      subject: params.subject,
-      to: params.to,
+      subject: emailParams.subject,
+      to: emailParams.to,
     });
 
     return {
@@ -82,20 +93,44 @@ export const sendEmail = async (params: SendEmailParams) => {
 
   let html = "";
 
-  if (typeof params.html === "string") {
-    html = params.html;
+  if (typeof emailParams.html === "string") {
+    html = emailParams.html;
   } else {
-    html = await pretty(await render(params.html));
+    html = await pretty(await render(emailParams.html));
   }
 
   const result = await mailAdapter.send({
-    ...params,
-    from: params.from ?? env.EMAIL_FROM,
+    ...emailParams,
+    from: emailParams.from ?? env.EMAIL_FROM,
     html,
   });
 
   if (result.error) {
-    logger.error("[sendEmail] Error", { result, subject: params.subject });
+    logger.error("[sendEmail] Error", { result, subject: emailParams.subject });
+  }
+
+  // Log to database if tracking is enabled
+  if (tracking) {
+    try {
+      const toAddress = Array.isArray(emailParams.to)
+        ? emailParams.to.join(", ")
+        : emailParams.to;
+
+      await prisma.emailLog.create({
+        data: {
+          resendId: result.data?.id ?? null,
+          to: toAddress,
+          subject: emailParams.subject,
+          template: tracking.template,
+          userId: tracking.userId,
+          metadata: tracking.metadata ?? undefined,
+          status: result.error ? "failed" : "sent",
+          error: result.error?.message ?? null,
+        },
+      });
+    } catch (err) {
+      logger.error("[sendEmail] Failed to log email to database", { err });
+    }
   }
 
   return result;

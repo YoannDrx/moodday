@@ -61,6 +61,11 @@ export const sendTrialWelcomeEmail = async (
         planName,
         trialEndDate,
       }),
+      tracking: {
+        template: "trial-welcome",
+        userId: ctx.userId,
+        metadata: { plan: subscription.plan },
+      },
     });
 
     logger.info("[sendTrialWelcomeEmail] Trial welcome email sent", {
@@ -114,6 +119,11 @@ export const sendTrialReminderEmail = async (
         planName,
         trialEndDate,
       }),
+      tracking: {
+        template: "trial-reminder",
+        userId: subscription.user.id,
+        metadata: { plan: subscription.plan, daysLeft },
+      },
     });
 
     logger.info("[sendTrialReminderEmail] Trial reminder email sent", {
@@ -154,6 +164,11 @@ export const sendTrialConvertedEmail = async (
         userName: user.name || "Utilisateur",
         planName,
       }),
+      tracking: {
+        template: "trial-converted",
+        userId: ctx.userId,
+        metadata: { plan: data.subscription.plan },
+      },
     });
 
     logger.info("[sendTrialConvertedEmail] Trial converted email sent", {
@@ -193,6 +208,11 @@ export const sendTrialExpiredEmail = async (
         userName: user.name || "Utilisateur",
         planName,
       }),
+      tracking: {
+        template: "trial-expired",
+        userId: ctx.userId,
+        metadata: { plan: subscription.plan },
+      },
     });
 
     logger.info("[sendTrialExpiredEmail] Trial expired email sent", {
@@ -239,6 +259,11 @@ export const sendSubscriptionCanceledEmail = async (
         planName,
         endDate,
       }),
+      tracking: {
+        template: "subscription-canceled",
+        userId: ctx.userId,
+        metadata: { plan: subscription.plan },
+      },
     });
 
     logger.info(
@@ -285,6 +310,11 @@ export const sendPaymentFailedEmail = async (
         planName: formatPlanName(planName),
         retryDate: formattedRetryDate,
       }),
+      tracking: {
+        template: "payment-failed",
+        userId,
+        metadata: { planName },
+      },
     });
 
     logger.info("[sendPaymentFailedEmail] Payment failed email sent", {
@@ -328,6 +358,11 @@ export const sendRenewalSuccessEmail = async (
         amount,
         nextBillingDate: formattedNextDate,
       }),
+      tracking: {
+        template: "renewal-success",
+        userId,
+        metadata: { planName, amount },
+      },
     });
 
     logger.info("[sendRenewalSuccessEmail] Renewal success email sent", {
@@ -373,6 +408,11 @@ export const sendInvoiceAvailableEmail = async (
         invoiceDate: formattedDate,
         invoiceUrl,
       }),
+      tracking: {
+        template: "invoice-available",
+        userId,
+        metadata: { invoiceNumber, amount },
+      },
     });
 
     logger.info("[sendInvoiceAvailableEmail] Invoice available email sent", {

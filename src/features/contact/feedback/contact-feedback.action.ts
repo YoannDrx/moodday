@@ -28,6 +28,11 @@ export const feedbackAction = action
       subject: `New feedback from ${email}`,
       text: `Review: ${feedback.review}\n\nMessage: ${feedback.message}`,
       replyTo: email,
+      tracking: {
+        template: "feedback",
+        userId: user?.id,
+        metadata: { review: feedback.review, feedbackId: feedback.id },
+      },
     });
 
     return { message: "Your feedback has been sent to support." };

@@ -32,6 +32,9 @@ model User {
   caregivingFor       CaregiverRelationship[] @relation("CaregiverRelations") // As caregiver
   caregivers          CaregiverRelationship[] @relation("PatientRelations")   // As patient
 
+  // Email tracking
+  emailLogs           EmailLog[]
+
   // Stripe integration
   stripeCustomerId String?
 

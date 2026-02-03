@@ -5,15 +5,21 @@ import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
 import { UserDropdown } from "../auth/user-dropdown";
 
 export const SidebarUserButton = () => {
+  const [mounted, setMounted] = useState(false);
   const session = useSession();
   const data = session.data?.user;
   const isLoading = session.isPending;
 
-  // Show skeleton while loading
-  if (isLoading) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Show skeleton while loading or not yet mounted (prevents hydration mismatch)
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-12 items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/50 px-3">
         <Skeleton className="size-8 rounded-lg" />
