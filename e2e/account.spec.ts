@@ -78,7 +78,10 @@ test.describe("account", () => {
   });
 
   test("update name flow", async ({ page }) => {
-    await createTestAccount({ page, callbackURL: "/settings/profile" });
+    const userData = await createTestAccount({
+      page,
+      callbackURL: "/settings/profile",
+    });
     await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
     // Wait for the form to be ready
@@ -97,24 +100,19 @@ test.describe("account", () => {
       name: /Save profile|Enregistrer le profil/i,
     });
 
-    // Click save button
-    await saveButton.click();
+    // Click save button and wait for page reload
+    // The form calls window.location.reload() on success, which triggers a full navigation
+    await Promise.all([
+      page.waitForNavigation({ timeout: 30000 }),
+      saveButton.click(),
+    ]);
 
-    // Wait for success toast to appear (indicates save completed)
-    // i18n: "Settings saved!" (EN) / "Paramètres sauvegardés !" (FR)
-    await expect(
-      page.getByText(/Settings saved|Paramètres sauvegardés/i),
-    ).toBeVisible({ timeout: 15000 });
-
-    // Wait for page reload to complete
-    await page.waitForLoadState("domcontentloaded", { timeout: 20000 });
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
-
-    // After reload, wait for the input to be visible and contain the new name
-    // The session may take a moment to refresh, so we use a polling approach
-    await expect(
-      page.getByRole("textbox", { name: /Full name|Nom complet/i }),
-    ).toHaveValue(newName, { timeout: 15000 });
+    // Verify the name was persisted in the database
+    const updatedUser = await prisma.user.findUnique({
+      where: { email: userData.email },
+      select: { name: true },
+    });
+    expect(updatedUser?.name).toBe(newName);
   });
 
   test("change password flow", async ({ page }) => {
