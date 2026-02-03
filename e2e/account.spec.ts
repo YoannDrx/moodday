@@ -93,7 +93,8 @@ test.describe("account", () => {
 
     // Clear the input and fill with new name
     const newName = faker.person.fullName();
-    await input.clear();
+    // Triple-click to select all text, then type the new name to replace it
+    await input.click({ clickCount: 3 });
     await input.fill(newName);
 
     // Verify the input has the new value before clicking save
@@ -106,8 +107,10 @@ test.describe("account", () => {
     // Wait for button to be enabled (form fully loaded)
     await expect(saveButton).toBeEnabled({ timeout: 10000 });
 
-    // Click save button and verify the form submits
+    // Click save button and wait a bit for React to process
     await saveButton.click();
+    // Give React time to process the click and start the mutation
+    await page.waitForTimeout(500);
 
     // Wait for the name to be updated in the database (polling)
     // The form calls window.location.reload() on success, so we verify via DB
