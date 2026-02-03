@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useSession } from "@/lib/auth-client";
 import {
   ADDITIONAL_FEATURES,
   LIMITS_CONFIG,
@@ -38,8 +37,6 @@ export function PricingCard({
   mode?: PricingMode;
 }) {
   const { locale, t, tm } = useI18n();
-  // Get the current user (only needed in dashboard mode)
-  const { data: session } = useSession();
 
   const { execute: upgradeUser, isPending } = useAction(upgradeUserAction, {
     onSuccess: (result) => {
@@ -229,10 +226,6 @@ export function PricingCard({
               plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
             )}
             onClick={() => {
-              if (!session?.user) {
-                toast.error(t("pricingCard.signInRequired"));
-                return;
-              }
               upgradeUser({
                 plan: plan.name,
                 annual: isYearly,

@@ -19,8 +19,8 @@ const planIcons: LucideIcon[] = [Heart, Sparkles, Star];
 const planKeys = ["free", "pro", "ultra"] as const;
 const planPrices = [
   { monthly: 0, annual: 0 },
-  { monthly: 9.99, annual: 7.99 },
-  { monthly: 19.99, annual: 15.99 },
+  { monthly: 9.99, annual: 7.99 }, // 95.90€/an ÷ 12
+  { monthly: 19.99, annual: 15.99 }, // 191.90€/an ÷ 12
 ];
 const planLinks = [
   "/auth/signup?plan=free",
