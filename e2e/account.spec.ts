@@ -100,19 +100,21 @@ test.describe("account", () => {
       name: /Save profile|Enregistrer le profil/i,
     });
 
-    // Click save button and wait for page reload
-    // The form calls window.location.reload() on success, which triggers a full navigation
-    await Promise.all([
-      page.waitForNavigation({ timeout: 30000 }),
-      saveButton.click(),
-    ]);
+    // Click save button
+    await saveButton.click();
 
-    // Verify the name was persisted in the database
-    const updatedUser = await prisma.user.findUnique({
-      where: { email: userData.email },
-      select: { name: true },
-    });
-    expect(updatedUser?.name).toBe(newName);
+    // Wait for button to become disabled (indicates form submission started)
+    await expect(saveButton).toBeDisabled({ timeout: 5000 });
+
+    // Wait for the name to be updated in the database (polling)
+    // The form calls window.location.reload() on success, so we verify via DB
+    await expect(async () => {
+      const updatedUser = await prisma.user.findUnique({
+        where: { email: userData.email },
+        select: { name: true },
+      });
+      expect(updatedUser?.name).toBe(newName);
+    }).toPass({ timeout: 15000, intervals: [500, 1000, 2000] });
   });
 
   test("change password flow", async ({ page }) => {
