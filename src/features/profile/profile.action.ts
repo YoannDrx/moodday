@@ -9,7 +9,11 @@ import { z } from "zod";
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   timezone: z.string().optional(),
-  image: z.string().url().optional(),
+  // Image can be a valid URL, an empty string (to remove), or undefined (to keep unchanged)
+  image: z
+    .union([z.string().url(), z.literal("")])
+    .optional()
+    .transform((val) => (val === "" ? null : val)),
 });
 
 export const updateProfile = authAction

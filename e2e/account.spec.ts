@@ -93,8 +93,8 @@ test.describe("account", () => {
 
     // Clear the input and fill with new name
     const newName = faker.person.fullName();
-    // Triple-click to select all text, then type the new name to replace it
-    await input.click({ clickCount: 3 });
+    // Simply use fill() - it should handle React controlled inputs
+    // by clearing the existing value and typing the new one
     await input.fill(newName);
 
     // Verify the input has the new value before clicking save
@@ -107,20 +107,21 @@ test.describe("account", () => {
     // Wait for button to be enabled (form fully loaded)
     await expect(saveButton).toBeEnabled({ timeout: 10000 });
 
-    // Click save button and wait a bit for React to process
+    // Click save button and wait for the Server Action to complete
+    const responsePromise = page.waitForResponse(
+      (response) => response.request().method() === "POST",
+      { timeout: 15000 },
+    );
     await saveButton.click();
-    // Give React time to process the click and start the mutation
-    await page.waitForTimeout(500);
+    const response = await responsePromise;
+    expect(response.ok()).toBe(true);
 
-    // Wait for the name to be updated in the database (polling)
-    // The form calls window.location.reload() on success, so we verify via DB
-    await expect(async () => {
-      const updatedUser = await prisma.user.findUnique({
-        where: { email: userData.email },
-        select: { name: true },
-      });
-      expect(updatedUser?.name).toBe(newName);
-    }).toPass({ timeout: 20000, intervals: [1000, 2000, 3000] });
+    // Verify the name was updated in the database
+    const updatedUser = await prisma.user.findUnique({
+      where: { email: userData.email },
+      select: { name: true },
+    });
+    expect(updatedUser?.name).toBe(newName);
   });
 
   test("change password flow", async ({ page }) => {
