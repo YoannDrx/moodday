@@ -11,10 +11,22 @@ import { QuickEntryModal } from "@/components/nowts/quick-entry-modal";
 import { SyncIndicator } from "@/features/pwa/sync-indicator";
 import { PatientBreadcrumb } from "./patient-breadcrumb";
 
-export async function PatientNavigation({ children }: PropsWithChildren) {
+type PatientNavigationProps = PropsWithChildren<{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+}>;
+
+export async function PatientNavigation({
+  children,
+  user,
+}: PatientNavigationProps) {
   return (
     <SidebarProvider>
-      <PatientSidebar />
+      <PatientSidebar user={user} />
       <SidebarInset className="bg-gray-50/50">
         <header className="flex h-14 shrink-0 items-center gap-2 bg-white/80 backdrop-blur-sm">
           <Layout size="lg" className="flex items-center gap-2">

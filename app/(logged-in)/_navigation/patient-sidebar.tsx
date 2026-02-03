@@ -25,7 +25,16 @@ import { useState } from "react";
 import { getPatientNavigation } from "./patient-navigation.links";
 import Link from "next/link";
 
-export function PatientSidebar() {
+type PatientSidebarProps = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+};
+
+export function PatientSidebar({ user }: PatientSidebarProps) {
   const { t } = useI18n();
   const links = getPatientNavigation(t);
   const menuButtonClassName =
@@ -100,7 +109,7 @@ export function PatientSidebar() {
         </div>
 
         {/* User Button (contains logout via dropdown) */}
-        <SidebarUserButton />
+        <SidebarUserButton user={user} />
       </SidebarFooter>
 
       <SidebarRail />

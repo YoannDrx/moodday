@@ -3,6 +3,6 @@ import type { LayoutParams } from "@/types/next";
 import { PatientNavigation } from "../_navigation/patient-navigation";
 
 export default async function PatientLayout(props: LayoutParams) {
-  await getRequiredUser();
-  return <PatientNavigation>{props.children}</PatientNavigation>;
+  const user = await getRequiredUser();
+  return <PatientNavigation user={user}>{props.children}</PatientNavigation>;
 }

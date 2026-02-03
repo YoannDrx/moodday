@@ -5,21 +5,29 @@ import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { ChevronsUpDown } from "lucide-react";
-import { useEffect, useState } from "react";
 import { UserDropdown } from "../auth/user-dropdown";
 
-export const SidebarUserButton = () => {
-  const [mounted, setMounted] = useState(false);
+type SidebarUserButtonProps = {
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+};
+
+export const SidebarUserButton = ({
+  user: userProp,
+}: SidebarUserButtonProps) => {
+  // Use session as fallback when user prop is not provided
   const session = useSession();
-  const data = session.data?.user;
-  const isLoading = session.isPending;
+  const sessionUser = session.data?.user;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Prefer prop user (server-side), fallback to session user (client-side)
+  const user = userProp ?? sessionUser;
 
-  // Show skeleton while loading or not yet mounted (prevents hydration mismatch)
-  if (!mounted || isLoading) {
+  // Show skeleton while loading (only when no prop user and session is loading)
+  if (!user) {
     return (
       <div className="flex h-12 items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/50 px-3">
         <Skeleton className="size-8 rounded-lg" />
@@ -31,11 +39,6 @@ export const SidebarUserButton = () => {
     );
   }
 
-  // Don't render if no user data
-  if (!data) {
-    return null;
-  }
-
   return (
     <UserDropdown>
       <SidebarMenuButton
@@ -44,16 +47,16 @@ export const SidebarUserButton = () => {
         data-testid="user-menu-button"
       >
         <Avatar className="size-8 rounded-lg shadow-sm ring-2 ring-white">
-          <AvatarImage src={data.image ?? ""} alt={data.name[0]} />
+          <AvatarImage src={user.image ?? ""} alt={user.name?.[0] ?? "U"} />
           <AvatarFallback className="rounded-lg bg-gradient-to-br from-[var(--primary)] to-teal-400 text-white">
-            {data.name[0] || data.email[0]}
+            {user.name?.[0] || user.email?.[0] || "U"}
           </AvatarFallback>
         </Avatar>
         <div className="grid flex-1 text-left text-sm leading-tight">
           <span className="truncate font-semibold text-gray-900">
-            {data.name}
+            {user.name}
           </span>
-          <span className="truncate text-xs text-gray-500">{data.email}</span>
+          <span className="truncate text-xs text-gray-500">{user.email}</span>
         </div>
         <ChevronsUpDown className="ml-auto size-4 text-gray-400" />
       </SidebarMenuButton>
