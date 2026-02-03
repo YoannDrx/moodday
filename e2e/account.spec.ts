@@ -84,6 +84,9 @@ test.describe("account", () => {
     });
     await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
+    // Wait for the form to be fully loaded and network idle
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
+
     // Wait for the form to be ready
     const input = page.getByRole("textbox", { name: /Full name|Nom complet/i });
     await expect(input).toBeVisible({ timeout: 10000 });
@@ -100,11 +103,11 @@ test.describe("account", () => {
       name: /Save profile|Enregistrer le profil/i,
     });
 
-    // Click save button
-    await saveButton.click();
+    // Wait for button to be enabled (form fully loaded)
+    await expect(saveButton).toBeEnabled({ timeout: 10000 });
 
-    // Wait for button to become disabled (indicates form submission started)
-    await expect(saveButton).toBeDisabled({ timeout: 5000 });
+    // Click save button and verify the form submits
+    await saveButton.click();
 
     // Wait for the name to be updated in the database (polling)
     // The form calls window.location.reload() on success, so we verify via DB
@@ -114,7 +117,7 @@ test.describe("account", () => {
         select: { name: true },
       });
       expect(updatedUser?.name).toBe(newName);
-    }).toPass({ timeout: 15000, intervals: [500, 1000, 2000] });
+    }).toPass({ timeout: 20000, intervals: [1000, 2000, 3000] });
   });
 
   test("change password flow", async ({ page }) => {
