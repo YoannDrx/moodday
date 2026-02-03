@@ -31,7 +31,7 @@ import { localeCookieName, type Locale } from "@/i18n/config";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PropsWithChildren } from "react";
+import { useEffect, type PropsWithChildren } from "react";
 import { useI18n } from "@/i18n/provider";
 import { UserDropdownLogout } from "./user-dropdown-logout";
 import { UserDropdownStopImpersonating } from "./user-dropdown-stop-impersonating";
@@ -42,14 +42,41 @@ const setLocaleCookie = (locale: Locale) => {
   document.documentElement.lang = locale;
 };
 
-export const UserDropdown = ({ children }: PropsWithChildren) => {
-  const session = useSession();
+type UserDropdownProps = PropsWithChildren<{
+  /** User data passed from server component as fallback */
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    role?: string | null;
+  };
+}>;
+
+export const UserDropdown = ({
+  children,
+  user: userProp,
+}: UserDropdownProps) => {
+  const { data: sessionData, isPending, refetch } = useSession();
   const theme = useTheme();
   const router = useRouter();
   const { locale, t } = useI18n();
 
-  if (!session.data?.user) {
-    return null;
+  // Refetch session on mount if no session data but we have a user prop
+  // This handles the case where server has the session but client doesn't yet
+  useEffect(() => {
+    if (!sessionData?.user && userProp && !isPending) {
+      refetch();
+    }
+  }, [sessionData?.user, userProp, isPending, refetch]);
+
+  // Use session user, fallback to prop user for display
+  // This allows the dropdown to work immediately with server-provided user data
+  const user = sessionData?.user ?? userProp;
+  const isSessionReady = !!sessionData?.user;
+
+  // If no user at all (neither from session nor prop), just render children
+  if (!user) {
+    return <>{children}</>;
   }
 
   return (
@@ -57,15 +84,13 @@ export const UserDropdown = ({ children }: PropsWithChildren) => {
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
         <DropdownMenuLabel>
-          {session.data.user.name ? (
+          {user.name ? (
             <>
-              <Typography variant="small">
-                {session.data.user.name || session.data.user.email}
-              </Typography>
-              <Typography variant="muted">{session.data.user.email}</Typography>
+              <Typography variant="small">{user.name || user.email}</Typography>
+              <Typography variant="muted">{user.email}</Typography>
             </>
           ) : (
-            <Typography variant="small">{session.data.user.email}</Typography>
+            <Typography variant="small">{user.email}</Typography>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -87,7 +112,7 @@ export const UserDropdown = ({ children }: PropsWithChildren) => {
             {t("nav.backToSite")}
           </Link>
         </DropdownMenuItem>
-        {session.data.user.role === "admin" && (
+        {user.role === "admin" && (
           <DropdownMenuItem asChild>
             <Link href="/admin">
               <Shield className="mr-2 size-4" />
@@ -152,7 +177,7 @@ export const UserDropdown = ({ children }: PropsWithChildren) => {
 
         <DropdownMenuGroup>
           <UserDropdownLogout />
-          {session.data.session.impersonatedBy ? (
+          {sessionData?.session?.impersonatedBy ? (
             <UserDropdownStopImpersonating />
           ) : null}
         </DropdownMenuGroup>

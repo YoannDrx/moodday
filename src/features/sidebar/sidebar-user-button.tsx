@@ -5,6 +5,7 @@ import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { ChevronsUpDown } from "lucide-react";
+import { useEffect } from "react";
 import { UserDropdown } from "../auth/user-dropdown";
 
 type SidebarUserButtonProps = {
@@ -20,8 +21,16 @@ export const SidebarUserButton = ({
   user: userProp,
 }: SidebarUserButtonProps) => {
   // Use session as fallback when user prop is not provided
-  const session = useSession();
-  const sessionUser = session.data?.user;
+  const { data: sessionData, refetch } = useSession();
+  const sessionUser = sessionData?.user;
+
+  // Refetch session on mount to ensure client-side session is synchronized
+  // This fixes the issue where session isn't available after navigation from login
+  useEffect(() => {
+    if (!sessionUser && !userProp) {
+      refetch();
+    }
+  }, [sessionUser, userProp, refetch]);
 
   // Prefer prop user (server-side), fallback to session user (client-side)
   const user = userProp ?? sessionUser;
@@ -40,7 +49,7 @@ export const SidebarUserButton = ({
   }
 
   return (
-    <UserDropdown>
+    <UserDropdown user={user}>
       <SidebarMenuButton
         variant="outline"
         className="h-12 rounded-xl border-gray-200 bg-gray-50/50 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100/80"

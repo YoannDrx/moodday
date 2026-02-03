@@ -11,10 +11,15 @@ const useHref = () => {
   const isClient = useIsClient();
 
   if (!isClient) {
-    return "";
+    return "/dashboard";
   }
 
   const pathname = window.location.pathname;
+
+  // Redirect to dashboard after login if on landing page or other public pages
+  if (pathname === "/" || pathname.startsWith("/auth")) {
+    return "/dashboard";
+  }
 
   return pathname;
 };

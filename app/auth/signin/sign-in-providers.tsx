@@ -22,7 +22,10 @@ export const SignInProviders = ({
   const callbackUrlParams = searchParams.get("callbackUrl");
   const { t } = useI18n();
 
-  callbackUrl ??= callbackUrlParams as string;
+  // Default to /dashboard if no callback URL is provided or if it's the landing page
+  const rawCallbackUrl = callbackUrl ?? callbackUrlParams;
+  const finalCallbackUrl =
+    !rawCallbackUrl || rawCallbackUrl === "/" ? "/dashboard" : rawCallbackUrl;
 
   const activeProviders = SUPPORTED_PROVIDERS.filter((p) =>
     providers.includes(p),
@@ -31,7 +34,7 @@ export const SignInProviders = ({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
-      <SignInCredentialsAndMagicLinkForm callbackUrl={callbackUrl} />
+      <SignInCredentialsAndMagicLinkForm callbackUrl={finalCallbackUrl} />
       {providerCount > 0 && <Divider>{t("auth.signIn.or")}</Divider>}
 
       <div
@@ -46,7 +49,7 @@ export const SignInProviders = ({
           <ProviderButton
             key={providerId}
             providerId={providerId}
-            callbackUrl={callbackUrl}
+            callbackUrl={finalCallbackUrl}
           />
         ))}
       </div>
@@ -56,7 +59,7 @@ export const SignInProviders = ({
         <Typography
           variant="link"
           as={Link}
-          href={`/auth/signup?callbackUrl=${callbackUrl}`}
+          href={`/auth/signup?callbackUrl=${finalCallbackUrl}`}
         >
           {t("auth.signIn.signUp")}
         </Typography>
