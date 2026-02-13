@@ -38,8 +38,8 @@ jobs:
       NODE_ENV: "production"
       # Email
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      EMAIL_FROM: "NowTS <contact@nowts.app>"
-      NEXT_PUBLIC_EMAIL_CONTACT: "contact@nowts.app"
+      EMAIL_FROM: "Moodday <noreply@do-not-reply.app>"
+      NEXT_PUBLIC_EMAIL_CONTACT: "hello@moodday.app"
       # Stripe
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
