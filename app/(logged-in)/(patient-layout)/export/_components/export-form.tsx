@@ -36,6 +36,13 @@ type DatePreset = {
   days: number;
 };
 
+const addDaysToDateKey = (dateKey: string, days: number) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
+};
+
 const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -47,7 +54,13 @@ const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-export function ExportForm() {
+export function ExportForm({
+  initialStartDate,
+  initialEndDate,
+}: {
+  initialStartDate: string;
+  initialEndDate: string;
+}) {
   const { t, locale } = useI18n();
 
   const presets: DatePreset[] = [
@@ -56,14 +69,8 @@ export function ExportForm() {
     { label: t("export.presets.threeMonths"), days: 90 },
   ];
 
-  const today = new Date();
-  const defaultStart = new Date(today);
-  defaultStart.setDate(today.getDate() - 30);
-
-  const [startDate, setStartDate] = useState(
-    defaultStart.toISOString().split("T")[0],
-  );
-  const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
   const [showPreview, setShowPreview] = useState(false);
 
   const isValidRange = useMemo(() => {
@@ -71,11 +78,8 @@ export function ExportForm() {
   }, [startDate, endDate]);
 
   const applyPreset = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
+    setStartDate(addDaysToDateKey(initialEndDate, -days));
+    setEndDate(initialEndDate);
   };
 
   const { data: preview, isLoading: previewLoading } = useQuery({
@@ -184,7 +188,7 @@ export function ExportForm() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate}
-                max={today.toISOString().split("T")[0]}
+                max={initialEndDate}
               />
             </div>
           </div>
