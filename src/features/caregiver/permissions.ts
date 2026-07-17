@@ -28,8 +28,7 @@ export const hasActiveCaregiverPermission = (params: {
   const { relationship, caregiverId, patientId, permission } = params;
 
   return Boolean(
-    relationship &&
-      relationship.status === "active" &&
+    relationship?.status === "active" &&
       relationship.caregiverId === caregiverId &&
       relationship.patientId === patientId &&
       relationship.permissions.includes(permission),
@@ -46,7 +45,6 @@ export const canLeaveCaregiverRelationship = (params: {
   userId: string;
 }) =>
   Boolean(
-    params.relationship &&
-      (params.relationship.patientId === params.userId ||
-        params.relationship.caregiverId === params.userId),
+    params.relationship?.patientId === params.userId ||
+      params.relationship?.caregiverId === params.userId,
   );

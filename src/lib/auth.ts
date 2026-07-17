@@ -99,7 +99,7 @@ export const auth = betterAuth({
         to: user.email,
         subject: `Réinitialisez votre mot de passe ${SiteConfig.title} / Reset your password`,
         html: ResetPasswordEmail({
-          userName: user.name || "Utilisateur",
+          userName: user.name,
           resetUrl: url,
         }),
         tracking: {
@@ -112,12 +112,20 @@ export const auth = betterAuth({
   user: {
     changeEmail: {
       enabled: true,
-      sendChangeEmailVerification: async ({ newEmail, url, user }) => {
+      sendChangeEmailVerification: async ({
+        newEmail,
+        url,
+        user,
+      }: {
+        newEmail: string;
+        url: string;
+        user: { id: string; name?: string | null };
+      }) => {
         await sendEmail({
           to: newEmail,
           subject: `Confirmez votre nouvelle adresse email / Confirm your new email address`,
           html: EmailChangedEmail({
-            userName: user.name || "Utilisateur",
+            userName: user.name ?? "Utilisateur",
             verificationUrl: url,
           }),
           tracking: {

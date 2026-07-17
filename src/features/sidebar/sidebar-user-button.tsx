@@ -28,7 +28,7 @@ export const SidebarUserButton = ({
   // This fixes the issue where session isn't available after navigation from login
   useEffect(() => {
     if (!sessionUser && !userProp) {
-      refetch();
+      void refetch();
     }
   }, [sessionUser, userProp, refetch]);
 

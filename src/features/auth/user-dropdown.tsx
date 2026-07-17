@@ -65,7 +65,7 @@ export const UserDropdown = ({
   // This handles the case where server has the session but client doesn't yet
   useEffect(() => {
     if (!sessionData?.user && userProp && !isPending) {
-      refetch();
+      void refetch();
     }
   }, [sessionData?.user, userProp, isPending, refetch]);
 

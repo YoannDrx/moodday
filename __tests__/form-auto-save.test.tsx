@@ -130,7 +130,7 @@ describe("FormAutoSave", () => {
     );
   });
 
-  it("should save the form when pressing CMD+S", async () => {
+  it("should save the form when pressing the platform save shortcut", async () => {
     const handleSubmit = vi.fn();
     const { user } = setup(<AutoSaveTestForm onSubmit={handleSubmit} />);
 
@@ -141,8 +141,8 @@ describe("FormAutoSave", () => {
     // Focus the name input
     screen.getByTestId("name-input").focus();
 
-    // Press CMD+S (or CTRL+S for non-Mac)
-    await user.keyboard("{Meta>}s{/Meta}");
+    // JSDOM reports a non-macOS platform, so `mod+s` resolves to Ctrl+S.
+    await user.keyboard("{Control>}s{/Control}");
 
     // Verify form was submitted
     await waitFor(
