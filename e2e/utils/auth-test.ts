@@ -7,6 +7,25 @@ import { retry } from "./retry";
 export const getUserEmail = () =>
   `playwright-test-${faker.internet.email().toLowerCase()}`;
 
+const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
+  const expected = new URL(callbackURL, page.url());
+  const canonicalPath =
+    expected.pathname === "/app"
+      ? "/dashboard"
+      : expected.pathname === "/settings" &&
+          expected.searchParams.get("tab") === "profile"
+        ? "/settings/profile"
+        : null;
+
+  await page.waitForURL(
+    (url) =>
+      (url.pathname === expected.pathname && url.search === expected.search) ||
+      url.pathname === canonicalPath,
+    { timeout: 30000 },
+  );
+  await page.waitForLoadState("networkidle");
+};
+
 /**
  * Helper function to create a test account
  * @returns Object containing the test user's credentials
@@ -42,14 +61,7 @@ export async function createTestAccount(options: {
 
   // Wait for navigation to complete - we should be redirected to the callback URL
   if (options.callbackURL) {
-    await options.page.waitForLoadState("networkidle");
-    const escapedCallback = options.callbackURL.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&",
-    );
-    await options.page.waitForURL(new RegExp(escapedCallback), {
-      timeout: 30000,
-    });
+    await waitForCallbackUrl(options.page, options.callbackURL);
   }
 
   if (options.admin) {
@@ -105,9 +117,7 @@ export async function signInAccount(options: {
 
   // Wait for navigation to complete if a callback URL is provided
   if (callbackURL) {
-    const escapedCallback = callbackURL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    await page.waitForURL(new RegExp(escapedCallback), { timeout: 30000 });
-    await page.waitForLoadState("networkidle");
+    await waitForCallbackUrl(page, callbackURL);
   }
 
   return userData;

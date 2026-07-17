@@ -8,6 +8,7 @@ import { z } from "zod";
 // ===== Therapy Session Actions =====
 
 const createSessionSchema = z.object({
+  operationId: z.string().min(1).max(80).optional(),
   date: z.string().or(z.date()),
   notes: z.string().min(1, "Les notes sont requises"),
   benefitRating: z.number().min(1).max(5).optional(),
@@ -28,16 +29,31 @@ const getSessionsSchema = z.object({
 export const createTherapySession = authAction
   .inputSchema(createSessionSchema)
   .action(
-    async ({ parsedInput: { date, notes, benefitRating }, ctx: { user } }) => {
-      const session = await prisma.therapySession.create({
-        data: {
-          userId: user.id,
-          date: new Date(date),
-          notes,
-          benefitRating,
-          syncStatus: "synced",
-        },
-      });
+    async ({
+      parsedInput: { operationId, date, notes, benefitRating },
+      ctx: { user },
+    }) => {
+      const data = {
+        userId: user.id,
+        clientOperationId: operationId ?? null,
+        date: new Date(date),
+        notes,
+        benefitRating,
+        syncStatus: "synced",
+      };
+
+      const session = operationId
+        ? await prisma.therapySession.upsert({
+            where: {
+              userId_clientOperationId: {
+                userId: user.id,
+                clientOperationId: operationId,
+              },
+            },
+            create: data,
+            update: {},
+          })
+        : await prisma.therapySession.create({ data });
 
       return session;
     },

@@ -1,20 +1,23 @@
 # Moodday
 
-Moodday est une application web PWA de suivi psychiatrique destinée aux personnes vivant avec des troubles mentaux (TDAH, bipolarité, dépression, anxiété) .
+Moodday est un journal personnel PWA de santé mentale, confidentiel et non médical. Il aide à conserver ses propres repères d'humeur, de traitements et de bien-être sans établir de diagnostic ni formuler de recommandation thérapeutique.
 
 ## Quick Start
 
 ### 1. Install dependencies
+
 ```bash
 pnpm install
 ```
 
 ### 2. Configure environment
+
 ```bash
 pnpm setup
 ```
 
 ### 3. Start developing
+
 ```bash
 pnpm dev
 ```
@@ -28,7 +31,7 @@ pnpm dev
 - Therapy notes + exercises tracking
 - Caregiver circle (invites email, observations, events)
 - Insights (mood chart + patterns + dosage markers + correlations + IA optionnelle)
-- PDF export + RGPD JSON export
+- PDF personnel + exports CSV et JSON RGPD
 - User settings (notifications, display, theme light/dark/zen, timezone, avatar)
 - Onboarding wizard (mood + meds + preferences + caregiver invite)
 - PWA (manifest + offline page + offline queues + sync + push notifications serveur)
@@ -37,7 +40,7 @@ pnpm dev
 - i18n (EN/FR)
 - Tests (Vitest + Playwright)
 
-> Note: les rappels par medicament et la planification cron restent a finaliser.
+> Note : les journaux idempotents de notifications et d'accès aidant sont promus sur la branche Neon principale. La validation VAPID sur deux navigateurs nécessite encore une preview dont la base et les services tiers sont isolés de Production.
 
 ## Project Status (2026-01-23)
 
@@ -45,14 +48,14 @@ See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully func
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start development server |
-| `pnpm setup` | Configure cloud services |
-| `pnpm doctor` | Check project health |
-| `pnpm build` | Build for production |
-| `pnpm test:ci` | Run unit tests |
-| `pnpm test:e2e:ci` | Run E2E tests |
+| Command            | Description              |
+| ------------------ | ------------------------ |
+| `pnpm dev`         | Start development server |
+| `pnpm setup`       | Configure cloud services |
+| `pnpm doctor`      | Check project health     |
+| `pnpm build`       | Build for production     |
+| `pnpm test:ci`     | Run unit tests           |
+| `pnpm test:e2e:ci` | Run E2E tests            |
 
 ## Stack
 
@@ -66,7 +69,10 @@ See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully func
 
 ## Documentation
 
-See [CLAUDE.md](./CLAUDE.md) for detailed project documentation.
+- `docs/design-system.md` : identité et règles UI/UX.
+- `docs/data-lifecycle.md` : contenu des exports, fichiers et règles de purge.
+- `docs/migrations/` : historique et procédures de migration.
+- `PROJECT_STATUS.md` : audit fonctionnel détaillé.
 
 ## License
 

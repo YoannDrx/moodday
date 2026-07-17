@@ -73,12 +73,12 @@ export function NavbarDark() {
               <Link
                 href="/dashboard"
                 className="ml-2 hidden sm:inline-flex"
-                aria-label={user.name ?? user.email ?? t("nav.dashboard")}
+                aria-label={user.name || user.email || t("nav.dashboard")}
               >
                 <Avatar className="size-9 rounded-xl border border-white/40 shadow-sm">
-                  <AvatarImage src={user.image ?? ""} alt={user.name ?? ""} />
+                  <AvatarImage src={user.image ?? ""} alt={user.name} />
                   <AvatarFallback className="rounded-xl">
-                    {(user.name ?? user.email ?? "U")[0]}
+                    {user.name.charAt(0) || user.email.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Link>

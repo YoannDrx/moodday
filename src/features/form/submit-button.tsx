@@ -34,6 +34,7 @@ export const LoadingButton = ({
     >
       <motion.span
         className="flex items-center gap-1"
+        initial={{ opacity: 1, y: 0 }}
         animate={{
           opacity: loading ? 0 : 1,
           y: loading ? -10 : 0,

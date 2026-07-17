@@ -6,7 +6,10 @@ import {
   Check,
   ChevronRight,
   Circle,
+  CircleSlash,
+  Dumbbell,
   History,
+  Heart,
   Moon,
   MessageSquare,
   Pill,
@@ -15,6 +18,7 @@ import {
   Sparkles,
   TrendingUp,
   Users,
+  WifiOff,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -32,7 +36,10 @@ import { MoodSlider } from "@/components/nowts/mood-slider";
 import { StreakCard } from "@/components/nowts/streak-card";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { PageLayout } from "@/components/nowts/page-layout";
-import { saveMoodEntry } from "@/features/mood/mood.action";
+import {
+  deleteMoodEntry,
+  saveMoodEntry,
+} from "@/features/mood/mood.action";
 import {
   getDashboardSummary,
   getMoodChartData,
@@ -49,16 +56,43 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useI18n } from "@/i18n/provider";
+import { useOfflineStatus } from "@/hooks/use-offline-status";
+import { queueAction } from "@/features/pwa/offline-actions";
+import {
+  discardQueuedMoodEntry,
+  queueMoodEntry,
+} from "@/features/pwa/offline-queue";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import type { DoseSlotStatus } from "@/features/medication/schedule";
 
 type DashboardContentProps = {
   userName: string;
+};
+
+type DashboardDoseSlot = {
+  id: string;
+  doseIndex: number;
+  scheduledForDate: string;
+  scheduledTime: string | null;
+  labelKey: string;
+  status: DoseSlotStatus;
 };
 
 export function DashboardContent({ userName }: DashboardContentProps) {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [currentMood, setCurrentMood] = useState(7);
+  const [currentEnergy, setCurrentEnergy] = useState(5);
+  const [hasQueuedMood, setHasQueuedMood] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { isOnline, queuedCount } = useOfflineStatus();
+  const showSaveError = (error: unknown) =>
+    toast.error(
+      getOfflineStorageErrorMessage(error, {
+        quota: t("common.offlineStorageFull"),
+        fallback: t("common.error"),
+      }),
+    );
 
   // Fetch dashboard data
   const { data: summary } = useQuery({
@@ -122,36 +156,90 @@ export function DashboardContent({ userName }: DashboardContentProps) {
   });
 
   // Handle medication intake toggle
-  const handleMedIntake = async (medicationId: string, isTaken: boolean) => {
+  const handleMedIntake = async ({
+    medicationId,
+    doseIndex,
+    scheduledForDate,
+    isTaken,
+  }: {
+    medicationId: string;
+    doseIndex: number;
+    scheduledForDate: string;
+    isTaken: boolean;
+  }) => {
     try {
       if (isTaken) {
-        // Already taken, skip for now (could add undo functionality)
         return;
       }
-      const result = await logMedIntake({ medicationId });
+
+      const takenAt = new Date().toISOString();
+      if (!isOnline) {
+        await queueAction({
+          type: "med_intake",
+          medicationId,
+          doseIndex,
+          scheduledForDate,
+          takenAt,
+        });
+        toast.success(t("medication.intake.loggedOffline"));
+        return;
+      }
+
+      const result = await logMedIntake({
+        medicationId,
+        doseIndex,
+        scheduledForDate,
+        takenAt,
+      });
       if (result.serverError) {
         toast.error(result.serverError);
         return;
       }
       toast.success(t("medication.intake.logged"));
       void refetchMedications();
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      showSaveError(error);
     }
   };
 
   // Handle skip medication
-  const handleSkipMed = async (medicationId: string) => {
+  const handleSkipMed = async ({
+    medicationId,
+    doseIndex,
+    scheduledForDate,
+  }: {
+    medicationId: string;
+    doseIndex: number;
+    scheduledForDate: string;
+  }) => {
     try {
-      const result = await skipMedIntake({ medicationId });
+      const takenAt = new Date().toISOString();
+      if (!isOnline) {
+        await queueAction({
+          type: "med_skip",
+          medicationId,
+          doseIndex,
+          scheduledForDate,
+          takenAt,
+        });
+        toast.success(t("medication.intake.skippedOffline"));
+        return;
+      }
+
+      const result = await skipMedIntake({
+        medicationId,
+        doseIndex,
+        scheduledForDate,
+        takenAt,
+      });
       if (result.serverError) {
         toast.error(result.serverError);
         return;
       }
       toast.success(t("medication.intake.skipped"));
       void refetchMedications();
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      showSaveError(error);
     }
   };
 
@@ -170,41 +258,201 @@ export function DashboardContent({ userName }: DashboardContentProps) {
   const handleSaveMood = async () => {
     setIsSaving(true);
     try {
-      const result = await saveMoodEntry({ value: currentMood });
+      if (!isOnline) {
+        const queuedEntry = await queueMoodEntry({
+          value: currentMood,
+          energy: currentEnergy,
+        });
+        setHasQueuedMood(true);
+        toast.success(t("mood.entry.offlineSaved"), {
+          duration: 8_000,
+          action: {
+            label: t("mood.entry.undo"),
+            onClick: () => {
+              void discardQueuedMoodEntry(queuedEntry.id)
+                .then(() => {
+                  setHasQueuedMood(false);
+                  toast.success(t("mood.entry.undone"));
+                })
+                .catch(showSaveError);
+            },
+          },
+        });
+        return;
+      }
+
+      const result = await saveMoodEntry({
+        value: currentMood,
+        energy: currentEnergy,
+      });
       if (result.serverError) {
         toast.error(result.serverError);
         return;
       }
-      toast.success(t("mood.entry.saved"));
+      setHasQueuedMood(true);
+      const savedEntryId = result.data?.id;
+      toast.success(t("mood.entry.saved"), {
+        duration: 8_000,
+        action: savedEntryId
+          ? {
+              label: t("mood.entry.undo"),
+              onClick: () => {
+                void deleteMoodEntry({ id: savedEntryId })
+                  .then(async (undoResult) => {
+                    if (undoResult.serverError) {
+                      throw new Error(undoResult.serverError);
+                    }
+                    setHasQueuedMood(false);
+                    toast.success(t("mood.entry.undone"));
+                    await Promise.all([
+                      queryClient.invalidateQueries({
+                        queryKey: ["dashboard-summary"],
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: ["mood-chart"],
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: ["streak-data"],
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: ["pattern-insights"],
+                      }),
+                    ]);
+                  })
+                  .catch(showSaveError);
+              },
+            }
+          : undefined,
+      });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
         queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
         queryClient.invalidateQueries({ queryKey: ["streak-data"] }),
         queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
       ]);
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      showSaveError(error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Calculate taken count from real medications data
-  const takenCount =
-    medications?.filter((m) => m.intakes.length > 0 && !m.intakes[0].skipped)
-      .length ?? 0;
+  const medicationDoseSlots =
+    medications?.flatMap((medication) =>
+      (medication.doseSlots as DashboardDoseSlot[]).map((slot) => ({
+        medication,
+        slot,
+      })),
+    ) ?? [];
+  const takenCount = medicationDoseSlots.filter(
+    ({ slot }) => slot.status === "taken",
+  ).length;
+  const totalDoseCount = medicationDoseSlots.length;
+  const pendingMedicationCount = medicationDoseSlots.filter(
+    ({ slot }) => slot.status === "pending",
+  ).length;
+  const hasMoodToday = hasQueuedMood || (streakData?.hasEntryToday ?? false);
 
   return (
     <PageLayout
       title={t("dashboard.greeting", { name: userName.split(" ")[0] })}
       subtitle={t("dashboard.today", { date: today })}
       headerRight={
-        <button className="glass-card relative flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]">
+        <Link
+          href="/settings/notifications"
+          aria-label={t("settings.sidebar.notifications")}
+          className="glass-card flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]"
+        >
           <Bell className="size-6" />
-          <span className="absolute top-3 right-3 size-2 rounded-full bg-[var(--destructive)] ring-2 ring-white" />
-        </button>
+        </Link>
       }
     >
+      {(!isOnline || queuedCount > 0) && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+          <WifiOff className="size-5 shrink-0" />
+          <span>
+            {!isOnline
+              ? t("common.offlineMode")
+              : t("common.pendingSync", { count: queuedCount })}
+            {!isOnline && queuedCount > 0
+              ? ` ${t("common.pendingSync", { count: queuedCount })}`
+              : null}
+          </span>
+        </div>
+      )}
+
+      <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Link
+          href="/mood"
+          className="rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
+            <Heart className="size-5" />
+          </div>
+          <p className="text-sm font-bold text-gray-800">
+            {t("patient.nav.mood")}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {hasMoodToday
+              ? t("dashboard.todayFocus.moodDone")
+              : t("dashboard.todayFocus.moodOpen")}
+          </p>
+        </Link>
+
+        <Link
+          href="/medications/today"
+          className="rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[var(--sage)]/10 text-[var(--sage)]">
+            <Pill className="size-5" />
+          </div>
+          <p className="text-sm font-bold text-gray-800">
+            {t("patient.nav.medications")}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {pendingMedicationCount === 0
+              ? t("dashboard.todayFocus.medsDone")
+              : t("dashboard.todayFocus.medsRemaining", {
+                  count: pendingMedicationCount,
+                })}
+          </p>
+        </Link>
+
+        <Link
+          href="/exercises"
+          className="rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[var(--lavender)]/20 text-[var(--lavender-dark)]">
+            <Dumbbell className="size-5" />
+          </div>
+          <p className="text-sm font-bold text-gray-800">
+            {t("patient.nav.exercises")}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {t("dashboard.todayFocus.exercisesCount", {
+              count: summary?.exercises.completionsThisWeek ?? 0,
+            })}
+          </p>
+        </Link>
+
+        <Link
+          href="/therapy"
+          className="rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+        >
+          <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
+            <MessageSquare className="size-5" />
+          </div>
+          <p className="text-sm font-bold text-gray-800">
+            {t("patient.nav.therapy")}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {t("dashboard.todayFocus.therapyCount", {
+              count: summary?.therapy.sessionsThisMonth ?? 0,
+            })}
+          </p>
+        </Link>
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-12">
         {/* Left Column: Core Tracking */}
         <div className="space-y-8 lg:col-span-8">
@@ -231,6 +479,37 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
               <div className="my-8">
                 <MoodSlider value={currentMood} onChange={setCurrentMood} />
+
+                <div className="mt-8 rounded-2xl border border-gray-100 bg-white/70 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <label
+                      htmlFor="quick-check-in-energy"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      {t("dashboard.quickMood.energyLabel")}
+                    </label>
+                    <output
+                      htmlFor="quick-check-in-energy"
+                      className="min-w-12 rounded-full bg-[var(--sage)]/10 px-3 py-1 text-center text-sm font-bold text-[var(--sage)] tabular-nums"
+                    >
+                      {t("dashboard.quickMood.energyValue", {
+                        value: currentEnergy,
+                      })}
+                    </output>
+                  </div>
+                  <input
+                    id="quick-check-in-energy"
+                    type="range"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={currentEnergy}
+                    onChange={(event) =>
+                      setCurrentEnergy(Number(event.currentTarget.value))
+                    }
+                    className="h-11 w-full cursor-pointer accent-[var(--sage)]"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -245,6 +524,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                 </Button>
                 <Link
                   href="/mood"
+                  aria-label={t("dashboard.quickMood.addDetails")}
                   className="glass-card flex items-center justify-center rounded-2xl px-6 font-bold text-[var(--primary)] transition-all hover:bg-white"
                 >
                   <Plus className="size-6" />
@@ -264,7 +544,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   {t("dashboard.medications.title")}
                 </GlassCardTitle>
                 <GlassCardBadge>
-                  {takenCount}/{medications?.length ?? 0}
+                  {takenCount}/{totalDoseCount}
                 </GlassCardBadge>
               </GlassCardHeader>
 
@@ -275,80 +555,97 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                     <Skeleton className="h-16 w-full rounded-2xl" />
                     <Skeleton className="h-16 w-full rounded-2xl" />
                   </div>
-                ) : medications && medications.length > 0 ? (
-                  medications.slice(0, 3).map((med) => {
-                    const isTaken =
-                      med.intakes.length > 0 && !med.intakes[0].skipped;
-                    const isSkipped =
-                      med.intakes.length > 0 && med.intakes[0].skipped;
-                    return (
-                      <div
-                        key={med.id}
-                        className={cn(
-                          "flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all",
-                          isTaken
-                            ? "border-[var(--sage)]/20 bg-[var(--sage)]/10"
-                            : isSkipped
-                              ? "border-orange-200 bg-orange-50"
-                              : "border-gray-100 bg-white hover:border-[var(--primary)]/30",
-                        )}
-                        onClick={() => void handleMedIntake(med.id, isTaken)}
-                      >
+                ) : medicationDoseSlots.length > 0 ? (
+                  medicationDoseSlots
+                    .slice(0, 3)
+                    .map(({ medication, slot }) => {
+                      const isTaken = slot.status === "taken";
+                      const isSkipped = slot.status === "skipped";
+                      return (
                         <div
+                          key={slot.id}
                           className={cn(
-                            "flex size-10 items-center justify-center rounded-xl transition-all",
+                            "flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all",
                             isTaken
-                              ? "bg-[var(--sage)] text-white"
+                              ? "border-[var(--sage)]/20 bg-[var(--sage)]/10"
                               : isSkipped
-                                ? "bg-orange-400 text-white"
-                                : "bg-gray-50 text-gray-300 group-hover:text-[var(--primary)]",
+                                ? "border-orange-200 bg-orange-50"
+                                : "border-gray-100 bg-white hover:border-[var(--primary)]/30",
                           )}
+                          onClick={() =>
+                            void handleMedIntake({
+                              medicationId: medication.id,
+                              doseIndex: slot.doseIndex,
+                              scheduledForDate: slot.scheduledForDate,
+                              isTaken: isTaken || isSkipped,
+                            })
+                          }
                         >
-                          {isTaken ? (
-                            <Check className="size-6" />
-                          ) : (
-                            <Circle className="size-6" />
-                          )}
-                        </div>
-                        <div className="flex-grow">
-                          <p
+                          <div
                             className={cn(
-                              "text-sm font-bold",
+                              "flex size-10 items-center justify-center rounded-xl transition-all",
                               isTaken
-                                ? "text-[var(--sage-dark)]"
-                                : "text-gray-700",
+                                ? "bg-[var(--sage)] text-white"
+                                : isSkipped
+                                  ? "bg-orange-400 text-white"
+                                  : "bg-gray-50 text-gray-300 group-hover:text-[var(--primary)]",
                             )}
                           >
-                            {med.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {med.dosage} •{" "}
-                            {med.frequency === "daily"
-                              ? t("medication.frequencyShort.daily")
-                              : med.frequency === "twice_daily"
-                                ? t("medication.frequencyShort.twiceDaily")
-                                : med.frequency === "weekly"
-                                  ? t("medication.frequencyShort.weekly")
-                                  : med.frequency === "prn"
-                                    ? t("medication.frequencyShort.prn")
-                                    : med.frequency}
-                          </p>
+                            {isTaken ? (
+                              <Check className="size-6" />
+                            ) : isSkipped ? (
+                              <CircleSlash className="size-6" />
+                            ) : (
+                              <Circle className="size-6" />
+                            )}
+                          </div>
+                          <div className="flex-grow">
+                            <p
+                              className={cn(
+                                "text-sm font-bold",
+                                isTaken
+                                  ? "text-[var(--sage-dark)]"
+                                  : "text-gray-700",
+                              )}
+                            >
+                              {medication.name}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {medication.dosage} • {t(slot.labelKey)}
+                              {slot.scheduledTime
+                                ? ` ${slot.scheduledTime}`
+                                : ""}{" "}
+                              •{" "}
+                              {medication.frequency === "daily"
+                                ? t("medication.frequencyShort.daily")
+                                : medication.frequency === "twice_daily"
+                                  ? t("medication.frequencyShort.twiceDaily")
+                                  : medication.frequency === "weekly"
+                                    ? t("medication.frequencyShort.weekly")
+                                    : medication.frequency === "prn"
+                                      ? t("medication.frequencyShort.prn")
+                                      : medication.frequency}
+                            </p>
+                          </div>
+                          {!isTaken && !isSkipped && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleSkipMed({
+                                  medicationId: medication.id,
+                                  doseIndex: slot.doseIndex,
+                                  scheduledForDate: slot.scheduledForDate,
+                                });
+                              }}
+                              className="rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              {t("medication.intake.skipDose")}
+                            </button>
+                          )}
+                          <ChevronRight className="size-4 text-gray-300" />
                         </div>
-                        {!isTaken && !isSkipped && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleSkipMed(med.id);
-                            }}
-                            className="rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          >
-                            {t("medication.intake.skip")}
-                          </button>
-                        )}
-                        <ChevronRight className="size-4 text-gray-300" />
-                      </div>
-                    );
-                  })
+                      );
+                    })
                 ) : (
                   <div className="py-4 text-center text-sm text-gray-400">
                     {t("dashboard.medications.empty")}{" "}
@@ -530,21 +827,14 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   </div>
                 ))
               ) : (
-                <>
-                  <div className="rounded-2xl border border-[var(--lavender)]/20 bg-[var(--lavender)]/10 p-4">
-                    <p className="text-sm leading-relaxed text-gray-700">
-                      <span className="font-bold text-[var(--lavender-dark)]">
-                        {t("dashboard.insights.detectedLabel")}
-                      </span>{" "}
-                      {t("dashboard.insights.sampleOne")}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-[var(--sage)]/10 bg-[var(--sage)]/5 p-4">
-                    <p className="text-sm leading-relaxed text-gray-700">
-                      {t("dashboard.insights.sampleTwo")}
-                    </p>
-                  </div>
-                </>
+                <div className="rounded-2xl border border-gray-100 bg-white/70 p-4">
+                  <p className="font-semibold text-gray-800">
+                    {t("dashboard.insights.emptyTitle")}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                    {t("dashboard.insights.emptyDescription")}
+                  </p>
+                </div>
               )}
             </GlassCardContent>
 
@@ -612,9 +902,13 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                           {statusLabel}
                         </p>
                       </div>
-                      <button className="flex size-8 items-center justify-center rounded-lg bg-gray-50 text-gray-400 transition-all hover:text-[var(--primary)]">
+                      <Link
+                        href="/caregiver"
+                        aria-label={t("dashboard.caregivers.open")}
+                        className="flex size-8 items-center justify-center rounded-lg bg-gray-50 text-gray-400 transition-all hover:text-[var(--primary)]"
+                      >
                         <MessageSquare className="size-4" />
-                      </button>
+                      </Link>
                     </div>
                   );
                 })

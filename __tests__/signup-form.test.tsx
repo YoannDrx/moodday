@@ -55,7 +55,7 @@ describe("SignUpCredentialsForm", () => {
     // Should show error message
     await waitFor(() => {
       expect(
-        screen.getByText(/Les mots de passe ne correspondent pas/i),
+        screen.getByText(/Password does not match/i),
       ).toBeInTheDocument();
     });
 

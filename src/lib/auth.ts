@@ -16,6 +16,7 @@ import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { getServerUrl } from "./server-url";
 import { getStripe } from "./stripe";
+import { deleteUserDataOutsideAuthCascade } from "./user/delete-user-data";
 
 type SocialProvidersType = Parameters<typeof betterAuth>[0]["socialProviders"];
 
@@ -52,25 +53,37 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user, _req) => {
-          await setupResendCustomer(user);
+          try {
+            await setupResendCustomer(user);
+          } catch (err) {
+            logger.error("Failed to create Resend contact", {
+              err,
+              userId: user.id,
+            });
+          }
 
           // Create Stripe customer for the user
-          try {
-            const stripeCustomer = await getStripe().customers.create({
-              email: user.email,
-              name: user.name,
-              metadata: {
-                userId: user.id,
-              },
-            });
+          if (env.STRIPE_SECRET_KEY) {
+            try {
+              const stripeCustomer = await getStripe().customers.create({
+                email: user.email,
+                name: user.name,
+                metadata: {
+                  userId: user.id,
+                },
+              });
 
-            // Update user with Stripe customer ID
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { stripeCustomerId: stripeCustomer.id },
-            });
-          } catch (err) {
-            logger.error("Failed to create Stripe customer", { err });
+              // Update user with Stripe customer ID
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { stripeCustomerId: stripeCustomer.id },
+              });
+            } catch (err) {
+              logger.error("Failed to create Stripe customer", {
+                err,
+                userId: user.id,
+              });
+            }
           }
         },
       },
@@ -86,7 +99,7 @@ export const auth = betterAuth({
         to: user.email,
         subject: `Réinitialisez votre mot de passe ${SiteConfig.title} / Reset your password`,
         html: ResetPasswordEmail({
-          userName: user.name || "Utilisateur",
+          userName: user.name,
           resetUrl: url,
         }),
         tracking: {
@@ -99,12 +112,20 @@ export const auth = betterAuth({
   user: {
     changeEmail: {
       enabled: true,
-      sendChangeEmailVerification: async ({ newEmail, url, user }) => {
+      sendChangeEmailVerification: async ({
+        newEmail,
+        url,
+        user,
+      }: {
+        newEmail: string;
+        url: string;
+        user: { id: string; name?: string | null };
+      }) => {
         await sendEmail({
           to: newEmail,
           subject: `Confirmez votre nouvelle adresse email / Confirm your new email address`,
           html: EmailChangedEmail({
-            userName: user.name || "Utilisateur",
+            userName: user.name ?? "Utilisateur",
             verificationUrl: url,
           }),
           tracking: {
@@ -117,6 +138,9 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
+      beforeDelete: async (user) => {
+        await deleteUserDataOutsideAuthCascade(user);
+      },
       sendDeleteAccountVerification: async ({ user, token }) => {
         const url = `${getServerUrl()}/auth/confirm-delete?token=${token}&callbackUrl=/auth/goodbye`;
         await sendEmail({

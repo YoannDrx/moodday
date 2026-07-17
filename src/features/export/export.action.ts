@@ -1,32 +1,53 @@
 "use server";
 
 import { authAction } from "@/lib/actions/safe-actions";
+import {
+  calculateAdherencePercent,
+  getInclusiveDayCount,
+} from "@/features/medication/adherence";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getExportDateRange } from "./date-range";
+import type { ConsultationExportData } from "./export-types";
 
-const getExportDataSchema = z.object({
-  startDate: z.string(), // ISO date string
-  endDate: z.string(), // ISO date string
-});
+const dateKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.toISOString().slice(0, 10) === value;
+  });
+const getExportDataSchema = z
+  .object({
+    startDate: dateKeySchema,
+    endDate: dateKeySchema,
+  })
+  .refine(({ startDate, endDate }) => startDate <= endDate);
 
 export const getExportData = authAction
   .inputSchema(getExportDataSchema)
   .action(async ({ parsedInput: { startDate, endDate }, ctx: { user } }) => {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    });
+    const { start, endExclusive, timezone } = getExportDateRange({
+      startDate,
+      endDate,
+      timezone: preferences?.timezone,
+    });
 
     // Get mood entries
     const moodEntries = await prisma.moodEntry.findMany({
       where: {
         userId: user.id,
-        createdAt: { gte: start, lte: end },
+        createdAt: { gte: start, lt: endExclusive },
       },
       orderBy: { createdAt: "asc" },
       select: {
         value: true,
+        energy: true,
         note: true,
         createdAt: true,
       },
@@ -40,13 +61,13 @@ export const getExportData = authAction
       include: {
         intakes: {
           where: {
-            takenAt: { gte: start, lte: end },
+            takenAt: { gte: start, lt: endExclusive },
           },
           orderBy: { takenAt: "asc" },
         },
         history: {
           where: {
-            changedAt: { gte: start, lte: end },
+            changedAt: { gte: start, lt: endExclusive },
           },
           orderBy: { changedAt: "asc" },
         },
@@ -57,7 +78,7 @@ export const getExportData = authAction
     const therapySessions = await prisma.therapySession.findMany({
       where: {
         userId: user.id,
-        date: { gte: start, lte: end },
+        date: { gte: start, lt: endExclusive },
       },
       orderBy: { date: "asc" },
       select: {
@@ -71,7 +92,7 @@ export const getExportData = authAction
     const exerciseLogs = await prisma.exerciseLog.findMany({
       where: {
         exercise: { userId: user.id },
-        completedAt: { gte: start, lte: end },
+        completedAt: { gte: start, lt: endExclusive },
       },
       include: {
         exercise: {
@@ -101,30 +122,36 @@ export const getExportData = authAction
     const regularMeds = medications.filter(
       (m) => !m.isArchived && m.frequency !== "prn",
     );
-    const totalExpectedDoses =
-      regularMeds.length *
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const totalTakenDoses = regularMeds.reduce(
-      (sum, m) => sum + m.intakes.filter((i) => !i.skipped).length,
-      0,
+    const dayCount = getInclusiveDayCount(
+      new Date(`${startDate}T00:00:00.000Z`),
+      new Date(`${endDate}T00:00:00.000Z`),
     );
-    const adherencePercent =
-      totalExpectedDoses > 0
-        ? Math.min(
-            100,
-            Math.round((totalTakenDoses / totalExpectedDoses) * 100),
-          )
-        : null;
+    const adherencePercent = calculateAdherencePercent(
+      regularMeds.map((medication) => ({
+        frequency: medication.frequency,
+        intakes: medication.intakes.filter((intake) => !intake.skipped),
+      })),
+      dayCount,
+    );
 
     return {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        timezone,
+        source: "Moodday",
+        formatVersion: "2.0",
+      },
       period: {
+        startDate,
+        endDate,
         start: start.toISOString(),
-        end: end.toISOString(),
+        endExclusive: endExclusive.toISOString(),
       },
       userName: user.name || "Patient",
       mood: {
         entries: moodEntries.map((e) => ({
           value: e.value,
+          energy: e.energy,
           note: e.note,
           date: e.createdAt.toISOString(),
         })),
@@ -144,6 +171,12 @@ export const getExportData = authAction
             frequency: m.frequency,
             isPRN: m.isPRN,
             intakesCount: m.intakes.filter((i) => !i.skipped).length,
+            intakes: m.intakes.map((intake) => ({
+              date: intake.takenAt.toISOString(),
+              scheduledForDate: intake.scheduledForDate,
+              skipped: intake.skipped,
+              note: intake.note,
+            })),
             dosageChanges: m.history.map((h) => ({
               date: h.changedAt.toISOString(),
               from: h.previousDosage,
@@ -164,47 +197,60 @@ export const getExportData = authAction
         logs: exerciseLogs.map((l) => ({
           name: l.exercise.name,
           date: l.completedAt.toISOString(),
+          note: l.note,
         })),
         count: exerciseLogs.length,
       },
-    };
+    } satisfies ConsultationExportData;
   });
 
 // Get count preview for date range
 export const getExportPreview = authAction
   .inputSchema(getExportDataSchema)
   .action(async ({ parsedInput: { startDate, endDate }, ctx: { user } }) => {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    });
+    const { start, endExclusive } = getExportDateRange({
+      startDate,
+      endDate,
+      timezone: preferences?.timezone,
+    });
 
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-
-    const [moodCount, therapyCount, exerciseCount] = await Promise.all([
-      prisma.moodEntry.count({
-        where: {
-          userId: user.id,
-          createdAt: { gte: start, lte: end },
-        },
-      }),
-      prisma.therapySession.count({
-        where: {
-          userId: user.id,
-          date: { gte: start, lte: end },
-        },
-      }),
-      prisma.exerciseLog.count({
-        where: {
-          exercise: { userId: user.id },
-          completedAt: { gte: start, lte: end },
-        },
-      }),
-    ]);
+    const [moodCount, medicationIntakeCount, therapyCount, exerciseCount] =
+      await Promise.all([
+        prisma.moodEntry.count({
+          where: {
+            userId: user.id,
+            createdAt: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.medIntake.count({
+          where: {
+            medication: { userId: user.id },
+            takenAt: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.therapySession.count({
+          where: {
+            userId: user.id,
+            date: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.exerciseLog.count({
+          where: {
+            exercise: { userId: user.id },
+            completedAt: { gte: start, lt: endExclusive },
+          },
+        }),
+      ]);
 
     return {
       moodEntries: moodCount,
+      medicationIntakes: medicationIntakeCount,
       therapySessions: therapyCount,
       exerciseLogs: exerciseCount,
-      total: moodCount + therapyCount + exerciseCount,
+      total: moodCount + medicationIntakeCount + therapyCount + exerciseCount,
     };
   });

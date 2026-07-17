@@ -1,6 +1,5 @@
 import { createSafeActionClient } from "next-safe-action";
-import { getRequiredUser } from "../auth/auth-user";
-import { ActionError } from "../errors/action-error";
+import { getRequiredAdmin, getRequiredUser } from "../auth/auth-user";
 import { ApplicationError } from "../errors/application-error";
 import { logger } from "../logger";
 
@@ -74,7 +73,7 @@ export const authAction = createSafeActionClient({
  * Admin-only safe action client
  *
  * @description
- * - Validates user session and admin role using getRequiredUser()
+ * - Validates user session and admin role using getRequiredAdmin()
  * - Throws ActionError if user is not authenticated or not an admin
  * - Provides authenticated admin user in context as ctx.user
  * - Ensures all actions require admin privileges
@@ -84,11 +83,7 @@ export const authAction = createSafeActionClient({
 export const adminAction = createSafeActionClient({
   handleServerError,
 }).use(async ({ next }) => {
-  const user = await getRequiredUser();
-
-  if (user.role !== "admin") {
-    throw new ActionError("You must be an admin to perform this action.");
-  }
+  const user = await getRequiredAdmin();
 
   return next({
     ctx: {

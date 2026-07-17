@@ -24,6 +24,7 @@ import { BenefitRating } from "@/components/nowts/benefit-rating";
 import { createTherapySession } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 
 const getFormSchema = (t: (key: string) => string) =>
   z.object({
@@ -70,16 +71,25 @@ export function AddTherapySessionForm() {
     },
   });
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      queueAction({
-        type: "therapy_create",
-        date: values.date.toISOString(),
-        notes: values.notes,
-        benefitRating: rating,
-      });
-      toast.success(t("therapy.add.offlineSaved"));
-      router.push("/therapy");
+      try {
+        await queueAction({
+          type: "therapy_create",
+          date: values.date.toISOString(),
+          notes: values.notes,
+          benefitRating: rating,
+        });
+        toast.success(t("therapy.add.offlineSaved"));
+        router.push("/therapy");
+      } catch (error) {
+        toast.error(
+          getOfflineStorageErrorMessage(error, {
+            quota: t("common.offlineStorageFull"),
+            fallback: t("common.error"),
+          }),
+        );
+      }
       return;
     }
 

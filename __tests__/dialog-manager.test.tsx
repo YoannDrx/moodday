@@ -230,9 +230,12 @@ describe("Dialog Manager Store", () => {
 
       // Check if toast.error was called with the error message
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Action failed", {
-          description: errorMessage,
-        });
+        expect(toast.error).toHaveBeenCalledWith(
+          "Échec de l'action. Veuillez réessayer.",
+          {
+            description: errorMessage,
+          },
+        );
       });
 
       // Dialog should still be active (not removed on error)

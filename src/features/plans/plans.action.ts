@@ -8,13 +8,23 @@ import { getServerUrl } from "@/lib/server-url";
 import { getStripe } from "@/lib/stripe";
 import { z } from "zod";
 
+const internalPathSchema = z
+  .string()
+  .startsWith("/")
+  .refine((value) => !value.startsWith("//"), "Invalid internal path");
+
+const getCheckoutSuccessUrl = (path: string) => {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${getServerUrl()}${path}${separator}session_id={CHECKOUT_SESSION_ID}`;
+};
+
 export const upgradeUserAction = authAction
   .inputSchema(
     z.object({
       plan: z.string(),
       annual: z.boolean().default(false),
-      successUrl: z.string(),
-      cancelUrl: z.string(),
+      successUrl: internalPathSchema,
+      cancelUrl: internalPathSchema,
     }),
   )
   .action(
@@ -69,7 +79,6 @@ export const upgradeUserAction = authAction
       // Create checkout session
       const session = await getStripe().checkout.sessions.create({
         customer: customerId,
-        payment_method_types: ["card"],
         line_items: [
           {
             price: priceId,
@@ -77,7 +86,7 @@ export const upgradeUserAction = authAction
           },
         ],
         mode: "subscription",
-        success_url: `${getServerUrl()}${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: getCheckoutSuccessUrl(successUrl),
         cancel_url: `${getServerUrl()}${cancelUrl}`,
         metadata: {
           userId: user.id,

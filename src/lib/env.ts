@@ -15,7 +15,10 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     RESEND_AUDIENCE_ID: z.string().optional(),
-    EMAIL_FROM: z.string().optional().default("NowTS <noreply@example.com>"),
+    EMAIL_FROM: z
+      .string()
+      .optional()
+      .default("Moodday <contact@do-not-reply.app>"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
@@ -37,7 +40,7 @@ export const env = createEnv({
     NEXT_PUBLIC_EMAIL_CONTACT: z
       .string()
       .optional()
-      .default("contact@example.com"),
+      .default("hello@moodday.app"),
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:

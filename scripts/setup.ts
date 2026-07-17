@@ -76,15 +76,6 @@ function isLoggedIn(cmd: string): boolean {
       case "upstash":
         execSync("upstash team list", { stdio: "ignore" });
         return true;
-      case "mgrep": {
-        // mgrep n'a pas de commande pour vérifier le login, on vérifie si le fichier token existe
-        const mgrepTokenPath = path.join(
-          process.env.HOME ?? "",
-          ".mgrep",
-          "token.json",
-        );
-        return fs.existsSync(mgrepTokenPath);
-      }
       default:
         return false;
     }
@@ -119,12 +110,6 @@ async function checkCLIs(): Promise<void> {
       pkg: "@upstash/cli",
     },
     { name: "stripe", label: "Stripe CLI", required: false, pkg: "stripe" },
-    {
-      name: "mgrep",
-      label: "mgrep CLI",
-      required: true,
-      pkg: "@mixedbread/mgrep",
-    },
     { name: "pnpm", label: "pnpm", required: true, pkg: "pnpm" },
   ];
 
@@ -146,46 +131,8 @@ async function checkCLIs(): Promise<void> {
   }
 }
 
-async function setupMgrep(): Promise<void> {
-  log.step(2, "Configuration mgrep (recherche de code IA)...");
-
-  const storeName = path.basename(process.cwd());
-  log.info(`Nom du store: "${storeName}" (basé sur le dossier)`);
-
-  if (!isLoggedIn("mgrep")) {
-    log.warn("mgrep n'est pas connecté");
-    log.info("Lance: mgrep login");
-    const login = await question("Veux-tu te connecter maintenant ? (o/n) ");
-    if (login.toLowerCase() === "o") {
-      runCommand("mgrep login");
-    } else {
-      log.error("mgrep doit être connecté pour continuer");
-      process.exit(1);
-    }
-  }
-
-  log.info("Synchronisation initiale du codebase...");
-  log.info("(Cela peut prendre quelques secondes)");
-
-  try {
-    // Lance mgrep sync pour upload initial (pas watch qui est bloquant)
-    execSync(`mgrep sync --store "${storeName}"`, {
-      stdio: "inherit",
-      timeout: 120000, // 2 minutes max
-    });
-    log.success(`Store "${storeName}" créé et synchronisé`);
-    log.info(
-      "Lance 'pnpm mgrep' dans un terminal séparé pour le watch continu",
-    );
-  } catch {
-    log.warn(
-      "Synchronisation initiale échouée, tu peux la relancer avec: pnpm mgrep",
-    );
-  }
-}
-
 async function setupVercel(): Promise<Record<string, string>> {
-  log.step(3, "Configuration Vercel...");
+  log.step(2, "Configuration Vercel...");
 
   const envVars: Record<string, string> = {};
 
@@ -211,7 +158,7 @@ async function setupVercel(): Promise<Record<string, string>> {
 }
 
 async function setupNeonDB(): Promise<Record<string, string>> {
-  log.step(4, "Configuration NeonDB...");
+  log.step(3, "Configuration NeonDB...");
 
   const envVars: Record<string, string> = {};
 
@@ -258,7 +205,7 @@ async function setupNeonDB(): Promise<Record<string, string>> {
 }
 
 async function setupUpstash(): Promise<Record<string, string>> {
-  log.step(5, "Configuration Upstash Redis...");
+  log.step(4, "Configuration Upstash Redis...");
 
   const envVars: Record<string, string> = {};
 
@@ -311,7 +258,7 @@ async function setupUpstash(): Promise<Record<string, string>> {
 }
 
 async function setupStripe(): Promise<Record<string, string>> {
-  log.step(6, "Configuration Stripe (optionnel)...");
+  log.step(5, "Configuration Stripe (optionnel)...");
 
   const envVars: Record<string, string> = {};
 
@@ -339,7 +286,7 @@ async function setupStripe(): Promise<Record<string, string>> {
 }
 
 async function generateEnvFile(envVars: Record<string, string>): Promise<void> {
-  log.step(7, "Génération du fichier .env.local...");
+  log.step(6, "Génération du fichier .env.local...");
 
   const envPath = path.join(process.cwd(), ".env.local");
   const templatePath = path.join(process.cwd(), ".env-template");
@@ -389,7 +336,7 @@ async function generateEnvFile(envVars: Record<string, string>): Promise<void> {
 }
 
 async function setupDatabase(): Promise<void> {
-  log.step(8, "Initialisation de la base de données...");
+  log.step(7, "Initialisation de la base de données...");
 
   const migrate = await question(
     "Veux-tu exécuter les migrations Prisma ? (o/n) ",
@@ -412,7 +359,7 @@ async function setupDatabase(): Promise<void> {
 }
 
 async function setupBMAD(): Promise<void> {
-  log.step(9, "Configuration BMAD-METHOD (optionnel)...");
+  log.step(8, "Configuration BMAD-METHOD (optionnel)...");
 
   log.info("BMAD = Breakthrough Method for Agile AI Driven Development");
   log.info("Framework d'agents IA spécialisés pour le développement agile");
@@ -458,7 +405,6 @@ async function main(): Promise<void> {
 
   try {
     await checkCLIs();
-    await setupMgrep();
 
     const vercelEnv = await setupVercel();
     const neonEnv = await setupNeonDB();
@@ -487,8 +433,7 @@ async function main(): Promise<void> {
     console.log(
       "  1. Vérifie ton .env.local et complète les valeurs manquantes",
     );
-    console.log("  2. Lance: pnpm mgrep (dans un terminal séparé)");
-    console.log("  3. Lance: pnpm dev");
+    console.log("  2. Lance: pnpm dev");
     console.log("\n");
   } catch (error) {
     log.error(`Erreur inattendue: ${error}`);

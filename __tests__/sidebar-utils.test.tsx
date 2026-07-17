@@ -171,6 +171,6 @@ describe("SidebarNavigationMenu", () => {
     expect(screen.getByText("Settings")).toBeInTheDocument();
 
     // Check that child link is rendered
-    expect(screen.getByText("Account Settings")).toBeInTheDocument();
+    expect(screen.getByText("Profile Settings")).toBeInTheDocument();
   });
 });

@@ -9,9 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Feather,
-  Image,
   Info,
-  Mic,
   Minus,
   Moon,
   Pill,
@@ -27,7 +25,6 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -43,6 +40,7 @@ import {
   logMedIntake,
 } from "@/features/medication/medication.action";
 import { queueMoodEntry } from "@/features/pwa/offline-queue";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 import { getAiJournalInsight } from "@/features/insights/ai-insight.action";
 import { useI18n } from "@/i18n/provider";
 
@@ -228,7 +226,7 @@ export function JournalWizard() {
       };
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        queueMoodEntry(payload);
+        await queueMoodEntry(payload);
         toast.success(t("mood.entry.offlineSaved"));
         router.push("/dashboard");
         return;
@@ -243,8 +241,13 @@ export function JournalWizard() {
 
       toast.success(t("mood.journal.saved"));
       router.push("/dashboard");
-    } catch {
-      toast.error(t("mood.journal.saveError"));
+    } catch (error) {
+      toast.error(
+        getOfflineStorageErrorMessage(error, {
+          quota: t("common.offlineStorageFull"),
+          fallback: t("mood.journal.saveError"),
+        }),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -756,15 +759,7 @@ export function JournalWizard() {
                       className="h-40 w-full resize-none border-none bg-gray-50 p-4 text-gray-700 outline-none placeholder:text-gray-400"
                       maxLength={500}
                     />
-                    <div className="flex items-center justify-between border-t border-gray-100 bg-white px-4 py-2">
-                      <div className="flex gap-1">
-                        <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100">
-                          <Image className="size-4" />
-                        </button>
-                        <button className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100">
-                          <Mic className="size-4" />
-                        </button>
-                      </div>
+                    <div className="flex items-center justify-end border-t border-gray-100 bg-white px-4 py-2">
                       <span className="text-xs font-medium text-gray-400">
                         {entry.notes.length}/500
                       </span>

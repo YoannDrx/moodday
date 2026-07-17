@@ -3,9 +3,16 @@ export const getCallbackUrl = (fallbackUrl: string): string => {
   const callbackUrlParams = searchParams.get("callbackUrl");
 
   if (callbackUrlParams) {
-    if (callbackUrlParams.startsWith("/")) return callbackUrlParams;
     if (callbackUrlParams === "null") return "/";
-    return `/${callbackUrlParams}`;
+
+    try {
+      const callbackUrl = new URL(callbackUrlParams, window.location.origin);
+      if (callbackUrl.origin !== window.location.origin) return fallbackUrl;
+
+      return `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`;
+    } catch {
+      return fallbackUrl;
+    }
   }
 
   return fallbackUrl;

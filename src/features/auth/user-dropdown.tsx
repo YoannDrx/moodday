@@ -65,14 +65,13 @@ export const UserDropdown = ({
   // This handles the case where server has the session but client doesn't yet
   useEffect(() => {
     if (!sessionData?.user && userProp && !isPending) {
-      refetch();
+      void refetch();
     }
   }, [sessionData?.user, userProp, isPending, refetch]);
 
   // Use session user, fallback to prop user for display
   // This allows the dropdown to work immediately with server-provided user data
   const user = sessionData?.user ?? userProp;
-  const isSessionReady = !!sessionData?.user;
 
   // If no user at all (neither from session nor prop), just render children
   if (!user) {
@@ -86,7 +85,7 @@ export const UserDropdown = ({
         <DropdownMenuLabel>
           {user.name ? (
             <>
-              <Typography variant="small">{user.name || user.email}</Typography>
+              <Typography variant="small">{user.name}</Typography>
               <Typography variant="muted">{user.email}</Typography>
             </>
           ) : (
@@ -177,7 +176,7 @@ export const UserDropdown = ({
 
         <DropdownMenuGroup>
           <UserDropdownLogout />
-          {sessionData?.session?.impersonatedBy ? (
+          {sessionData?.session.impersonatedBy ? (
             <UserDropdownStopImpersonating />
           ) : null}
         </DropdownMenuGroup>

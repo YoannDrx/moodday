@@ -23,7 +23,7 @@ export function DeleteAccountForm() {
     mutationFn: async () => {
       return unwrapSafePromise(
         authClient.deleteUser({
-          callbackURL: "/goodbye",
+          callbackURL: "/auth/goodbye",
         }),
       );
     },

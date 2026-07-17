@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function ExerciseList() {
   const logMutation = useMutation({
     mutationFn: async (exerciseId: string) => {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        queueAction({ type: "exercise_log", exerciseId });
+        await queueAction({ type: "exercise_log", exerciseId });
         return { queued: true };
       }
       const result = await logExerciseCompletion({ exerciseId });
@@ -110,7 +111,12 @@ export function ExerciseList() {
       void queryClient.invalidateQueries({ queryKey: ["exercises"] });
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(
+        getOfflineStorageErrorMessage(error, {
+          quota: t("common.offlineStorageFull"),
+          fallback: t("common.error"),
+        }),
+      );
     },
   });
 

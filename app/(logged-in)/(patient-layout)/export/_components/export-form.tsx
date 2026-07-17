@@ -3,7 +3,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { pdf } from "@react-pdf/renderer";
-import { FileDown, Calendar, Loader2, Eye } from "lucide-react";
+import {
+  FileDown,
+  Calendar,
+  Loader2,
+  Eye,
+  FileSpreadsheet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +28,7 @@ import {
   getExportPreview,
 } from "@/features/export/export.action";
 import { ExportPDFDocument } from "@/features/export/pdf-document";
+import { buildConsultationCsv } from "@/features/export/csv-export";
 import { useI18n } from "@/i18n/provider";
 
 type DatePreset = {
@@ -29,8 +36,32 @@ type DatePreset = {
   days: number;
 };
 
-export function ExportForm() {
-  const { t } = useI18n();
+const addDaysToDateKey = (dateKey: string, days: number) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
+};
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+export function ExportForm({
+  initialStartDate,
+  initialEndDate,
+}: {
+  initialStartDate: string;
+  initialEndDate: string;
+}) {
+  const { t, locale } = useI18n();
 
   const presets: DatePreset[] = [
     { label: t("export.presets.twoWeeks"), days: 14 },
@@ -38,14 +69,8 @@ export function ExportForm() {
     { label: t("export.presets.threeMonths"), days: 90 },
   ];
 
-  const today = new Date();
-  const defaultStart = new Date(today);
-  defaultStart.setDate(today.getDate() - 30);
-
-  const [startDate, setStartDate] = useState(
-    defaultStart.toISOString().split("T")[0],
-  );
-  const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
   const [showPreview, setShowPreview] = useState(false);
 
   const isValidRange = useMemo(() => {
@@ -53,11 +78,8 @@ export function ExportForm() {
   }, [startDate, endDate]);
 
   const applyPreset = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
+    setStartDate(addDaysToDateKey(initialEndDate, -days));
+    setEndDate(initialEndDate);
   };
 
   const { data: preview, isLoading: previewLoading } = useQuery({
@@ -80,28 +102,42 @@ export function ExportForm() {
     enabled: showPreview && isValidRange,
   });
 
-  const downloadMutation = useMutation({
+  const pdfDownloadMutation = useMutation({
     mutationFn: async () => {
       const result = await getExportData({ startDate, endDate });
       if (result.serverError) throw new Error(result.serverError);
-      if (!result.data) throw new Error("No data");
+      if (!result.data) throw new Error(t("export.download.noData"));
 
-      const blob = await pdf(<ExportPDFDocument data={result.data} />).toBlob();
+      const blob = await pdf(
+        <ExportPDFDocument data={result.data} locale={locale} translate={t} />,
+      ).toBlob();
 
-      // Download
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `moodday-export-${startDate}-${endDate}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `moodday-export-${startDate}-${endDate}.pdf`);
 
       return true;
     },
     onSuccess: () => {
       toast.success(t("export.download.success"));
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const csvDownloadMutation = useMutation({
+    mutationFn: async () => {
+      const result = await getExportData({ startDate, endDate });
+      if (result.serverError) throw new Error(result.serverError);
+      if (!result.data) throw new Error(t("export.download.noData"));
+
+      const csv = buildConsultationCsv(result.data);
+      downloadBlob(
+        new Blob([csv], { type: "text/csv;charset=utf-8" }),
+        `moodday-export-${startDate}-${endDate}.csv`,
+      );
+    },
+    onSuccess: () => {
+      toast.success(t("export.download.csvSuccess"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -152,7 +188,7 @@ export function ExportForm() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate}
-                max={today.toISOString().split("T")[0]}
+                max={initialEndDate}
               />
             </div>
           </div>
@@ -185,7 +221,7 @@ export function ExportForm() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               onClick={() => setShowPreview(true)}
@@ -195,19 +231,27 @@ export function ExportForm() {
               {t("export.actions.preview")}
             </Button>
             <Button
-              onClick={() => downloadMutation.mutate()}
-              disabled={
-                !isValidRange ||
-                downloadMutation.isPending ||
-                (preview?.total ?? 0) === 0
-              }
+              onClick={() => pdfDownloadMutation.mutate()}
+              disabled={!isValidRange || pdfDownloadMutation.isPending}
             >
-              {downloadMutation.isPending ? (
+              {pdfDownloadMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               ) : (
                 <FileDown className="mr-2 size-4" />
               )}
-              {t("export.actions.download")}
+              {t("export.actions.downloadPdf")}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => csvDownloadMutation.mutate()}
+              disabled={!isValidRange || csvDownloadMutation.isPending}
+            >
+              {csvDownloadMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 size-4" />
+              )}
+              {t("export.actions.downloadCsv")}
             </Button>
           </div>
         </CardContent>
@@ -299,17 +343,17 @@ export function ExportForm() {
                 </Button>
                 <Button
                   onClick={() => {
-                    downloadMutation.mutate();
+                    pdfDownloadMutation.mutate();
                     setShowPreview(false);
                   }}
-                  disabled={downloadMutation.isPending}
+                  disabled={pdfDownloadMutation.isPending}
                 >
-                  {downloadMutation.isPending ? (
+                  {pdfDownloadMutation.isPending ? (
                     <Loader2 className="mr-2 size-4 animate-spin" />
                   ) : (
                     <FileDown className="mr-2 size-4" />
                   )}
-                  {t("export.actions.download")}
+                  {t("export.actions.downloadPdf")}
                 </Button>
               </div>
             </div>

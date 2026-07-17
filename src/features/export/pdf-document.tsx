@@ -1,7 +1,7 @@
 "use client";
 
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { useI18n } from "@/i18n/provider";
+import type { ConsultationExportData } from "./export-types";
 
 // Define styles
 const styles = StyleSheet.create({
@@ -137,49 +137,10 @@ const styles = StyleSheet.create({
   },
 });
 
-type ExportData = {
-  period: { start: string; end: string };
-  userName: string;
-  mood: {
-    entries: { value: number; note: string | null; date: string }[];
-    stats: {
-      average: number | null;
-      min: number | null;
-      max: number | null;
-      count: number;
-    };
-  };
-  medications: {
-    list: {
-      name: string;
-      dosage: string;
-      frequency: string;
-      isPRN: boolean;
-      intakesCount: number;
-      dosageChanges: {
-        date: string;
-        from: string | null;
-        to: string;
-      }[];
-    }[];
-    adherencePercent: number | null;
-  };
-  therapy: {
-    sessions: {
-      date: string;
-      notes: string;
-      benefitRating: number | null;
-    }[];
-    count: number;
-  };
-  exercises: {
-    logs: { name: string; date: string }[];
-    count: number;
-  };
-};
-
 type PDFDocumentProps = {
-  data: ExportData;
+  data: ConsultationExportData;
+  locale: "fr" | "en";
+  translate: (key: string, values?: Record<string, string | number>) => string;
 };
 
 const formatDate = (dateStr: string, locale: string) => {
@@ -190,6 +151,9 @@ const formatDate = (dateStr: string, locale: string) => {
   });
 };
 
+const formatDateKey = (dateKey: string, locale: string) =>
+  formatDate(`${dateKey}T12:00:00.000Z`, locale);
+
 const frequencyLabelKeys: Record<string, string> = {
   daily: "medication.frequency.daily",
   twice_daily: "medication.frequency.twiceDaily",
@@ -197,8 +161,11 @@ const frequencyLabelKeys: Record<string, string> = {
   prn: "medication.frequency.prn",
 };
 
-export function ExportPDFDocument({ data }: PDFDocumentProps) {
-  const { t, locale } = useI18n();
+export function ExportPDFDocument({
+  data,
+  locale,
+  translate: t,
+}: PDFDocumentProps) {
   const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
 
   return (
@@ -211,15 +178,20 @@ export function ExportPDFDocument({ data }: PDFDocumentProps) {
           </Text>
           <Text style={styles.subtitle}>
             {t("export.pdf.period", {
-              start: formatDate(data.period.start, dateLocale),
-              end: formatDate(data.period.end, dateLocale),
+              start: formatDateKey(data.period.startDate, dateLocale),
+              end: formatDateKey(data.period.endDate, dateLocale),
             })}
+          </Text>
+          <Text style={styles.subtitle}>
+            {t("export.pdf.timezone", { timezone: data.metadata.timezone })}
           </Text>
         </View>
 
         {/* Mood Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("export.pdf.sections.mood")}</Text>
+          <Text style={styles.sectionTitle}>
+            {t("export.pdf.sections.mood")}
+          </Text>
           {data.mood.stats.count > 0 ? (
             <>
               <View style={styles.statsRow}>

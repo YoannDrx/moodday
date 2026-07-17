@@ -4,7 +4,7 @@ const fr: typeof en = {
   meta: {
     title: "Moodday",
     description:
-      "Journal clinique digital pour suivre votre parcours de santé mentale en toute sérénité",
+      "Journal personnel et confidentiel pour suivre votre santé mentale en toute sérénité",
   },
   language: {
     title: "Langue",
@@ -35,7 +35,7 @@ const fr: typeof en = {
   },
   footer: {
     description:
-      "Journal clinique digital pour suivre votre parcours de santé mentale.",
+      "Journal personnel et confidentiel pour suivre votre santé mentale.",
     product: "Produit",
     blog: "Blog",
     documentation: "Documentation",
@@ -71,6 +71,11 @@ const fr: typeof en = {
     selectPlaceholder: "Sélectionnez une option",
     actionFailed: "Échec de l'action. Veuillez réessayer.",
     me: "Moi",
+    offlineMode:
+      "Mode hors ligne. Les changements seront synchronisés au retour du réseau.",
+    pendingSync: "{count} en attente de synchronisation",
+    offlineStorageFull:
+      "Le stockage hors ligne est plein. Reconnectez-vous pour synchroniser, puis réessayez. Vous pouvez contrôler la file dans les paramètres.",
   },
   medication: {
     add: {
@@ -94,6 +99,20 @@ const fr: typeof en = {
       isPRN: "Aussi pris si besoin (PRN)",
       isPRNHint:
         "Coche si tu prends parfois ce médicament en dehors du planning",
+      scheduleTitle: "Planning des prises",
+      scheduleHint:
+        "Utilisé pour la checklist du jour et les rappels de médicaments.",
+      doseTime: "Heure de prise",
+      weeklyDay: "Jour hebdomadaire",
+    },
+    weekDay: {
+      sunday: "Dimanche",
+      monday: "Lundi",
+      tuesday: "Mardi",
+      wednesday: "Mercredi",
+      thursday: "Jeudi",
+      friday: "Vendredi",
+      saturday: "Samedi",
     },
     frequency: {
       daily: "Une fois par jour",
@@ -120,6 +139,8 @@ const fr: typeof en = {
       hideArchived: "Masquer archivés",
       takenToday: "Pris aujourd'hui",
       notTaken: "Pas encore pris",
+      doseProgress: "{taken}/{total} pris",
+      noDoseToday: "Rien aujourd'hui",
     },
     archive: {
       title: "Archiver ce médicament ?",
@@ -137,6 +158,8 @@ const fr: typeof en = {
       also: "Également si nécessaire",
       logged: "Prise PRN enregistrée !",
       takenToday: "{count}x aujourd'hui",
+      takenTodaySingular: "{count}x aujourd'hui",
+      takenTodayPlural: "{count}x aujourd'hui",
       logButton: "Prendre",
       logTitle: "Prendre {name}",
       logDescription:
@@ -161,13 +184,22 @@ const fr: typeof en = {
       logged: "Médicament pris !",
       loggedOffline: "Prise enregistrée hors ligne",
       skipped: "Médicament sauté",
+      skippedOffline: "Dose sautée enregistrée hors ligne",
       undone: "Prise annulée",
       undo: "Annuler",
       skip: "Sauter aujourd'hui",
+      skipDose: "Sauter la dose",
     },
     status: {
       pending: "En attente",
       taken: "Pris",
+      skipped: "Sauté",
+    },
+    doseSlot: {
+      once: "Dose du jour",
+      morning: "Matin",
+      evening: "Soir",
+      weekly: "Dose hebdomadaire",
     },
     today: {
       title: "Médicaments du jour",
@@ -213,6 +245,8 @@ const fr: typeof en = {
       updated: "Humeur modifiée !",
       delete: "Supprimer",
       deleted: "Entrée supprimée",
+      undo: "Annuler",
+      undone: "Check-in annulé",
       deleteTitle: "Supprimer cette entrée ?",
       deleteDescription:
         "Cette action est irréversible. Ton entrée d'humeur sera définitivement supprimée.",
@@ -468,10 +502,13 @@ const fr: typeof en = {
     defaultName: "Utilisateur",
     today: "Nous sommes le {date}",
     quickMood: {
-      title: "Check-in d'humeur rapide",
-      subtitle: "Notez votre humeur en quelques secondes",
-      badge: "Quotidien",
-      save: "Enregistrer l'humeur",
+      title: "Check-in rapide",
+      subtitle: "Notez votre humeur et votre énergie en moins de 30 secondes",
+      badge: "Moins de 30 s",
+      save: "Enregistrer",
+      energyLabel: "Niveau d'énergie",
+      energyValue: "{value}/10",
+      addDetails: "Ajouter des détails au journal",
     },
     trend: {
       title: "Tendance de l'humeur",
@@ -488,6 +525,15 @@ const fr: typeof en = {
       defaultName: "Aidant",
       statusActive: "Actif",
       statusPending: "En attente",
+      open: "Ouvrir le cercle d'aidants",
+    },
+    todayFocus: {
+      moodDone: "Check-in fait",
+      moodOpen: "Faire le check-in",
+      medsDone: "Tout est à jour",
+      medsRemaining: "{count} restant(s)",
+      exercisesCount: "{count} cette semaine",
+      therapyCount: "{count} ce mois-ci",
     },
     sleep: {
       title: "Sommeil",
@@ -502,11 +548,9 @@ const fr: typeof en = {
     },
     insights: {
       title: "Analyses",
-      detectedLabel: "Tendance détectée :",
-      sampleOne:
-        "Vous vous sentez mieux après des nuits de 7+ heures de sommeil.",
-      sampleTwo:
-        "L'observance des médicaments est liée à une humeur plus stable.",
+      emptyTitle: "Pas encore assez de données",
+      emptyDescription:
+        "Les tendances apparaîtront ici uniquement lorsqu’elles pourront être calculées à partir de vos propres entrées.",
       viewMore: "Voir plus d'analyses",
     },
   },
@@ -730,9 +774,9 @@ const fr: typeof en = {
     },
   },
   export: {
-    title: "Export pour consultation",
+    title: "Export personnel",
     description:
-      "Génère un résumé PDF à partager avec ton professionnel de santé",
+      "Téléchargez un résumé factuel de vos données aux formats PDF ou CSV.",
     presets: {
       twoWeeks: "2 semaines",
       oneMonth: "1 mois",
@@ -755,15 +799,19 @@ const fr: typeof en = {
     },
     actions: {
       preview: "Aperçu",
-      download: "Télécharger PDF",
+      downloadPdf: "Télécharger PDF",
+      downloadCsv: "Télécharger CSV",
       modifyPeriod: "Modifier la période",
     },
     download: {
       success: "PDF téléchargé !",
+      csvSuccess: "CSV téléchargé !",
+      noData: "Aucune donnée n'est disponible pour cette période.",
     },
     pdf: {
       title: "Résumé Moodday pour {name}",
       period: "Période : {start} – {end}",
+      timezone: "Fuseau horaire : {timezone}",
       sections: {
         mood: "Humeur",
         medications: "Médicaments",
@@ -962,12 +1010,21 @@ const fr: typeof en = {
         inviteCta: "Inviter quelqu'un",
         removeTitle: "Retirer l'aidant ?",
         removeDescription: "L'accès aux données partagées sera révoqué.",
+        removeAccessibleLabel: "Retirer {name} du cercle d'aidants",
         removeConfirm: "Retirer",
         statusPending: "En attente",
       },
       patients: {
         title: "Patients",
         empty: "Aucun patient pour l'instant",
+      },
+      accessLog: {
+        title: "Journal des accès",
+        description:
+          "Consultez quand un aidant ouvre votre espace partagé. Aucune note ni donnée de santé n'est enregistrée dans ce journal.",
+        sharedSpace: "Espace aidant partagé consulté",
+        empty: "Aucun accès aidant enregistré pour le moment.",
+        error: "Le journal des accès est momentanément indisponible.",
       },
       inviteDialog: {
         title: "Inviter un aidant",
@@ -998,6 +1055,9 @@ const fr: typeof en = {
       title: "Nouvelle observation",
       description:
         "Partagez une observation ou un événement avec consentement.",
+      emptyTitle: "Aucune personne à accompagner",
+      emptyDescription:
+        "Une invitation active est nécessaire avant d'ajouter une observation ou un événement.",
       tabCheckin: "Check-in",
       tabEvent: "Événement",
       patientLabel: "Patient",
@@ -1151,7 +1211,8 @@ const fr: typeof en = {
       exportJsonDescription:
         "Téléchargez l'export complet de vos données (RGPD).",
       exportPdf: "Exporter PDF",
-      exportPdfDescription: "Générez un résumé clinique au format PDF.",
+      exportPdfDescription:
+        "Générez un résumé personnel factuel au format PDF.",
       exportSuccess: "Export prêt",
       exporting: "Export en cours...",
       deleteTitle: "Supprimer le compte",
@@ -1164,6 +1225,62 @@ const fr: typeof en = {
       policyTitle: "Politique de confidentialité",
       policyDescription: "Découvrez comment nous traitons vos données.",
       policyCta: "Lire la politique",
+    },
+    offline: {
+      title: "Synchronisation hors ligne",
+      subtitle:
+        "Contrôlez les actions enregistrées sur cet appareil avant leur synchronisation.",
+      online: "Connexion disponible",
+      offline: "Vous êtes hors ligne",
+      onlineDescription:
+        "Les opérations en attente peuvent être envoyées en toute sécurité.",
+      offlineDescription:
+        "Les opérations restent sur cet appareil jusqu'au retour de la connexion.",
+      pendingTitle: "Opérations en attente",
+      privacyNotice:
+        "Cette page n'affiche jamais le contenu de votre journal ni vos informations de traitement.",
+      emptyTitle: "Tout est synchronisé",
+      emptyDescription: "Aucune opération locale n'attend d'être envoyée.",
+      loadErrorTitle: "File locale indisponible",
+      loadErrorDescription:
+        "Fermez les autres onglets Moodday, puis rechargez cette page.",
+      retry: "Réessayer",
+      retryAll: "Tout synchroniser",
+      discard: "Supprimer de cet appareil",
+      discardTitle: "Supprimer cette opération locale ?",
+      discardDescription:
+        "Elle ne sera pas envoyée au serveur. Cette action est irréversible.",
+      cancel: "Annuler",
+      confirmDiscard: "Supprimer",
+      retryStarted: "Nouvelle tentative lancée",
+      discarded: "Opération locale supprimée",
+      syncComplete: "Synchronisation terminée",
+      syncIncomplete: "Certaines opérations demandent encore votre attention.",
+      syncError:
+        "La synchronisation n'a pas pu démarrer. Réessayez dans un instant.",
+      diagnosticTitle: "Diagnostic technique",
+      diagnosticDescription:
+        "Téléchargez les compteurs de file et de stockage sans journal, traitement, thérapie, erreur ni donnée de compte.",
+      downloadDiagnostic: "Télécharger le diagnostic",
+      diagnosticReady: "Diagnostic prêt",
+      diagnosticError: "Le diagnostic n'a pas pu être généré.",
+      loading: "Chargement des opérations locales",
+      createdAt: "Enregistrée le {date}",
+      attempts: "{count} tentative(s)",
+      status: {
+        pending: "En attente",
+        syncing: "Synchronisation",
+        failed: "À réessayer",
+        conflict: "Action requise",
+      },
+      operation: {
+        mood: "Entrée de journal",
+        med_intake: "Prise planifiée",
+        med_skip: "Prise ignorée",
+        med_prn_intake: "Prise à la demande",
+        exercise_log: "Exercice terminé",
+        therapy_create: "Séance ajoutée",
+      },
     },
     security: {
       description:
@@ -1203,6 +1320,7 @@ const fr: typeof en = {
       notifications: "Notifications",
       appearance: "Apparence",
       privacy: "Confidentialité",
+      offline: "Synchronisation",
       subscription: "Abonnement",
       security: "Sécurité",
       language: "Langue",
@@ -1901,7 +2019,7 @@ const fr: typeof en = {
   about: {
     metaTitle: "À propos de {app}",
     metaDescription:
-      "Découvrez comment Moodday vous aide à suivre votre santé mentale avec compassion, confidentialité et clarté clinique.",
+      "Découvrez comment Moodday vous aide à suivre votre santé mentale avec compassion, confidentialité et des repères personnels clairs.",
     hero: {
       kicker: "Notre histoire",
       titlePrefix: "Une façon plus apaisée de",
@@ -1912,9 +2030,9 @@ const fr: typeof en = {
     mission: {
       title: "Notre mission",
       paragraphOne:
-        "Rendre le suivi de la santé mentale simple, bienveillant et cliniquement utile.",
+        "Rendre le suivi personnel de la santé mentale simple, bienveillant et utile.",
       paragraphTwo:
-        "Offrir aux personnes et aux cliniciens une vision partagée et fiable entre les consultations.",
+        "Offrir à chacun un historique clair qu'il peut choisir de partager avec une personne de confiance.",
     },
     vision: {
       title: "Notre vision",
@@ -1937,7 +2055,7 @@ const fr: typeof en = {
         science: {
           title: "Guidé par la science",
           description:
-            "Nous suivons des pratiques fondées sur des preuves et les retours cliniques.",
+            "Nous utilisons un langage prudent, des pratiques d'accessibilité établies et les retours des utilisateurs.",
         },
       },
     },
@@ -1950,7 +2068,7 @@ const fr: typeof en = {
     team: {
       title: "Une petite équipe avec une grande mission",
       description:
-        "Nous sommes des cliniciens, designers et ingénieurs, dédiés à des outils de soin calmes et fiables.",
+        "Nous sommes une petite équipe produit dédiée à des outils personnels calmes, confidentiels et fiables.",
       joinCta: "Rejoindre l'équipe",
       contactCta: "Nous contacter",
     },
@@ -2009,9 +2127,9 @@ const fr: typeof en = {
             "Nous utilisons un chiffrement au repos et en transit, et vous contrôlez ce qui est partagé.",
         },
         export: {
-          question: "Puis-je exporter mes données pour mon clinicien ?",
+          question: "Puis-je exporter mes données pour les partager ?",
           answer:
-            "Oui. Vous pouvez générer un export PDF ou JSON depuis votre tableau de bord.",
+            "Oui. Vous pouvez générer un export PDF, CSV ou JSON et choisir vous-même avec qui le partager.",
         },
       },
       more: "Vous avez encore une question ? Contactez notre équipe.",
@@ -2095,7 +2213,7 @@ const fr: typeof en = {
         },
       },
       content:
-        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal clinique digital destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports pour vos consultations médicales\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sous votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
+        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
     },
     privacy: {
       metaTitle: "{app} - Politique de Confidentialité",

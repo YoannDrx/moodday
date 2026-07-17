@@ -170,7 +170,7 @@ export function MoodChart({
             <ReferenceLine
               key={marker.date}
               x={marker.date}
-              stroke="hsl(var(--chart-4))"
+              stroke="var(--chart-4)"
               strokeDasharray="5 5"
               strokeWidth={2}
             />
@@ -179,13 +179,13 @@ export function MoodChart({
         <Line
           type="monotone"
           dataKey="value"
-          stroke="hsl(var(--primary))"
+          stroke="var(--primary)"
           strokeWidth={2}
           dot={
             compact
               ? false
               : {
-                  fill: "hsl(var(--primary))",
+                  fill: "var(--primary)",
                   strokeWidth: 2,
                   r: 4,
                 }

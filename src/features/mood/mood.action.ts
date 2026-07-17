@@ -163,6 +163,8 @@ export const getTodayMoodEntry = authAction.action(
 // ===== Save Mood Entry (Create or Update Today's) =====
 
 const saveMoodEntrySchema = z.object({
+  operationId: z.string().min(1).max(80).optional(),
+  recordedAt: z.string().datetime().optional(),
   value: z.number().min(0).max(10),
   note: z.string().optional(),
   // Extended mood tracking fields
@@ -180,6 +182,8 @@ export const saveMoodEntry = authAction
   .action(
     async ({
       parsedInput: {
+        operationId,
+        recordedAt,
         value,
         note,
         energy,
@@ -192,27 +196,56 @@ export const saveMoodEntry = authAction
       },
       ctx: { user },
     }) => {
-      // Create a new entry (user can have multiple entries per day)
-      const entry = await prisma.moodEntry.create({
-        data: {
-          userId: user.id,
-          value,
-          note: note ?? null,
-          energy: energy ?? null,
-          sleepHours: sleepHours ?? null,
-          sleepQuality: sleepQuality ?? null,
-          sleepDisturbances: sleepDisturbances ?? [],
-          anxiety: anxiety ?? null,
-          tags: tags ?? [],
-          sideEffects: sideEffects ?? [],
-          syncStatus: "synced",
-        },
-        select: {
-          id: true,
-          value: true,
-          createdAt: true,
-        },
-      });
+      const recordedAtDate = recordedAt ? new Date(recordedAt) : undefined;
+      if (
+        recordedAtDate &&
+        recordedAtDate.getTime() > Date.now() + 5 * 60 * 1000
+      ) {
+        throw new ActionError("The recorded time cannot be in the future");
+      }
+
+      const data = {
+        userId: user.id,
+        clientOperationId: operationId ?? null,
+        value,
+        note: note ?? null,
+        energy: energy ?? null,
+        sleepHours: sleepHours ?? null,
+        sleepQuality: sleepQuality ?? null,
+        sleepDisturbances: sleepDisturbances ?? [],
+        anxiety: anxiety ?? null,
+        tags: tags ?? [],
+        sideEffects: sideEffects ?? [],
+        syncStatus: "synced",
+        ...(recordedAtDate ? { createdAt: recordedAtDate } : {}),
+      };
+
+      // Offline retries use a stable operation id. Online entries still create
+      // a new record so users can keep multiple check-ins per day.
+      const entry = operationId
+        ? await prisma.moodEntry.upsert({
+            where: {
+              userId_clientOperationId: {
+                userId: user.id,
+                clientOperationId: operationId,
+              },
+            },
+            create: data,
+            update: {},
+            select: {
+              id: true,
+              value: true,
+              createdAt: true,
+            },
+          })
+        : await prisma.moodEntry.create({
+            data,
+            select: {
+              id: true,
+              value: true,
+              createdAt: true,
+            },
+          });
 
       return {
         id: entry.id,

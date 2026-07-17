@@ -33,12 +33,15 @@ jobs:
       # Core
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
       DATABASE_URL_UNPOOLED: "postgresql://postgres:postgres@localhost:5432/nowts_test"
+      PLAYWRIGHT_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
+      # This Postgres service is disposable and scoped to this CI job.
+      PLAYWRIGHT_ALLOW_SHARED_DATABASE: "true"
       BETTER_AUTH_SECRET: "test-secret-key-for-ci-testing-only-not-production"
       BETTER_AUTH_URL: "http://localhost:3000"
       NODE_ENV: "production"
       # Email
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      EMAIL_FROM: "Moodday <noreply@do-not-reply.app>"
+      EMAIL_FROM: "Moodday <contact@do-not-reply.app>"
       NEXT_PUBLIC_EMAIL_CONTACT: "hello@moodday.app"
       # Stripe
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}

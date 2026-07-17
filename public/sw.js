@@ -1,6 +1,10 @@
-const CACHE_NAME = "moodday-cache-v2";
+const CACHE_NAME = "moodday-cache-v3";
 const OFFLINE_URL = "/offline";
-const PRECACHE_ASSETS = ["/", OFFLINE_URL, "/manifest.json", "/images/icon.png"];
+const PRECACHE_ASSETS = [
+  OFFLINE_URL,
+  "/manifest.webmanifest",
+  "/images/icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -32,16 +36,25 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
 
+  const url = new URL(request.url);
+
+  if (url.origin !== self.location.origin) return;
+
   // Ne pas intercepter les requêtes de navigation (pages HTML)
   // pour éviter les problèmes de redirection (auth, etc.)
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL)),
-    );
+    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
 
-  if (request.url.includes("/_next/")) {
+  // Session, API and React Server Component responses are user-specific.
+  // They must never be persisted in the shared HTTP cache.
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/_next/") ||
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/invite/")
+  ) {
     event.respondWith(fetch(request));
     return;
   }
@@ -57,6 +70,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isCacheableStaticAsset =
+    request.destination === "image" ||
+    request.destination === "font" ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/images/") ||
+    url.pathname === "/manifest.webmanifest";
+
+  if (!isCacheableStaticAsset) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
@@ -66,7 +91,7 @@ self.addEventListener("fetch", (event) => {
           const responseClone = response.clone();
           if (
             response.status === 200 &&
-            request.url.startsWith(self.location.origin)
+            response.type !== "opaque"
           ) {
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone).catch(() => undefined);
@@ -74,7 +99,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(OFFLINE_URL));
+        .catch(() => Response.error());
     }),
   );
 });

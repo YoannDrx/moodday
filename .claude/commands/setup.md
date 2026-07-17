@@ -43,17 +43,16 @@ stripe login  # optionnel
 
 ```bash
 pnpm dev     # Lancer le serveur de dev
-mgw          # Lancer mgrep watch
 ```
 
 ## Services utilisés
 
-| Service | Usage | Console |
-|---------|-------|---------|
-| Vercel | Déploiement | https://vercel.com |
-| NeonDB | PostgreSQL | https://neon.tech |
-| Upstash | Redis | https://console.upstash.com |
-| Stripe | Paiements | https://dashboard.stripe.com |
+| Service | Usage       | Console                      |
+| ------- | ----------- | ---------------------------- |
+| Vercel  | Déploiement | https://vercel.com           |
+| NeonDB  | PostgreSQL  | https://neon.tech            |
+| Upstash | Redis       | https://console.upstash.com  |
+| Stripe  | Paiements   | https://dashboard.stripe.com |
 
 ## BMAD-METHOD (optionnel)
 

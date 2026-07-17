@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   CreditCard,
+  CloudCog,
   Dumbbell,
   FileText,
   Globe,
@@ -13,7 +14,6 @@ import {
   MessageSquare,
   Palette,
   Pill,
-  Settings,
   Shield,
   User,
   Users,
@@ -114,6 +114,11 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
           label: t("settings.sidebar.privacy"),
         },
         {
+          href: "/settings/offline",
+          Icon: CloudCog,
+          label: t("settings.sidebar.offline"),
+        },
+        {
           href: "/settings/subscription",
           Icon: CreditCard,
           label: t("settings.sidebar.subscription"),
@@ -149,20 +154,24 @@ export const getPatientMobileNavigation = (
       label: t("nav.dashboard"),
     },
     {
+      href: "/mood",
+      Icon: Heart,
+      label: t("patient.nav.mood"),
+    },
+    {
+      href: "/medications/today",
+      Icon: Pill,
+      label: t("patient.nav.medications"),
+    },
+    {
       href: "/trends",
       Icon: BarChart3,
       label: t("patient.nav.trends"),
     },
-    // Note: the center "+" button links to /mood
     {
-      href: "/caregiver",
-      Icon: Users,
-      label: t("patient.nav.caregiver"),
-    },
-    {
-      href: "/settings",
-      Icon: Settings,
-      label: t("settings.title"),
+      href: "/settings/profile",
+      Icon: User,
+      label: t("settings.sidebar.profile"),
     },
   ];
 };

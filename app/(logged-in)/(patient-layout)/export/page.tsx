@@ -2,6 +2,16 @@ import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
 import { PageLayout } from "@/components/nowts/page-layout";
 import { ExportForm } from "./_components/export-form";
+import { getRequiredUser } from "@/lib/auth/auth-user";
+import { prisma } from "@/lib/prisma";
+import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+
+const addDaysToDateKey = (dateKey: string, days: number) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
+};
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -13,6 +23,16 @@ export const generateMetadata = combineWithParentMetadata(async () => {
 
 export default async function ExportPage() {
   const { t } = await getI18n();
+  const user = await getRequiredUser();
+  const preferences = await prisma.userPreferences.findUnique({
+    where: { userId: user.id },
+    select: { timezone: true },
+  });
+  const initialEndDate = getDateKeyForTimeZone(
+    new Date(),
+    preferences?.timezone,
+  );
+  const initialStartDate = addDaysToDateKey(initialEndDate, -30);
 
   return (
     <PageLayout
@@ -20,7 +40,10 @@ export default async function ExportPage() {
       subtitle={t("export.description")}
       maxWidth="4xl"
     >
-      <ExportForm />
+      <ExportForm
+        initialStartDate={initialStartDate}
+        initialEndDate={initialEndDate}
+      />
     </PageLayout>
   );
 }

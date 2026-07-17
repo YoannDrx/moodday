@@ -70,6 +70,7 @@ import {
   type EventType,
 } from "@/lib/design-tokens";
 import {
+  getCaregiverAccessLog,
   getCaregiverActivity,
   getCaregiverSummary,
   getMyCaregivers,
@@ -148,6 +149,19 @@ export function CaregiverContent() {
     },
   });
 
+  const {
+    data: accessLog,
+    isLoading: accessLogLoading,
+    isError: accessLogError,
+  } = useQuery({
+    queryKey: ["caregiver-access-log"],
+    queryFn: async () => {
+      const result = await getCaregiverAccessLog({ limit: 8 });
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data ?? [];
+    },
+  });
+
   const inviteMutation = useMutation({
     mutationFn: async () => {
       const result = await inviteCaregiver({
@@ -179,6 +193,9 @@ export function CaregiverContent() {
     onSuccess: () => {
       toast.success(t("caregiver.dashboard.toasts.removed"));
       void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["caregiver-access-log"],
+      });
     },
     onError: (error) => {
       toast.error(t(error.message));
@@ -680,7 +697,13 @@ export function CaregiverContent() {
                       </div>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="flex size-9 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500">
+                          <button
+                            aria-label={t(
+                              "caregiver.dashboard.circle.removeAccessibleLabel",
+                              { name: displayName },
+                            )}
+                            className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500"
+                          >
                             <Trash2 className="size-4" />
                           </button>
                         </AlertDialogTrigger>
@@ -731,6 +754,71 @@ export function CaregiverContent() {
                 <UserPlus className="size-4" />
                 {t("caregiver.dashboard.circle.inviteCta")}
               </button>
+            </GlassCardContent>
+          </GlassCard>
+
+          {/* Patient-visible caregiver access trail */}
+          <GlassCard padding="md" variant="elevated">
+            <GlassCardHeader>
+              <GlassCardTitle
+                icon={<Shield className="size-5 text-[var(--sage)]" />}
+              >
+                {t("caregiver.dashboard.accessLog.title")}
+              </GlassCardTitle>
+            </GlassCardHeader>
+
+            <GlassCardContent>
+              <p className="mb-4 text-sm leading-relaxed text-gray-500">
+                {t("caregiver.dashboard.accessLog.description")}
+              </p>
+              {accessLogLoading ? (
+                <div className="space-y-3" aria-busy="true">
+                  {[...Array(2)].map((_, i) => (
+                    <Skeleton key={i} className="h-14 rounded-xl" />
+                  ))}
+                </div>
+              ) : accessLogError ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {t("caregiver.dashboard.accessLog.error")}
+                </p>
+              ) : accessLog && accessLog.length > 0 ? (
+                <ol className="space-y-3">
+                  {accessLog.map((entry) => (
+                    <li key={entry.id} className="flex items-center gap-3">
+                      <Avatar className="size-10 border border-white shadow-sm">
+                        <AvatarImage src={entry.caregiverImage ?? undefined} />
+                        <AvatarFallback className="bg-[var(--sage)]/10 text-[var(--sage)]">
+                          {entry.caregiverName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-grow">
+                        <p className="truncate text-sm font-semibold text-gray-800">
+                          {entry.caregiverName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t("caregiver.dashboard.accessLog.sharedSpace")}
+                        </p>
+                      </div>
+                      <time
+                        className="shrink-0 text-xs text-gray-400"
+                        dateTime={entry.accessedAt}
+                        title={new Date(entry.accessedAt).toLocaleString(
+                          localeTag,
+                        )}
+                      >
+                        {formatDistanceToNow(new Date(entry.accessedAt), {
+                          addSuffix: true,
+                          locale: dateLocale,
+                        })}
+                      </time>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {t("caregiver.dashboard.accessLog.empty")}
+                </p>
+              )}
             </GlassCardContent>
           </GlassCard>
 

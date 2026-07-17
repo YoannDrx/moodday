@@ -8,6 +8,13 @@ import { sendEmail } from "@/lib/mail/send-email";
 import MarkdownEmail from "@email/markdown.email";
 import { getServerUrl } from "@/lib/server-url";
 import { getI18n } from "@/i18n/server";
+import {
+  canLeaveCaregiverRelationship,
+  canManageCaregiverRelationship,
+  CaregiverPermissionsSchema,
+  hasActiveCaregiverPermission,
+} from "./permissions";
+import { recordCaregiverSharedSpaceAccess } from "./access-log";
 
 // ═══════════════════════════════════════════════════════════════
 // CAREGIVER RELATIONSHIP SYSTEM
@@ -19,9 +26,11 @@ const inviteCaregiverSchema = z.object({
   email: z.string().email(),
   role: z.enum(["family", "friend", "professional"]),
   label: z.string().optional(),
-  permissions: z
-    .array(z.string())
-    .default(["view_mood", "add_observations", "add_events"]),
+  permissions: CaregiverPermissionsSchema.default([
+    "view_mood",
+    "add_observations",
+    "add_events",
+  ]),
 });
 
 const roleLabelKeys: Record<string, string> = {
@@ -352,17 +361,27 @@ export const getMyCaregivers = authAction.action(async ({ ctx: { user } }) => {
 // ===== Get My Patients (as caregiver) =====
 
 export const getMyPatients = authAction.action(async ({ ctx: { user } }) => {
-  const relationships = await prisma.caregiverRelationship.findMany({
-    where: {
-      caregiverId: user.id,
-      status: "active",
-    },
-    include: {
-      patient: {
-        select: { id: true, name: true, email: true, image: true },
+  const relationships = await prisma.$transaction(async (tx) => {
+    const activeRelationships = await tx.caregiverRelationship.findMany({
+      where: {
+        caregiverId: user.id,
+        status: "active",
       },
-    },
-    orderBy: { createdAt: "desc" },
+      include: {
+        patient: {
+          select: { id: true, name: true, email: true, image: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    await recordCaregiverSharedSpaceAccess({
+      client: tx,
+      caregiverId: user.id,
+      relationships: activeRelationships,
+    });
+
+    return activeRelationships;
   });
 
   return relationships.map((r) => ({
@@ -378,11 +397,53 @@ export const getMyPatients = authAction.action(async ({ ctx: { user } }) => {
   }));
 });
 
+// ===== Get Caregiver Access Log (patient only) =====
+
+const getCaregiverAccessLogSchema = z.object({
+  limit: z.number().int().min(1).max(50).optional().default(20),
+});
+
+export const getCaregiverAccessLog = authAction
+  .inputSchema(getCaregiverAccessLogSchema)
+  .action(async ({ parsedInput: { limit }, ctx: { user } }) => {
+    const entries = await prisma.caregiverAccessLog.findMany({
+      where: { patientId: user.id },
+      orderBy: { accessedAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        resource: true,
+        accessedAt: true,
+        caregiver: {
+          select: { name: true, image: true },
+        },
+        relationship: {
+          select: { label: true },
+        },
+      },
+    });
+
+    return entries.map((entry) => {
+      const relationshipLabel = entry.relationship?.label?.trim();
+
+      return {
+        id: entry.id,
+        caregiverName:
+          relationshipLabel && relationshipLabel.length > 0
+            ? relationshipLabel
+            : entry.caregiver.name,
+        caregiverImage: entry.caregiver.image,
+        resource: entry.resource,
+        accessedAt: entry.accessedAt.toISOString(),
+      };
+    });
+  });
+
 // ===== Update Caregiver Permissions =====
 
 const updatePermissionsSchema = z.object({
   relationshipId: z.string(),
-  permissions: z.array(z.string()),
+  permissions: CaregiverPermissionsSchema,
   label: z.string().optional(),
 });
 
@@ -399,7 +460,10 @@ export const updateCaregiverPermissions = authAction
         where: { id: relationshipId },
       });
 
-      if (relationship?.patientId !== user.id) {
+      if (
+        !relationship ||
+        !canManageCaregiverRelationship({ relationship, userId: user.id })
+      ) {
         throw new Error(
           t("caregiver.errors.relationshipNotFoundOrUnauthorized"),
         );
@@ -436,10 +500,7 @@ export const removeCaregiverRelationship = authAction
       throw new Error(t("caregiver.errors.relationshipNotFound"));
     }
 
-    if (
-      relationship.patientId !== user.id &&
-      relationship.caregiverId !== user.id
-    ) {
+    if (!canLeaveCaregiverRelationship({ relationship, userId: user.id })) {
       throw new Error(t("caregiver.errors.relationshipDeleteNotAllowed"));
     }
 
@@ -491,7 +552,14 @@ export const createObservation = authAction
           throw new Error(t("caregiver.errors.notAllowedObserve"));
         }
 
-        if (!relationship.permissions.includes("add_observations")) {
+        if (
+          !hasActiveCaregiverPermission({
+            relationship,
+            caregiverId: user.id,
+            patientId: subjectId,
+            permission: "add_observations",
+          })
+        ) {
           throw new Error(
             t("caregiver.errors.insufficientObservationPermission"),
           );
@@ -554,7 +622,14 @@ export const createEvent = authAction
           throw new Error(t("caregiver.errors.notAllowedReportEvent"));
         }
 
-        if (!relationship.permissions.includes("add_events")) {
+        if (
+          !hasActiveCaregiverPermission({
+            relationship,
+            caregiverId: user.id,
+            patientId: subjectId,
+            permission: "add_events",
+          })
+        ) {
           throw new Error(t("caregiver.errors.insufficientEventPermission"));
         }
       }

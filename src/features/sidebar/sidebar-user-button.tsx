@@ -28,7 +28,7 @@ export const SidebarUserButton = ({
   // This fixes the issue where session isn't available after navigation from login
   useEffect(() => {
     if (!sessionUser && !userProp) {
-      refetch();
+      void refetch();
     }
   }, [sessionUser, userProp, refetch]);
 
@@ -56,9 +56,9 @@ export const SidebarUserButton = ({
         data-testid="user-menu-button"
       >
         <Avatar className="size-8 rounded-lg shadow-sm ring-2 ring-white">
-          <AvatarImage src={user.image ?? ""} alt={user.name?.[0] ?? "U"} />
+          <AvatarImage src={user.image ?? ""} alt={user.name.charAt(0) || "U"} />
           <AvatarFallback className="rounded-lg bg-gradient-to-br from-[var(--primary)] to-teal-400 text-white">
-            {user.name?.[0] || user.email?.[0] || "U"}
+            {user.name.charAt(0) || user.email.charAt(0) || "U"}
           </AvatarFallback>
         </Avatar>
         <div className="grid flex-1 text-left text-sm leading-tight">

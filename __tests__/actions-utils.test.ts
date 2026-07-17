@@ -19,9 +19,9 @@ describe("actions-utils", () => {
 
     it("should return false for action with serverError", () => {
       const action = {
-        data: { id: "123" },
+        data: undefined,
         serverError: "Server error occurred",
-        validationError: undefined,
+        validationErrors: undefined,
       };
 
       expect(isActionSuccessful(action)).toBe(false);
@@ -29,7 +29,7 @@ describe("actions-utils", () => {
 
     it("should return false for action with validationErrors", () => {
       const action = {
-        data: { id: "123" },
+        data: undefined,
         serverError: undefined,
         validationErrors: { field: ["Error"] },
       };

@@ -47,5 +47,4 @@ src/generated
 
 # BMAD outputs (generated artifacts)
 #_bmad-output/
-.grepai/
 .env.test

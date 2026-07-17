@@ -2,7 +2,11 @@
 
 import { authAction } from "@/lib/actions/safe-actions";
 import { ActionError } from "@/lib/errors/action-error";
-import { vercelBlobAdapter } from "@/lib/files/vercel-blob-adapter";
+import {
+  deleteManagedMooddayBlob,
+  vercelBlobAdapter,
+} from "@/lib/files/vercel-blob-adapter";
+import { replaceUserProfileImage } from "@/features/profile/profile-image";
 import { z } from "zod";
 
 export const uploadImageAction = authAction
@@ -11,7 +15,7 @@ export const uploadImageAction = authAction
       formData: z.instanceof(FormData),
     }),
   )
-  .action(async ({ parsedInput: { formData } }) => {
+  .action(async ({ parsedInput: { formData }, ctx: { user } }) => {
     const files = formData.get("files") as File | File[];
 
     let file: File;
@@ -38,11 +42,21 @@ export const uploadImageAction = authAction
 
     const response = await vercelBlobAdapter.uploadFile({
       file,
-      path: "images",
+      path: `profile-images/${user.id}`,
     });
 
     if (response.error) {
       throw new ActionError(response.error.message);
+    }
+
+    try {
+      await replaceUserProfileImage({
+        userId: user.id,
+        nextImage: response.data.url,
+      });
+    } catch (error) {
+      await deleteManagedMooddayBlob(response.data.url).catch(() => undefined);
+      throw error;
     }
 
     return response.data.url;

@@ -5,8 +5,8 @@ import { getI18n } from "@/i18n/server";
 import { getServerUrl } from "@/lib/server-url";
 import { cn } from "@/lib/utils";
 import type { LayoutParams } from "@/types/next";
-import type { Metadata } from "next";
-import { Geist_Mono, Inter, Space_Grotesk } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist_Mono, Inter, Manrope } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { type ReactNode, Suspense } from "react";
 import "./globals.css";
@@ -19,16 +19,19 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t("meta.title"),
     description: t("meta.description"),
     metadataBase: new URL(getServerUrl()),
-    manifest: "/manifest.json",
+    manifest: "/manifest.webmanifest",
     icons: {
       icon: "/logo.svg",
       apple: "/icons/apple-touch-icon.png",
     },
-    themeColor: "#2BA09F",
   };
 }
 
-const CaptionFont = Space_Grotesk({
+export const viewport: Viewport = {
+  themeColor: "#1E7775",
+};
+
+const CaptionFont = Manrope({
   subsets: ["latin"],
   variable: "--font-caption",
 });
@@ -65,7 +68,7 @@ export default async function RootLayout({
             <NextTopLoader
               delay={100}
               showSpinner={false}
-              color="hsl(var(--primary))"
+              color="var(--primary)"
             />
             {children}
             {modal}
