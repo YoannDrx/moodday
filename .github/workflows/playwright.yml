@@ -38,7 +38,7 @@ jobs:
       NODE_ENV: "production"
       # Email
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      EMAIL_FROM: "Moodday <noreply@do-not-reply.app>"
+      EMAIL_FROM: "Moodday <contact@do-not-reply.app>"
       NEXT_PUBLIC_EMAIL_CONTACT: "hello@moodday.app"
       # Stripe
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
