@@ -14,7 +14,7 @@ test("password reset flow", async ({ page }) => {
   // Wait to be on the account page
   // Wait 2 seconds to ensure everything is loaded
 
-  await page.waitForURL(/\/settings\?tab=profile/, { timeout: 10000 });
+  await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
   // 2. Sign out (redirects to "/" after signout, not "/auth/signin")
   await page.getByTestId("user-menu-button").click();

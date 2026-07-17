@@ -228,11 +228,7 @@ export function ExportForm() {
             </Button>
             <Button
               onClick={() => pdfDownloadMutation.mutate()}
-              disabled={
-                !isValidRange ||
-                pdfDownloadMutation.isPending ||
-                (preview?.total ?? 0) === 0
-              }
+              disabled={!isValidRange || pdfDownloadMutation.isPending}
             >
               {pdfDownloadMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -244,11 +240,7 @@ export function ExportForm() {
             <Button
               variant="secondary"
               onClick={() => csvDownloadMutation.mutate()}
-              disabled={
-                !isValidRange ||
-                csvDownloadMutation.isPending ||
-                (preview?.total ?? 0) === 0
-              }
+              disabled={!isValidRange || csvDownloadMutation.isPending}
             >
               {csvDownloadMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
