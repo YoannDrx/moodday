@@ -1,5 +1,5 @@
 import { sendTrialReminderEmail } from "@/lib/auth/stripe/subscription-emails";
-import { env } from "@/lib/env";
+import { validateCronRequest } from "@/lib/cron";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { route } from "@/lib/zod-route";
@@ -8,16 +8,8 @@ import { addDays, startOfDay } from "date-fns";
 export const maxDuration = 300;
 
 export const GET = route.handler(async (request) => {
-  // Verify cron secret
-  if (env.CRON_SECRET) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${env.CRON_SECRET}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  }
+  const unauthorizedResponse = validateCronRequest(request);
+  if (unauthorizedResponse) return unauthorizedResponse;
 
   const today = startOfDay(new Date());
   const in3Days = startOfDay(addDays(today, 3));

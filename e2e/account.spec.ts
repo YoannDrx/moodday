@@ -8,6 +8,7 @@ import {
   signInAccount,
   signOutAccount,
 } from "./utils/auth-test";
+import { retry } from "./utils/retry";
 
 test.describe("account", () => {
   test("delete account flow", async ({ page }) => {
@@ -15,6 +16,57 @@ test.describe("account", () => {
       page,
       callbackURL: "/settings/privacy",
     });
+    const user = await retry(
+      async () =>
+        prisma.user.findUniqueOrThrow({
+          where: { email: userData.email },
+          select: { id: true },
+        }),
+      { maxAttempts: 5, delayMs: 250, backoff: true },
+    );
+
+    await prisma.$transaction([
+      prisma.feedback.create({
+        data: { review: 5, message: "Private feedback", userId: user.id },
+      }),
+      prisma.emailLog.create({
+        data: {
+          to: userData.email,
+          subject: "Private account email",
+          template: "e2e-account-delete",
+          userId: user.id,
+        },
+      }),
+      prisma.emailLog.create({
+        data: {
+          to: userData.email,
+          subject: "Unlinked private email",
+          template: "e2e-account-delete-unlinked",
+        },
+      }),
+      prisma.newsletterSubscriber.upsert({
+        where: { email: userData.email },
+        create: { email: userData.email, source: "e2e" },
+        update: { source: "e2e" },
+      }),
+      prisma.pushSubscription.create({
+        data: {
+          userId: user.id,
+          endpoint: `https://push.example.test/${user.id}`,
+          p256dh: "e2e-p256dh",
+          auth: "e2e-auth",
+        },
+      }),
+      prisma.moodEntry.create({
+        data: { userId: user.id, value: 5, note: "Private mood note" },
+      }),
+      prisma.notificationDelivery.create({
+        data: {
+          userId: user.id,
+          deliveryKey: "e2e-account-delete",
+        },
+      }),
+    ]);
 
     await page.waitForURL(/\/settings\/privacy/, { timeout: 10000 });
     await page
@@ -68,13 +120,52 @@ test.describe("account", () => {
       page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
     ).toBeVisible();
 
-    const user = await prisma.user.findUnique({
+    const deletedUser = await prisma.user.findUnique({
       where: {
         email: userData.email,
       },
     });
 
-    expect(user).toBeNull();
+    expect(deletedUser).toBeNull();
+    const [
+      feedbackCount,
+      emailLogCount,
+      newsletterCount,
+      pushCount,
+      moodCount,
+      deliveryCount,
+      preferenceCount,
+    ] = await Promise.all([
+      prisma.feedback.count({ where: { userId: user.id } }),
+      prisma.emailLog.count({
+        where: { OR: [{ userId: user.id }, { to: userData.email }] },
+      }),
+      prisma.newsletterSubscriber.count({
+        where: { email: userData.email },
+      }),
+      prisma.pushSubscription.count({ where: { userId: user.id } }),
+      prisma.moodEntry.count({ where: { userId: user.id } }),
+      prisma.notificationDelivery.count({ where: { userId: user.id } }),
+      prisma.userPreferences.count({ where: { userId: user.id } }),
+    ]);
+
+    expect({
+      feedbackCount,
+      emailLogCount,
+      newsletterCount,
+      pushCount,
+      moodCount,
+      deliveryCount,
+      preferenceCount,
+    }).toEqual({
+      feedbackCount: 0,
+      emailLogCount: 0,
+      newsletterCount: 0,
+      pushCount: 0,
+      moodCount: 0,
+      deliveryCount: 0,
+      preferenceCount: 0,
+    });
   });
 
   test("update name flow", async ({ page }) => {

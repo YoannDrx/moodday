@@ -17,7 +17,11 @@ import {
 import { MoodSlider } from "./mood-slider";
 import { useI18n } from "@/i18n/provider";
 import { dialogManager } from "@/features/dialog-manager/dialog-manager";
-import { queueMoodEntry } from "@/features/pwa/offline-queue";
+import {
+  discardQueuedMoodEntry,
+  queueMoodEntry,
+} from "@/features/pwa/offline-queue";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 
 /**
  * QuickEntryModal - Fast mood entry modal (< 30 seconds)
@@ -39,6 +43,41 @@ export function QuickEntryModal() {
   const queryClient = useQueryClient();
 
   const isEditing = !!editingEntry;
+
+  const refreshMoodQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["moodEntries"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
+      queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
+      queryClient.invalidateQueries({ queryKey: ["streak-data"] }),
+      queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
+    ]);
+  }, [queryClient]);
+
+  const undoSavedEntry = useCallback(
+    async ({
+      id,
+      previousEntry,
+    }: {
+      id: string;
+      previousEntry: typeof editingEntry;
+    }) => {
+      const result = previousEntry
+        ? await updateMoodEntry({
+            id: previousEntry.id,
+            value: previousEntry.value,
+            note: previousEntry.note ?? undefined,
+          })
+        : await deleteMoodEntry({ id });
+
+      if (result.serverError) {
+        throw new Error(result.serverError);
+      }
+      await refreshMoodQueries();
+      toast.success(t("mood.entry.undone"));
+    },
+    [refreshMoodQueries, t],
+  );
 
   // Initialize form when editing
   useEffect(() => {
@@ -74,16 +113,31 @@ export function QuickEntryModal() {
         return result.data;
       }
     },
-    onSuccess: () => {
-      toast.success(
-        isEditing ? t("mood.entry.updated") : t("mood.entry.saved"),
-      );
+    onSuccess: (savedEntry) => {
+      const previousEntry = editingEntry;
+      if (savedEntry?.id) {
+        toast.success(
+          isEditing ? t("mood.entry.updated") : t("mood.entry.saved"),
+          {
+            duration: 8_000,
+            action: {
+              label: t("mood.entry.undo"),
+              onClick: () => {
+                void undoSavedEntry({
+                  id: savedEntry.id,
+                  previousEntry,
+                }).catch((error) => toast.error(error.message));
+              },
+            },
+          },
+        );
+      }
       // Reset form
       setValue(5);
       setNote("");
       close();
       // Invalidate mood queries to refresh lists
-      void queryClient.invalidateQueries({ queryKey: ["moodEntries"] });
+      void refreshMoodQueries();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -111,30 +165,48 @@ export function QuickEntryModal() {
     },
   });
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       if (isEditing) {
         toast.error(t("mood.entry.offlineEditUnavailable"));
         return;
       }
-      queueMoodEntry({ value, note: note.trim() || undefined });
-      toast.success(t("mood.entry.offlineSaved"));
-      setValue(5);
-      setNote("");
-      close();
-      void queryClient.invalidateQueries({ queryKey: ["moodEntries"] });
+      try {
+        const queuedEntry = await queueMoodEntry({
+          value,
+          note: note.trim() || undefined,
+        });
+        toast.success(t("mood.entry.offlineSaved"), {
+          duration: 8_000,
+          action: {
+            label: t("mood.entry.undo"),
+            onClick: () => {
+              void discardQueuedMoodEntry(queuedEntry.id)
+                .then(async () => {
+                  await refreshMoodQueries();
+                  toast.success(t("mood.entry.undone"));
+                })
+                .catch((error) => toast.error(error.message));
+            },
+          },
+        });
+        setValue(5);
+        setNote("");
+        close();
+        void refreshMoodQueries();
+      } catch (error) {
+        toast.error(
+          getOfflineStorageErrorMessage(error, {
+            quota: t("common.offlineStorageFull"),
+            fallback: t("common.error"),
+          }),
+        );
+      }
       return;
     }
 
     saveMutation.mutate();
-  }, [
-    close,
-    isEditing,
-    note,
-    queryClient,
-    saveMutation,
-    value,
-  ]);
+  }, [close, isEditing, note, refreshMoodQueries, saveMutation, t, value]);
 
   const handleDelete = useCallback(() => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {

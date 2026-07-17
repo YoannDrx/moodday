@@ -15,7 +15,7 @@ export const DotPattern = ({
         style={{
           // @ts-expect-error CSS Variable
           "--dot-background": "transparent",
-          "--dot-color": "hsl(var(--primary))",
+          "--dot-color": "var(--primary)",
         }}
       />
       <div className="relative">{children}</div>

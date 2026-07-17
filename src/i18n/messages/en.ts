@@ -2,7 +2,7 @@ const en = {
   meta: {
     title: "Moodday",
     description:
-      "Digital clinical journal to track your mental health journey with peace of mind",
+      "Private personal journal to track your mental health journey with peace of mind",
   },
   language: {
     title: "Language",
@@ -33,7 +33,7 @@ const en = {
   },
   footer: {
     description:
-      "Digital clinical journal to track your mental health journey.",
+      "Private personal journal to track your mental health journey.",
     product: "Product",
     blog: "Blog",
     documentation: "Documentation",
@@ -69,6 +69,10 @@ const en = {
     selectPlaceholder: "Select an option",
     actionFailed: "Action failed. Please try again.",
     me: "Me",
+    offlineMode: "Offline mode. Changes will sync when you are back online.",
+    pendingSync: "{count} pending sync",
+    offlineStorageFull:
+      "Offline storage is full. Reconnect to synchronize, then try again. You can review the queue in Settings.",
   },
   medication: {
     add: {
@@ -92,6 +96,19 @@ const en = {
       isPRN: "Also taken as needed (PRN)",
       isPRNHint:
         "Check if you sometimes take this medication outside regular schedule",
+      scheduleTitle: "Dose schedule",
+      scheduleHint: "Used for today's checklist and medication reminders.",
+      doseTime: "Dose time",
+      weeklyDay: "Weekly day",
+    },
+    weekDay: {
+      sunday: "Sunday",
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
     },
     frequency: {
       daily: "Once daily",
@@ -117,6 +134,8 @@ const en = {
       hideArchived: "Hide archived",
       takenToday: "Taken today",
       notTaken: "Not taken yet",
+      doseProgress: "{taken}/{total} taken",
+      noDoseToday: "No dose today",
     },
     archive: {
       title: "Archive this medication?",
@@ -134,6 +153,8 @@ const en = {
       also: "Also as needed",
       logged: "PRN medication logged!",
       takenToday: "{count}x today",
+      takenTodaySingular: "{count}x today",
+      takenTodayPlural: "{count}x today",
       logButton: "Log",
       logTitle: "Log {name}",
       logDescription: "Record taking this medication. Add an optional reason.",
@@ -157,13 +178,22 @@ const en = {
       logged: "Medication taken!",
       loggedOffline: "Intake saved offline",
       skipped: "Medication skipped",
+      skippedOffline: "Skipped dose saved offline",
       undone: "Intake cancelled",
       undo: "Cancel",
       skip: "Skip today",
+      skipDose: "Skip dose",
     },
     status: {
       pending: "Pending",
       taken: "Taken",
+      skipped: "Skipped",
+    },
+    doseSlot: {
+      once: "Today's dose",
+      morning: "Morning",
+      evening: "Evening",
+      weekly: "Weekly dose",
     },
     today: {
       title: "Today's medications",
@@ -209,6 +239,8 @@ const en = {
       updated: "Mood updated!",
       delete: "Delete",
       deleted: "Entry deleted",
+      undo: "Undo",
+      undone: "Check-in undone",
       deleteTitle: "Delete this entry?",
       deleteDescription:
         "This action cannot be undone. Your mood entry will be permanently removed.",
@@ -460,10 +492,13 @@ const en = {
     defaultName: "User",
     today: "Today is {date}",
     quickMood: {
-      title: "Quick mood check-in",
-      subtitle: "Log your mood in seconds",
-      badge: "Daily",
-      save: "Save mood",
+      title: "Quick check-in",
+      subtitle: "Log your mood and energy in under 30 seconds",
+      badge: "Under 30 sec",
+      save: "Save check-in",
+      energyLabel: "Energy level",
+      energyValue: "{value}/10",
+      addDetails: "Add details to your journal",
     },
     trend: {
       title: "Mood trend",
@@ -480,6 +515,15 @@ const en = {
       defaultName: "Caregiver",
       statusActive: "Active",
       statusPending: "Pending",
+      open: "Open caregiver circle",
+    },
+    todayFocus: {
+      moodDone: "Check-in done",
+      moodOpen: "Check in today",
+      medsDone: "All caught up",
+      medsRemaining: "{count} remaining",
+      exercisesCount: "{count} this week",
+      therapyCount: "{count} this month",
     },
     sleep: {
       title: "Sleep",
@@ -494,9 +538,9 @@ const en = {
     },
     insights: {
       title: "Insights",
-      detectedLabel: "Detected pattern:",
-      sampleOne: "You tend to feel better after nights with 7+ hours of sleep.",
-      sampleTwo: "Medication adherence is linked with more stable mood scores.",
+      emptyTitle: "Not enough data yet",
+      emptyDescription:
+        "Trends will only appear here when they can be calculated from your own entries.",
       viewMore: "View more insights",
     },
   },
@@ -718,9 +762,9 @@ const en = {
     },
   },
   export: {
-    title: "Export for consultation",
+    title: "Personal export",
     description:
-      "Generate a PDF summary to share with your healthcare provider",
+      "Download a factual summary of your own records in PDF or CSV format.",
     presets: {
       twoWeeks: "2 weeks",
       oneMonth: "1 month",
@@ -743,15 +787,19 @@ const en = {
     },
     actions: {
       preview: "Preview",
-      download: "Download PDF",
+      downloadPdf: "Download PDF",
+      downloadCsv: "Download CSV",
       modifyPeriod: "Modify period",
     },
     download: {
       success: "PDF downloaded!",
+      csvSuccess: "CSV downloaded!",
+      noData: "No data is available for this period.",
     },
     pdf: {
       title: "Moodday summary for {name}",
       period: "Period: {start} – {end}",
+      timezone: "Time zone: {timezone}",
       sections: {
         mood: "Mood",
         medications: "Medications",
@@ -946,12 +994,21 @@ const en = {
         inviteCta: "Invite someone",
         removeTitle: "Remove caregiver?",
         removeDescription: "Access to shared data will be revoked.",
+        removeAccessibleLabel: "Remove {name} from the caregiver circle",
         removeConfirm: "Remove",
         statusPending: "Pending",
       },
       patients: {
         title: "Patients",
         empty: "No patients yet",
+      },
+      accessLog: {
+        title: "Access log",
+        description:
+          "See when a caregiver opens your shared space. No notes or health data are stored in this log.",
+        sharedSpace: "Shared caregiver space viewed",
+        empty: "No caregiver access has been recorded yet.",
+        error: "The access log is temporarily unavailable.",
       },
       inviteDialog: {
         title: "Invite a caregiver",
@@ -980,6 +1037,9 @@ const en = {
     observe: {
       title: "New observation",
       description: "Share an observation or event with consent.",
+      emptyTitle: "No active person to support",
+      emptyDescription:
+        "An active invitation is required before you can add an observation or event.",
       tabCheckin: "Check-in",
       tabEvent: "Event",
       patientLabel: "Patient",
@@ -1127,7 +1187,7 @@ const en = {
       exportJson: "Export JSON",
       exportJsonDescription: "Download your full data export (GDPR).",
       exportPdf: "Export PDF",
-      exportPdfDescription: "Generate a clinical PDF summary.",
+      exportPdfDescription: "Generate a factual personal PDF summary.",
       exportSuccess: "Export ready",
       exporting: "Exporting...",
       deleteTitle: "Delete account",
@@ -1140,6 +1200,59 @@ const en = {
       policyTitle: "Privacy policy",
       policyDescription: "Read how we handle your data.",
       policyCta: "Read policy",
+    },
+    offline: {
+      title: "Offline sync",
+      subtitle:
+        "Review actions saved on this device before they are synchronized.",
+      online: "Connection available",
+      offline: "You are offline",
+      onlineDescription: "Pending operations can now be sent securely.",
+      offlineDescription:
+        "Operations stay on this device until the connection returns.",
+      pendingTitle: "Pending operations",
+      privacyNotice:
+        "This page never displays journal content or medication information.",
+      emptyTitle: "Everything is synchronized",
+      emptyDescription: "No local operation is waiting to be sent.",
+      loadErrorTitle: "Local queue unavailable",
+      loadErrorDescription: "Close other Moodday tabs, then reload this page.",
+      retry: "Try again",
+      retryAll: "Sync all",
+      discard: "Remove from this device",
+      discardTitle: "Remove this local operation?",
+      discardDescription:
+        "It will not be sent to the server. This action cannot be undone.",
+      cancel: "Cancel",
+      confirmDiscard: "Remove",
+      retryStarted: "New attempt started",
+      discarded: "Local operation removed",
+      syncComplete: "Synchronization complete",
+      syncIncomplete: "Some operations still need your attention.",
+      syncError: "Synchronization could not start. Try again in a moment.",
+      diagnosticTitle: "Technical diagnostic",
+      diagnosticDescription:
+        "Download queue counts and storage information without journal, treatment, therapy, error, or account data.",
+      downloadDiagnostic: "Download diagnostic",
+      diagnosticReady: "Diagnostic ready",
+      diagnosticError: "The diagnostic could not be generated.",
+      loading: "Loading local operations",
+      createdAt: "Saved on {date}",
+      attempts: "{count} attempt(s)",
+      status: {
+        pending: "Pending",
+        syncing: "Synchronizing",
+        failed: "Retry needed",
+        conflict: "Action required",
+      },
+      operation: {
+        mood: "Journal entry",
+        med_intake: "Scheduled intake",
+        med_skip: "Skipped intake",
+        med_prn_intake: "As-needed intake",
+        exercise_log: "Completed exercise",
+        therapy_create: "Added session",
+      },
     },
     security: {
       description:
@@ -1179,6 +1292,7 @@ const en = {
       notifications: "Notifications",
       appearance: "Appearance",
       privacy: "Privacy",
+      offline: "Synchronization",
       subscription: "Subscription",
       security: "Security",
       language: "Language",
@@ -1863,7 +1977,7 @@ const en = {
   about: {
     metaTitle: "About {app}",
     metaDescription:
-      "Learn how Moodday helps you track mental health with compassion, privacy, and clinical clarity.",
+      "Learn how Moodday helps you track mental health with compassion, privacy, and clear personal records.",
     hero: {
       kicker: "Our story",
       titlePrefix: "A calmer way to",
@@ -1874,9 +1988,9 @@ const en = {
     mission: {
       title: "Our mission",
       paragraphOne:
-        "Make mental health tracking simple, kind, and clinically useful.",
+        "Make personal mental health tracking simple, kind, and useful.",
       paragraphTwo:
-        "Give people and clinicians a shared, trustworthy picture between visits.",
+        "Give people a clear record they can choose to share with someone they trust.",
     },
     vision: {
       title: "Our vision",
@@ -1899,7 +2013,7 @@ const en = {
         science: {
           title: "Science-led",
           description:
-            "We follow evidence-based practices and clinical feedback.",
+            "We use careful language, established accessibility practices, and user feedback.",
         },
       },
     },
@@ -1912,7 +2026,7 @@ const en = {
     team: {
       title: "A small team with a big purpose",
       description:
-        "We are clinicians, designers, and engineers focused on calm, reliable care tools.",
+        "We are a small product team focused on calm, private, and reliable personal tools.",
       joinCta: "Join the team",
       contactCta: "Contact us",
     },
@@ -2052,7 +2166,7 @@ const en = {
       },
       content: `## 1. Purpose
 
-These Terms of Service govern the use of the Moodday application, a digital clinical journal designed for personal mental health tracking.
+These Terms of Service govern the use of the Moodday application, a private journal designed for personal mental health tracking.
 
 ## 2. Nature of the service
 

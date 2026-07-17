@@ -166,35 +166,54 @@ export const getExerciseById = authAction
 const logExerciseSchema = z.object({
   exerciseId: z.string(),
   note: z.string().optional(),
+  operationId: z.string().min(1).max(80).optional(),
+  completedAt: z.string().datetime().optional(),
 });
 
 export const logExerciseCompletion = authAction
   .inputSchema(logExerciseSchema)
-  .action(async ({ parsedInput: { exerciseId, note }, ctx: { user } }) => {
-    // Verify ownership
-    const exercise = await prisma.exercise.findUnique({
-      where: { id: exerciseId },
-      select: { userId: true },
-    });
+  .action(
+    async ({
+      parsedInput: { exerciseId, note, operationId, completedAt },
+      ctx: { user },
+    }) => {
+      // Verify ownership
+      const exercise = await prisma.exercise.findUnique({
+        where: { id: exerciseId },
+        select: { userId: true },
+      });
 
-    if (!exercise) {
-      throw new ActionError("Exercise not found");
-    }
+      if (!exercise) {
+        throw new ActionError("Exercise not found");
+      }
 
-    if (exercise.userId !== user.id) {
-      throw new ActionError("You can only log your own exercises");
-    }
+      if (exercise.userId !== user.id) {
+        throw new ActionError("You can only log your own exercises");
+      }
 
-    const log = await prisma.exerciseLog.create({
-      data: {
+      const data = {
         exerciseId,
-        completedAt: new Date(),
+        clientOperationId: operationId ?? null,
+        completedAt: completedAt ? new Date(completedAt) : new Date(),
         note,
-      },
-    });
+      };
 
-    return log;
-  });
+      const log = operationId
+        ? await prisma.exerciseLog.upsert({
+            where: {
+              exerciseId_clientOperationId: {
+                exerciseId,
+                clientOperationId: operationId,
+              },
+            },
+            create: data,
+            update: {},
+          })
+        : await prisma.exerciseLog.create({ data });
+
+      return log;
+    },
+  );
 
 export const deleteExerciseLog = authAction
   .inputSchema(z.object({ logId: z.string() }))

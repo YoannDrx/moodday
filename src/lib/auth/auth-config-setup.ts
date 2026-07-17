@@ -8,7 +8,7 @@ export const setupResendCustomer = async (user: User) => {
     return;
   }
 
-  if (!env.RESEND_AUDIENCE_ID) {
+  if (!env.RESEND_API_KEY || !env.RESEND_AUDIENCE_ID) {
     return;
   }
 

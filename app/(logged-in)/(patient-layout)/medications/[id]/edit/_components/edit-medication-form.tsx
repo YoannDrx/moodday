@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -34,7 +34,19 @@ import {
   getMedicationById,
   updateMedication,
 } from "@/features/medication/medication.action";
+import { normalizeScheduleTimesForFrequency } from "@/features/medication/schedule";
 import { useI18n } from "@/i18n/provider";
+
+const scheduleTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const WEEKDAY_KEYS = [
+  "medication.weekDay.sunday",
+  "medication.weekDay.monday",
+  "medication.weekDay.tuesday",
+  "medication.weekDay.wednesday",
+  "medication.weekDay.thursday",
+  "medication.weekDay.friday",
+  "medication.weekDay.saturday",
+] as const;
 
 const getFormSchema = (t: (key: string) => string) =>
   z.object({
@@ -42,6 +54,8 @@ const getFormSchema = (t: (key: string) => string) =>
     dosage: z.string().min(1, t("medication.validation.dosageRequired")),
     frequency: z.enum(["daily", "twice_daily", "weekly", "prn"]),
     isPRN: z.boolean().default(false),
+    scheduleTimes: z.array(scheduleTimeSchema).max(2).default(["09:00"]),
+    weeklyDay: z.number().int().min(0).max(6).nullable().optional(),
   });
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
@@ -75,6 +89,11 @@ export function EditMedicationForm({ medicationId }: { medicationId: string }) {
             | "weekly"
             | "prn",
           isPRN: data.isPRN,
+          scheduleTimes: normalizeScheduleTimesForFrequency(
+            data.frequency,
+            data.scheduleTimes,
+          ),
+          weeklyDay: data.weeklyDay,
         }
       : undefined,
   });
@@ -106,9 +125,42 @@ export function EditMedicationForm({ medicationId }: { medicationId: string }) {
 
   // Watch frequency to auto-set isPRN
   const frequency = form.watch("frequency");
-  if (frequency === "prn" && !form.getValues("isPRN")) {
-    form.setValue("isPRN", true);
-  }
+  const scheduleTimes = normalizeScheduleTimesForFrequency(
+    frequency,
+    form.watch("scheduleTimes"),
+  );
+
+  useEffect(() => {
+    if (frequency === "prn" && !form.getValues("isPRN")) {
+      form.setValue("isPRN", true);
+    }
+  }, [form, frequency]);
+
+  const updateFrequency = (value: FormValues["frequency"]) => {
+    form.setValue("frequency", value);
+    form.setValue(
+      "scheduleTimes",
+      normalizeScheduleTimesForFrequency(value, form.getValues("scheduleTimes")),
+    );
+
+    if (value === "weekly" && form.getValues("weeklyDay") == null) {
+      form.setValue("weeklyDay", new Date().getDay());
+    }
+
+    if (value === "prn") {
+      form.setValue("isPRN", true);
+      form.setValue("weeklyDay", null);
+    }
+  };
+
+  const updateScheduleTime = (index: number, value: string) => {
+    const nextTimes = normalizeScheduleTimesForFrequency(
+      frequency,
+      form.getValues("scheduleTimes"),
+    );
+    nextTimes[index] = value;
+    form.setValue("scheduleTimes", nextTimes);
+  };
 
   if (isLoading) {
     return (
@@ -192,7 +244,12 @@ export function EditMedicationForm({ medicationId }: { medicationId: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("medication.form.frequency")}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) =>
+                      updateFrequency(value as FormValues["frequency"])
+                    }
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
@@ -240,6 +297,67 @@ export function EditMedicationForm({ medicationId }: { medicationId: string }) {
                   </FormItem>
                 )}
               />
+            )}
+
+            {frequency !== "prn" && (
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-gray-800">
+                    {t("medication.form.scheduleTitle")}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {t("medication.form.scheduleHint")}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {scheduleTimes.map((time, index) => (
+                    <div key={index} className="space-y-2">
+                      <FormLabel>
+                        {t(
+                          frequency === "twice_daily" && index === 0
+                            ? "medication.doseSlot.morning"
+                            : frequency === "twice_daily" && index === 1
+                              ? "medication.doseSlot.evening"
+                              : "medication.form.doseTime",
+                        )}
+                      </FormLabel>
+                      <Input
+                        type="time"
+                        value={time}
+                        onChange={(event) =>
+                          updateScheduleTime(index, event.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {frequency === "weekly" && (
+                  <div className="mt-4 space-y-2">
+                    <FormLabel>{t("medication.form.weeklyDay")}</FormLabel>
+                    <Select
+                      value={String(
+                        form.watch("weeklyDay") ?? new Date().getDay(),
+                      )}
+                      onValueChange={(value) =>
+                        form.setValue("weeklyDay", Number(value))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WEEKDAY_KEYS.map((key, index) => (
+                          <SelectItem key={key} value={String(index)}>
+                            {t(key)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Submit */}

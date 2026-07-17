@@ -84,12 +84,14 @@ export const updateDisplayPreferences = authAction
   });
 
 // Update notification preferences
+const timePreferenceSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
 const updateNotificationPreferencesSchema = z.object({
   notificationsEnabled: z.boolean().optional(),
   dailyCheckInReminder: z.boolean().optional(),
-  dailyCheckInTime: z.string().optional(),
+  dailyCheckInTime: timePreferenceSchema.optional(),
   medicationReminders: z.boolean().optional(),
-  medicationReminderTime: z.string().optional(),
+  medicationReminderTime: timePreferenceSchema.optional(),
 });
 
 export const updateNotificationPreferences = authAction

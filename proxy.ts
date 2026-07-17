@@ -3,7 +3,6 @@ import {
   isAdminRoute,
   isAppRoute,
   redirectToSignIn,
-  redirectToUnauthorized,
   validateSession,
 } from "@/lib/middleware-utils";
 import type { NextRequest } from "next/server";
@@ -27,10 +26,6 @@ export async function proxy(request: NextRequest) {
     const session = await validateSession(request);
     if (!session) {
       return redirectToSignIn(request);
-    }
-
-    if (session.user.role !== "admin") {
-      return redirectToUnauthorized(request);
     }
   }
 

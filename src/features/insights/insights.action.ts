@@ -4,6 +4,7 @@ import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getI18n } from "@/i18n/server";
+import { calculateAdherencePercent } from "@/features/medication/adherence";
 
 // ===== Mood Chart Data (30 Days) =====
 
@@ -66,11 +67,7 @@ export const getMoodChartData = authAction
       },
     });
 
-    const totalMeds = medications.length;
-    const taken = medications.reduce((sum, m) => sum + m.intakes.length, 0);
-    const expected = totalMeds * days;
-    const adherencePercent =
-      expected > 0 ? Math.min(100, Math.round((taken / expected) * 100)) : null;
+    const adherencePercent = calculateAdherencePercent(medications, days);
 
     return {
       moodEntries: moodEntries.map((entry) => ({
@@ -199,26 +196,16 @@ export const getDashboardSummary = authAction.action(
       },
     });
 
-    // Calculate expected doses and actual taken
     const totalMeds = medications.length;
     const todayIntakes = await prisma.medIntake.count({
       where: {
-        medication: { userId: user.id, isArchived: false },
+        medication: { userId: user.id, isArchived: false, isPRN: false },
         takenAt: { gte: startOfDay },
         skipped: false,
       },
     });
 
-    // Calculate monthly adherence (simplistic: taken / (meds * 30 days))
-    const monthlyIntakes = medications.reduce(
-      (sum, m) => sum + m.intakes.length,
-      0,
-    );
-    const expectedMonthly = totalMeds * 30;
-    const adherencePercent =
-      expectedMonthly > 0
-        ? Math.min(100, Math.round((monthlyIntakes / expectedMonthly) * 100))
-        : null;
+    const adherencePercent = calculateAdherencePercent(medications, 30);
 
     // Therapy sessions (last session + count this month)
     const lastTherapySession = await prisma.therapySession.findFirst({
@@ -398,40 +385,34 @@ export const getPatternInsights = authAction.action(
     });
 
     if (medications.length > 0) {
-      const totalIntakes = medications.reduce(
-        (sum, m) => sum + m.intakes.length,
-        0,
-      );
-      const expected = medications.length * 30;
-      const adherence = Math.min(
-        100,
-        Math.round((totalIntakes / expected) * 100),
-      );
+      const adherence = calculateAdherencePercent(medications, 30);
 
-      if (adherence >= 90) {
-        insights.push({
-          type: "medication",
-          message: t("insights.patterns.medication.high", {
-            value: adherence,
-          }),
-          trend: "up",
-        });
-      } else if (adherence >= 70) {
-        insights.push({
-          type: "medication",
-          message: t("insights.patterns.medication.mid", {
-            value: adherence,
-          }),
-          trend: "neutral",
-        });
-      } else if (adherence > 0) {
-        insights.push({
-          type: "medication",
-          message: t("insights.patterns.medication.low", {
-            value: adherence,
-          }),
-          trend: "down",
-        });
+      if (adherence !== null) {
+        if (adherence >= 90) {
+          insights.push({
+            type: "medication",
+            message: t("insights.patterns.medication.high", {
+              value: adherence,
+            }),
+            trend: "up",
+          });
+        } else if (adherence >= 70) {
+          insights.push({
+            type: "medication",
+            message: t("insights.patterns.medication.mid", {
+              value: adherence,
+            }),
+            trend: "neutral",
+          });
+        } else if (adherence > 0) {
+          insights.push({
+            type: "medication",
+            message: t("insights.patterns.medication.low", {
+              value: adherence,
+            }),
+            trend: "down",
+          });
+        }
       }
     }
 

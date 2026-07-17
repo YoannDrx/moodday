@@ -167,6 +167,13 @@ vi.mock("@/i18n/provider", () => {
         submit: "Sign up",
         hasAccount: "Already have an account?",
         signIn: "Sign in",
+        validation: {
+          nameRequired: "Name is required",
+          emailInvalid: "Invalid email address",
+          passwordMin: "Password must be at least 8 characters",
+          verifyPasswordMin: "Password confirmation must be at least 8 characters",
+          passwordMismatch: "Password does not match",
+        },
       },
       forgetPassword: {
         title: "Forgot your password?",

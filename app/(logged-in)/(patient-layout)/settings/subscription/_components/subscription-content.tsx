@@ -87,9 +87,8 @@ export function SubscriptionContent() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const returnUrl = `${window.location.origin}/settings/subscription`;
       const result = await resolveActionResult(
-        cancelSubscriptionAction({ returnUrl }),
+        cancelSubscriptionAction({ returnUrl: "/settings/subscription" }),
       );
       return result;
     },

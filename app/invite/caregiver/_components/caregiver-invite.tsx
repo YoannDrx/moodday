@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSession } from "@/lib/auth-client";
 import {
   acceptCaregiverInvitation,
   declineCaregiverInvitation,
@@ -16,14 +15,15 @@ import {
 } from "@/features/caregiver/caregiver.action";
 import { useI18n } from "@/i18n/provider";
 
-export function CaregiverInvite() {
+export function CaregiverInvite({
+  token,
+  isAuthenticated,
+}: {
+  token: string;
+  isAuthenticated: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token") ?? "";
-  const { data: session } = useSession();
-
-  const isAuthenticated = !!session?.user;
 
   const {
     data: invite,
@@ -32,6 +32,7 @@ export function CaregiverInvite() {
   } = useQuery({
     queryKey: ["caregiver-invite", token],
     enabled: token.length > 0,
+    retry: false,
     queryFn: async () => {
       const result = await getCaregiverInviteInfo({ inviteToken: token });
       if (result.serverError) throw new Error(result.serverError);
@@ -74,7 +75,9 @@ export function CaregiverInvite() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>{t("caregiver.invite.notFoundTitle")}</CardTitle>
+            <CardTitle role="heading" aria-level={1}>
+              {t("caregiver.invite.notFoundTitle")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
@@ -92,7 +95,9 @@ export function CaregiverInvite() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>{t("caregiver.invite.signInRequiredTitle")}</CardTitle>
+            <CardTitle role="heading" aria-level={1}>
+              {t("caregiver.invite.signInRequiredTitle")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
@@ -113,7 +118,9 @@ export function CaregiverInvite() {
     <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>{t("caregiver.invite.title")}</CardTitle>
+          <CardTitle role="heading" aria-level={1}>
+            {t("caregiver.invite.title")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && (

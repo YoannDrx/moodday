@@ -5,6 +5,7 @@ import {
   Archive,
   Check,
   ChevronRight,
+  CircleSlash,
   Circle,
   Clock,
   Pill,
@@ -37,6 +38,8 @@ import {
 } from "@/features/medication/medication.action";
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import type { DoseSlotStatus } from "@/features/medication/schedule";
 
 const FREQUENCY_LABEL_KEYS: Record<string, string> = {
   daily: "medication.frequencyShort.daily",
@@ -53,6 +56,14 @@ type MedicationWithIntakes = {
   isPRN: boolean;
   isArchived: boolean;
   intakes: { id: string; takenAt: Date; skipped: boolean }[];
+  doseSlots: {
+    id: string;
+    doseIndex: number;
+    scheduledForDate: string;
+    scheduledTime: string | null;
+    labelKey: string;
+    status: DoseSlotStatus;
+  }[];
 };
 
 export function MedicationsContent() {
@@ -72,12 +83,33 @@ export function MedicationsContent() {
   });
 
   const intakeMutation = useMutation({
-    mutationFn: async ({ medicationId }: { medicationId: string }) => {
+    mutationFn: async ({
+      medicationId,
+      doseIndex,
+      scheduledForDate,
+    }: {
+      medicationId: string;
+      doseIndex: number;
+      scheduledForDate: string;
+    }) => {
+      const takenAt = new Date().toISOString();
+
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        queueAction({ type: "med_intake", medicationId });
+        await queueAction({
+          type: "med_intake",
+          medicationId,
+          doseIndex,
+          scheduledForDate,
+          takenAt,
+        });
         return { queued: true };
       }
-      const result = await logMedIntake({ medicationId });
+      const result = await logMedIntake({
+        medicationId,
+        doseIndex,
+        scheduledForDate,
+        takenAt,
+      });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
     },
@@ -87,10 +119,17 @@ export function MedicationsContent() {
         return;
       }
       void queryClient.invalidateQueries({ queryKey: ["medications"] });
+      void queryClient.invalidateQueries({ queryKey: ["todayIntakes"] });
+      void queryClient.invalidateQueries({ queryKey: ["today-intakes"] });
       toast.success(t("medication.intake.logged"));
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(
+        getOfflineStorageErrorMessage(error, {
+          quota: t("common.offlineStorageFull"),
+          fallback: t("common.error"),
+        }),
+      );
     },
   });
 
@@ -106,10 +145,14 @@ export function MedicationsContent() {
   const regularMeds = activeMedications.filter(
     (m: MedicationWithIntakes) => !m.isPRN,
   );
-  const takenToday = regularMeds.filter((m: MedicationWithIntakes) =>
-    m.intakes.some((i) => !i.skipped),
+  const dueDoseSlots = regularMeds.flatMap(
+    (medication: MedicationWithIntakes) =>
+      medication.doseSlots.map((slot) => ({ medication, slot })),
+  );
+  const takenToday = dueDoseSlots.filter(
+    ({ slot }) => slot.status === "taken",
   ).length;
-  const totalRegular = regularMeds.length;
+  const totalRegular = dueDoseSlots.length;
   const adherenceRate =
     totalRegular > 0 ? Math.round((takenToday / totalRegular) * 100) : 0;
 
@@ -272,8 +315,12 @@ export function MedicationsContent() {
               <MedicationRow
                 key={medication.id}
                 medication={medication}
-                onTake={() =>
-                  intakeMutation.mutate({ medicationId: medication.id })
+                onTake={(slot) =>
+                  intakeMutation.mutate({
+                    medicationId: medication.id,
+                    doseIndex: slot.doseIndex,
+                    scheduledForDate: slot.scheduledForDate,
+                  })
                 }
                 isPending={intakeMutation.isPending}
               />
@@ -324,20 +371,30 @@ function MedicationRow({
   isArchived = false,
 }: {
   medication: MedicationWithIntakes;
-  onTake?: () => void;
+  onTake?: (slot: MedicationWithIntakes["doseSlots"][number]) => void;
   isPending?: boolean;
   isArchived?: boolean;
 }) {
   const { t } = useI18n();
-  const hasTakenToday = medication.intakes.some((intake) => !intake.skipped);
+  const dueSlots = medication.doseSlots;
+  const pendingSlot = dueSlots.find((slot) => slot.status === "pending");
+  const takenDoses = dueSlots.filter((slot) => slot.status === "taken").length;
+  const skippedDoses = dueSlots.filter(
+    (slot) => slot.status === "skipped",
+  ).length;
+  const hasDueDoseToday = dueSlots.length > 0;
+  const isFullyTaken =
+    hasDueDoseToday && takenDoses === dueSlots.length && skippedDoses === 0;
+  const hasSkippedOnly =
+    hasDueDoseToday && !pendingSlot && skippedDoses > 0 && !isFullyTaken;
   const frequencyLabelKey =
     FREQUENCY_LABEL_KEYS[medication.frequency] ?? FREQUENCY_LABEL_KEYS.daily;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!hasTakenToday && onTake && !isArchived) {
-      onTake();
+    if (pendingSlot && onTake && !isArchived) {
+      onTake(pendingSlot);
     }
   };
 
@@ -346,26 +403,33 @@ function MedicationRow({
       <div
         className={cn(
           "group flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all",
-          hasTakenToday
+          isFullyTaken
             ? "border-[var(--sage)]/20 bg-[var(--sage)]/5"
-            : "border-gray-100 bg-white hover:border-[var(--primary)]/30 hover:shadow-sm",
+            : hasSkippedOnly
+              ? "border-orange-200 bg-orange-50"
+              : "border-gray-100 bg-white hover:border-[var(--primary)]/30 hover:shadow-sm",
           isArchived && "opacity-60",
         )}
       >
         {/* Toggle Button */}
         <button
           onClick={handleToggle}
-          disabled={hasTakenToday || isPending || isArchived}
+          disabled={!pendingSlot || isPending || isArchived}
           className={cn(
             "flex size-12 shrink-0 items-center justify-center rounded-xl transition-all",
-            hasTakenToday
+            isFullyTaken
               ? "bg-[var(--sage)] text-white"
-              : "bg-gray-50 text-gray-300 hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]",
-            (isPending || isArchived) && "cursor-not-allowed opacity-50",
+              : hasSkippedOnly
+                ? "bg-orange-400 text-white"
+                : "bg-gray-50 text-gray-300 hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]",
+            (!pendingSlot || isPending || isArchived) &&
+              "cursor-not-allowed opacity-50",
           )}
         >
-          {hasTakenToday ? (
+          {isFullyTaken ? (
             <Check className="size-6" />
+          ) : hasSkippedOnly ? (
+            <CircleSlash className="size-6" />
           ) : (
             <Circle className="size-6" />
           )}
@@ -377,7 +441,7 @@ function MedicationRow({
             <span
               className={cn(
                 "font-bold",
-                hasTakenToday ? "text-[var(--sage-dark)]" : "text-gray-800",
+                isFullyTaken ? "text-[var(--sage-dark)]" : "text-gray-800",
               )}
             >
               {medication.name}
@@ -402,18 +466,35 @@ function MedicationRow({
             <span
               className={cn(
                 "flex items-center gap-1 text-xs font-medium",
-                hasTakenToday ? "text-[var(--sage)]" : "text-gray-400",
+                isFullyTaken
+                  ? "text-[var(--sage)]"
+                  : hasSkippedOnly
+                    ? "text-orange-500"
+                    : "text-gray-400",
               )}
             >
-              {hasTakenToday ? (
+              {isFullyTaken ? (
                 <>
                   <Check className="size-3" />
                   {t("medication.status.taken")}
                 </>
+              ) : hasSkippedOnly ? (
+                <>
+                  <CircleSlash className="size-3" />
+                  {t("medication.status.skipped")}
+                </>
+              ) : hasDueDoseToday ? (
+                <>
+                  <Clock className="size-3" />
+                  {t("medication.list.doseProgress", {
+                    taken: takenDoses,
+                    total: dueSlots.length,
+                  })}
+                </>
               ) : (
                 <>
                   <Clock className="size-3" />
-                  {t("medication.status.pending")}
+                  {t("medication.list.noDoseToday")}
                 </>
               )}
             </span>

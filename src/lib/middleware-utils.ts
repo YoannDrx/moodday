@@ -23,9 +23,7 @@ export const isAppRoute = (pathname: string) => {
 };
 
 export const isAdminRoute = (pathname: string) => {
-  // TODO: This should be "/admin" but the session role update mechanism
-  // needs to be fixed first (Better Auth caches user data in session)
-  return pathname.startsWith("/app/admin");
+  return pathname.startsWith("/admin");
 };
 
 export const validateSession = async (request: NextRequest) => {

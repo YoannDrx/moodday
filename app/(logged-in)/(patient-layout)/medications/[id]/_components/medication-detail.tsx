@@ -34,6 +34,7 @@ import {
   archiveMedication,
   unarchiveMedication,
 } from "@/features/medication/medication.action";
+import { normalizeScheduleTimesForFrequency } from "@/features/medication/schedule";
 import { useI18n } from "@/i18n/provider";
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -42,6 +43,16 @@ const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "medication.frequency.weekly",
   prn: "medication.frequency.prn",
 };
+
+const WEEKDAY_KEYS = [
+  "medication.weekDay.sunday",
+  "medication.weekDay.monday",
+  "medication.weekDay.tuesday",
+  "medication.weekDay.wednesday",
+  "medication.weekDay.thursday",
+  "medication.weekDay.friday",
+  "medication.weekDay.saturday",
+] as const;
 
 export function MedicationDetail({ medicationId }: { medicationId: string }) {
   const { t } = useI18n();
@@ -123,6 +134,12 @@ export function MedicationDetail({ medicationId }: { medicationId: string }) {
   const medication = data;
   const frequencyKey =
     FREQUENCY_LABELS[medication.frequency] ?? "medication.frequency.daily";
+  const scheduleTimes = normalizeScheduleTimesForFrequency(
+    medication.frequency,
+    medication.scheduleTimes,
+  );
+  const weeklyDay =
+    medication.weeklyDay ?? new Date(medication.createdAt).getDay();
 
   return (
     <div className="space-y-6">
@@ -160,6 +177,17 @@ export function MedicationDetail({ medicationId }: { medicationId: string }) {
             <Clock className="text-muted-foreground size-4" />
             <span>{t(frequencyKey)}</span>
           </div>
+          {!medication.isPRN && scheduleTimes.length > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="text-muted-foreground size-4" />
+              <span>
+                {medication.frequency === "weekly"
+                  ? `${t(WEEKDAY_KEYS[weeklyDay] ?? WEEKDAY_KEYS[0])} · `
+                  : null}
+                {scheduleTimes.join(" · ")}
+              </span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 border-t pt-4">

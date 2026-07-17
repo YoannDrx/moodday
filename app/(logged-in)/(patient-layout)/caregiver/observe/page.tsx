@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { ArrowLeft, Eye, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Eye, AlertTriangle, Users } from "lucide-react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
@@ -62,11 +62,9 @@ function ObservePageContent() {
 
   const subject = resolvedPatient
     ? { id: resolvedPatient.patientId, name: resolvedPatient.patientName }
-    : session?.user
-      ? { id: session.user.id, name: session.user.name || t("common.me") }
-      : null;
+    : null;
 
-  if (isPending) {
+  if (isPending || patientsLoading) {
     return (
       <PageLayout
         title={t("caregiver.observe.title")}
@@ -80,7 +78,7 @@ function ObservePageContent() {
     );
   }
 
-  if (!subject) {
+  if (!session?.user) {
     return (
       <PageLayout
         title={t("caregiver.observe.title")}
@@ -88,6 +86,34 @@ function ObservePageContent() {
         showBlobs={false}
       >
         <p className="text-muted-foreground">{t("auth.notSignedIn")}</p>
+      </PageLayout>
+    );
+  }
+
+  if (!subject) {
+    return (
+      <PageLayout
+        title={t("caregiver.observe.title")}
+        maxWidth="4xl"
+        showBlobs={false}
+      >
+        <Card>
+          <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+            <Users className="mb-4 size-10 text-[var(--primary)]" />
+            <h2 className="text-lg font-semibold">
+              {t("caregiver.observe.emptyTitle")}
+            </h2>
+            <p className="text-muted-foreground mt-2 max-w-md text-sm">
+              {t("caregiver.observe.emptyDescription")}
+            </p>
+            <Button asChild variant="outline" className="mt-6 min-h-11">
+              <Link href="/caregiver">
+                <ArrowLeft />
+                {t("actions.back")}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </PageLayout>
     );
   }
@@ -109,31 +135,26 @@ function ObservePageContent() {
     >
       <Card>
         <CardHeader>
-          {!patientsLoading && patients && patients.length > 0 && (
-            <div className="mb-6 space-y-2">
-              <Label>{t("caregiver.observe.patientLabel")}</Label>
-              <Select
-                value={subject.id}
-                onValueChange={(value) => setSelectedPatientId(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={t("caregiver.observe.patientPlaceholder")}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem
-                      key={patient.patientId}
-                      value={patient.patientId}
-                    >
-                      {patient.patientName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="mb-6 space-y-2">
+            <Label>{t("caregiver.observe.patientLabel")}</Label>
+            <Select
+              value={subject.id}
+              onValueChange={(value) => setSelectedPatientId(value)}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={t("caregiver.observe.patientPlaceholder")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                  {(patients ?? []).map((patient) => (
+                  <SelectItem key={patient.patientId} value={patient.patientId}>
+                    {patient.patientName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="checkin" className="flex items-center gap-2">

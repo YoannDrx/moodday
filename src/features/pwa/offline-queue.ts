@@ -3,8 +3,22 @@
 
 import { nanoid } from "nanoid";
 import { saveMoodEntry } from "@/features/mood/mood.action";
+import { notifyOfflineQueueChanged } from "./offline-events";
+import {
+  addOfflineOperation,
+  countOfflineOperations,
+  getOfflineFailureStatus,
+  getOfflineRetryDelay,
+  getSafeOfflineTimeZone,
+  isOfflineOperationDue,
+  listOfflineOperations,
+  removeOfflineOperation,
+  updateOfflineOperation,
+  type OfflineOperation,
+} from "./offline-store";
 
 export type OfflineMoodEntryPayload = {
+  recordedAt?: string;
   value: number;
   note?: string;
   energy?: number;
@@ -22,59 +36,104 @@ type OfflineMoodEntry = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "moodday.offline.mood";
-
-const readQueue = (): OfflineMoodEntry[] => {
-  if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const data = JSON.parse(raw) as OfflineMoodEntry[];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeQueue = (queue: OfflineMoodEntry[]) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-};
-
-export const queueMoodEntry = (payload: OfflineMoodEntryPayload) => {
-  const queue = readQueue();
+export const queueMoodEntry = async (
+  payload: OfflineMoodEntryPayload,
+  options?: { createdAt?: Date; timeZone?: string },
+) => {
+  const createdAt = options?.createdAt ?? new Date();
+  const now = createdAt.toISOString();
+  const timeZoneAtCreation = getSafeOfflineTimeZone(options?.timeZone);
   const entry: OfflineMoodEntry = {
-    id: nanoid(10),
-    payload,
-    createdAt: new Date().toISOString(),
+    id: `mood:${nanoid(10)}`,
+    payload: { ...payload, recordedAt: payload.recordedAt ?? now },
+    createdAt: now,
   };
-  writeQueue([...queue, entry]);
+  await addOfflineOperation({
+    ...entry,
+    kind: "mood",
+    status: "pending",
+    retryCount: 0,
+    updatedAt: now,
+    timeZoneAtCreation,
+  });
+  notifyOfflineQueueChanged();
   return entry;
 };
 
-export const syncQueuedMoodEntries = async () => {
-  const queue = readQueue();
+let activeSync: Promise<{
+  synced: number;
+  remaining: number;
+  conflicts: number;
+}> | null = null;
+
+const runQueuedMoodSync = async () => {
+  const queue = await listOfflineOperations<OfflineMoodEntryPayload>("mood");
   if (queue.length === 0) {
-    return { synced: 0, remaining: 0 };
+    return { synced: 0, remaining: 0, conflicts: 0 };
   }
 
-  const remaining: OfflineMoodEntry[] = [];
   let synced = 0;
 
   for (const item of queue) {
+    if (item.status === "conflict" || !isOfflineOperationDue(item)) continue;
+
     try {
-      const result = await saveMoodEntry(item.payload);
+      await updateOfflineOperation(item.id, { status: "syncing" });
+      const result = await saveMoodEntry({
+        ...item.payload,
+        operationId: item.id,
+      });
       if (result.serverError) {
         throw new Error(result.serverError);
       }
+      await removeOfflineOperation(item.id);
       synced += 1;
-    } catch {
-      remaining.push(item);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Offline synchronization failed";
+      const retryCount = item.retryCount + 1;
+      const status = getOfflineFailureStatus(message);
+      await updateOfflineOperation(item.id, {
+        status,
+        retryCount,
+        lastError: message,
+        nextAttemptAt:
+          status === "failed"
+            ? new Date(
+                Date.now() + getOfflineRetryDelay(retryCount),
+              ).toISOString()
+            : undefined,
+      });
     }
   }
 
-  writeQueue(remaining);
-  return { synced, remaining: remaining.length };
+  const remaining =
+    await listOfflineOperations<OfflineMoodEntryPayload>("mood");
+  notifyOfflineQueueChanged();
+  return {
+    synced,
+    remaining: remaining.length,
+    conflicts: remaining.filter((item) => item.status === "conflict").length,
+  };
 };
 
-export const getQueuedMoodCount = () => readQueue().length;
+export const syncQueuedMoodEntries = async () => {
+  activeSync ??= runQueuedMoodSync().finally(() => {
+    activeSync = null;
+  });
+  return activeSync;
+};
+
+export const getQueuedMoodCount = async () => countOfflineOperations("mood");
+
+export const getQueuedMoodEntries = async () =>
+  listOfflineOperations<OfflineMoodEntryPayload>("mood");
+
+export const discardQueuedMoodEntry = async (id: string) => {
+  await removeOfflineOperation(id);
+  notifyOfflineQueueChanged();
+};
+
+export type QueuedMoodOperation = OfflineOperation<OfflineMoodEntryPayload>;

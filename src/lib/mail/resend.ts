@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { env } from "../env";
+import { logger } from "../logger";
 import type { MailAdapter } from "./send-email";
 
 export const resend = env.RESEND_API_KEY
@@ -18,7 +19,7 @@ export function getResend(): Resend {
 export const resendMailAdapter: MailAdapter = {
   send: async (params) => {
     if (!resend) {
-      console.warn(
+      logger.warn(
         "Resend is not configured. Skipping email send. Set RESEND_API_KEY to enable.",
       );
       return { error: null, data: { id: "mock-id-resend-not-configured" } };
