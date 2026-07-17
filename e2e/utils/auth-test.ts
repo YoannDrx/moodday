@@ -9,9 +9,18 @@ export const getUserEmail = () =>
 
 const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
   const expected = new URL(callbackURL, page.url());
+  const canonicalPath =
+    expected.pathname === "/app"
+      ? "/dashboard"
+      : expected.pathname === "/settings" &&
+          expected.searchParams.get("tab") === "profile"
+        ? "/settings/profile"
+        : null;
+
   await page.waitForURL(
     (url) =>
-      url.pathname === expected.pathname && url.search === expected.search,
+      (url.pathname === expected.pathname && url.search === expected.search) ||
+      url.pathname === canonicalPath,
     { timeout: 30000 },
   );
   await page.waitForLoadState("networkidle");

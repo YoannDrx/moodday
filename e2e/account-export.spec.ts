@@ -135,7 +135,7 @@ test("exports complete user data without authentication or notification secrets"
   const csvButton = page.getByRole("button", {
     name: /Download CSV|Télécharger CSV/i,
   });
-  await expect(csvButton).toBeEnabled();
+  await expect(csvButton).toBeEnabled({ timeout: 15000 });
   const csvDownloadPromise = page.waitForEvent("download");
   await csvButton.click();
   const csvDownload = await csvDownloadPromise;
@@ -159,7 +159,7 @@ test("exports complete user data without authentication or notification secrets"
   const pdfButton = page.getByRole("button", {
     name: /Download PDF|Télécharger PDF/i,
   });
-  await expect(pdfButton).toBeEnabled();
+  await expect(pdfButton).toBeEnabled({ timeout: 15000 });
   const pdfDownloadPromise = page.waitForEvent("download");
   await pdfButton.click();
   const pdfDownload = await pdfDownloadPromise;

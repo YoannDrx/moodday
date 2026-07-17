@@ -218,31 +218,39 @@ export const getExportPreview = authAction
       timezone: preferences?.timezone,
     });
 
-    const [moodCount, therapyCount, exerciseCount] = await Promise.all([
-      prisma.moodEntry.count({
-        where: {
-          userId: user.id,
-          createdAt: { gte: start, lt: endExclusive },
-        },
-      }),
-      prisma.therapySession.count({
-        where: {
-          userId: user.id,
-          date: { gte: start, lt: endExclusive },
-        },
-      }),
-      prisma.exerciseLog.count({
-        where: {
-          exercise: { userId: user.id },
-          completedAt: { gte: start, lt: endExclusive },
-        },
-      }),
-    ]);
+    const [moodCount, medicationIntakeCount, therapyCount, exerciseCount] =
+      await Promise.all([
+        prisma.moodEntry.count({
+          where: {
+            userId: user.id,
+            createdAt: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.medIntake.count({
+          where: {
+            medication: { userId: user.id },
+            takenAt: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.therapySession.count({
+          where: {
+            userId: user.id,
+            date: { gte: start, lt: endExclusive },
+          },
+        }),
+        prisma.exerciseLog.count({
+          where: {
+            exercise: { userId: user.id },
+            completedAt: { gte: start, lt: endExclusive },
+          },
+        }),
+      ]);
 
     return {
       moodEntries: moodCount,
+      medicationIntakes: medicationIntakeCount,
       therapySessions: therapyCount,
       exerciseLogs: exerciseCount,
-      total: moodCount + therapyCount + exerciseCount,
+      total: moodCount + medicationIntakeCount + therapyCount + exerciseCount,
     };
   });
