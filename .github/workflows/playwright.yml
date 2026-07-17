@@ -34,6 +34,8 @@ jobs:
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
       DATABASE_URL_UNPOOLED: "postgresql://postgres:postgres@localhost:5432/nowts_test"
       PLAYWRIGHT_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
+      # This Postgres service is disposable and scoped to this CI job.
+      PLAYWRIGHT_ALLOW_SHARED_DATABASE: "true"
       BETTER_AUTH_SECRET: "test-secret-key-for-ci-testing-only-not-production"
       BETTER_AUTH_URL: "http://localhost:3000"
       NODE_ENV: "production"
