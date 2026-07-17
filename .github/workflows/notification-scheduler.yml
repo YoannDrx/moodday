@@ -32,7 +32,7 @@ jobs:
             --write-out "%{http_code}" \
             --header "Authorization: Bearer $CRON_SECRET" \
             --header "User-Agent: Moodday-GitHub-Cron/1.0" \
-            https://moodday.app/api/cron/notifications)"
+            https://www.moodday.app/api/cron/notifications)"
 
           cat "$response_file"
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
