@@ -18,7 +18,7 @@ export const env = createEnv({
     EMAIL_FROM: z
       .string()
       .optional()
-      .default("Moodday <contact@do-not-reply.app>"),
+      .default("Moodday <moodday@yodev.fr>"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
