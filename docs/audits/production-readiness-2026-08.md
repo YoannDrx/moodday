@@ -133,6 +133,10 @@ pas une preuve de release.
   Production. La protection Vercel Standard a été désactivée pour rendre les
   webhooks et callbacks Preview accessibles, sans modifier la protection des
   domaines Production.
+- Les anciennes variables Vercel Production et Development liées aux offres
+  Pro/Ultra et au compte Stripe partagé ont été supprimées. `BILLING_ENABLED`
+  reste désactivé en Production jusqu'à l'injection des identifiants du compte
+  live Moodday vérifié ; le sandbox Preview dédié conserve ses propres secrets.
 
 ### Blocages de lancement encore ouverts
 
