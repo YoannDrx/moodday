@@ -2152,19 +2152,25 @@ const fr: typeof en = {
       title: "Conditions Générales d'Utilisation",
       subtitle:
         "Ces conditions expliquent comment Moodday fonctionne et comment l'utiliser en toute sécurité.",
-      lastUpdated: "Dernière mise à jour : janvier 2026",
+      lastUpdated: "Dernière mise à jour : août 2026",
       emergency: {
         title: "En cas d'urgence",
         descriptionPrefix:
           "Si vous êtes en détresse, contactez les services d'urgence au ",
-        phone: "988",
-        descriptionSuffix: " ou contactez un professionnel local.",
+        phone: "3114",
+        descriptionSuffix:
+          ". En cas de danger immédiat, appelez le 15 ou le 112.",
       },
       contact: {
         title: "Des questions ?",
         descriptionPrefix: "Contactez-nous à ",
       },
       sections: {
+        publisher: {
+          title: "Éditeur du service",
+          content:
+            "Moodday est édité par {publisher}, {legalForm}, immatriculé sous le SIREN {siren}. Contact : hello@moodday.app.",
+        },
         service: {
           title: "Objet du service",
           content:
@@ -2222,13 +2228,15 @@ const fr: typeof en = {
         },
       },
       content:
-        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
+        "## Éditeur\n\nMoodday est édité par Yodev, entrepreneur individuel, SIREN 803 272 590. Contact : hello@moodday.app.\n\n## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents.\n\n---\n\n*Dernière mise à jour : août 2026*\n\n*Contact : hello@moodday.app*",
     },
     privacy: {
       metaTitle: "{app} - Politique de Confidentialité",
       metaDescription: "Comment Moodday protège vos données de santé mentale",
       title: "Politique de Confidentialité",
-      lastUpdated: "Dernière mise à jour : janvier 2026",
+      lastUpdated: "Dernière mise à jour : août 2026",
+      controller:
+        "Responsable du traitement : {publisher}, {legalForm}, SIREN {siren}.",
       intro: {
         prefix: "Votre confidentialité est",
         highlight: "notre priorité.",

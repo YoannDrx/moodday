@@ -12,7 +12,6 @@ responsables.
 | ---------------- | -------------------------- | ------------------- | --------------------------------- | -------------------------------------------------- | ------------ | ----------- |
 | Vercel Functions | À renseigner               | À renseigner        | `fra1` demandé par `vercel.json`  | À contrôler après déploiement                      | À joindre    | Engineering |
 | Neon Postgres    | À séparer                  | À séparer           | Hôte prod à confirmer             | `eu-central-1` annoncé, à vérifier dans la console | À joindre    | Engineering |
-| Redis            | À séparer                  | À séparer           | À renseigner                      | Inconnu                                            | À joindre    | Engineering |
 | Stockage exports | À séparer                  | À séparer           | À renseigner                      | Inconnu                                            | À joindre    | Engineering |
 | Stripe           | Compte/projet test Moodday | Test Moodday        | Compte live exclusivement Moodday | Traitement mondial à documenter                    | À joindre    | Finance     |
 | OpenAI           | Projet dédié requis        | Projet dédié requis | Projet dédié requis               | Transferts et rétention à valider                  | À joindre    | Product/DPO |

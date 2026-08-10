@@ -37,6 +37,7 @@ pnpm dev
 - PWA (manifest + offline page + offline queues + sync + push notifications serveur)
 - Authentication (Email, GitHub, Google)
 - PostgreSQL with Prisma
+- Rate limiting atomique dans PostgreSQL, sans Redis ni Upstash
 - i18n (EN/FR)
 - Tests (Vitest + Playwright)
 

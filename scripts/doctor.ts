@@ -116,7 +116,6 @@ function checkCLIs(): void {
     { cmd: "gh", name: "GitHub CLI" },
     { cmd: "vercel", name: "Vercel CLI" },
     { cmd: "neon", name: "NeonDB CLI" },
-    { cmd: "upstash", name: "Upstash CLI" },
     { cmd: "stripe", name: "Stripe CLI" },
   ];
 
@@ -179,7 +178,6 @@ function checkEnvFile(): void {
     "OpenAI bêta": ["OPENAI_API_KEY", "AI_SAFETY_HMAC_SECRET"],
     "Web Push": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "CRON_SECRET"],
     Resend: ["RESEND_API_KEY"],
-    Redis: ["REDIS_URL"],
     PostHog: ["NEXT_PUBLIC_POSTHOG_KEY"],
   };
 

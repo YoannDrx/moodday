@@ -5,8 +5,11 @@ export const SiteConfig = {
   domain: "www.moodday.app",
   appIcon: "/icons/android-chrome-512x512.png",
   company: {
-    name: "Moodday",
-    address: "", // Add your company address
+    name: "Yodev",
+    legalForm: "Entrepreneur individuel",
+    siren: "803 272 590",
+    address: "",
+    email: "hello@moodday.app",
   },
   brand: {
     primary: "#1E7775",

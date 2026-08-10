@@ -5,13 +5,13 @@
  * Usage: pnpm setup
  *
  * Guide l'utilisateur pour configurer:
- * 1. Vérifier les CLIs (gh, vercel, neon, upstash, stripe)
+ * 1. Vérifier les CLIs (gh, vercel, neon, stripe)
  * 2. Configurer Vercel
  * 3. Configurer NeonDB (PostgreSQL)
- * 4. Configurer Upstash (Redis)
- * 5. Configurer Stripe (optionnel)
- * 6. Générer .env.local
- * 7. Migrer la DB
+ * 4. Configurer Stripe (optionnel)
+ * 5. Générer .env.local
+ * 6. Migrer la DB
+ * 7. Configurer BMAD-METHOD (optionnel)
  */
 
 import { execSync } from "child_process";
@@ -46,7 +46,7 @@ const log = {
   error: (msg: string) =>
     console.log(`${colors.red}[ERREUR]${colors.reset} ${msg}`),
   step: (n: number, msg: string) =>
-    console.log(`\n${colors.blue}[${n}/9]${colors.reset} ${msg}`),
+    console.log(`\n${colors.blue}[${n}/7]${colors.reset} ${msg}`),
 };
 
 function commandExists(cmd: string): boolean {
@@ -72,9 +72,6 @@ function isLoggedIn(cmd: string): boolean {
         return true;
       case "stripe":
         execSync("stripe config --list", { stdio: "ignore" });
-        return true;
-      case "upstash":
-        execSync("upstash team list", { stdio: "ignore" });
         return true;
       default:
         return false;
@@ -103,12 +100,6 @@ async function checkCLIs(): Promise<void> {
     { name: "gh", label: "GitHub CLI", required: true, pkg: "gh" },
     { name: "vercel", label: "Vercel CLI", required: true, pkg: "@vercel/cli" },
     { name: "neon", label: "NeonDB CLI", required: true, pkg: "neonctl" },
-    {
-      name: "upstash",
-      label: "Upstash CLI",
-      required: true,
-      pkg: "@upstash/cli",
-    },
     { name: "stripe", label: "Stripe CLI", required: false, pkg: "stripe" },
     { name: "pnpm", label: "pnpm", required: true, pkg: "pnpm" },
   ];
@@ -204,61 +195,8 @@ async function setupNeonDB(): Promise<Record<string, string>> {
   return envVars;
 }
 
-async function setupUpstash(): Promise<Record<string, string>> {
-  log.step(4, "Configuration Upstash Redis...");
-
-  const envVars: Record<string, string> = {};
-
-  if (!commandExists("upstash")) {
-    log.warn("Upstash CLI non installé → npm i -g @upstash/cli");
-    return envVars;
-  }
-
-  if (!isLoggedIn("upstash")) {
-    log.warn("Upstash non connecté → upstash auth login");
-    return envVars;
-  }
-
-  const create = await question(
-    "Veux-tu créer une nouvelle base Redis Upstash ? (o/n) ",
-  );
-  if (create.toLowerCase() !== "o") {
-    log.info("Configuration Upstash ignorée");
-    return envVars;
-  }
-
-  const dbName = await question("Nom de la base Redis: ");
-  const region = await question(
-    "Région (eu-west-1, us-east-1, us-central1) [eu-west-1]: ",
-  );
-  const selectedRegion = region || "eu-west-1";
-
-  try {
-    log.info("Création de la base Redis...");
-    const result = execSync(
-      `upstash redis create --name="${dbName}" --region="${selectedRegion}" --json`,
-      { encoding: "utf-8" },
-    );
-    const db = JSON.parse(result);
-
-    // Construire l'URL Redis
-    // Format: redis://default:PASSWORD@ENDPOINT:PORT
-    envVars.REDIS_URL = `redis://default:${db.password}@${db.endpoint}:${db.port}`;
-
-    log.success(`Base Redis créée: ${db.name}`);
-    log.success(`Endpoint: ${db.endpoint}`);
-  } catch {
-    log.error("Erreur lors de la création de la base Redis");
-    log.info(
-      "Tu peux créer la base manuellement sur https://console.upstash.com",
-    );
-  }
-
-  return envVars;
-}
-
 async function setupStripe(): Promise<Record<string, string>> {
-  log.step(5, "Configuration Stripe (optionnel)...");
+  log.step(4, "Configuration Stripe (optionnel)...");
 
   const envVars: Record<string, string> = {};
 
@@ -296,7 +234,7 @@ async function setupStripe(): Promise<Record<string, string>> {
 }
 
 async function generateEnvFile(envVars: Record<string, string>): Promise<void> {
-  log.step(6, "Génération du fichier .env.local...");
+  log.step(5, "Génération du fichier .env.local...");
 
   const envPath = path.join(process.cwd(), ".env.local");
   const templatePath = path.join(process.cwd(), ".env-template");
@@ -346,7 +284,7 @@ async function generateEnvFile(envVars: Record<string, string>): Promise<void> {
 }
 
 async function setupDatabase(): Promise<void> {
-  log.step(7, "Initialisation de la base de données...");
+  log.step(6, "Initialisation de la base de données...");
 
   const migrate = await question(
     "Veux-tu exécuter les migrations Prisma ? (o/n) ",
@@ -369,7 +307,7 @@ async function setupDatabase(): Promise<void> {
 }
 
 async function setupBMAD(): Promise<void> {
-  log.step(8, "Configuration BMAD-METHOD (optionnel)...");
+  log.step(7, "Configuration BMAD-METHOD (optionnel)...");
 
   log.info("BMAD = Breakthrough Method for Agile AI Driven Development");
   log.info("Framework d'agents IA spécialisés pour le développement agile");
@@ -418,10 +356,9 @@ async function main(): Promise<void> {
 
     const vercelEnv = await setupVercel();
     const neonEnv = await setupNeonDB();
-    const upstashEnv = await setupUpstash();
     const stripeEnv = await setupStripe();
 
-    const allEnv = { ...vercelEnv, ...neonEnv, ...upstashEnv, ...stripeEnv };
+    const allEnv = { ...vercelEnv, ...neonEnv, ...stripeEnv };
     await generateEnvFile(allEnv);
 
     await setupDatabase();

@@ -2109,19 +2109,24 @@ const en = {
       title: "Terms of Service",
       subtitle:
         "These terms explain how Moodday works and how to use it safely.",
-      lastUpdated: "Last updated: January 2026",
+      lastUpdated: "Last updated: August 2026",
       emergency: {
         title: "In case of emergency",
         descriptionPrefix:
           "If you are in distress, contact emergency services at ",
-        phone: "988",
-        descriptionSuffix: " or reach a local professional.",
+        phone: "112",
+        descriptionSuffix: " or reach a local healthcare professional.",
       },
       contact: {
         title: "Questions?",
         descriptionPrefix: "Contact us at ",
       },
       sections: {
+        publisher: {
+          title: "Service publisher",
+          content:
+            "Moodday is published by {publisher}, a French {legalForm}, registered under SIREN {siren}. Contact: hello@moodday.app.",
+        },
         service: {
           title: "Purpose of the service",
           content:
@@ -2246,7 +2251,9 @@ These Terms are governed by French law. Any dispute will be submitted to the com
       metaTitle: "{app} - Privacy Policy",
       metaDescription: "How Moodday protects your mental health data",
       title: "Privacy Policy",
-      lastUpdated: "Last updated: January 2026",
+      lastUpdated: "Last updated: August 2026",
+      controller:
+        "Data controller: {publisher}, French {legalForm}, SIREN {siren}.",
       intro: {
         prefix: "Your privacy is",
         highlight: "our priority.",

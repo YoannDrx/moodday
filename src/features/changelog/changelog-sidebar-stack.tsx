@@ -7,9 +7,24 @@ import { useI18n } from "@/i18n/provider";
 import { X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useTransition } from "react";
+import { useEffect, useState } from "react";
 import type { Changelog } from "./changelog-manager";
-import { dismissChangelogAction } from "./changelog.action";
+
+const DISMISSED_CHANGELOGS_STORAGE_KEY = "moodday:dismissed-changelogs";
+
+function readDismissedChangelogs() {
+  try {
+    const value = window.localStorage.getItem(DISMISSED_CHANGELOGS_STORAGE_KEY);
+    if (!value) return [];
+
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((slug): slug is string => typeof slug === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 type ChangelogSidebarStackProps = {
   changelogs: Changelog[];
@@ -22,22 +37,28 @@ export function ChangelogSidebarStack({
 }: ChangelogSidebarStackProps) {
   const { t, locale } = useI18n();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [changelogs, dismissChangelog] = useOptimistic(
-    initialChangelogs,
-    (state, slugToDismiss: string) =>
-      state.filter((c) => c.slug !== slugToDismiss),
-  );
+  const [changelogs, setChangelogs] = useState(initialChangelogs);
+
+  useEffect(() => {
+    const dismissed = new Set(readDismissedChangelogs());
+    setChangelogs(
+      initialChangelogs.filter((changelog) => !dismissed.has(changelog.slug)),
+    );
+  }, [initialChangelogs]);
 
   const handleDismiss = (slug: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    startTransition(async () => {
-      dismissChangelog(slug);
-      await dismissChangelogAction(slug);
-      router.refresh();
-    });
+    const dismissed = new Set(readDismissedChangelogs());
+    dismissed.add(slug);
+    window.localStorage.setItem(
+      DISMISSED_CHANGELOGS_STORAGE_KEY,
+      JSON.stringify([...dismissed]),
+    );
+    setChangelogs((current) =>
+      current.filter((changelog) => changelog.slug !== slug),
+    );
   };
 
   if (changelogs.length === 0) {
@@ -92,7 +113,6 @@ export function ChangelogSidebarStack({
                     size="icon"
                     className="text-muted-foreground hover:text-foreground size-6 shrink-0"
                     onClick={(e) => handleDismiss(changelog.slug, e)}
-                    disabled={isPending}
                   >
                     <X className="size-3.5" />
                   </Button>

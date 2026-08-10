@@ -12,13 +12,13 @@ de données de santé.
 
 ## Traitements à évaluer
 
-| Traitement             | Données                                           | Finalité                                   | Sous-traitants possibles             | Gate                                                        |
-| ---------------------- | ------------------------------------------------- | ------------------------------------------ | ------------------------------------ | ----------------------------------------------------------- |
-| Journal et check-in    | humeur, sommeil, anxiété, énergie, notes          | suivi personnel                            | Vercel, Neon, Redis/Blob selon usage | Contrats, régions et durées confirmés                       |
-| Traitements et rappels | nom, dosage déclaré, horaires, prises             | aide-mémoire personnel                     | Vercel, Neon, fournisseur push       | Fiabilité et contenu des notifications validés              |
-| Bilan IA               | agrégats minimisés, notes sur double consentement | synthèse factuelle non médicale            | OpenAI                               | DPA/transferts, corpus d'évaluation et consentement validés |
-| Cercle aidant          | catégories et périodes choisies                   | partage contrôlé par l'utilisateur         | Vercel, Neon, email                  | IDOR/E2E, audit d'accès et downgrade validés                |
-| Exports                | données choisies par l'utilisateur                | portabilité et préparation de consultation | Blob uniquement si activé            | URL, durée, chiffrement et suppression validés              |
+| Traitement             | Données                                           | Finalité                                   | Sous-traitants possibles       | Gate                                                        |
+| ---------------------- | ------------------------------------------------- | ------------------------------------------ | ------------------------------ | ----------------------------------------------------------- |
+| Journal et check-in    | humeur, sommeil, anxiété, énergie, notes          | suivi personnel                            | Vercel, Neon, Blob selon usage | Contrats, régions et durées confirmés                       |
+| Traitements et rappels | nom, dosage déclaré, horaires, prises             | aide-mémoire personnel                     | Vercel, Neon, fournisseur push | Fiabilité et contenu des notifications validés              |
+| Bilan IA               | agrégats minimisés, notes sur double consentement | synthèse factuelle non médicale            | OpenAI                         | DPA/transferts, corpus d'évaluation et consentement validés |
+| Cercle aidant          | catégories et périodes choisies                   | partage contrôlé par l'utilisateur         | Vercel, Neon, email            | IDOR/E2E, audit d'accès et downgrade validés                |
+| Exports                | données choisies par l'utilisateur                | portabilité et préparation de consultation | Blob uniquement si activé      | URL, durée, chiffrement et suppression validés              |
 
 ## Risques et mesures déjà codées
 

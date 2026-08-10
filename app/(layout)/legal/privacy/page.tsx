@@ -162,6 +162,16 @@ export default async function PrivacyPage() {
               </span>
               {t("legal.privacy.intro.suffix")}
             </Typography>
+            <Typography
+              variant="p"
+              className="text-muted-foreground mt-3 text-sm"
+            >
+              {t("legal.privacy.controller", {
+                publisher: SiteConfig.company.name,
+                legalForm: SiteConfig.company.legalForm,
+                siren: SiteConfig.company.siren,
+              })}
+            </Typography>
           </div>
 
           {/* Main Sections */}

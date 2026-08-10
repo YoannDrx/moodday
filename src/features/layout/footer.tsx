@@ -106,7 +106,8 @@ export function Footer() {
             <div className="flex flex-col gap-4 pt-8 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-1">
                 <p className="text-muted-foreground text-sm">
-                  {SiteConfig.company.address}
+                  {SiteConfig.company.name} · {SiteConfig.company.legalForm} ·
+                  SIREN {SiteConfig.company.siren}
                 </p>
                 <p className="text-muted-foreground text-sm">
                   {t("footer.rights", {
