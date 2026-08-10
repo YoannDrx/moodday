@@ -2,22 +2,22 @@ import type { Subscription } from "@/generated/prisma";
 import {
   Calendar,
   FileText,
-  HeadphonesIcon,
   Pill,
   Sparkles,
   Users,
-  Zap,
 } from "lucide-react";
+import type { PlanCode } from "@/lib/billing/entitlements";
 import {
   sendTrialConvertedEmail,
   sendTrialExpiredEmail,
   sendTrialWelcomeEmail,
+  sendSubscriptionCanceledEmail,
 } from "./subscription-emails";
 
 const DEFAULT_LIMIT = {
-  medications: 2,
-  historyDays: 7,
-  caregivers: 0,
+  medications: -1,
+  historyDays: 30,
+  caregivers: 1,
 };
 
 export type PlanLimit = typeof DEFAULT_LIMIT;
@@ -34,7 +34,7 @@ export type AppAuthPlan = {
   lookupKey?: string | undefined;
   annualDiscountPriceId?: string | undefined;
   annualDiscountLookupKey?: string | undefined;
-  name: string;
+  name: PlanCode;
   limits?: Record<string, number> | undefined;
   group?: string;
   freeTrial?: {
@@ -74,10 +74,10 @@ export const AUTH_PLANS: AppAuthPlan[] = [
     yearlyPrice: 0,
   },
   {
-    name: "pro",
+    name: "plus",
     isPopular: true,
-    priceId: process.env.STRIPE_PRO_PLAN_ID ?? "",
-    annualDiscountPriceId: process.env.STRIPE_PRO_YEARLY_PLAN_ID ?? "",
+    priceId: process.env.STRIPE_PLUS_MONTHLY_PRICE_ID ?? "",
+    annualDiscountPriceId: process.env.STRIPE_PLUS_YEARLY_PRICE_ID ?? "",
     limits: {
       medications: -1, // Illimité
       historyDays: -1, // Illimité
@@ -89,28 +89,9 @@ export const AUTH_PLANS: AppAuthPlan[] = [
       onTrialExpired: sendTrialExpiredEmail,
       onTrialEnd: sendTrialConvertedEmail,
     },
-    price: 9.99,
-    yearlyPrice: 95.9,
-    currency: "EUR",
-  },
-  {
-    name: "ultra",
-    isPopular: false,
-    priceId: process.env.STRIPE_ULTRA_PLAN_ID ?? "",
-    annualDiscountPriceId: process.env.STRIPE_ULTRA_YEARLY_PLAN_ID ?? "",
-    limits: {
-      medications: -1, // Illimité
-      historyDays: -1, // Illimité
-      caregivers: -1, // Illimité
-    },
-    freeTrial: {
-      days: 14,
-      onTrialStart: sendTrialWelcomeEmail,
-      onTrialExpired: sendTrialExpiredEmail,
-      onTrialEnd: sendTrialConvertedEmail,
-    },
-    price: 19.99,
-    yearlyPrice: 191.9,
+    onSubscriptionCanceled: sendSubscriptionCanceledEmail,
+    price: 7.99,
+    yearlyPrice: 59.99,
     currency: "EUR",
   },
 ];
@@ -136,11 +117,10 @@ export const LIMITS_CONFIG: Record<
 // Additional features by plan
 export const ADDITIONAL_FEATURES = {
   free: [Sparkles, FileText],
-  pro: [FileText, Sparkles, HeadphonesIcon],
-  ultra: [Zap, FileText],
+  plus: [FileText, Sparkles, Users],
 };
 
-export const getPlanLimits = (plan = "free"): PlanLimit => {
+export const getPlanLimits = (plan: PlanCode = "free"): PlanLimit => {
   const planLimits = AUTH_PLANS.find((p) => p.name === plan)?.limits;
 
   return planLimits ?? DEFAULT_LIMIT;

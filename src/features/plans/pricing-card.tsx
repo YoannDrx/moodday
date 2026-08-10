@@ -68,8 +68,8 @@ export function PricingCard({
     new Intl.NumberFormat(locale, {
       style: "currency",
       currency: plan.currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+      maximumFractionDigits: 2,
     }).format(value);
   const additionalFeatures =
     tm<{ label: string; description: string }[]>(
@@ -163,9 +163,15 @@ export function PricingCard({
                   </div>
                   <div>
                     <p className="font-medium">
-                      {t(`plans.limits.${key}.label`, {
-                        value: value as number,
-                      })}
+                      {value === -1
+                        ? t(`plans.limits.${key}.labelUnlimited`)
+                        : value === 0
+                          ? t(`plans.limits.${key}.labelNone`)
+                          : key === "caregivers" && value === 1
+                            ? t("plans.limits.caregivers.labelOne")
+                          : t(`plans.limits.${key}.label`, {
+                              value: value as number,
+                            })}
                     </p>
                     <p className="text-muted-foreground text-sm">
                       {t(`plans.limits.${key}.description`)}
@@ -220,12 +226,14 @@ export function PricingCard({
         ) : (
           <LoadingButton
             loading={isPending}
+            disabled={plan.name === "free"}
             size="lg"
             className={cn(
               "w-full text-base font-medium",
               plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
             )}
             onClick={() => {
+              if (plan.name !== "plus") return;
               upgradeUser({
                 plan: plan.name,
                 annual: isYearly,

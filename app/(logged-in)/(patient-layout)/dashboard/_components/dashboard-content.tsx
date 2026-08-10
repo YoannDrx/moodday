@@ -33,7 +33,6 @@ import {
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
 import { MoodSlider } from "@/components/nowts/mood-slider";
-import { StreakCard } from "@/components/nowts/streak-card";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { PageLayout } from "@/components/nowts/page-layout";
 import {
@@ -44,7 +43,6 @@ import {
   getDashboardSummary,
   getMoodChartData,
   getPatternInsights,
-  getStreakData,
 } from "@/features/insights/insights.action";
 import {
   getTodayIntakes,
@@ -117,16 +115,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     queryKey: ["pattern-insights"],
     queryFn: async () => {
       const result = await getPatternInsights();
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data;
-    },
-  });
-
-  // Fetch streak data
-  const { data: streakData, isLoading: streakLoading } = useQuery({
-    queryKey: ["streak-data"],
-    queryFn: async () => {
-      const result = await getStreakData();
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
     },
@@ -327,7 +315,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
         queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
-        queryClient.invalidateQueries({ queryKey: ["streak-data"] }),
         queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
       ]);
     } catch (error) {
@@ -351,7 +338,8 @@ export function DashboardContent({ userName }: DashboardContentProps) {
   const pendingMedicationCount = medicationDoseSlots.filter(
     ({ slot }) => slot.status === "pending",
   ).length;
-  const hasMoodToday = hasQueuedMood || (streakData?.hasEntryToday ?? false);
+  const hasMoodToday =
+    hasQueuedMood || (summary?.mood.hasEntryToday ?? false);
 
   return (
     <PageLayout
@@ -786,17 +774,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
         {/* Right Column: Sidebar Stats & Caregivers */}
         <div className="space-y-8 lg:col-span-4">
-          {/* Streak Card */}
-          {streakLoading || !streakData ? (
-            <Skeleton className="h-48 w-full rounded-[32px]" />
-          ) : (
-            <StreakCard
-              streakDays={streakData.streakDays}
-              weekProgress={streakData.weekProgress as (0 | 1)[]}
-              subtitle={streakData.subtitle}
-            />
-          )}
-
           {/* Insights Section */}
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>

@@ -170,7 +170,14 @@ function checkEnvFile(): void {
   const optionalGroups = {
     "GitHub OAuth": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
     "Google OAuth": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
-    Stripe: ["STRIPE_SECRET_KEY", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"],
+    Stripe: [
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_PLUS_MONTHLY_PRICE_ID",
+      "STRIPE_PLUS_YEARLY_PRICE_ID",
+    ],
+    "OpenAI bêta": ["OPENAI_API_KEY", "AI_SAFETY_HMAC_SECRET"],
+    "Web Push": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "CRON_SECRET"],
     Resend: ["RESEND_API_KEY"],
     Redis: ["REDIS_URL"],
     PostHog: ["NEXT_PUBLIC_POSTHOG_KEY"],

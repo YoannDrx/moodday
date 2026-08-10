@@ -2,8 +2,8 @@ import { TailwindIndicator } from "@/components/utils/tailwind-indicator";
 import { NextTopLoader } from "@/features/page/next-top-loader";
 import { ServerToaster } from "@/features/server-sonner/server-toaster";
 import { getI18n } from "@/i18n/server";
-import { getServerUrl } from "@/lib/server-url";
 import { cn } from "@/lib/utils";
+import { SiteConfig } from "@/site-config";
 import type { LayoutParams } from "@/types/next";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Manrope } from "next/font/google";
@@ -16,13 +16,38 @@ export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
 
   return {
-    title: t("meta.title"),
+    title: {
+      default: t("meta.title"),
+      template: `%s · Moodday`,
+    },
     description: t("meta.description"),
-    metadataBase: new URL(getServerUrl()),
+    metadataBase: new URL(SiteConfig.prodUrl),
+    alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
     icons: {
       icon: "/logo.svg",
       apple: "/icons/apple-touch-icon.png",
+    },
+    openGraph: {
+      type: "website",
+      siteName: "Moodday",
+      title: t("meta.title"),
+      description: t("meta.description"),
+      url: "/",
+      images: [
+        {
+          url: "/images/moodday-og.png",
+          width: 1200,
+          height: 630,
+          alt: "Moodday — comprendre ses journées et préparer ses consultations",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("meta.title"),
+      description: t("meta.description"),
+      images: ["/images/moodday-og.png"],
     },
   };
 }

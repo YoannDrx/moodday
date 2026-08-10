@@ -42,6 +42,9 @@ model User {
   // Technical delivery log. Payloads and medical content are never stored.
   notificationDeliveries NotificationDelivery[]
 
+  // Content-free operational records.
+  aiUsageRecords AIUsage[]
+
   // Stripe integration
   stripeCustomerId String?
 
@@ -101,6 +104,17 @@ model Verification {
   @@map("verification")
 }
 
+/// Content-free counters used by Better Auth and sensitive application actions.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@index([lastRequest])
+  @@map("rateLimit")
+}
+
 model Subscription {
   id                   String    @id
   plan                 String
@@ -112,6 +126,15 @@ model Subscription {
   periodStart          DateTime?
   periodEnd            DateTime?
   cancelAtPeriodEnd    Boolean?
+  priceId              String?
+  billingInterval      String?
+  trialUsedAt          DateTime?
+  graceEndsAt          DateTime?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
+  @@index([stripeSubscriptionId])
+  @@index([status, periodEnd])
   @@map("subscription")
 }

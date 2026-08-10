@@ -7,7 +7,10 @@ const getNonEmptyEnv = (value: string | undefined) => {
 };
 
 const externalBaseUrl = getNonEmptyEnv(process.env.PLAYWRIGHT_TEST_BASE_URL);
-const serverUrl = externalBaseUrl ?? "http://localhost:3000";
+const playwrightPort =
+  getNonEmptyEnv(process.env.PLAYWRIGHT_TEST_PORT) ??
+  (process.env.CI ? "3000" : "3100");
+const serverUrl = externalBaseUrl ?? `http://127.0.0.1:${playwrightPort}`;
 const databaseGuardAlreadyConfigured =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true";
 const playwrightDatabaseUrl = getNonEmptyEnv(
@@ -44,6 +47,7 @@ const isolatedServiceEnv = {
   RESEND_AUDIENCE_ID: "",
   STRIPE_SECRET_KEY: "",
   STRIPE_WEBHOOK_SECRET: "",
+  BETTER_AUTH_URL: serverUrl,
 };
 
 Object.assign(process.env, isolatedServiceEnv);
@@ -98,11 +102,10 @@ const config: PlaywrightTestConfig = {
     ? {}
     : {
         webServer: {
-          command: "pnpm run build && pnpm run start",
+          command: `pnpm run build && pnpm run start -H 127.0.0.1 -p ${playwrightPort}`,
           url: serverUrl,
           timeout: 120 * 1000,
-          reuseExistingServer:
-            process.env.NODE_ENV === "development" ? !process.env.CI : true,
+          reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
           env: {
             DATABASE_URL: playwrightDatabaseUrl,
             DATABASE_URL_UNPOOLED: playwrightDatabaseUrlUnpooled,

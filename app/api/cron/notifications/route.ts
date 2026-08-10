@@ -4,6 +4,7 @@ import {
   buildMedicationDoseSlots,
   createMedicationReminderKey,
   getDateKeyForTimeZone,
+  isIntakeForDateInTimeZone,
   normalizeScheduleTimesForFrequency,
 } from "@/features/medication/schedule";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,7 @@ import { route } from "@/lib/zod-route";
 import {
   claimNotificationDelivery,
   completeNotificationDeliveries,
+  createEndpointDeliveryKey,
 } from "@/features/notifications/delivery";
 import {
   getLocalTime,
@@ -21,47 +23,46 @@ import {
 
 export const maxDuration = 300;
 
-const sendToSubscriptions = async (
-  subscriptions: {
-    endpoint: string;
-    p256dh: string;
-    auth: string;
-    expirationTime: Date | null;
-  }[],
+type PushSubscriptionRecord = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  expirationTime: Date | null;
+};
+
+const sendToSubscription = async (
+  subscription: PushSubscriptionRecord,
   payload: ReturnType<typeof buildPushPayload>,
 ) => {
   const webPush = getWebPush();
-  if (!webPush) return 0;
+  if (!webPush) return { sent: false, errorCode: "vapid_not_configured" };
 
-  let sent = 0;
-
-  for (const subscription of subscriptions) {
-    try {
-      await webPush.sendNotification(
-        {
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.p256dh,
-            auth: subscription.auth,
-          },
-          expirationTime: subscription.expirationTime
-            ? subscription.expirationTime.getTime()
-            : undefined,
+  try {
+    await webPush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
         },
-        payload,
-      );
-      sent += 1;
-    } catch (error: unknown) {
-      const statusCode = (error as { statusCode?: number }).statusCode;
-      if (statusCode === 404 || statusCode === 410) {
-        await prisma.pushSubscription.delete({
-          where: { endpoint: subscription.endpoint },
-        });
-      }
+        expirationTime: subscription.expirationTime
+          ? subscription.expirationTime.getTime()
+          : undefined,
+      },
+      payload,
+    );
+    return { sent: true };
+  } catch (error: unknown) {
+    const statusCode = (error as { statusCode?: number }).statusCode;
+    if (statusCode === 404 || statusCode === 410) {
+      await prisma.pushSubscription.delete({
+        where: { endpoint: subscription.endpoint },
+      });
+      return { sent: false, errorCode: "push_subscription_gone" };
     }
-  }
 
-  return sent;
+    return { sent: false, errorCode: "push_delivery_failed" };
+  }
 };
 
 const getTodayMedicationReminderKeys = (keys: string[], localDateKey: string) =>
@@ -111,44 +112,52 @@ export const GET = route.handler(async (request) => {
 
     if (
       pref.dailyCheckInReminder &&
-      isReminderDue(localTime, pref.dailyCheckInTime) &&
-      pref.lastDailyCheckInSentDate !== localDateKey
+      isReminderDue(localTime, pref.dailyCheckInTime)
     ) {
-      const deliveryKey = `daily-checkin:${localDateKey}`;
-      const claimed = await claimNotificationDelivery({
-        userId: pref.userId,
-        deliveryKey,
-        now,
+      const payload = buildPushPayload({
+        title: "Moodday - Check-in",
+        body: "Pensez a enregistrer votre humeur du jour.",
+        url: "/mood",
+        tag: "daily-checkin",
       });
+      let sentToAtLeastOneEndpoint = false;
 
-      if (claimed) {
-        const payload = buildPushPayload({
-          title: "Moodday - Check-in",
-          body: "Pensez a enregistrer votre humeur du jour.",
-          url: "/mood",
-          tag: "daily-checkin",
+      for (const subscription of subscriptions) {
+        const deliveryKey = createEndpointDeliveryKey(
+          `daily-checkin:${localDateKey}`,
+          subscription.endpoint,
+        );
+        const claimed = await claimNotificationDelivery({
+          userId: pref.userId,
+          deliveryKey,
+          now,
         });
+        if (!claimed) continue;
 
-        const sent = await sendToSubscriptions(subscriptions, payload);
+        const result = await sendToSubscription(subscription, payload);
         await completeNotificationDeliveries({
           userId: pref.userId,
           deliveryKeys: [deliveryKey],
-          sent: sent > 0,
+          sent: result.sent,
+          errorCode: result.errorCode,
           now,
         });
-        if (sent > 0) {
-          checkInsSent += 1;
-          await prisma.userPreferences.update({
-            where: { userId: pref.userId },
-            data: { lastDailyCheckInSentDate: localDateKey },
-          });
-        }
+        sentToAtLeastOneEndpoint ||= result.sent;
+      }
+
+      if (sentToAtLeastOneEndpoint) {
+        checkInsSent += 1;
+        await prisma.userPreferences.update({
+          where: { userId: pref.userId },
+          data: { lastDailyCheckInSentDate: localDateKey },
+        });
       }
     }
 
     if (pref.medicationReminders) {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      // Legacy intake rows have no local scheduled date. Query a deliberately
+      // broad UTC window, then classify them using the user's IANA timezone.
+      const legacyLookbackStart = new Date(now.getTime() - 36 * 60 * 60 * 1000);
       const medications = await prisma.medication.findMany({
         where: {
           userId: pref.userId,
@@ -162,7 +171,7 @@ export const GET = route.handler(async (request) => {
                 { scheduledForDate: localDateKey },
                 {
                   scheduledForDate: null,
-                  takenAt: { gte: startOfDay },
+                  takenAt: { gte: legacyLookbackStart, lte: now },
                 },
               ],
             },
@@ -186,7 +195,13 @@ export const GET = route.handler(async (request) => {
               ]);
 
         return buildMedicationDoseSlots(
-          { ...medication, scheduleTimes },
+          {
+            ...medication,
+            scheduleTimes,
+            intakes: medication.intakes.filter((intake) =>
+              isIntakeForDateInTimeZone(intake, localDateKey, timeZone),
+            ),
+          },
           localDateKey,
         )
           .filter(
@@ -204,53 +219,69 @@ export const GET = route.handler(async (request) => {
               slot.doseIndex,
               slot.scheduledTime,
             ),
-          }))
-          .filter(({ reminderKey }) => !sentReminderKeys.includes(reminderKey));
+          }));
       });
 
       if (dueDoseSlots.length === 0) continue;
 
-      const claimedDoseSlots = [];
-      for (const dueDoseSlot of dueDoseSlots) {
-        const claimed = await claimNotificationDelivery({
+      const successfullySentReminderKeys = new Set<string>();
+      for (const subscription of subscriptions) {
+        const claimedDoseSlots: typeof dueDoseSlots = [];
+        const claimedDeliveryKeys: string[] = [];
+
+        for (const dueDoseSlot of dueDoseSlots) {
+          const deliveryKey = createEndpointDeliveryKey(
+            `medication:${dueDoseSlot.reminderKey}`,
+            subscription.endpoint,
+          );
+          const claimed = await claimNotificationDelivery({
+            userId: pref.userId,
+            deliveryKey,
+            now,
+          });
+          if (claimed) {
+            claimedDoseSlots.push(dueDoseSlot);
+            claimedDeliveryKeys.push(deliveryKey);
+          }
+        }
+
+        if (claimedDoseSlots.length === 0) continue;
+
+        const payload = buildPushPayload({
+          title: "Moodday - Medicaments",
+          body:
+            claimedDoseSlots.length === 1
+              ? `Rappel pour ${claimedDoseSlots[0]?.medication.name}.`
+              : `${claimedDoseSlots.length} prises sont prevues maintenant.`,
+          url: "/medications/today",
+          tag: `medication-reminder-${localDateKey}-${claimedDoseSlots[0]?.slot.scheduledTime ?? "now"}`,
+        });
+        const result = await sendToSubscription(subscription, payload);
+
+        await completeNotificationDeliveries({
           userId: pref.userId,
-          deliveryKey: `medication:${dueDoseSlot.reminderKey}`,
+          deliveryKeys: claimedDeliveryKeys,
+          sent: result.sent,
+          errorCode: result.errorCode,
           now,
         });
-        if (claimed) claimedDoseSlots.push(dueDoseSlot);
+
+        if (result.sent) {
+          for (const { reminderKey } of claimedDoseSlots) {
+            successfullySentReminderKeys.add(reminderKey);
+          }
+        }
       }
 
-      if (claimedDoseSlots.length === 0) continue;
-
-      const payload = buildPushPayload({
-        title: "Moodday - Medicaments",
-        body:
-          claimedDoseSlots.length === 1
-            ? `Rappel pour ${claimedDoseSlots[0]?.medication.name}.`
-            : `${claimedDoseSlots.length} prises sont prevues maintenant.`,
-        url: "/medications/today",
-        tag: `medication-reminder-${localDateKey}-${claimedDoseSlots[0]?.slot.scheduledTime ?? "now"}`,
-      });
-
-      const sent = await sendToSubscriptions(subscriptions, payload);
-      await completeNotificationDeliveries({
-        userId: pref.userId,
-        deliveryKeys: claimedDoseSlots.map(
-          ({ reminderKey }) => `medication:${reminderKey}`,
-        ),
-        sent: sent > 0,
-        now,
-      });
-      if (sent > 0) {
+      if (successfullySentReminderKeys.size > 0) {
         medsSent += 1;
         await prisma.userPreferences.update({
           where: { userId: pref.userId },
           data: {
             lastMedicationReminderSentDate: localDateKey,
-            lastMedicationReminderSentKeys: [
-              ...sentReminderKeys,
-              ...claimedDoseSlots.map(({ reminderKey }) => reminderKey),
-            ],
+            lastMedicationReminderSentKeys: Array.from(
+              new Set([...sentReminderKeys, ...successfullySentReminderKeys]),
+            ),
           },
         });
       }

@@ -29,7 +29,7 @@ async function main() {
 
     // Create subscription for some users (30% chance)
     if (faker.datatype.boolean(0.3)) {
-      const plans = ["free", "pro", "ultra"];
+      const plans = ["free", "plus"];
       const selectedPlan = faker.helpers.arrayElement(plans);
 
       await prisma.subscription.upsert({

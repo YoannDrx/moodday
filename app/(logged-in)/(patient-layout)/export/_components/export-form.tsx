@@ -57,9 +57,11 @@ const downloadBlob = (blob: Blob, filename: string) => {
 export function ExportForm({
   initialStartDate,
   initialEndDate,
+  canCreateConsultationReport,
 }: {
   initialStartDate: string;
   initialEndDate: string;
+  canCreateConsultationReport: boolean;
 }) {
   const { t, locale } = useI18n();
 
@@ -95,16 +97,24 @@ export function ExportForm({
   const { data: exportData, isLoading: exportLoading } = useQuery({
     queryKey: ["export-data", startDate, endDate, showPreview],
     queryFn: async () => {
-      const result = await getExportData({ startDate, endDate });
+      const result = await getExportData({
+        startDate,
+        endDate,
+        purpose: "preview",
+      });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
     },
-    enabled: showPreview && isValidRange,
+    enabled: showPreview && isValidRange && canCreateConsultationReport,
   });
 
   const pdfDownloadMutation = useMutation({
     mutationFn: async () => {
-      const result = await getExportData({ startDate, endDate });
+      const result = await getExportData({
+        startDate,
+        endDate,
+        purpose: "consultation-report",
+      });
       if (result.serverError) throw new Error(result.serverError);
       if (!result.data) throw new Error(t("export.download.noData"));
 
@@ -126,7 +136,11 @@ export function ExportForm({
 
   const csvDownloadMutation = useMutation({
     mutationFn: async () => {
-      const result = await getExportData({ startDate, endDate });
+      const result = await getExportData({
+        startDate,
+        endDate,
+        purpose: "csv",
+      });
       if (result.serverError) throw new Error(result.serverError);
       if (!result.data) throw new Error(t("export.download.noData"));
 
@@ -221,18 +235,38 @@ export function ExportForm({
           )}
 
           {/* Actions */}
+          {!canCreateConsultationReport && (
+            <div className="border-primary/20 bg-primary/5 rounded-xl border p-4 text-sm">
+              <p className="font-semibold">
+                {locale === "fr"
+                  ? "Le rapport de consultation PDF est inclus dans Moodday Plus."
+                  : "The PDF consultation report is included with Moodday Plus."}
+              </p>
+              <p className="text-muted-foreground mt-1">
+                {locale === "fr"
+                  ? "Vos exports de portabilité CSV et JSON restent gratuits."
+                  : "Your CSV and JSON portability exports remain free."}
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               onClick={() => setShowPreview(true)}
-              disabled={!isValidRange || previewLoading}
+              disabled={
+                !isValidRange || previewLoading || !canCreateConsultationReport
+              }
             >
               <Eye className="mr-2 size-4" />
               {t("export.actions.preview")}
             </Button>
             <Button
               onClick={() => pdfDownloadMutation.mutate()}
-              disabled={!isValidRange || pdfDownloadMutation.isPending}
+              disabled={
+                !isValidRange ||
+                pdfDownloadMutation.isPending ||
+                !canCreateConsultationReport
+              }
             >
               {pdfDownloadMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />

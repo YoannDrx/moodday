@@ -18,11 +18,31 @@ export const env = createEnv({
     EMAIL_FROM: z
       .string()
       .optional()
-      .default("Moodday <contact@do-not-reply.app>"),
+      .default("Moodday <moodday@yodev.fr>"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_ACCOUNT_ID: z.string().optional(),
+    STRIPE_PLUS_MONTHLY_PRICE_ID: z.string().optional(),
+    STRIPE_PLUS_YEARLY_PRICE_ID: z.string().optional(),
+    STRIPE_PORTAL_CONFIGURATION_ID: z.string().optional(),
+    BILLING_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
+    STRIPE_TAX_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
     OPENAI_API_KEY: z.string().optional(),
     AI_INSIGHTS_MODEL: z.string().optional(),
+    AI_INSIGHTS_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
+    AI_SAFETY_HMAC_SECRET: z.string().min(32).optional(),
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().optional(),

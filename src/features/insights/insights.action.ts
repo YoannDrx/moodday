@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getI18n } from "@/i18n/server";
 import { calculateAdherencePercent } from "@/features/medication/adherence";
+import { getEntitlements } from "@/lib/billing/entitlements";
 
 // ===== Mood Chart Data (30 Days) =====
 
@@ -15,8 +16,17 @@ const getMoodChartDataSchema = z.object({
 export const getMoodChartData = authAction
   .inputSchema(getMoodChartDataSchema)
   .action(async ({ parsedInput: { days }, ctx: { user } }) => {
+    const subscription = await prisma.subscription.findUnique({
+      where: { referenceId: user.id },
+    });
+    const analyticsWindowDays = getEntitlements(
+      subscription,
+    ).analyticsWindowDays;
+    const effectiveDays = analyticsWindowDays
+      ? Math.min(days, analyticsWindowDays)
+      : days;
     const since = new Date();
-    since.setDate(since.getDate() - days);
+    since.setDate(since.getDate() - effectiveDays);
     since.setHours(0, 0, 0, 0);
 
     const moodEntries = await prisma.moodEntry.findMany({
@@ -67,7 +77,10 @@ export const getMoodChartData = authAction
       },
     });
 
-    const adherencePercent = calculateAdherencePercent(medications, days);
+    const adherencePercent = calculateAdherencePercent(
+      medications,
+      effectiveDays,
+    );
 
     return {
       moodEntries: moodEntries.map((entry) => ({
@@ -87,6 +100,8 @@ export const getMoodChartData = authAction
         date: change.changedAt.toISOString(),
       })),
       medicationAdherence: adherencePercent,
+      requestedDays: days,
+      effectiveDays,
     };
   });
 
@@ -246,6 +261,9 @@ export const getDashboardSummary = authAction.action(
           value: e.value,
           date: e.createdAt.toISOString(),
         })),
+        hasEntryToday: moodEntries.some(
+          (entry) => entry.createdAt.getTime() >= startOfDay.getTime(),
+        ),
       },
       sleep: {
         avgHours: avgSleepHours ? Math.round(avgSleepHours * 10) / 10 : null,

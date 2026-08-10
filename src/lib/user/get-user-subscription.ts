@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma";
+import { getEffectivePlan } from "@/lib/billing/entitlements";
 import type { CurrentUserPayload } from "./get-user";
 import { getCurrentUser } from "./get-user";
 
@@ -27,5 +28,5 @@ export const checkUserSubscription = async (
 ): Promise<boolean> => {
   if (!user?.subscription) return false;
 
-  return user.subscription.status === "active";
+  return getEffectivePlan(user.subscription) === "plus";
 };

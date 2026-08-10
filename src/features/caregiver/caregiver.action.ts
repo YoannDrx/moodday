@@ -12,9 +12,14 @@ import {
   canLeaveCaregiverRelationship,
   canManageCaregiverRelationship,
   CaregiverPermissionsSchema,
+  getEffectiveCaregiverPermissions,
+  hasCaregiverWritePermission,
   hasActiveCaregiverPermission,
+  isCaregiverRelationshipReadOnly,
 } from "./permissions";
 import { recordCaregiverSharedSpaceAccess } from "./access-log";
+import { getEntitlements } from "@/lib/billing/entitlements";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // ═══════════════════════════════════════════════════════════════
 // CAREGIVER RELATIONSHIP SYSTEM
@@ -37,6 +42,34 @@ const roleLabelKeys: Record<string, string> = {
   family: "caregiver.roles.family",
   friend: "caregiver.roles.friend",
   professional: "caregiver.roles.professional",
+};
+
+const getCaregiverPlanAccess = async (relationship: {
+  id: string;
+  patientId: string;
+}) => {
+  const [subscription, orderedRelationships] = await Promise.all([
+    prisma.subscription.findUnique({
+      where: { referenceId: relationship.patientId },
+    }),
+    prisma.caregiverRelationship.findMany({
+      where: {
+        patientId: relationship.patientId,
+        status: { in: ["pending", "active"] },
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    }),
+  ]);
+
+  const caregiverLimit = getEntitlements(subscription).caregiverLimit;
+  const readOnly = isCaregiverRelationshipReadOnly({
+    relationshipId: relationship.id,
+    orderedRelationshipIds: orderedRelationships.map(({ id }) => id),
+    caregiverLimit,
+  });
+
+  return { caregiverLimit, readOnly };
 };
 
 const sendCaregiverInviteEmail = async (params: {
@@ -92,6 +125,12 @@ export const inviteCaregiver = authAction
       ctx: { user },
     }) => {
       const { t } = await getI18n();
+      await enforceRateLimit({
+        scope: "caregiver-invite",
+        identifier: user.id,
+        max: 10,
+        windowSeconds: 60 * 60,
+      });
       // Check if user is trying to invite themselves
       if (email === user.email) {
         throw new Error(t("caregiver.errors.selfInvite"));
@@ -112,6 +151,23 @@ export const inviteCaregiver = authAction
           ],
         },
       });
+
+      const [subscription, relationshipCount] = await Promise.all([
+        prisma.subscription.findUnique({
+          where: { referenceId: user.id },
+        }),
+        prisma.caregiverRelationship.count({
+          where: {
+            patientId: user.id,
+            status: { in: ["pending", "active"] },
+            ...(existingRelation ? { id: { not: existingRelation.id } } : {}),
+          },
+        }),
+      ]);
+      const limit = getEntitlements(subscription).caregiverLimit;
+      if (relationshipCount >= limit) {
+        throw new Error(t("caregiver.errors.planLimitReached", { limit }));
+      }
 
       // Generate invite token
       const inviteToken = nanoid(32);
@@ -332,30 +388,59 @@ export const declineCaregiverInvitation = authAction
 // ===== Get My Caregivers (as patient) =====
 
 export const getMyCaregivers = authAction.action(async ({ ctx: { user } }) => {
-  const relationships = await prisma.caregiverRelationship.findMany({
-    where: {
-      patientId: user.id,
-    },
-    include: {
-      caregiver: {
-        select: { id: true, name: true, email: true, image: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [relationships, subscription, orderedRelationships] = await Promise.all(
+    [
+      prisma.caregiverRelationship.findMany({
+        where: {
+          patientId: user.id,
+        },
+        include: {
+          caregiver: {
+            select: { id: true, name: true, email: true, image: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.subscription.findUnique({
+        where: { referenceId: user.id },
+      }),
+      prisma.caregiverRelationship.findMany({
+        where: {
+          patientId: user.id,
+          status: { in: ["pending", "active"] },
+        },
+        select: { id: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      }),
+    ],
+  );
+  const caregiverLimit = getEntitlements(subscription).caregiverLimit;
+  const orderedRelationshipIds = orderedRelationships.map(({ id }) => id);
 
-  return relationships.map((r) => ({
-    id: r.id,
-    caregiverId: r.caregiverId,
-    caregiverName: r.caregiver?.name ?? null,
-    caregiverEmail: r.caregiver?.email ?? r.caregiverEmail,
-    caregiverImage: r.caregiver?.image ?? null,
-    role: r.role,
-    label: r.label,
-    permissions: r.permissions,
-    status: r.status,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  return relationships.map((r) => {
+    const readOnlyByPlan = isCaregiverRelationshipReadOnly({
+      relationshipId: r.id,
+      orderedRelationshipIds,
+      caregiverLimit,
+    });
+
+    return {
+      id: r.id,
+      caregiverId: r.caregiverId,
+      caregiverName: r.caregiver?.name ?? null,
+      caregiverEmail: r.caregiver?.email ?? r.caregiverEmail,
+      caregiverImage: r.caregiver?.image ?? null,
+      role: r.role,
+      label: r.label,
+      permissions: getEffectiveCaregiverPermissions(
+        r.permissions,
+        readOnlyByPlan,
+      ),
+      readOnlyByPlan,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
 });
 
 // ===== Get My Patients (as caregiver) =====
@@ -384,17 +469,31 @@ export const getMyPatients = authAction.action(async ({ ctx: { user } }) => {
     return activeRelationships;
   });
 
-  return relationships.map((r) => ({
-    id: r.id,
-    patientId: r.patientId,
-    patientName: r.patient.name,
-    patientEmail: r.patient.email,
-    patientImage: r.patient.image,
-    role: r.role,
-    label: r.label,
-    permissions: r.permissions,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  const planAccess = await Promise.all(
+    relationships.map(async (relationship) =>
+      getCaregiverPlanAccess(relationship),
+    ),
+  );
+
+  return relationships.map((r, index) => {
+    const readOnlyByPlan = planAccess[index]?.readOnly ?? true;
+
+    return {
+      id: r.id,
+      patientId: r.patientId,
+      patientName: r.patient.name,
+      patientEmail: r.patient.email,
+      patientImage: r.patient.image,
+      role: r.role,
+      label: r.label,
+      permissions: getEffectiveCaregiverPermissions(
+        r.permissions,
+        readOnlyByPlan,
+      ),
+      readOnlyByPlan,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
 });
 
 // ===== Get Caregiver Access Log (patient only) =====
@@ -467,6 +566,11 @@ export const updateCaregiverPermissions = authAction
         throw new Error(
           t("caregiver.errors.relationshipNotFoundOrUnauthorized"),
         );
+      }
+
+      const { readOnly } = await getCaregiverPlanAccess(relationship);
+      if (readOnly && hasCaregiverWritePermission(permissions)) {
+        throw new Error(t("caregiver.errors.readOnlyAfterDowngrade"));
       }
 
       const updated = await prisma.caregiverRelationship.update({
@@ -564,6 +668,11 @@ export const createObservation = authAction
             t("caregiver.errors.insufficientObservationPermission"),
           );
         }
+
+        const { readOnly } = await getCaregiverPlanAccess(relationship);
+        if (readOnly) {
+          throw new Error(t("caregiver.errors.readOnlyAfterDowngrade"));
+        }
       }
 
       const observation = await prisma.caregiverObservation.create({
@@ -631,6 +740,11 @@ export const createEvent = authAction
           })
         ) {
           throw new Error(t("caregiver.errors.insufficientEventPermission"));
+        }
+
+        const { readOnly } = await getCaregiverPlanAccess(relationship);
+        if (readOnly) {
+          throw new Error(t("caregiver.errors.readOnlyAfterDowngrade"));
         }
       }
 

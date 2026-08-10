@@ -1,6 +1,9 @@
-name: Frontend CI
+name: Code quality
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 concurrency:
   group: ${{ github.ref }}
@@ -14,12 +17,12 @@ jobs:
         node-version: [22.x]
 
     steps:
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - uses: actions/checkout@v3
+          version: 10.14.0
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install
@@ -37,12 +40,12 @@ jobs:
       matrix:
         node-version: [22.x]
     steps:
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - uses: actions/checkout@v3
+          version: 10.14.0
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install
@@ -59,12 +62,12 @@ jobs:
       matrix:
         node-version: [22.x]
     steps:
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - uses: actions/checkout@v3
+          version: 10.14.0
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install
@@ -75,3 +78,41 @@ jobs:
         run: pnpm ts
         env:
           CI: true
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+    env:
+      DATABASE_URL: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-ci@localhost:5432/moodday_ci"
+      DATABASE_URL_UNPOOLED: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-ci@localhost:5432/moodday_ci"
+      NODE_ENV: production
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: "${{ github.run_id }}-${{ github.run_attempt }}-moodday-ci"
+          POSTGRES_USER: postgres
+          POSTGRES_DB: moodday_ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy
+      - name: Build
+        run: pnpm build

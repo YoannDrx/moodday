@@ -31,34 +31,35 @@ jobs:
     # Common environment variables for all steps
     env:
       # Core
-      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
-      DATABASE_URL_UNPOOLED: "postgresql://postgres:postgres@localhost:5432/nowts_test"
-      PLAYWRIGHT_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/nowts_test"
+      DATABASE_URL: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
+      DATABASE_URL_UNPOOLED: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
+      PLAYWRIGHT_DATABASE_URL: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
       # This Postgres service is disposable and scoped to this CI job.
       PLAYWRIGHT_ALLOW_SHARED_DATABASE: "true"
-      BETTER_AUTH_SECRET: "test-secret-key-for-ci-testing-only-not-production"
+      BETTER_AUTH_SECRET: ""
       BETTER_AUTH_URL: "http://localhost:3000"
       NODE_ENV: "production"
       # Email
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      EMAIL_FROM: "Moodday <contact@do-not-reply.app>"
+      RESEND_API_KEY: ""
+      RESEND_AUDIENCE_ID: ""
+      EMAIL_FROM: "Moodday <no-reply@example.invalid>"
       NEXT_PUBLIC_EMAIL_CONTACT: "hello@moodday.app"
       # Stripe
-      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-      STRIPE_PRO_PLAN_ID: ${{ secrets.STRIPE_PRO_PLAN_ID }}
-      STRIPE_PRO_YEARLY_PLAN_ID: ${{ secrets.STRIPE_PRO_YEARLY_PLAN_ID }}
-      STRIPE_ULTRA_PLAN_ID: ${{ secrets.STRIPE_ULTRA_PLAN_ID }}
-      STRIPE_ULTRA_YEARLY_PLAN_ID: ${{ secrets.STRIPE_ULTRA_YEARLY_PLAN_ID }}
+      STRIPE_SECRET_KEY: ""
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      STRIPE_PLUS_MONTHLY_PRICE_ID: ""
+      STRIPE_PLUS_YEARLY_PRICE_ID: ""
+      BILLING_ENABLED: "false"
+      AI_INSIGHTS_ENABLED: "false"
       # OAuth
-      GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
-      GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GITHUB_CLIENT_ID: ""
+      GITHUB_CLIENT_SECRET: ""
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
       # Analytics
-      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
-      NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+      NEXT_PUBLIC_POSTHOG_KEY: ""
+      NEXT_PUBLIC_POSTHOG_HOST: ""
       # Playwright specific
       PLAYWRIGHT_TEST_BASE_URL: "http://localhost:3000"
       HEADLESS: "true"
@@ -69,7 +70,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: "${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e"
           POSTGRES_USER: postgres
           POSTGRES_DB: nowts_test
         options: >-
@@ -85,15 +86,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.14.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: "pnpm"
+
+      - name: Generate an ephemeral auth secret
+        run: openssl rand -hex 32 | sed 's/^/BETTER_AUTH_SECRET=/' >> "$GITHUB_ENV"
 
       - name: Cache Next.js build
         uses: actions/cache@v4
@@ -111,8 +115,8 @@ jobs:
       - name: Generate Prisma client
         run: pnpm prisma generate
 
-      - name: Setup database schema
-        run: pnpm prisma db push --force-reset --accept-data-loss
+      - name: Apply database migrations
+        run: pnpm prisma migrate deploy
 
       - name: Build application
         run: pnpm build

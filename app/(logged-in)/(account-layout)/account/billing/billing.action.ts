@@ -1,6 +1,7 @@
 "use server";
 
 import { authAction } from "@/lib/actions/safe-actions";
+import { env } from "@/lib/env";
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
 import { getServerUrl } from "@/lib/server-url";
@@ -56,6 +57,9 @@ export const openStripePortalAction = authAction
 
     const stripeBilling = await getStripe().billingPortal.sessions.create({
       customer: stripeCustomerId,
+      ...(env.STRIPE_PORTAL_CONFIGURATION_ID
+        ? { configuration: env.STRIPE_PORTAL_CONFIGURATION_ID }
+        : {}),
       return_url: getSafeStripeReturnUrl(parsedInput.returnUrl),
     });
 
@@ -92,6 +96,9 @@ export const cancelSubscriptionAction = authAction
 
     const stripeBilling = await getStripe().billingPortal.sessions.create({
       customer: stripeCustomerId,
+      ...(env.STRIPE_PORTAL_CONFIGURATION_ID
+        ? { configuration: env.STRIPE_PORTAL_CONFIGURATION_ID }
+        : {}),
       return_url: getSafeStripeReturnUrl(returnUrl),
     });
 

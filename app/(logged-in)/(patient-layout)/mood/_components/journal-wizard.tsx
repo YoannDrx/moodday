@@ -26,6 +26,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   symptomLabels,
@@ -104,8 +105,11 @@ export function JournalWizard() {
   const maxStep = 5;
   const [entry, setEntry] = useState<JournalEntry>(initialEntry);
   const [isSaving, setIsSaving] = useState(false);
+  const [includeNotesInInsight, setIncludeNotesInInsight] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [aiSource, setAiSource] = useState<"ai" | "heuristic" | null>(null);
+  const [aiSource, setAiSource] = useState<
+    "ai" | "heuristic" | "safety" | null
+  >(null);
   const [insightRequested, setInsightRequested] = useState(false);
 
   // Get today's date formatted
@@ -286,8 +290,21 @@ export function JournalWizard() {
       sleepQuality: entry.sleepQuality,
       notes: entry.notes,
       tags: [...entry.symptoms, ...entry.events],
+      includeJournalNotes: includeNotesInInsight,
     });
-  }, [step, maxStep, insightRequested, fetchInsight, entry]);
+  }, [
+    step,
+    maxStep,
+    insightRequested,
+    fetchInsight,
+    entry,
+    includeNotesInInsight,
+  ]);
+
+  const handleInsightNotesChange = (checked: boolean) => {
+    setIncludeNotesInInsight(checked);
+    setInsightRequested(false);
+  };
 
   const insightText =
     insightStatus === "executing"
@@ -764,6 +781,23 @@ export function JournalWizard() {
                         {entry.notes.length}/500
                       </span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">
+                        {t("mood.journal.insight.includeNotes")}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {t("mood.journal.insight.includeNotesDescription")}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={includeNotesInInsight}
+                      disabled={entry.notes.trim().length === 0}
+                      onCheckedChange={handleInsightNotesChange}
+                      aria-label={t("mood.journal.insight.includeNotes")}
+                    />
                   </div>
 
                   {/* AI Insight */}

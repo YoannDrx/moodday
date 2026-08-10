@@ -1,170 +1,138 @@
 /* eslint-disable no-console */
 /**
- * Automatic Stripe product and price creation
+ * Provisions the Moodday v1 catalogue in Stripe test mode.
+ *
+ * Live provisioning is deliberately blocked here: the live account must first
+ * be confirmed as Moodday-only and its legal/tax settings reviewed.
  */
 
-import { execSync } from "child_process";
+import Stripe from "stripe";
+
 import type { ProjectConfig } from "./init-config";
 import { colors, log, question } from "./init-config";
 
-type StripePlan = {
-  name: string;
-  description: string;
-  monthlyPrice: number; // in cents
-  yearlyPrice: number; // in cents
-  currency: string;
-  trialDays: number;
+const PRODUCT = {
+  name: "Moodday Plus",
+  description:
+    "Le suivi complet de votre humeur, sommeil et traitements, avec bilans IA sourcés, rapports de consultation et cercle aidant — sans diagnostic ni recommandation médicale.",
+  taxCode: "txcd_10103000",
+  monthly: {
+    amount: 799,
+    interval: "month" as const,
+    lookupKey: "moodday_plus_monthly_eur_v1",
+  },
+  yearly: {
+    amount: 5999,
+    interval: "year" as const,
+    lookupKey: "moodday_plus_yearly_eur_v1",
+  },
 };
-
-const DEFAULT_PLANS: StripePlan[] = [
-  {
-    name: "Pro",
-    description: "For growing businesses",
-    monthlyPrice: 4900, // $49
-    yearlyPrice: 40000, // $400
-    currency: "usd",
-    trialDays: 14,
-  },
-  {
-    name: "Ultra",
-    description: "Enterprise-grade solution",
-    monthlyPrice: 10000, // $100
-    yearlyPrice: 100000, // $1000
-    currency: "usd",
-    trialDays: 14,
-  },
-];
 
 type StripeEnvVars = {
   STRIPE_SECRET_KEY?: string;
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?: string;
-  STRIPE_PRO_MONTHLY_PRICE_ID?: string;
-  STRIPE_PRO_YEARLY_PRICE_ID?: string;
-  STRIPE_ULTRA_MONTHLY_PRICE_ID?: string;
-  STRIPE_ULTRA_YEARLY_PRICE_ID?: string;
+  STRIPE_PLUS_MONTHLY_PRICE_ID?: string;
+  STRIPE_PLUS_YEARLY_PRICE_ID?: string;
+  BILLING_ENABLED?: string;
 };
 
-function stripeCliExists(): boolean {
-  try {
-    execSync("which stripe", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isStripeLoggedIn(): boolean {
-  try {
-    execSync("stripe config --list", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
+async function findPrice(stripe: Stripe, lookupKey: string) {
+  const prices = await stripe.prices.list({
+    lookup_keys: [lookupKey],
+    limit: 1,
+  });
+  return prices.data.at(0);
 }
 
 export async function setupStripe(
   config: ProjectConfig,
 ): Promise<StripeEnvVars> {
   const envVars: StripeEnvVars = {};
-
   if (!config.setupStripe) {
     log.info("Configuration Stripe ignorée");
     return envVars;
   }
 
-  if (!stripeCliExists()) {
-    log.warn(
-      "Stripe CLI non installé. Installez-le avec: brew install stripe/stripe-cli/stripe",
-    );
-    return envVars;
-  }
-
-  if (!isStripeLoggedIn()) {
-    log.warn("Stripe CLI non connecté. Connectez-vous avec: stripe login");
-    const loginNow = await question(
-      "Voulez-vous vous connecter maintenant ? (o/n) ",
-    );
-    if (loginNow.toLowerCase() === "o") {
-      try {
-        execSync("stripe login", { stdio: "inherit" });
-      } catch {
-        log.error("Échec de la connexion Stripe");
-        return envVars;
-      }
-    } else {
-      return envVars;
-    }
-  }
-
-  // Get API keys
   console.log("\n");
-  log.info("Récupération des clés API Stripe...");
+  log.info(
+    "Utilisez uniquement les clés du compte Stripe test dédié à Moodday.",
+  );
   console.log(
-    `${colors.dim}Allez sur https://dashboard.stripe.com/apikeys${colors.reset}`,
+    `${colors.dim}Clés : https://dashboard.stripe.com/test/apikeys${colors.reset}`,
   );
 
-  const sk = await question("STRIPE_SECRET_KEY (sk_...): ");
-  const pk = await question("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (pk_...): ");
+  const secretKey = await question("STRIPE_SECRET_KEY de test (sk_test_...): ");
+  const publishableKey = await question(
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY de test (pk_test_...): ",
+  );
 
-  if (sk) envVars.STRIPE_SECRET_KEY = sk;
-  if (pk) envVars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = pk;
-
-  if (!sk) {
-    log.warn("Clé secrète Stripe non fournie, création des produits ignorée");
+  if (!secretKey.startsWith("sk_test_")) {
+    log.error(
+      "Provisioning interrompu : ce script refuse les clés live. Validez d'abord le compte, la TVA et le branding Moodday.",
+    );
+    return envVars;
+  }
+  if (!publishableKey.startsWith("pk_test_")) {
+    log.error("La clé publique doit appartenir au même environnement test.");
     return envVars;
   }
 
-  // Create products and prices
-  log.info("Création des produits Stripe...");
+  const stripe = new Stripe(secretKey);
+  const existingMonthly = await findPrice(stripe, PRODUCT.monthly.lookupKey);
+  const existingYearly = await findPrice(stripe, PRODUCT.yearly.lookupKey);
 
-  for (const plan of DEFAULT_PLANS) {
-    try {
-      // Create product
-      const productResult = execSync(
-        `stripe products create --name="${plan.name}" --description="${plan.description}" --api-key="${sk}" --format=json`,
-        { encoding: "utf-8" },
-      );
-      const product = JSON.parse(productResult);
-      log.success(`Produit créé: ${plan.name} (${product.id})`);
-
-      // Create monthly price
-      const monthlyPriceResult = execSync(
-        `stripe prices create --product="${product.id}" --unit-amount=${plan.monthlyPrice} --currency=${plan.currency} --recurring-interval=month --lookup-key="${plan.name.toLowerCase()}_monthly" --api-key="${sk}" --format=json`,
-        { encoding: "utf-8" },
-      );
-      const monthlyPrice = JSON.parse(monthlyPriceResult);
-      log.success(
-        `Prix mensuel créé: ${formatPrice(plan.monthlyPrice, plan.currency)}/mois`,
-      );
-
-      // Create yearly price
-      const yearlyPriceResult = execSync(
-        `stripe prices create --product="${product.id}" --unit-amount=${plan.yearlyPrice} --currency=${plan.currency} --recurring-interval=year --lookup-key="${plan.name.toLowerCase()}_yearly" --api-key="${sk}" --format=json`,
-        { encoding: "utf-8" },
-      );
-      const yearlyPrice = JSON.parse(yearlyPriceResult);
-      log.success(
-        `Prix annuel créé: ${formatPrice(plan.yearlyPrice, plan.currency)}/an`,
-      );
-
-      // Store price IDs
-      const planKey = plan.name.toUpperCase();
-      envVars[`STRIPE_${planKey}_MONTHLY_PRICE_ID` as keyof StripeEnvVars] =
-        monthlyPrice.id;
-      envVars[`STRIPE_${planKey}_YEARLY_PRICE_ID` as keyof StripeEnvVars] =
-        yearlyPrice.id;
-    } catch (err) {
-      log.error(`Erreur lors de la création du produit ${plan.name}: ${err}`);
+  if (existingMonthly || existingYearly) {
+    if (!existingMonthly || !existingYearly) {
+      log.error("Catalogue v1 incomplet : corrigez Stripe avant de relancer.");
+      return envVars;
     }
+    log.info("Catalogue Moodday v1 existant détecté ; aucun doublon créé.");
+    envVars.STRIPE_PLUS_MONTHLY_PRICE_ID = existingMonthly.id;
+    envVars.STRIPE_PLUS_YEARLY_PRICE_ID = existingYearly.id;
+  } else {
+    const product = await stripe.products.create({
+      name: PRODUCT.name,
+      description: PRODUCT.description,
+      tax_code: PRODUCT.taxCode,
+      metadata: {
+        app: "moodday",
+        plan: "plus",
+        catalog_version: "1",
+        lifecycle: "public",
+      },
+    });
+
+    const monthly = await stripe.prices.create({
+      product: product.id,
+      currency: "eur",
+      unit_amount: PRODUCT.monthly.amount,
+      recurring: { interval: PRODUCT.monthly.interval },
+      lookup_key: PRODUCT.monthly.lookupKey,
+      tax_behavior: "inclusive",
+      metadata: { app: "moodday", plan: "plus", catalog_version: "1" },
+    });
+    const yearly = await stripe.prices.create({
+      product: product.id,
+      currency: "eur",
+      unit_amount: PRODUCT.yearly.amount,
+      recurring: { interval: PRODUCT.yearly.interval },
+      lookup_key: PRODUCT.yearly.lookupKey,
+      tax_behavior: "inclusive",
+      metadata: { app: "moodday", plan: "plus", catalog_version: "1" },
+    });
+    await stripe.products.update(product.id, { default_price: monthly.id });
+
+    envVars.STRIPE_PLUS_MONTHLY_PRICE_ID = monthly.id;
+    envVars.STRIPE_PLUS_YEARLY_PRICE_ID = yearly.id;
+    log.success(`Produit test créé : ${PRODUCT.name}`);
+    log.success("Prix test créés : 7,99 € / mois et 59,99 € / an TTC");
   }
 
+  envVars.STRIPE_SECRET_KEY = secretKey;
+  envVars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = publishableKey;
+  envVars.BILLING_ENABLED = "false";
+  log.warn(
+    "BILLING_ENABLED reste désactivé jusqu'à la validation du portail, du webhook et des tests d'abonnement.",
+  );
   return envVars;
-}
-
-function formatPrice(cents: number, currency: string): string {
-  const amount = cents / 100;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(amount);
 }

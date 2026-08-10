@@ -98,7 +98,10 @@ function handleServerError(e: Error) {
     return e.message;
   }
 
-  logger.info("Unknown Error", e);
+  logger.info("Action failed", {
+    errorCode: "action_failed",
+    errorName: e.name,
+  });
 
   if (process.env.NODE_ENV === "development") {
     return e.message;

@@ -2,7 +2,7 @@ const en = {
   meta: {
     title: "Moodday",
     description:
-      "Private personal journal to track your mental health journey with peace of mind",
+      "A personal tracking companion to understand your days, track declared treatments, and prepare consultations without diagnosis.",
   },
   language: {
     title: "Language",
@@ -254,6 +254,9 @@ const en = {
       insight: {
         title: "Insight",
         titleAi: "AI insight",
+        includeNotes: "Include this note in the summary",
+        includeNotesDescription:
+          "Off by default and only used if journal notes are allowed in Privacy settings.",
         loading: "Generating insight...",
         fallback: "Keep tracking to see insights here.",
         localNotice: "Insights are generated locally when offline.",
@@ -927,12 +930,12 @@ const en = {
       tracking: "Tracking",
       tools: "Tools",
       support: "Support",
-      mood: "My mood",
+      mood: "Journal",
       medications: "Medications",
       exercises: "Exercises",
       therapy: "Therapy",
       export: "Export",
-      trends: "Trends",
+      trends: "Summaries",
       caregiver: "Caregiver",
       crisis: "Crisis resources",
     },
@@ -1116,6 +1119,8 @@ const en = {
     },
     errors: {
       selfInvite: "You cannot invite yourself.",
+      planLimitReached:
+        "Your plan includes {limit} active or invited caregiver. Upgrade to Plus to expand your circle.",
       alreadyInCircle: "This caregiver is already in your circle.",
       pendingInvite: "An invite is already pending for this person.",
       invalidInvite: "This invite is invalid.",
@@ -1132,6 +1137,8 @@ const en = {
         "You do not have permission to add observations.",
       insufficientEventPermission:
         "You do not have permission to report events.",
+      readOnlyAfterDowngrade:
+        "This caregiver access is now read-only after the move to the Free plan.",
       notAllowedObserve: "You are not allowed to add observations.",
       notAllowedReportEvent: "You are not allowed to report events.",
     },
@@ -1200,6 +1207,19 @@ const en = {
       policyTitle: "Privacy policy",
       policyDescription: "Read how we handle your data.",
       policyCta: "Read policy",
+      aiTitle: "AI-assisted summaries",
+      aiDescription:
+        "With your consent, Moodday can send a minimized summary of your data to OpenAI to generate a factual review. This Plus feature is disabled by default.",
+      aiConsent: "Allow AI summaries",
+      aiConsentDescription:
+        "Only aggregated mood, energy, anxiety, and sleep data.",
+      aiNotes: "Include my journal notes",
+      aiNotesDescription:
+        "A separate option, disabled by default. You can withdraw it at any time.",
+      aiDisclaimer:
+        "Responses are not saved by default, do not diagnose, and never recommend treatment changes. In an emergency, contact local emergency services.",
+      aiSaved: "AI preferences saved",
+      aiSaveError: "AI preferences could not be saved",
     },
     offline: {
       title: "Offline sync",
@@ -1410,13 +1430,11 @@ const en = {
   plans: {
     names: {
       free: "Free",
-      pro: "Pro",
-      ultra: "Ultra",
+      plus: "Plus",
     },
     descriptions: {
-      free: "Daily mood tracking and basic journal",
-      pro: "Full tracking with unlimited medications, history and caregivers",
-      ultra: "All Pro features + priority support",
+      free: "Essential daily tracking, journal and reminders",
+      plus: "Advanced summaries, analytical history and expanded caregiver circle",
     },
     limits: {
       medications: {
@@ -1431,6 +1449,7 @@ const en = {
       },
       caregivers: {
         label: "{value} caregivers",
+        labelOne: "1 caregiver",
         labelUnlimited: "Unlimited caregivers",
         labelNone: "No caregivers",
         description: "Share with your loved ones",
@@ -1447,28 +1466,19 @@ const en = {
           description: "Write down your thoughts and emotions",
         },
       ],
-      pro: [
+      plus: [
         {
-          label: "PDF export",
-          description: "Export your data for your doctor",
+          label: "Consultation report",
+          description: "Prepare a clear, evidence-linked summary",
         },
         {
           label: "AI insights",
-          description: "Personalized analysis of your trends",
+          description:
+            "Eight evidence-linked summaries per month, no diagnosis",
         },
         {
-          label: "Email support",
-          description: "Dedicated email assistance",
-        },
-      ],
-      ultra: [
-        {
-          label: "Priority support",
-          description: "Fast response to your requests",
-        },
-        {
-          label: "Exportable data",
-          description: "Full export of all your data",
+          label: "Expanded caregiver circle",
+          description: "Up to three caregivers with explicit permissions",
         },
       ],
     },
@@ -2203,7 +2213,7 @@ If you invite a loved one to your caregiver circle:
 
 ## 6. Intellectual property
 
-All application content (texts, graphics, logos, icons) are the property of Moodday SAS or its licensors. Any reproduction is prohibited without authorization.
+All application content (texts, graphics, logos, icons) is the property of Moodday or its licensors. Any reproduction is prohibited without authorization.
 
 ## 7. Limitation of liability
 
@@ -2292,19 +2302,20 @@ These Terms are governed by French law. Any dispute will be submitted to the com
           items: {
             encryption: {
               label: "Encryption",
-              value: "AES-256 at rest, TLS in transit.",
+              value: "Connections are protected with HTTPS/TLS in transit.",
             },
             hosting: {
               label: "Hosting",
-              value: "EU-based servers.",
+              value: "Processors and regions are documented in our register.",
             },
             auth: {
               label: "Authentication",
-              value: "Strong auth with optional 2FA.",
+              value: "Secure sessions and verified OAuth providers.",
             },
             audit: {
-              label: "Audits",
-              value: "Regular security testing.",
+              label: "Controls",
+              value:
+                "Permissions, exports, and deletion are tested automatically.",
             },
           },
         },
@@ -2334,8 +2345,10 @@ These Terms are governed by French law. Any dispute will be submitted to the com
         title: "Data retention",
         items: {
           active: "Data retained while your account is active.",
-          afterDeletion: "Deleted within 30 days after account removal.",
-          backups: "Backups removed within 90 days.",
+          afterDeletion:
+            "Deleting an account triggers erasure of active data, subject to applicable legal obligations.",
+          backups:
+            "Backups follow a documented and controlled retention policy.",
         },
       },
       cookies: {
@@ -2347,89 +2360,55 @@ These Terms are governed by French law. Any dispute will be submitted to the com
         title: "Contact",
         descriptionPrefix: "For privacy questions, email ",
       },
-      content: `## 1. Introduction
+      content: `## 1. Scope
 
-At Moodday, protecting your health data is our absolute priority. This policy explains how we collect, use, and protect your personal information.
+This policy describes how Moodday processes personal data. Moodday is a non-medical personal tracking companion; it does not diagnose conditions or replace a healthcare professional.
 
-## 2. Data collected
+## 2. Data processed
 
-### Data you provide us
-- **Account**: email, name (optional), encrypted password
-- **Daily tracking**: moods, personal notes, sleep quality
-- **Medications**: names, dosages, intake times
-- **Therapy**: session dates, notes (optional)
+- **Account**: email address, optional name, and authentication data.
+- **Personal tracking**: mood, sleep, anxiety, energy, and notes you choose to record.
+- **Declared medications**: names, dosages, schedules, and intakes.
+- **Therapy and exercises**: information you voluntarily enter.
+- **Minimized technical data**: information required for security, error diagnosis, and service operation. Sensitive content is excluded from application logs.
 
-### Automatically collected data
-- Technical logs (anonymized)
-- Aggregated usage data to improve the service
+## 3. Purposes
 
-**We NEVER collect**: your geolocation, contacts, messages, or any data from your other applications.
+Data is used to provide the journal, reminders, insights, exports, and sharing options you enable. AI features are disabled by default and require separate consent when available.
 
-## 3. Use of your data
+Moodday does not sell your data to advertisers or insurers.
 
-Your data is used **exclusively** to:
-- Provide the personal tracking service
-- Generate your PDF reports for consultations
-- Share with your authorized caregivers (if you wish)
-- Improve the application (aggregated and anonymized data)
+## 4. Recipients and processors
 
-**We NEVER sell your data** to third parties, advertisers, or insurers.
+Data may be processed by providers strictly required for hosting, email, payment, and, after consent, AI features. The contractual processor list, regions, and any international transfers must be finalized before public launch.
 
-## 4. Data sharing
-
-Your data is only shared with:
-- **You**: via PDF export and GDPR export
-- **Your authorized caregivers**: only the data you choose to share
-- **Technical providers**: under strict confidentiality agreement (hosting, email)
+Caregivers only see the categories you authorize. Free-form notes are not shared by default, and access can be revoked.
 
 ## 5. Security
 
-We implement robust security measures:
-- **Encryption**: data encrypted at rest (AES-256) and in transit (TLS 1.3)
-- **Hosting**: servers exclusively in the European Union
-- **Access**: strong authentication, 2FA available
-- **Audits**: regular security testing
+Connections to the application use HTTPS. Moodday applies server-side access controls, idempotency records, provider backups, and log minimization. No claim of end-to-end encryption, HDS certification, exclusively European hosting, or 2FA is made unless technically and contractually demonstrated.
 
-## 6. Your rights (GDPR)
+## 6. Your rights
 
-In accordance with GDPR, you have the following rights:
-- **Access**: view all your data at any time
-- **Rectification**: modify your information
-- **Erasure**: delete your account and all your data
-- **Portability**: export your data in JSON format
-- **Objection**: refuse certain processing
+Depending on applicable law, you may request access, rectification, erasure, portability, restriction, or objection. The application also provides JSON and CSV exports and account deletion.
 
-To exercise these rights: hello@moodday.app
+Contact: hello@moodday.app
 
-## 7. Data retention
+## 7. Retention
 
-- **Active account**: data retained as long as your account is active
-- **After deletion**: data erased within 30 days (unless legal obligation)
-- **Backups**: deleted within 90 days
+Active data is retained while the account exists. Account deletion triggers erasure of active data, subject to applicable legal obligations. Exact backup and log retention periods will be published after contractual validation.
 
 ## 8. Cookies
 
-We only use essential cookies:
-- Session and authentication
-- Preferences (language, theme)
+Moodday uses cookies essential to authentication and preferences. No advertising cookies are enabled.
 
-No advertising or tracking cookies. See our [Cookie Policy](/legal/cookies).
+## 9. Changes
 
-## 9. DPO Contact
-
-For any questions regarding your data:
-- Email: hello@moodday.app
-- Address: Moodday SAS, DPO, Paris, France
-
-## 10. Modifications
-
-We will inform you of any substantial modification to this policy by email.
+Material changes to this policy will be announced in the service or by email.
 
 ---
 
-*Last updated: January 2026*
-
-*Moodday SAS - Simplified joint-stock company - France*`,
+*Last updated: August 2026*`,
     },
     cookies: {
       metaTitle: "{app} - Cookie Policy",
@@ -2660,8 +2639,7 @@ We will inform you of any substantial modification to this policy by email.
         },
         privacy: {
           title: "Privacy-first",
-          description:
-            "End-to-end encryption, GDPR compliant. Your data belongs to you.",
+          description: "Control sharing, exports, and deletion of your data.",
         },
         aiInsights: {
           title: "AI Insights",
@@ -2683,34 +2661,35 @@ We will inform you of any substantial modification to this policy by email.
         "We take security seriously. Your trust is our absolute priority.",
       features: {
         encryption: {
-          title: "AES-256 encryption",
-          description: "Your data is encrypted at rest and in transit",
+          title: "Protected connections",
+          description: "Connections to Moodday use HTTPS",
         },
         zeroKnowledge: {
-          title: "Zero-knowledge",
-          description: "We cannot read your health data",
+          title: "Data minimization",
+          description: "We limit processing to the data needed for the service",
         },
         gdpr: {
-          title: "GDPR compliant",
-          description: "Full compliance with European regulations",
+          title: "User rights",
+          description: "Access, export, and deletion are available in the app",
         },
         euHosting: {
-          title: "EU hosting",
-          description: "Servers exclusively in the European Union",
+          title: "Documented processors",
+          description:
+            "Regions and transfers are tracked in our internal register",
         },
         secureAuth: {
           title: "Secure auth",
-          description: "2FA, OAuth, and biometric authentication",
+          description: "Protected sessions and verified OAuth providers",
         },
         audits: {
-          title: "Regular audits",
-          description: "Quarterly penetration tests",
+          title: "Continuous controls",
+          description: "Automated tests and documented incident procedures",
         },
       },
       badges: {
         ssl: "256-bit SSL",
-        rgpd: "GDPR",
-        hds: "HDS Ready",
+        rgpd: "User control",
+        hds: "Personal tracking",
       },
     },
     journey: {
@@ -2885,13 +2864,13 @@ We will inform you of any substantial modification to this policy by email.
       titleHighlight: "mental health journey",
       titleSuffix: "with peace of mind",
       subtitle:
-        "A digital companion designed with psychiatrists to help you better understand your moods, track your treatments, and prepare your consultations.",
+        "A personal tracking companion to understand your days, track declared treatments, and prepare your consultations.",
       ctaPrimary: "Start for free",
       ctaSecondary: "Discover features",
       trust: {
-        gdpr: "GDPR compliant",
-        encrypted: "Encrypted data",
-        medicalPdf: "Medical PDF export",
+        gdpr: "User control",
+        encrypted: "Protected connection",
+        medicalPdf: "Consultation report",
       },
       mockup: {
         greeting: "Hello Marie 👋",
@@ -2917,7 +2896,7 @@ We will inform you of any substantial modification to this policy by email.
       title: "Everything you need to",
       titleHighlight: "take care of yourself",
       subtitle:
-        "Tools designed with healthcare professionals to support you daily in your mental health journey.",
+        "Personal tracking tools to observe daily life and prepare conversations with a healthcare professional.",
       items: [
         {
           title: "Smart mood tracking",
@@ -2987,7 +2966,8 @@ We will inform you of any substantial modification to this policy by email.
           },
           {
             title: "Private data",
-            description: "End-to-end encryption, GDPR compliant",
+            description:
+              "Explicit sharing, export, and deletion under your control",
           },
         ],
       },
@@ -3016,9 +2996,9 @@ We will inform you of any substantial modification to this policy by email.
         ],
       },
       trust: {
-        designedWith: "Designed with psychiatrists",
-        activeUsers: "+5000 active users",
-        rating: "4.8/5 rating on App Store",
+        designedWith: "Designed for daily tracking",
+        activeUsers: "Data under your control",
+        rating: "No medical diagnosis",
       },
     },
     faq: {
@@ -3037,7 +3017,7 @@ We will inform you of any substantial modification to this policy by email.
         {
           question: "Is my data confidential?",
           answer:
-            "Absolutely. Your data is end-to-end encrypted and stored on secure servers in Europe. We are GDPR compliant and you can export or delete your data at any time. We never sell your data to third parties.",
+            "Moodday limits access, protects connections with HTTPS, and lets you export or delete your data. Applicable processors and transfers are documented in our privacy policy.",
         },
         {
           question: "Can I share my data with my psychiatrist?",
@@ -3119,7 +3099,7 @@ We will inform you of any substantial modification to this policy by email.
           cookies: "Cookies",
         },
       },
-      copyright: "© {year} Moodday SAS. All rights reserved.",
+      copyright: "© {year} Moodday. All rights reserved.",
     },
     newsletter: {
       title: "Stay informed",

@@ -15,10 +15,12 @@ import { env } from "./env";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { getServerUrl } from "./server-url";
-import { getStripe } from "./stripe";
 import { deleteUserDataOutsideAuthCascade } from "./user/delete-user-data";
 
 type SocialProvidersType = Parameters<typeof betterAuth>[0]["socialProviders"];
+
+const isolatedE2ERateLimit =
+  process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true" ? 1000 : null;
 
 export const SocialProviders: SocialProvidersType = {};
 
@@ -40,6 +42,20 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    modelName: "rateLimit",
+    window: 60,
+    max: isolatedE2ERateLimit ?? 60,
+    customRules: {
+      "/sign-in/email": { window: 60, max: isolatedE2ERateLimit ?? 5 },
+      "/sign-up/email": { window: 300, max: isolatedE2ERateLimit ?? 5 },
+      "/forget-password": { window: 300, max: isolatedE2ERateLimit ?? 3 },
+      "/change-password": { window: 300, max: isolatedE2ERateLimit ?? 5 },
+      "/magic-link/send": { window: 300, max: isolatedE2ERateLimit ?? 3 },
+    },
+  },
   baseURL: getServerUrl(),
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days (NFR-S5)
@@ -55,35 +71,10 @@ export const auth = betterAuth({
         after: async (user, _req) => {
           try {
             await setupResendCustomer(user);
-          } catch (err) {
+          } catch {
             logger.error("Failed to create Resend contact", {
-              err,
-              userId: user.id,
+              errorCode: "resend_contact_failed",
             });
-          }
-
-          // Create Stripe customer for the user
-          if (env.STRIPE_SECRET_KEY) {
-            try {
-              const stripeCustomer = await getStripe().customers.create({
-                email: user.email,
-                name: user.name,
-                metadata: {
-                  userId: user.id,
-                },
-              });
-
-              // Update user with Stripe customer ID
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { stripeCustomerId: stripeCustomer.id },
-              });
-            } catch (err) {
-              logger.error("Failed to create Stripe customer", {
-                err,
-                userId: user.id,
-              });
-            }
           }
         },
       },

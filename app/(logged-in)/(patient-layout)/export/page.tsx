@@ -5,6 +5,7 @@ import { ExportForm } from "./_components/export-form";
 import { getRequiredUser } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+import { getEntitlements } from "@/lib/billing/entitlements";
 
 const addDaysToDateKey = (dateKey: string, days: number) => {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -24,10 +25,13 @@ export const generateMetadata = combineWithParentMetadata(async () => {
 export default async function ExportPage() {
   const { t } = await getI18n();
   const user = await getRequiredUser();
-  const preferences = await prisma.userPreferences.findUnique({
-    where: { userId: user.id },
-    select: { timezone: true },
-  });
+  const [preferences, subscription] = await Promise.all([
+    prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    }),
+    prisma.subscription.findUnique({ where: { referenceId: user.id } }),
+  ]);
   const initialEndDate = getDateKeyForTimeZone(
     new Date(),
     preferences?.timezone,
@@ -43,6 +47,9 @@ export default async function ExportPage() {
       <ExportForm
         initialStartDate={initialStartDate}
         initialEndDate={initialEndDate}
+        canCreateConsultationReport={
+          getEntitlements(subscription).consultationReports
+        }
       />
     </PageLayout>
   );

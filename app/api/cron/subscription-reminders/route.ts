@@ -70,20 +70,18 @@ export const GET = route.handler(async (request) => {
   const sent1Day = results1Day.filter((r) => r.status === "fulfilled").length;
 
   // Log failures
-  results3Days.forEach((result, index) => {
+  results3Days.forEach((result) => {
     if (result.status === "rejected") {
       logger.error("[subscription-reminders] Failed to send J-3 reminder", {
-        error: result.reason,
-        userId: trialsExpiring3Days[index].user.id,
+        errorCode: "email_delivery_failed",
       });
     }
   });
 
-  results1Day.forEach((result, index) => {
+  results1Day.forEach((result) => {
     if (result.status === "rejected") {
       logger.error("[subscription-reminders] Failed to send J-1 reminder", {
-        error: result.reason,
-        userId: trialsExpiring1Day[index].user.id,
+        errorCode: "email_delivery_failed",
       });
     }
   });

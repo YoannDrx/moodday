@@ -1,5 +1,7 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
+import { getRequiredCurrentUser } from "@/lib/user/get-user";
+import { prisma } from "@/lib/prisma";
 
 import { PrivacyContent } from "./_components/privacy-content";
 
@@ -11,6 +13,22 @@ export const generateMetadata = combineWithParentMetadata(async () => {
   };
 });
 
-export default function PrivacyPage() {
-  return <PrivacyContent />;
+export default async function PrivacyPage() {
+  const user = await getRequiredCurrentUser();
+  const preferences = await prisma.userPreferences.findUnique({
+    where: { userId: user.id },
+    select: {
+      aiInsightsEnabled: true,
+      aiJournalNotesEnabled: true,
+    },
+  });
+
+  return (
+    <PrivacyContent
+      initialAiEnabled={preferences?.aiInsightsEnabled ?? false}
+      initialJournalNotesEnabled={
+        preferences?.aiJournalNotesEnabled ?? false
+      }
+    />
+  );
 }

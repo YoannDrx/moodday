@@ -15,11 +15,12 @@ Moodday est un compagnon de suivi personnel de santé mentale. Il aide à observ
 | ----------- | ----------- | ------------- |
 | Canvas      | `canvas`    | `#F7F5F0`     |
 | Surface     | `surface`   | `#FFFFFF`     |
-| Texte       | `text`      | `#1F2937`     |
+| Encre       | `ink`       | `#183432`     |
 | Marque      | `brand`     | `#1E7775`     |
-| Sauge       | `success`   | `#4E8768`     |
-| Lavande     | `accent`    | `#D8CCE8`     |
-| Sable       | `secondary` | `#E9E1D4`     |
+| Cyan        | `breath`    | `#8DDDE0`     |
+| Corail      | `human`     | `#F29B82`     |
+| Lavande     | `accent`    | `#C7B8EA`     |
+| Ambre       | `attention` | `#E8BD69`     |
 | Danger      | `danger`    | `#B42318`     |
 | Attention   | `warning`   | `#A15C00`     |
 | Information | `info`      | `#276A8A`     |
@@ -28,7 +29,7 @@ Manrope est utilisé pour les titres, Inter pour le texte et Geist Mono uniqueme
 
 ## Navigation produit
 
-La navigation principale mobile contient cinq destinations : Aujourd'hui, Journal, Traitements, Tendances et Profil. Les exercices, la thérapie, les exports, la confidentialité et le cercle aidant restent accessibles depuis les écrans concernés et les réglages.
+La navigation principale mobile contient cinq destinations : Aujourd'hui, Journal, Traitements, Bilans et Profil. Les exercices, la thérapie, les exports, la confidentialité et le cercle aidant restent accessibles depuis les écrans concernés et les réglages.
 
 ## Composants et états
 

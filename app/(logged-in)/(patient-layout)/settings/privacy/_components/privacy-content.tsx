@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, Download, ChevronRight, ExternalLink } from "lucide-react";
+import {
+  Shield,
+  Download,
+  ChevronRight,
+  ExternalLink,
+  Sparkles,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   GlassCard,
@@ -12,9 +20,35 @@ import {
 import { PageLayout } from "@/components/nowts/page-layout";
 import { useI18n } from "@/i18n/provider";
 import { DeleteAccountForm } from "@app/(logged-in)/(account-layout)/account/danger/delete-account-form";
+import { Switch } from "@/components/ui/switch";
+import { setAiInsightsConsent } from "@/features/insights/ai-insight.action";
+import { resolveActionResult } from "@/lib/actions/actions-utils";
+import { useMutation } from "@tanstack/react-query";
 
-export function PrivacyContent() {
+export function PrivacyContent({
+  initialAiEnabled,
+  initialJournalNotesEnabled,
+}: {
+  initialAiEnabled: boolean;
+  initialJournalNotesEnabled: boolean;
+}) {
   const { t } = useI18n();
+  const [aiEnabled, setAiEnabled] = useState(initialAiEnabled);
+  const [journalNotesEnabled, setJournalNotesEnabled] = useState(
+    initialJournalNotesEnabled,
+  );
+  const consentMutation = useMutation({
+    mutationFn: async (next: {
+      enabled: boolean;
+      includeJournalNotes: boolean;
+    }) => resolveActionResult(setAiInsightsConsent(next)),
+    onSuccess: (_, next) => {
+      setAiEnabled(next.enabled);
+      setJournalNotesEnabled(next.enabled && next.includeJournalNotes);
+      toast.success(t("settings.privacy.aiSaved"));
+    },
+    onError: () => toast.error(t("settings.privacy.aiSaveError")),
+  });
 
   return (
     <PageLayout
@@ -23,6 +57,66 @@ export function PrivacyContent() {
       maxWidth="3xl"
     >
       <div className="space-y-6">
+        <GlassCard padding="lg" variant="elevated">
+          <GlassCardHeader>
+            <GlassCardTitle
+              icon={<Sparkles className="size-5 text-[var(--primary)]" />}
+            >
+              {t("settings.privacy.aiTitle")}
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-5">
+            <p className="text-sm leading-relaxed text-gray-600">
+              {t("settings.privacy.aiDescription")}
+            </p>
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4">
+              <div>
+                <p className="font-bold text-gray-800">
+                  {t("settings.privacy.aiConsent")}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {t("settings.privacy.aiConsentDescription")}
+                </p>
+              </div>
+              <Switch
+                checked={aiEnabled}
+                disabled={consentMutation.isPending}
+                onCheckedChange={(enabled) =>
+                  consentMutation.mutate({
+                    enabled,
+                    includeJournalNotes: enabled && journalNotesEnabled,
+                  })
+                }
+                aria-label={t("settings.privacy.aiConsent")}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4">
+              <div>
+                <p className="font-bold text-gray-800">
+                  {t("settings.privacy.aiNotes")}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {t("settings.privacy.aiNotesDescription")}
+                </p>
+              </div>
+              <Switch
+                checked={journalNotesEnabled}
+                disabled={!aiEnabled || consentMutation.isPending}
+                onCheckedChange={(includeJournalNotes) =>
+                  consentMutation.mutate({
+                    enabled: true,
+                    includeJournalNotes,
+                  })
+                }
+                aria-label={t("settings.privacy.aiNotes")}
+              />
+            </div>
+            <p className="text-xs leading-relaxed text-gray-500">
+              {t("settings.privacy.aiDisclaimer")}
+            </p>
+          </GlassCardContent>
+        </GlassCard>
+
         <GlassCard padding="lg" variant="elevated">
           <GlassCardHeader>
             <GlassCardTitle

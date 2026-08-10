@@ -4,7 +4,7 @@ const fr: typeof en = {
   meta: {
     title: "Moodday",
     description:
-      "Journal personnel et confidentiel pour suivre votre santé mentale en toute sérénité",
+      "Compagnon de suivi personnel pour comprendre vos journées, suivre vos traitements déclarés et préparer vos consultations, sans diagnostic.",
   },
   language: {
     title: "Langue",
@@ -260,6 +260,9 @@ const fr: typeof en = {
       insight: {
         title: "Analyse",
         titleAi: "Analyse IA",
+        includeNotes: "Inclure cette note dans le bilan",
+        includeNotesDescription:
+          "Désactivé par défaut et utilisé uniquement si vous avez autorisé les notes dans Confidentialité.",
         loading: "Génération de l'analyse...",
         fallback: "Continuez le suivi pour voir des analyses ici.",
         localNotice: "Les analyses sont générées localement hors ligne.",
@@ -941,12 +944,12 @@ const fr: typeof en = {
       tracking: "Suivi",
       tools: "Outils",
       support: "Support",
-      mood: "Mon humeur",
+      mood: "Journal",
       medications: "Traitements",
       exercises: "Exercices",
       therapy: "Thérapie",
       export: "Export",
-      trends: "Tendances",
+      trends: "Bilans",
       caregiver: "Suivi aidant",
       crisis: "Ressources de crise",
     },
@@ -1135,6 +1138,8 @@ const fr: typeof en = {
     },
     errors: {
       selfInvite: "Vous ne pouvez pas vous inviter vous-même.",
+      planLimitReached:
+        "Votre offre permet {limit} aidant actif ou invité. Passez à Plus pour agrandir votre cercle.",
       alreadyInCircle: "Cet aidant est déjà dans votre cercle.",
       pendingInvite: "Une invitation est déjà en attente pour cette personne.",
       invalidInvite: "Cette invitation est invalide.",
@@ -1152,6 +1157,8 @@ const fr: typeof en = {
         "Vous n'avez pas l'autorisation d'ajouter des observations.",
       insufficientEventPermission:
         "Vous n'avez pas l'autorisation de signaler des événements.",
+      readOnlyAfterDowngrade:
+        "Cet accès aidant est désormais en lecture seule après le passage à l'offre Free.",
       notAllowedObserve:
         "Vous n'êtes pas autorisé(e) à ajouter des observations.",
       notAllowedReportEvent:
@@ -1225,6 +1232,19 @@ const fr: typeof en = {
       policyTitle: "Politique de confidentialité",
       policyDescription: "Découvrez comment nous traitons vos données.",
       policyCta: "Lire la politique",
+      aiTitle: "Bilans assistés par IA",
+      aiDescription:
+        "Avec votre accord, Moodday peut transmettre un résumé minimisé de vos données à OpenAI pour générer un bilan factuel. Cette fonction est réservée à Plus et reste désactivée par défaut.",
+      aiConsent: "Autoriser les bilans IA",
+      aiConsentDescription:
+        "Humeur, énergie, anxiété et sommeil agrégés uniquement.",
+      aiNotes: "Inclure mes notes de journal",
+      aiNotesDescription:
+        "Option séparée et désactivée par défaut. Vous pouvez la retirer à tout moment.",
+      aiDisclaimer:
+        "Les réponses ne sont pas enregistrées par défaut, ne posent pas de diagnostic et ne recommandent aucune modification de traitement. En cas d'urgence, contactez le 15/112 ou le 3114.",
+      aiSaved: "Préférences IA enregistrées",
+      aiSaveError: "Impossible d'enregistrer les préférences IA",
     },
     offline: {
       title: "Synchronisation hors ligne",
@@ -1441,13 +1461,11 @@ const fr: typeof en = {
   plans: {
     names: {
       free: "Gratuit",
-      pro: "Pro",
-      ultra: "Ultra",
+      plus: "Plus",
     },
     descriptions: {
-      free: "Suivi d'humeur quotidien et journal basique",
-      pro: "Suivi complet avec médicaments illimités, historique et aidants",
-      ultra: "Toutes les fonctionnalités Pro + support prioritaire",
+      free: "Suivi quotidien essentiel, journal et rappels",
+      plus: "Bilans avancés, historique analytique et cercle aidant étendu",
     },
     limits: {
       medications: {
@@ -1462,6 +1480,7 @@ const fr: typeof en = {
       },
       caregivers: {
         label: "{value} aidants",
+        labelOne: "1 aidant",
         labelUnlimited: "Aidants illimités",
         labelNone: "Pas d'aidants",
         description: "Partager avec vos proches",
@@ -1478,28 +1497,18 @@ const fr: typeof en = {
           description: "Notez vos pensées et émotions",
         },
       ],
-      pro: [
+      plus: [
         {
-          label: "Export PDF",
-          description: "Exportez vos données pour votre médecin",
+          label: "Rapport de consultation",
+          description: "Préparez un bilan clair et sourcé",
         },
         {
           label: "Insights IA",
-          description: "Analyses personnalisées de vos tendances",
+          description: "Huit bilans sourcés par mois, sans diagnostic",
         },
         {
-          label: "Support par email",
-          description: "Assistance dédiée par email",
-        },
-      ],
-      ultra: [
-        {
-          label: "Support prioritaire",
-          description: "Réponse rapide à vos demandes",
-        },
-        {
-          label: "Données exportables",
-          description: "Export complet de toutes vos données",
+          label: "Cercle aidant étendu",
+          description: "Jusqu'à trois aidants avec permissions explicites",
         },
       ],
     },
@@ -2213,7 +2222,7 @@ const fr: typeof en = {
         },
       },
       content:
-        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday SAS ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
+        "## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Contact : hello@moodday.app*",
     },
     privacy: {
       metaTitle: "{app} - Politique de Confidentialité",
@@ -2277,19 +2286,21 @@ const fr: typeof en = {
           items: {
             encryption: {
               label: "Chiffrement",
-              value: "AES-256 au repos, TLS en transit.",
+              value: "Connexions protégées par HTTPS/TLS en transit.",
             },
             hosting: {
               label: "Hébergement",
-              value: "Serveurs basés dans l'UE.",
+              value:
+                "Sous-traitants et régions documentés dans notre registre.",
             },
             auth: {
               label: "Authentification",
-              value: "Authentification forte avec 2FA optionnelle.",
+              value: "Sessions sécurisées et fournisseurs OAuth vérifiés.",
             },
             audit: {
-              label: "Audits",
-              value: "Tests de sécurité réguliers.",
+              label: "Contrôles",
+              value:
+                "Autorisations, exports et suppressions testés automatiquement.",
             },
           },
         },
@@ -2320,8 +2331,9 @@ const fr: typeof en = {
         items: {
           active: "Données conservées tant que votre compte est actif.",
           afterDeletion:
-            "Supprimées dans les 30 jours après la suppression du compte.",
-          backups: "Sauvegardes supprimées sous 90 jours.",
+            "La suppression du compte déclenche l'effacement des données actives, sous réserve des obligations légales applicables.",
+          backups:
+            "Les sauvegardes suivent une politique de conservation documentée et contrôlée.",
         },
       },
       cookies: {
@@ -2334,8 +2346,55 @@ const fr: typeof en = {
         title: "Contact",
         descriptionPrefix: "Pour les questions de confidentialité, écrivez à ",
       },
-      content:
-        "## 1. Introduction\n\nChez Moodday, la protection de vos données de santé est notre priorité absolue. Cette politique explique comment nous collectons, utilisons et protégeons vos informations personnelles.\n\n## 2. Données collectées\n\n### Données que vous nous fournissez\n- **Compte** : email, nom (optionnel), mot de passe chiffré\n- **Suivi quotidien** : humeurs, notes personnelles, qualité du sommeil\n- **Médicaments** : noms, dosages, horaires de prises\n- **Thérapie** : dates des séances, notes (optionnelles)\n\n### Données collectées automatiquement\n- Logs techniques (anonymisés)\n- Données d'utilisation agrégées pour améliorer le service\n\n**Nous ne collectons JAMAIS** : votre géolocalisation, vos contacts, vos messages, ni aucune donnée de vos autres applications.\n\n## 3. Utilisation de vos données\n\nVos données sont utilisées **exclusivement** pour :\n- Fournir le service de suivi personnel\n- Générer vos rapports PDF pour vos consultations\n- Partager avec vos aidants autorisés (si vous le souhaitez)\n- Améliorer l'application (données agrégées et anonymisées)\n\n**Nous ne vendons JAMAIS vos données** à des tiers, annonceurs ou assureurs.\n\n## 4. Partage des données\n\nVos données ne sont partagées qu'avec :\n- **Vous** : via l'export PDF et l'export RGPD\n- **Vos aidants autorisés** : uniquement les données que vous choisissez de partager\n- **Prestataires techniques** : sous contrat strict de confidentialité (hébergement, email)\n\n## 5. Sécurité\n\nNous mettons en œuvre des mesures de sécurité robustes :\n- **Chiffrement** : données chiffrées au repos (AES-256) et en transit (TLS 1.3)\n- **Hébergement** : serveurs exclusivement en Union Européenne\n- **Accès** : authentification forte, 2FA disponible\n- **Audits** : tests de sécurité réguliers\n\n## 6. Vos droits (RGPD)\n\nConformément au RGPD, vous disposez des droits suivants :\n- **Accès** : consultez toutes vos données à tout moment\n- **Rectification** : modifiez vos informations\n- **Effacement** : supprimez votre compte et toutes vos données\n- **Portabilité** : exportez vos données au format JSON\n- **Opposition** : refusez certains traitements\n\nPour exercer ces droits : hello@moodday.app\n\n## 7. Conservation des données\n\n- **Compte actif** : données conservées tant que votre compte est actif\n- **Après suppression** : données effacées sous 30 jours (sauf obligation légale)\n- **Sauvegardes** : supprimées sous 90 jours\n\n## 8. Cookies\n\nNous utilisons uniquement des cookies essentiels :\n- Session et authentification\n- Préférences (langue, thème)\n\nAucun cookie publicitaire ou de tracking. Voir notre [Politique de cookies](/legal/cookies).\n\n## 9. Contact DPO\n\nPour toute question relative à vos données :\n- Email : hello@moodday.app\n- Adresse : Moodday SAS, DPO, Paris, France\n\n## 10. Modifications\n\nNous vous informerons de toute modification substantielle de cette politique par email.\n\n---\n\n*Dernière mise à jour : Janvier 2026*\n\n*Moodday SAS - Société par actions simplifiée - France*",
+      content: `## 1. Objet
+
+Cette politique décrit le traitement des données personnelles par Moodday, compagnon de suivi personnel non médical. Moodday ne pose pas de diagnostic et ne remplace pas un professionnel de santé.
+
+## 2. Données traitées
+
+- **Compte** : adresse email, nom facultatif et données d'authentification.
+- **Suivi personnel** : humeur, sommeil, anxiété, énergie et notes que vous choisissez d'enregistrer.
+- **Traitements déclarés** : noms, dosages, horaires et prises.
+- **Thérapie et exercices** : informations que vous saisissez volontairement.
+- **Données techniques minimisées** : informations nécessaires à la sécurité, au diagnostic d'erreurs et au fonctionnement du service. Le contenu sensible est exclu des logs applicatifs.
+
+## 3. Finalités
+
+Ces données servent à fournir le journal, les rappels, les bilans, les exports et les partages que vous activez. Les fonctions d'intelligence artificielle sont désactivées par défaut et soumises à un consentement séparé lorsqu'elles sont disponibles.
+
+Moodday ne vend pas vos données à des annonceurs ou à des assureurs.
+
+## 4. Destinataires et sous-traitants
+
+Vos données peuvent être traitées par les prestataires strictement nécessaires à l'hébergement, aux emails, au paiement et, après consentement, aux fonctions d'IA. La liste contractuelle des sous-traitants, leurs régions et les éventuels transferts internationaux doivent être finalisés avant l'ouverture publique.
+
+Les aidants ne voient que les catégories que vous autorisez. Les notes libres ne sont pas partagées par défaut et l'accès peut être révoqué.
+
+## 5. Sécurité
+
+Les échanges avec l'application utilisent HTTPS. Moodday applique des contrôles d'accès côté serveur, des journaux d'idempotence, des sauvegardes fournisseur et une minimisation des logs. Aucune promesse de chiffrement de bout en bout, de certification HDS, de localisation exclusivement européenne ou de 2FA n'est formulée tant qu'elle n'est pas techniquement et contractuellement démontrée.
+
+## 6. Vos droits
+
+Selon le droit applicable, vous pouvez demander l'accès, la rectification, l'effacement, la portabilité, la limitation ou l'opposition. L'application fournit aussi des exports JSON et CSV et une suppression de compte.
+
+Contact : hello@moodday.app
+
+## 7. Conservation
+
+Les données actives sont conservées pendant la vie du compte. La suppression déclenche l'effacement des données actives, sous réserve des obligations légales applicables. La durée exacte de rétention des sauvegardes et journaux sera publiée après validation contractuelle.
+
+## 8. Cookies
+
+Moodday utilise les cookies essentiels à l'authentification et aux préférences. Aucun cookie publicitaire n'est activé.
+
+## 9. Modifications
+
+Toute modification substantielle de cette politique sera signalée sur le service ou par email.
+
+---
+
+*Dernière mise à jour : août 2026*`,
     },
     cookies: {
       metaTitle: "{app} - Politique de cookies",
@@ -2571,7 +2630,7 @@ const fr: typeof en = {
         privacy: {
           title: "Confidentialité d'abord",
           description:
-            "Chiffrement de bout en bout, conforme RGPD. Vos données vous appartiennent.",
+            "Contrôlez vos partages, vos exports et la suppression de vos données.",
         },
         aiInsights: {
           title: "Insights IA",
@@ -2593,34 +2652,37 @@ const fr: typeof en = {
         "Nous prenons la sécurité au sérieux. Votre confiance est notre priorité absolue.",
       features: {
         encryption: {
-          title: "Chiffrement AES-256",
-          description: "Vos données sont chiffrées au repos et en transit",
+          title: "Connexions protégées",
+          description: "Les échanges avec Moodday utilisent HTTPS",
         },
         zeroKnowledge: {
-          title: "Zéro connaissance",
-          description: "Nous ne pouvons pas lire vos données de santé",
+          title: "Données minimisées",
+          description:
+            "Nous limitons les données traitées à ce qui est nécessaire",
         },
         gdpr: {
-          title: "Conforme RGPD",
-          description: "Respect total de la réglementation européenne",
+          title: "Droits utilisateur",
+          description:
+            "Accès, export et suppression sont disponibles depuis l'application",
         },
         euHosting: {
-          title: "Hébergement EU",
-          description: "Serveurs exclusivement en Union Européenne",
+          title: "Sous-traitants documentés",
+          description:
+            "Les régions et transferts sont suivis dans notre registre interne",
         },
         secureAuth: {
           title: "Auth sécurisée",
-          description: "2FA, OAuth, et authentification biométrique",
+          description: "Sessions protégées et fournisseurs OAuth vérifiés",
         },
         audits: {
-          title: "Audits réguliers",
-          description: "Tests de pénétration trimestriels",
+          title: "Contrôles continus",
+          description: "Tests automatisés et procédures d'incident documentées",
         },
       },
       badges: {
         ssl: "SSL 256 bits",
-        rgpd: "RGPD",
-        hds: "Prêt HDS",
+        rgpd: "Contrôle utilisateur",
+        hds: "Suivi personnel",
       },
     },
     journey: {
@@ -2798,13 +2860,13 @@ const fr: typeof en = {
       titleHighlight: "parcours mental",
       titleSuffix: "en toute sérénité",
       subtitle:
-        "Un compagnon digital conçu avec des psychiatres pour vous aider à mieux comprendre vos humeurs, suivre vos traitements et préparer vos consultations.",
+        "Un compagnon de suivi personnel pour mieux comprendre vos journées, suivre vos traitements déclarés et préparer vos consultations.",
       ctaPrimary: "Commencer gratuitement",
       ctaSecondary: "Découvrir les fonctionnalités",
       trust: {
-        gdpr: "Conforme RGPD",
-        encrypted: "Données chiffrées",
-        medicalPdf: "Export PDF médical",
+        gdpr: "Contrôle utilisateur",
+        encrypted: "Connexion protégée",
+        medicalPdf: "Rapport de consultation",
       },
       mockup: {
         greeting: "Bonjour Marie 👋",
@@ -2830,7 +2892,7 @@ const fr: typeof en = {
       title: "Tout ce dont vous avez besoin pour",
       titleHighlight: "prendre soin de vous",
       subtitle:
-        "Des outils pensés avec des professionnels de santé pour vous accompagner au quotidien dans votre parcours de santé mentale.",
+        "Des outils de suivi personnel pour observer votre quotidien et préparer vos échanges avec un professionnel de santé.",
       items: [
         {
           title: "Suivi d'humeur intelligent",
@@ -2901,7 +2963,8 @@ const fr: typeof en = {
           },
           {
             title: "Données privées",
-            description: "Chiffrement de bout en bout, conforme RGPD",
+            description:
+              "Partage explicite, export et suppression à votre initiative",
           },
         ],
       },
@@ -2930,9 +2993,9 @@ const fr: typeof en = {
         ],
       },
       trust: {
-        designedWith: "Conçu avec des psychiatres",
-        activeUsers: "+5000 utilisateurs actifs",
-        rating: "Note 4.8/5 sur l'App Store",
+        designedWith: "Pensé pour le suivi quotidien",
+        activeUsers: "Données sous votre contrôle",
+        rating: "Sans diagnostic médical",
       },
     },
     faq: {
@@ -2952,7 +3015,7 @@ const fr: typeof en = {
         {
           question: "Mes données sont-elles confidentielles ?",
           answer:
-            "Absolument. Vos données sont chiffrées de bout en bout et stockées sur des serveurs sécurisés en Europe. Nous sommes conformes au RGPD et vous pouvez exporter ou supprimer vos données à tout moment. Nous ne vendons jamais vos données à des tiers.",
+            "Moodday limite les accès, protège les échanges par HTTPS et vous permet d'exporter ou supprimer vos données. Les sous-traitants et transferts applicables sont documentés dans notre politique de confidentialité.",
         },
         {
           question: "Puis-je partager mes données avec mon psychiatre ?",
@@ -3034,7 +3097,7 @@ const fr: typeof en = {
           cookies: "Cookies",
         },
       },
-      copyright: "© {year} Moodday SAS. Tous droits réservés.",
+      copyright: "© {year} Moodday. Tous droits réservés.",
     },
     newsletter: {
       title: "Restez informé",

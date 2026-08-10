@@ -16,6 +16,7 @@ import {
 import { useI18n } from "@/i18n/provider";
 import { resolveActionResult } from "@/lib/actions/actions-utils";
 import { LIMITS_CONFIG, getPlanLimits } from "@/lib/auth/stripe/auth-plans";
+import { normalizePlanCode } from "@/lib/billing/entitlements";
 import type { UserActiveSubscription } from "@/lib/user/get-user-subscription";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -43,7 +44,8 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
   const dateLocale = locale === "fr" ? fr : enUS;
 
   // Get plan limits
-  const planLimits = getPlanLimits(subscription.plan);
+  const planCode = normalizePlanCode(subscription.plan);
+  const planLimits = getPlanLimits(planCode);
 
   const manageSubscriptionMutation = useMutation({
     mutationFn: async () => {
@@ -176,7 +178,7 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
                 {t("account.billing.plan")}
               </Typography>
               <Typography className="capitalize">
-                {t(`plans.names.${subscription.plan}`)}
+                {t(`plans.names.${planCode}`)}
               </Typography>
             </div>
             <div className="flex justify-between">

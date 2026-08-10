@@ -63,13 +63,6 @@ export default async function AboutPage() {
       bg: "bg-blue-500/10",
     },
   ];
-  const stats = [
-    { value: "5000+", label: t("about.stats.activeUsers") },
-    { value: "1M+", label: t("about.stats.checkins") },
-    { value: "99.9%", label: t("about.stats.uptime") },
-    { value: "4.8/5", label: t("about.stats.appStoreRating") },
-  ];
-
   return (
     <div className="relative">
       <GridBackground
@@ -186,28 +179,6 @@ export default async function AboutPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="from-primary/5 to-primary/10 mt-16 rounded-2xl border border-emerald-500/20 bg-gradient-to-br p-8">
-            <div className="grid gap-8 text-center sm:grid-cols-2 lg:grid-cols-4">
-              {stats.map((stat) => (
-                <div key={stat.label}>
-                  <Typography
-                    variant="h3"
-                    className="text-primary text-4xl font-bold"
-                  >
-                    {stat.value}
-                  </Typography>
-                  <Typography
-                    variant="p"
-                    className="text-muted-foreground mt-1"
-                  >
-                    {stat.label}
-                  </Typography>
-                </div>
-              ))}
             </div>
           </div>
 

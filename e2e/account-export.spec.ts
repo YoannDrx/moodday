@@ -6,6 +6,19 @@ import { retry } from "./utils/retry";
 test("exports complete user data without authentication or notification secrets", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
+  const browserErrors: string[] = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      browserErrors.push(
+        message
+          .text()
+          .replace(/data:[^\s'"]+/g, "data:[redacted]")
+          .slice(0, 1_000),
+      );
+    }
+  });
   const userData = await createTestAccount({
     page,
     callbackURL: "/dashboard",
@@ -156,13 +169,37 @@ test("exports complete user data without authentication or notification secrets"
   expect(csv).toContain("exercise");
   expect(csv).toContain("Europe/Paris");
 
-  const pdfButton = page.getByRole("button", {
+  let pdfButton = page.getByRole("button", {
+    name: /Download PDF|Télécharger PDF/i,
+  });
+  await expect(pdfButton).toBeDisabled();
+
+  await prisma.subscription.create({
+    data: {
+      id: `e2e-plus-${user.id}`,
+      referenceId: user.id,
+      plan: "plus",
+      status: "active",
+      periodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  });
+  await page.reload();
+  pdfButton = page.getByRole("button", {
     name: /Download PDF|Télécharger PDF/i,
   });
   await expect(pdfButton).toBeEnabled({ timeout: 15000 });
-  const pdfDownloadPromise = page.waitForEvent("download");
+  const pdfDownloadPromise = page.waitForEvent("download", {
+    timeout: 60_000,
+  });
   await pdfButton.click();
-  const pdfDownload = await pdfDownloadPromise;
+  const pdfDownload = await pdfDownloadPromise.catch((error: unknown) => {
+    const diagnostic = browserErrors.length
+      ? ` Browser errors: ${browserErrors.join(" | ")}`
+      : " No browser error was captured.";
+    throw new Error(
+      `${error instanceof Error ? error.message : "PDF download failed."}${diagnostic}`,
+    );
+  });
   const pdfStream = await pdfDownload.createReadStream();
   const pdfChunks: Buffer[] = [];
   for await (const chunk of pdfStream) {

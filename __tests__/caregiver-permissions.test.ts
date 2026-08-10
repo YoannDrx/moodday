@@ -3,7 +3,10 @@ import {
   canLeaveCaregiverRelationship,
   canManageCaregiverRelationship,
   CaregiverPermissionsSchema,
+  getEffectiveCaregiverPermissions,
+  hasCaregiverWritePermission,
   hasActiveCaregiverPermission,
+  isCaregiverRelationshipReadOnly,
 } from "../src/features/caregiver/permissions";
 
 const activeRelationship = {
@@ -96,5 +99,39 @@ describe("caregiver permissions", () => {
         userId: "stranger",
       }),
     ).toBe(false);
+  });
+
+  it("keeps the oldest relationships writable up to the plan limit", () => {
+    const orderedRelationshipIds = ["oldest", "second", "newest"];
+
+    expect(
+      isCaregiverRelationshipReadOnly({
+        relationshipId: "oldest",
+        orderedRelationshipIds,
+        caregiverLimit: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isCaregiverRelationshipReadOnly({
+        relationshipId: "second",
+        orderedRelationshipIds,
+        caregiverLimit: 1,
+      }),
+    ).toBe(true);
+  });
+
+  it("removes write capabilities but preserves view access after downgrade", () => {
+    const permissions = [
+      "view_mood",
+      "view_medications",
+      "add_observations",
+      "add_events",
+    ] as const;
+
+    expect(hasCaregiverWritePermission([...permissions])).toBe(true);
+    expect(getEffectiveCaregiverPermissions([...permissions], true)).toEqual([
+      "view_mood",
+      "view_medications",
+    ]);
   });
 });

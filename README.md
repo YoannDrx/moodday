@@ -69,6 +69,7 @@ See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully func
 
 ## Documentation
 
+- `docs/audits/production-readiness-2026-08.md` : source de vérité des preuves et gates de production.
 - `docs/design-system.md` : identité et règles UI/UX.
 - `docs/data-lifecycle.md` : contenu des exports, fichiers et règles de purge.
 - `docs/migrations/` : historique et procédures de migration.

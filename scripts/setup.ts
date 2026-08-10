@@ -273,12 +273,22 @@ async function setupStripe(): Promise<Record<string, string>> {
     return envVars;
   }
 
-  log.info("Pour les clés Stripe, va sur https://dashboard.stripe.com/apikeys");
-  const sk = await question("STRIPE_SECRET_KEY (sk_...): ");
-  const pk = await question("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (pk_...): ");
+  log.info(
+    "Utilise uniquement le compte Stripe test dédié à Moodday : https://dashboard.stripe.com/test/apikeys",
+  );
+  const sk = await question("STRIPE_SECRET_KEY (sk_test_...): ");
+  const pk = await question(
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (pk_test_...): ",
+  );
+
+  if (!sk.startsWith("sk_test_") || !pk.startsWith("pk_test_")) {
+    log.error("Cette configuration initiale refuse les clés Stripe live.");
+    return envVars;
+  }
 
   if (sk) envVars.STRIPE_SECRET_KEY = sk;
   if (pk) envVars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = pk;
+  envVars.BILLING_ENABLED = "false";
 
   log.info("Pour le webhook secret, lance: pnpm stripe-webhooks");
 
