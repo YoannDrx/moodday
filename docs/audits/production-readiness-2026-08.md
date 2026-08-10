@@ -137,6 +137,9 @@ pas une preuve de release.
   Pro/Ultra et au compte Stripe partagé ont été supprimées. `BILLING_ENABLED`
   reste désactivé en Production jusqu'à l'injection des identifiants du compte
   live Moodday vérifié ; le sandbox Preview dédié conserve ses propres secrets.
+- La pull request #5 est fusionnable. GitGuardian, Vercel, lint, typage, build,
+  les 229 tests unitaires et la suite Playwright distante sont tous verts sur
+  le commit `d929914`.
 
 ### Blocages de lancement encore ouverts
 
@@ -146,7 +149,6 @@ pas une preuve de release.
 | P0       | Redis et Resend ne sont pas encore isolés entre Preview et Production ; le client Google OAuth reste partagé malgré les callbacks séparés. | Rate limiting distribué, emails ou OAuth susceptibles de croiser les environnements. | Ressources et secrets dédiés, audit d'hôtes/préfixes vert et rotation des valeurs partagées.                       |
 | P0       | AIPD, DPA/transferts, registre, durées de conservation, HDS et TVA n'ont pas de validation écrite.                                         | Mise en ligne de données sensibles et IA juridiquement non validée.                  | Avis juridique/comptable écrit et textes publics alignés sur les décisions.                                        |
 | P0       | La restauration depuis une sauvegarde et les alertes opérationnelles ne sont pas prouvées de bout en bout.                                 | Défaillance silencieuse de base, auth, webhook, cron, export ou suppression.         | Restauration chronométrée, alertes déclenchées volontairement, runbooks éprouvés et smoke prod signé.              |
-| P0       | La release candidate n'a pas encore traversé la CI distante protégée de `main`.                                                            | Absence de preuve GitHub reproductible sur la branche cible.                         | Pull request revue et CI distante verte avant toute promotion Production.                                          |
 | P1       | La CSP conserve `'unsafe-inline'` pour les scripts Next/Stripe.                                                                            | Surface XSS plus large que la cible finale.                                          | Nonces/hashes compatibles Next et Stripe validés sans régression E2E.                                              |
 | P1       | Les scénarios Stripe Test Clocks et la réconciliation avec alertes ne sont pas encore automatisés.                                         | Essai, grâce, paiement échoué et événements hors ordre non prouvés de bout en bout.  | Matrice Test Clocks verte et alerte de divergence observée.                                                        |
 | P1       | L'IA n'a pas de validation humaine ni de gate juridique sur données réelles.                                                               | Risque de sortie inadaptée et de transfert non autorisé.                             | Validation du corpus critique, AIPD/DPA, bêta allowlist et kill switch testé.                                      |
