@@ -47,7 +47,7 @@ export default async function DashboardPage() {
         </Link>
       }
     >
-      <DashboardContent />
+      <DashboardContent ownerId={user.id} />
     </PageLayoutShell>
   );
 }

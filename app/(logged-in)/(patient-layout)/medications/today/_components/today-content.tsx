@@ -73,10 +73,10 @@ type PRNMedication = {
   intakes: { id: string; takenAt: Date }[];
 };
 
-export function TodayContent() {
+export function TodayContent({ ownerId: initialOwnerId }: { ownerId: string }) {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
-  const { isOnline, queuedCount, ownerId } = useOfflineStatus();
+  const { isOnline, queuedCount, ownerId } = useOfflineStatus(initialOwnerId);
 
   const {
     data: regularData,

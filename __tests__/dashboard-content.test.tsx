@@ -254,7 +254,7 @@ describe("patient dashboard content", () => {
 
   it("renders complete dashboard data and handles online mood and medication writes", async () => {
     const user = userEvent.setup();
-    render(<DashboardContent />);
+    render(<DashboardContent ownerId="user-1" />);
 
     expect(screen.getByText("Observation une")).toBeInTheDocument();
     expect(screen.getByText("Traitement quotidien")).toBeInTheDocument();
@@ -300,7 +300,7 @@ describe("patient dashboard content", () => {
     state.online = false;
     state.queuedCount = 2;
     const user = userEvent.setup();
-    render(<DashboardContent />);
+    render(<DashboardContent ownerId="user-1" />);
 
     expect(screen.getByText(/common\.offlineMode/)).toBeInTheDocument();
     await user.click(
@@ -337,12 +337,12 @@ describe("patient dashboard content", () => {
 
   it("renders loading and empty product states without invented metrics", () => {
     state.queryMode = "loading";
-    const { unmount } = render(<DashboardContent />);
+    const { unmount } = render(<DashboardContent ownerId="user-1" />);
     expect(screen.queryByTestId("mood-chart")).not.toBeInTheDocument();
     unmount();
 
     state.queryMode = "empty";
-    render(<DashboardContent />);
+    render(<DashboardContent ownerId="user-1" />);
     expect(screen.getByText("dashboard.medications.empty")).toBeInTheDocument();
     expect(
       screen.getByText("dashboard.insights.emptyTitle"),
@@ -354,7 +354,7 @@ describe("patient dashboard content", () => {
   it("surfaces server and storage failures without leaving the save button disabled", async () => {
     const user = userEvent.setup();
     mocks.saveMoodEntry.mockResolvedValueOnce({ serverError: "save-failed" });
-    render(<DashboardContent />);
+    render(<DashboardContent ownerId="user-1" />);
     await user.click(
       screen.getByRole("button", { name: "dashboard.quickMood.save" }),
     );

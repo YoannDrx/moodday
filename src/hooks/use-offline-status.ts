@@ -20,9 +20,9 @@ const getSnapshot = async (ownerId?: string) => {
   };
 };
 
-export const useOfflineStatus = () => {
+export const useOfflineStatus = (initialOwnerId?: string) => {
   const { data: session } = useSession();
-  const ownerId = session?.user.id;
+  const ownerId = session?.user.id ?? initialOwnerId;
   const [status, setStatus] = useState({ isOnline: true, queuedCount: 0 });
 
   useEffect(() => {

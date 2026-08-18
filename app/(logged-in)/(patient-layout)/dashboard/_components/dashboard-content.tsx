@@ -67,14 +67,14 @@ type DashboardDoseSlot = {
   status: DoseSlotStatus;
 };
 
-export function DashboardContent() {
+export function DashboardContent({ ownerId: initialOwnerId }: { ownerId: string }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [currentMood, setCurrentMood] = useState(7);
   const [currentEnergy, setCurrentEnergy] = useState(5);
   const [hasQueuedMood, setHasQueuedMood] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isOnline, queuedCount, ownerId } = useOfflineStatus();
+  const { isOnline, queuedCount, ownerId } = useOfflineStatus(initialOwnerId);
   const showSaveError = (error: unknown) =>
     toast.error(
       getOfflineStorageErrorMessage(error, {

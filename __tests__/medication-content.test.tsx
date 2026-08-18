@@ -344,7 +344,7 @@ describe("medication production surfaces", () => {
   });
 
   it("logs, skips, undoes and records PRN doses from the daily screen", async () => {
-    render(<TodayContent />);
+    render(<TodayContent ownerId="user-1" />);
     expect(screen.getByText("Traitement mixte")).toBeInTheDocument();
     expect(screen.getByText("Traitement à la demande un")).toBeInTheDocument();
     expect(
@@ -374,7 +374,7 @@ describe("medication production surfaces", () => {
   it("queues all supported daily writes while offline and displays pending sync", async () => {
     setOnline(false);
     state.queuedCount = 2;
-    render(<TodayContent />);
+    render(<TodayContent ownerId="user-1" />);
     expect(screen.getByText(/common\.offlineMode/)).toBeInTheDocument();
 
     fireEvent.click(getEnabledIntakeButton());
@@ -394,7 +394,7 @@ describe("medication production surfaces", () => {
 
   it("maps daily provider errors through the privacy-safe storage message", async () => {
     mocks.logMedIntake.mockResolvedValue({ serverError: "provider detail" });
-    render(<TodayContent />);
+    render(<TodayContent ownerId="user-1" />);
     fireEvent.click(getEnabledIntakeButton());
     await waitFor(() =>
       expect(mocks.toastError).toHaveBeenCalledWith("offline-storage-error"),
@@ -407,7 +407,7 @@ describe("medication production surfaces", () => {
     ["error", "common.error"],
   ] as const)("renders the daily medication %s state", (mode, expected) => {
     state.mode = mode;
-    render(<TodayContent />);
+    render(<TodayContent ownerId="user-1" />);
     expect(screen.getByText(expected)).toBeInTheDocument();
   });
 });
