@@ -108,7 +108,11 @@ import { Toggle, toggleVariants } from "@/components/ui/toggle";
 
 describe("complete UI primitives", () => {
   it("gives outline buttons an explicit foreground color", () => {
-    expect(buttonVariants({ variant: "outline" })).toContain("text-foreground");
+    const classes = buttonVariants({ variant: "outline" });
+    expect(classes).toContain("bg-white");
+    expect(classes).toContain("text-gray-900");
+    expect(classes).toContain("dark:bg-gray-950");
+    expect(classes).toContain("dark:text-white");
   });
 
   it("renders an interactive calendar with dropdown and custom day classes", () => {

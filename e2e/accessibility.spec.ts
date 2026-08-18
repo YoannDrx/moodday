@@ -105,7 +105,10 @@ test("main authenticated pages have no serious automated accessibility violation
           .map(
             (violation) =>
               `${violation.id} (${violation.nodes.length} node(s)): ${violation.help}; ${violation.nodes
-                .map((node) => node.html)
+                .map(
+                  (node) =>
+                    `${node.html} [target=${node.target.join(" > ")}; ${node.failureSummary ?? "no failure summary"}]`,
+                )
                 .join(" | ")}`,
           )
           .join(", ")}`,
