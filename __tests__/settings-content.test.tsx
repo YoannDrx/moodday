@@ -342,6 +342,9 @@ describe("production settings surfaces", () => {
     expect(
       screen.getByRole("link", { name: /Import contrôlé/ }),
     ).toHaveAttribute("href", "/settings/import");
+    expect(
+      screen.getByRole("link", { name: /settings\.privacy\.exportJson/ }),
+    ).toHaveAttribute("download");
   });
 
   it("keeps unavailable privacy capabilities out of the interface", () => {

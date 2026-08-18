@@ -307,6 +307,7 @@ export function ConsultationPreparationEditor({
                         endDate: preparation.periodEndDate,
                         preparationId: preparation.id,
                       }).toString()}`}
+                      download
                     >
                       {fr ? "Télécharger le PDF" : "Download PDF"}
                     </a>

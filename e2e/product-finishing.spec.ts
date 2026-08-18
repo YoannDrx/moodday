@@ -113,6 +113,11 @@ test("finishes import, journal tags, consultation PDF and the offline safety pla
       return value?.status;
     })
     .toBe("completed");
+  await expect(
+    page.getByRole("button", {
+      name: /Marquer terminée|Mark completed/i,
+    }),
+  ).toHaveCount(0);
 
   await page.goto("/safety-plan");
   await page.getByLabel(/Mes signaux personnels|My warning signs/i).fill("Isolement inhabituel");

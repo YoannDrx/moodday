@@ -103,6 +103,7 @@ describe("consultation preparation editor", () => {
     ).toBeInTheDocument();
     const pdf = screen.getAllByRole("link", { name: "Télécharger le PDF" })[0];
     expect(pdf.getAttribute("href")).toContain("preparationId=prep-draft");
+    expect(pdf).toHaveAttribute("download");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Modifier" })[0]);
     expect(screen.getByLabelText("Titre")).toHaveValue("Rendez-vous principal");

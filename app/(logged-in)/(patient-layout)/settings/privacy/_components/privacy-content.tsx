@@ -134,27 +134,26 @@ export function PrivacyContent({
           </GlassCardHeader>
 
           <GlassCardContent className="space-y-4">
-            <form action="/api/export/json" method="get">
-              <button
-                type="submit"
-                className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--sage)]/10 text-[var(--sage)]">
-                    <Download className="size-6" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold text-gray-800">
-                      {t("settings.privacy.exportJson")}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {t("settings.privacy.exportJsonDescription")}
-                    </p>
-                  </div>
+            <a
+              href="/api/export/json"
+              download
+              className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-[var(--primary)]/30 hover:shadow-sm"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--sage)]/10 text-[var(--sage)]">
+                  <Download className="size-6" />
                 </div>
-                <ChevronRight className="size-5 text-gray-400" />
-              </button>
-            </form>
+                <div className="text-left">
+                  <p className="font-bold text-gray-800">
+                    {t("settings.privacy.exportJson")}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {t("settings.privacy.exportJsonDescription")}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="size-5 text-gray-400" />
+            </a>
 
             <Link
               href="/export"

@@ -119,7 +119,7 @@ test("exports complete user data without authentication or notification secrets"
   ).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: /Export JSON|Exporter JSON/i })
+    .getByRole("link", { name: /Export JSON|Exporter JSON/i })
     .click();
   const download = await downloadPromise;
   const stream = await download.createReadStream();

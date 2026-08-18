@@ -10,6 +10,7 @@ vi.mock("sonner", () => ({
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -106,6 +107,10 @@ import {
 import { Toggle, toggleVariants } from "@/components/ui/toggle";
 
 describe("complete UI primitives", () => {
+  it("gives outline buttons an explicit foreground color", () => {
+    expect(buttonVariants({ variant: "outline" })).toContain("text-foreground");
+  });
+
   it("renders an interactive calendar with dropdown and custom day classes", () => {
     render(
       <Calendar
