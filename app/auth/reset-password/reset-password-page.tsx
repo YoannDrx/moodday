@@ -24,12 +24,14 @@ import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 export function ResetPasswordPage({ token }: { token: string }) {
   const router = useRouter();
   const { t } = useI18n();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const passwordFormSchema = z.object({
     password: z.string().min(8, t("auth.resetPassword.passwordMin")),
@@ -60,6 +62,8 @@ export function ResetPasswordPage({ token }: { token: string }) {
       router.refresh();
     },
   });
+
+  useEffect(() => setIsHydrated(true), []);
 
   function onSubmitPassword(values: z.infer<typeof passwordFormSchema>) {
     resetPasswordMutation.mutate(values);
@@ -92,6 +96,7 @@ export function ResetPasswordPage({ token }: { token: string }) {
         <Form
           form={passwordForm}
           onSubmit={onSubmitPassword}
+          disabled={!isHydrated || resetPasswordMutation.isPending}
           className="space-y-4"
         >
           <FormField
@@ -103,6 +108,7 @@ export function ResetPasswordPage({ token }: { token: string }) {
                 <FormControl>
                   <Input
                     type="password"
+                    autoComplete="new-password"
                     placeholder={t("auth.resetPassword.passwordPlaceholder")}
                     {...field}
                   />
@@ -114,7 +120,7 @@ export function ResetPasswordPage({ token }: { token: string }) {
           <LoadingButton
             loading={resetPasswordMutation.isPending}
             type="submit"
-            className="w-full"
+            className="w-full disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
           >
             {t("auth.resetPassword.submit")}
           </LoadingButton>

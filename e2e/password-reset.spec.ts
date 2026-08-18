@@ -68,12 +68,16 @@ test("password reset flow", async ({ page }) => {
   const newPassword = faker.internet.password({ length: 12, memorable: true });
   await page.locator('input[name="password"]').fill(newPassword);
   // i18n: button text is "Update password" or "Mettre à jour"
+  const signInNavigation = page.waitForURL(/\/auth\/signin/, {
+    timeout: 30000,
+    waitUntil: "commit",
+  });
   await page
     .getByRole("button", { name: /Update password|Mettre à jour/i })
-    .click();
+    .click({ noWaitAfter: true });
 
   // 9. Should be redirected to sign in page
-  await page.waitForURL(/\/auth\/signin/, { timeout: 30000 });
+  await signInNavigation;
 
   // 10. Try to sign in with the new password
   await page.getByLabel("Email").fill(userData.email);

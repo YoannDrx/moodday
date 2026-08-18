@@ -318,12 +318,17 @@ test.describe("account", () => {
     });
 
     // i18n: button text is "Delete account" (EN) / "Supprimer le compte" (FR)
+    const goodbyeNavigation = page.waitForURL(
+      (url) => url.pathname === "/auth/goodbye",
+      {
+        timeout: 30000,
+        waitUntil: "commit",
+      },
+    );
     await page
       .getByRole("button", { name: /Delete account|Supprimer le compte/i })
-      .click();
-    await page.waitForURL((url) => url.pathname === "/auth/goodbye", {
-      timeout: 10000,
-    });
+      .click({ noWaitAfter: true });
+    await goodbyeNavigation;
     // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
     await expect(
       page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
