@@ -282,8 +282,10 @@ Preuves : [approbations](../compliance/release-approvals.md),
 **Statut : automatisation implémentée et verte localement ; contrôles distants
 et manuels ouverts.**
 
-- Installation figée, audit, dependency review, CodeQL, secret scanning, SBOM,
-  licences, Prisma, migrations, couverture, E2E, axe et Lighthouse sont définis.
+- Installation figée, audit, dependency review, secret scanning, SBOM,
+  licences, Prisma, migrations, couverture, E2E, axe et Lighthouse sont
+  définis ; CodeQL utilise le `default setup` GitHub étendu comme configuration
+  canonique unique.
 - Les preuves PostgreSQL de concurrence/retry des jobs et d'intégrité
   transactionnelle des traitements et suppressions sont désormais exécutées
   dans un job de release dédié sur PostgreSQL 17 jetable.

@@ -135,8 +135,9 @@ gate n'est pas validé.
 - [x] Registre des traitements, évaluation HDS, réponse aux incidents et
       registre nominatif des approbations externes établis.
 - [ ] AIPD, DPA, HDS, TVA, rétention et sous-traitants approuvés.
-- [x] Workflows CI, CodeQL, audit, SBOM, licences, migrations et E2E
-      multi-navigateurs configurés et exécutables.
+- [x] Workflows CI, audit, SBOM, licences, migrations et E2E
+      multi-navigateurs configurés et exécutables ; CodeQL repose sur le
+      `default setup` GitHub étendu afin d'éviter deux analyses concurrentes.
 - [x] Le workflow de release exécute sur PostgreSQL 17 jetable les preuves de
       verrou/retry des jobs et d'intégrité transactionnelle des traitements et
       suppressions de compte.

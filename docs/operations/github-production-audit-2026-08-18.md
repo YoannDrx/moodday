@@ -37,6 +37,10 @@ Le premier run CodeQL a terminé avec succès pour `actions` et
 à la protection de branche : les noms définitifs des nouveaux jobs n'existeront
 sur GitHub qu'après publication contrôlée de la branche.
 
+Le `default setup` GitHub est la configuration CodeQL canonique. Le workflow
+avancé local a été retiré après avoir confirmé que GitHub refuse le dépôt d'un
+second SARIF tant que le `default setup` est actif.
+
 ## Alertes révélées sur l'ancien `main`
 
 Le premier scan a ouvert 21 alertes CodeQL :

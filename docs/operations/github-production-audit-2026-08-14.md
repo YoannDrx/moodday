@@ -22,11 +22,13 @@ Aucun secret, contenu métier ou artefact de workflow n'a été lu.
 | Jeton automatique des workflows | lecture seule par défaut ; approbation de PR interdite                          | configuration restrictive confirmée |
 | Workflows distants actifs       | qualité, Playwright et ancien scheduler notifications                           | état distant antérieur à la release |
 
-Les nouveaux workflows CodeQL, gitleaks et readiness ainsi que la suppression
-de l'ancien scheduler sont présents uniquement dans la branche de travail tant
-qu'elle n'est pas publiée et fusionnée. Les vingt dernières exécutions visibles
-étaient celles de l'ancien scheduler sur `main` et étaient toutes terminées avec
-succès. Elles ne prouvent pas le fonctionnement du nouvel ordonnanceur Vercel.
+Les nouveaux workflows gitleaks et readiness ainsi que la suppression de
+l'ancien scheduler sont présents uniquement dans la branche de travail tant
+qu'elle n'est pas publiée et fusionnée. CodeQL est fourni par le `default
+setup` GitHub afin de conserver une seule configuration canonique. Les vingt
+dernières exécutions visibles étaient celles de l'ancien scheduler sur `main`
+et étaient toutes terminées avec succès. Elles ne prouvent pas le
+fonctionnement du nouvel ordonnanceur Vercel.
 
 ## Durcissement réalisé dans le dépôt
 
