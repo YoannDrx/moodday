@@ -241,7 +241,7 @@
 
   /* Primary stays teal but slightly brighter for dark mode */
   --primary: #3da5b8;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #111827;
   --primary-dark: #2ba09f;
   --primary-light: #4db8c9;
   --primary-darkest: #2a8fa8;
@@ -292,7 +292,7 @@
   --sidebar: #1f232a;
   --sidebar-foreground: #f8f7f3;
   --sidebar-primary: #3da5b8;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #111827;
   --sidebar-accent: rgba(61, 165, 184, 0.15);
   --sidebar-accent-foreground: #3da5b8;
   --sidebar-border: rgba(255, 255, 255, 0.1);
@@ -332,9 +332,9 @@
   --text: #2f3b33;
   --text-muted: #626b63;
   --text-subtle: #7a8075;
-  --brand: #3c8d7c;
-  --brand-hover: #32796b;
-  --focus-ring: #3c8d7c;
+  --brand: #32796b;
+  --brand-hover: #275f55;
+  --focus-ring: #32796b;
 
   /* Zen theme - warm earth tones */
   --background: #f4f1ea;
@@ -345,7 +345,7 @@
   --popover-foreground: #2f3b33;
 
   /* Primary */
-  --primary: #3c8d7c;
+  --primary: #32796b;
   --primary-foreground: #ffffff;
   --primary-dark: #32796b;
   --primary-light: #57a38e;
@@ -384,7 +384,7 @@
   /* Borders and inputs */
   --border: rgba(47, 59, 51, 0.08);
   --input: rgba(47, 59, 51, 0.08);
-  --ring: #3c8d7c;
+  --ring: #32796b;
 
   /* Charts - Zen palette */
   --chart-1: #3c8d7c;
@@ -396,12 +396,12 @@
   /* Sidebar */
   --sidebar: #f9f6f0;
   --sidebar-foreground: #2f3b33;
-  --sidebar-primary: #3c8d7c;
+  --sidebar-primary: #32796b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(60, 141, 124, 0.1);
-  --sidebar-accent-foreground: #3c8d7c;
+  --sidebar-accent: rgba(50, 121, 107, 0.1);
+  --sidebar-accent-foreground: #32796b;
   --sidebar-border: rgba(47, 59, 51, 0.08);
-  --sidebar-ring: #3c8d7c;
+  --sidebar-ring: #32796b;
 
   /* Status colors */
   --success: #5c8b6b;
