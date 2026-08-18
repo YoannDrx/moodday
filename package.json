@@ -12,7 +12,7 @@
     "email": "email dev",
     "format": "prettier --write .",
     "postinstall": "prisma generate",
-    "knip": "knip-bun --config knip.json",
+    "knip": "knip --config knip.json",
     "lint": "eslint . --fix",
     "start": "next start",
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
