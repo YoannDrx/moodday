@@ -202,9 +202,11 @@ describe("mood history list", () => {
         color: null,
       }),
     );
-    expect(screen.queryByText("Ancien · context")).not.toBeInTheDocument();
-    expect(screen.getByText("Marche · protective")).toBeInTheDocument();
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("Tag enregistré");
+    await waitFor(() => {
+      expect(screen.queryByText("Ancien · context")).not.toBeInTheDocument();
+      expect(screen.getByText("Marche · protective")).toBeInTheDocument();
+      expect(mocks.toastSuccess).toHaveBeenCalledWith("Tag enregistré");
+    });
   });
 
   it("keeps tag errors generic and renders English loading, error and empty states", async () => {
