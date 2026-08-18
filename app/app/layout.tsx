@@ -1,6 +1,5 @@
-import type { LayoutParams } from "@/types/next";
-import { AppNavigation } from "./_navigation/app-navigation";
+import { redirect } from "next/navigation";
 
-export default async function AppLayout(props: LayoutParams) {
-  return <AppNavigation>{props.children}</AppNavigation>;
+export default function AppLayout() {
+  redirect("/dashboard");
 }

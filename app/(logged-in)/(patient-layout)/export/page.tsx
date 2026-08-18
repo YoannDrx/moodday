@@ -6,6 +6,7 @@ import { getRequiredUser } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 const addDaysToDateKey = (dateKey: string, days: number) => {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -50,6 +51,7 @@ export default async function ExportPage() {
         canCreateConsultationReport={
           getEntitlements(subscription).consultationReports
         }
+        billingEnabled={getFeatureAvailability("billing").enabled}
       />
     </PageLayout>
   );

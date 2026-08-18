@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Accordion,
   AccordionContent,
@@ -9,7 +7,8 @@ import {
 import GridBackground from "@/components/nowts/grid-background";
 import { Typography } from "@/components/nowts/typography";
 import { SectionLayout } from "@/features/landing/section-layout";
-import { useI18n } from "@/i18n/provider";
+import { getI18n } from "@/i18n/server";
+import { getFeatureAvailability } from "@/lib/features/availability";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
@@ -31,6 +30,7 @@ type GuideItem = {
   descriptionKey: string;
   contentKey?: string;
   href?: string;
+  requires?: "caregiverSharing";
   color: string;
   bgColor: string;
 };
@@ -103,6 +103,7 @@ const guideCategories: GuideCategory[] = [
         titleKey: "guides.items.caregivers.title",
         descriptionKey: "guides.items.caregivers.description",
         contentKey: "guides.items.caregivers.content",
+        requires: "caregiverSharing",
         color: "from-rose-500 to-rose-600",
         bgColor: "bg-rose-500/10",
       },
@@ -227,8 +228,18 @@ function MarkdownContent({ content }: { content: string }) {
   return <div className="space-y-0">{parseContent(content)}</div>;
 }
 
-export default function GuidesPage() {
-  const { t } = useI18n();
+export default async function GuidesPage() {
+  const { t } = await getI18n();
+  const featureAvailability = {
+    caregiverSharing: getFeatureAvailability("caregiverSharing").enabled,
+  };
+  const availableGuideCategories = guideCategories.map((category) => ({
+    ...category,
+    guides: category.guides.filter(
+      (guide) =>
+        !guide.requires || featureAvailability[guide.requires] === true,
+    ),
+  }));
 
   return (
     <div className="relative">
@@ -261,7 +272,7 @@ export default function GuidesPage() {
       {/* Guides by Category with Accordion */}
       <SectionLayout size="lg" variant="transparent">
         <div className="mx-auto max-w-4xl space-y-12">
-          {guideCategories.map((category) => (
+          {availableGuideCategories.map((category) => (
             <div key={category.titleKey}>
               {/* Category Header */}
               <div className="mb-6">

@@ -1,22 +1,22 @@
 # Sous-traitants, environnements et régions
 
-Statut : **inventaire à compléter avec les contrats et consoles**
+Statut : **inventaire technique publié, preuves contractuelles absentes donc gate rouge**
 
-Dernière revue : 2026-08-07
+Dernière revue : 2026-08-13
 
 Ne jamais inscrire de secret ou de donnée utilisateur dans ce registre. Les
 valeurs attendues sont des hôtes, régions, identifiants de compte/projet et
 responsables.
 
-| Service          | Development                | Preview             | Production                        | Région/stockage vérifiés                           | Contrat/DPA  | Owner       |
-| ---------------- | -------------------------- | ------------------- | --------------------------------- | -------------------------------------------------- | ------------ | ----------- |
-| Vercel Functions | À renseigner               | À renseigner        | `fra1` demandé par `vercel.json`  | À contrôler après déploiement                      | À joindre    | Engineering |
-| Neon Postgres    | À séparer                  | À séparer           | Hôte prod à confirmer             | `eu-central-1` annoncé, à vérifier dans la console | À joindre    | Engineering |
-| Stockage exports | À séparer                  | À séparer           | À renseigner                      | Inconnu                                            | À joindre    | Engineering |
-| Stripe           | Compte/projet test Moodday | Test Moodday        | Compte live exclusivement Moodday | Traitement mondial à documenter                    | À joindre    | Finance     |
-| OpenAI           | Projet dédié requis        | Projet dédié requis | Projet dédié requis               | Transferts et rétention à valider                  | À joindre    | Product/DPO |
-| Resend           | À séparer                  | À séparer           | À renseigner                      | Inconnu                                            | À joindre    | Engineering |
-| Web Push/VAPID   | Clés dédiées               | Clés dédiées        | Clés dédiées                      | Endpoints navigateurs variables                    | À documenter | Engineering |
+| Service          | Development                               | Preview                           | Production                                       | Région/stockage vérifiés                              | Contrat/DPA                        | Owner                |
+| ---------------- | ----------------------------------------- | --------------------------------- | ------------------------------------------------ | ----------------------------------------------------- | ---------------------------------- | -------------------- |
+| Vercel Functions | Local ; aucun secret prod                 | Séparation non prouvée            | Projet `moodday` lié ; `fra1` demandé            | Exécution `fra1`, CDN/logs/failover à prouver         | DPA et HDS non versés              | Engineering          |
+| Neon Postgres    | PostgreSQL local jetable pour les preuves | Branche dédiée requise            | Instance utilisée, séparation finale non prouvée | Région, réplication, sauvegardes et support à prouver | DPA et HDS non versés              | Engineering          |
+| Vercel Blob      | Usage local simulé                        | Store/token distinct requis       | Blob privé DSAR et avatars prévus                | Région, réplication, purge et accès support à prouver | DPA et HDS non versés              | Engineering          |
+| Stripe           | Compte test Moodday, charges désactivées  | Catalogue test indépendant requis | Compte live exclusivement Moodday                | Traitement/transferts à documenter                    | DPA non versé ; KYC/TVA rouges     | Finance              |
+| OpenAI           | Clé dédiée Moodday locale                 | Projet dédié requis               | Projet dédié requis                              | `store=false`; région et transferts à signer          | DPA/SCC non versés                 | Product / vie privée |
+| Resend           | Envois externes coupés en E2E             | Clé et domaine distincts requis   | Configuration finale non prouvée                 | Région, rétention et sous-traitants à prouver         | DPA non versé                      | Engineering          |
+| Web Push/VAPID   | Clés de test uniquement                   | Clés distinctes requises          | Clés dédiées exigées                             | Endpoints propres aux navigateurs                     | Rôles et transferts non documentés | Engineering          |
 
 ## Contrôle avant release
 
@@ -32,3 +32,7 @@ responsables.
 La formule « hébergé exclusivement en Europe » reste interdite tant que toutes
 les cellules production, contrats, sauvegardes et failovers ne sont pas
 validés.
+
+La liste publique factuelle et son historique sont accessibles à
+`/legal/subprocessors`. Elle n'affirme aucune région ou garantie contractuelle
+qui ne soit pas prouvée. PostHog n'est ni chargé ni listé pour cette release.

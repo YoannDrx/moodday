@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   updateMany: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/lib/prisma", () => ({
       create: mocks.create,
       updateMany: mocks.updateMany,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -18,12 +20,17 @@ import {
   claimNotificationDelivery,
   completeNotificationDeliveries,
   createEndpointDeliveryKey,
+  shouldAttemptNotificationDelivery,
 } from "../src/features/notifications/delivery";
 
 describe("notification delivery claims", () => {
   beforeEach(() => {
     mocks.create.mockReset();
     mocks.updateMany.mockReset();
+    mocks.transaction.mockReset();
+    mocks.transaction.mockImplementation(async (operations) =>
+      Promise.all(operations),
+    );
   });
 
   it("isolates idempotency per endpoint without storing the endpoint", () => {
@@ -37,6 +44,31 @@ describe("notification delivery claims", () => {
     expect(keyA).not.toBe(keyB);
     expect(keyA).toMatch(/^daily-checkin:2026-08-10:endpoint:[\w-]{24}$/);
     expect(keyA).not.toContain(endpointA);
+  });
+
+  it("retries an arrived delivery after its original reminder window", () => {
+    const dueRetryKeys = new Set(["delivery-retry"]);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: false,
+        deliveryKey: "delivery-retry",
+        dueRetryKeys,
+      }),
+    ).toBe(true);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: false,
+        deliveryKey: "future-delivery",
+        dueRetryKeys,
+      }),
+    ).toBe(false);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: true,
+        deliveryKey: "new-delivery",
+        dueRetryKeys,
+      }),
+    ).toBe(true);
   });
 
   it("claims a new delivery exactly once", async () => {
@@ -124,8 +156,10 @@ describe("notification delivery claims", () => {
       now,
     });
 
-    expect(mocks.updateMany).toHaveBeenCalledWith(
+    expect(mocks.updateMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
+        where: expect.objectContaining({ attempts: { lt: 3 } }),
         data: expect.objectContaining({
           status: "failed",
           lastErrorCode: "push_delivery_failed",
@@ -133,5 +167,17 @@ describe("notification delivery claims", () => {
         }),
       }),
     );
+    expect(mocks.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({ attempts: { gte: 3 } }),
+        data: expect.objectContaining({
+          status: "dead",
+          lastErrorCode: "push_delivery_failed",
+          nextAttemptAt: null,
+        }),
+      }),
+    );
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
   });
 });

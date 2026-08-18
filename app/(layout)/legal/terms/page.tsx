@@ -146,13 +146,13 @@ export default async function TermsPage() {
               <div>
                 <Typography
                   variant="h3"
-                  className="mb-2 font-bold text-amber-700 dark:text-amber-400"
+                  className="mb-2 font-bold text-amber-800 dark:text-amber-300"
                 >
                   {t("legal.terms.emergency.title")}
                 </Typography>
                 <Typography
                   variant="p"
-                  className="text-amber-700 dark:text-amber-300"
+                  className="text-amber-800 dark:text-amber-200"
                 >
                   {t("legal.terms.emergency.descriptionPrefix")}{" "}
                   <span className="font-bold">

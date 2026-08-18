@@ -1,4 +1,4 @@
-import type { Subscription } from "@/generated/prisma";
+import type { Subscription } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail/send-email";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +12,10 @@ import TrialReminderEmail from "@email/subscription/trial-reminder";
 import TrialWelcomeEmail from "@email/subscription/trial-welcome";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
+import {
+  getOperationalErrorCode,
+  getOperationalSubjectReference,
+} from "@/lib/operations/log-identifiers";
 
 type HookCtx = {
   req: Request;
@@ -31,6 +35,20 @@ const formatDateBilingual = (date: Date): string => {
   return `${frDate} / ${enDate}`;
 };
 
+const assertEmailDelivered = (
+  result: Awaited<ReturnType<typeof sendEmail>>,
+) => {
+  if (!result.error) return;
+
+  const deliveryError = new Error("email_delivery_failed");
+  deliveryError.name = "email_delivery_failed";
+  throw deliveryError;
+};
+
+const subjectReference = (userId: string) => ({
+  subjectReference: getOperationalSubjectReference(userId),
+});
+
 export const sendTrialWelcomeEmail = async (
   subscription: Subscription,
   ctx: HookCtx,
@@ -42,7 +60,9 @@ export const sendTrialWelcomeEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendTrialWelcomeEmail] User not found or no email", {
-        userId: ctx.userId,
+        eventName: "trial_welcome_email_skipped",
+        status: "skipped",
+        ...subjectReference(ctx.userId),
       });
       return;
     }
@@ -53,7 +73,7 @@ export const sendTrialWelcomeEmail = async (
 
     const planName = formatPlanName(subscription.plan);
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Bienvenue dans votre essai MoodDay ${planName} ! / Welcome to your MoodDay ${planName} trial!`,
       html: TrialWelcomeEmail({
@@ -64,18 +84,21 @@ export const sendTrialWelcomeEmail = async (
       tracking: {
         template: "trial-welcome",
         userId: ctx.userId,
-        metadata: { plan: subscription.plan },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendTrialWelcomeEmail] Trial welcome email sent", {
-      userId: ctx.userId,
-      plan: subscription.plan,
+      eventName: "trial_welcome_email_sent",
+      status: "succeeded",
+      ...subjectReference(ctx.userId),
     });
   } catch (error) {
     logger.error("[sendTrialWelcomeEmail] Failed to send email", {
-      error,
-      userId: ctx.userId,
+      eventName: "trial_welcome_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(ctx.userId),
     });
   }
 };
@@ -89,9 +112,11 @@ export const sendTrialReminderEmail = async (
   try {
     if (!subscription.user.email) {
       logger.warn("[sendTrialReminderEmail] User has no email", {
-        userId: subscription.user.id,
+        eventName: "trial_reminder_email_skipped",
+        status: "skipped",
+        ...subjectReference(subscription.user.id),
       });
-      return;
+      return false;
     }
 
     const trialEndDate = subscription.periodEnd
@@ -110,7 +135,7 @@ export const sendTrialReminderEmail = async (
         ? "Last day of your MoodDay trial!"
         : `Your MoodDay trial expires in ${daysLeft} days`;
 
-    await sendEmail({
+    const result = await sendEmail({
       to: subscription.user.email,
       subject: `${subjectFr} / ${subjectEn}`,
       html: TrialReminderEmail({
@@ -122,20 +147,24 @@ export const sendTrialReminderEmail = async (
       tracking: {
         template: "trial-reminder",
         userId: subscription.user.id,
-        metadata: { plan: subscription.plan, daysLeft },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendTrialReminderEmail] Trial reminder email sent", {
-      userId: subscription.user.id,
-      plan: subscription.plan,
-      daysLeft,
+      eventName: "trial_reminder_email_sent",
+      status: "succeeded",
+      ...subjectReference(subscription.user.id),
     });
+    return true;
   } catch (error) {
     logger.error("[sendTrialReminderEmail] Failed to send email", {
-      error,
-      userId: subscription.user.id,
+      eventName: "trial_reminder_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(subscription.user.id),
     });
+    throw error;
   }
 };
 
@@ -150,14 +179,16 @@ export const sendTrialConvertedEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendTrialConvertedEmail] User not found or no email", {
-        userId: ctx.userId,
+        eventName: "trial_converted_email_skipped",
+        status: "skipped",
+        ...subjectReference(ctx.userId),
       });
       return;
     }
 
     const planName = formatPlanName(data.subscription.plan);
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Votre abonnement MoodDay ${planName} est actif ! / Your MoodDay ${planName} subscription is active!`,
       html: TrialConvertedEmail({
@@ -167,18 +198,21 @@ export const sendTrialConvertedEmail = async (
       tracking: {
         template: "trial-converted",
         userId: ctx.userId,
-        metadata: { plan: data.subscription.plan },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendTrialConvertedEmail] Trial converted email sent", {
-      userId: ctx.userId,
-      plan: data.subscription.plan,
+      eventName: "trial_converted_email_sent",
+      status: "succeeded",
+      ...subjectReference(ctx.userId),
     });
   } catch (error) {
     logger.error("[sendTrialConvertedEmail] Failed to send email", {
-      error,
-      userId: ctx.userId,
+      eventName: "trial_converted_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(ctx.userId),
     });
   }
 };
@@ -194,14 +228,16 @@ export const sendTrialExpiredEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendTrialExpiredEmail] User not found or no email", {
-        userId: ctx.userId,
+        eventName: "trial_expired_email_skipped",
+        status: "skipped",
+        ...subjectReference(ctx.userId),
       });
       return;
     }
 
     const planName = formatPlanName(subscription.plan);
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Votre essai MoodDay a expiré / Your MoodDay trial has expired`,
       html: TrialExpiredEmail({
@@ -211,18 +247,21 @@ export const sendTrialExpiredEmail = async (
       tracking: {
         template: "trial-expired",
         userId: ctx.userId,
-        metadata: { plan: subscription.plan },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendTrialExpiredEmail] Trial expired email sent", {
-      userId: ctx.userId,
-      plan: subscription.plan,
+      eventName: "trial_expired_email_sent",
+      status: "succeeded",
+      ...subjectReference(ctx.userId),
     });
   } catch (error) {
     logger.error("[sendTrialExpiredEmail] Failed to send email", {
-      error,
-      userId: ctx.userId,
+      eventName: "trial_expired_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(ctx.userId),
     });
   }
 };
@@ -240,7 +279,9 @@ export const sendSubscriptionCanceledEmail = async (
       logger.warn(
         "[sendSubscriptionCanceledEmail] User not found or no email",
         {
-          userId: ctx.userId,
+          eventName: "subscription_canceled_email_skipped",
+          status: "skipped",
+          ...subjectReference(ctx.userId),
         },
       );
       return;
@@ -251,7 +292,7 @@ export const sendSubscriptionCanceledEmail = async (
       ? formatDateBilingual(subscription.periodEnd)
       : "bientôt / soon";
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Votre abonnement MoodDay a été annulé / Your MoodDay subscription has been canceled`,
       html: SubscriptionCanceledEmail({
@@ -262,21 +303,24 @@ export const sendSubscriptionCanceledEmail = async (
       tracking: {
         template: "subscription-canceled",
         userId: ctx.userId,
-        metadata: { plan: subscription.plan },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info(
       "[sendSubscriptionCanceledEmail] Subscription canceled email sent",
       {
-        userId: ctx.userId,
-        plan: subscription.plan,
+        eventName: "subscription_canceled_email_sent",
+        status: "succeeded",
+        ...subjectReference(ctx.userId),
       },
     );
   } catch (error) {
     logger.error("[sendSubscriptionCanceledEmail] Failed to send email", {
-      error,
-      userId: ctx.userId,
+      eventName: "subscription_canceled_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(ctx.userId),
     });
   }
 };
@@ -293,7 +337,9 @@ export const sendPaymentFailedEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendPaymentFailedEmail] User not found or no email", {
-        userId,
+        eventName: "payment_failed_email_skipped",
+        status: "skipped",
+        ...subjectReference(userId),
       });
       return;
     }
@@ -302,7 +348,7 @@ export const sendPaymentFailedEmail = async (
       ? formatDateBilingual(retryDate)
       : undefined;
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Échec de paiement MoodDay / MoodDay payment failed`,
       html: PaymentFailedEmail({
@@ -313,18 +359,21 @@ export const sendPaymentFailedEmail = async (
       tracking: {
         template: "payment-failed",
         userId,
-        metadata: { planName },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendPaymentFailedEmail] Payment failed email sent", {
-      userId,
-      planName,
+      eventName: "payment_failed_email_sent",
+      status: "succeeded",
+      ...subjectReference(userId),
     });
   } catch (error) {
     logger.error("[sendPaymentFailedEmail] Failed to send email", {
-      error,
-      userId,
+      eventName: "payment_failed_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(userId),
     });
   }
 };
@@ -342,14 +391,16 @@ export const sendRenewalSuccessEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendRenewalSuccessEmail] User not found or no email", {
-        userId,
+        eventName: "renewal_success_email_skipped",
+        status: "skipped",
+        ...subjectReference(userId),
       });
       return;
     }
 
     const formattedNextDate = formatDateBilingual(nextBillingDate);
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Renouvellement MoodDay confirmé / MoodDay renewal confirmed`,
       html: RenewalSuccessEmail({
@@ -361,18 +412,21 @@ export const sendRenewalSuccessEmail = async (
       tracking: {
         template: "renewal-success",
         userId,
-        metadata: { planName, amount },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendRenewalSuccessEmail] Renewal success email sent", {
-      userId,
-      planName,
+      eventName: "renewal_success_email_sent",
+      status: "succeeded",
+      ...subjectReference(userId),
     });
   } catch (error) {
     logger.error("[sendRenewalSuccessEmail] Failed to send email", {
-      error,
-      userId,
+      eventName: "renewal_success_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(userId),
     });
   }
 };
@@ -382,7 +436,6 @@ export const sendInvoiceAvailableEmail = async (
   invoiceNumber: string,
   amount: string,
   invoiceDate: Date,
-  invoiceUrl: string,
 ) => {
   try {
     const user = await prisma.user.findUnique({
@@ -391,14 +444,16 @@ export const sendInvoiceAvailableEmail = async (
 
     if (!user?.email) {
       logger.warn("[sendInvoiceAvailableEmail] User not found or no email", {
-        userId,
+        eventName: "invoice_available_email_skipped",
+        status: "skipped",
+        ...subjectReference(userId),
       });
       return;
     }
 
     const formattedDate = formatDateBilingual(invoiceDate);
 
-    await sendEmail({
+    const result = await sendEmail({
       to: user.email,
       subject: `Votre facture MoodDay est disponible / Your MoodDay invoice is available`,
       html: InvoiceAvailableEmail({
@@ -406,23 +461,25 @@ export const sendInvoiceAvailableEmail = async (
         invoiceNumber,
         amount,
         invoiceDate: formattedDate,
-        invoiceUrl,
       }),
       tracking: {
         template: "invoice-available",
         userId,
-        metadata: { invoiceNumber, amount },
       },
     });
+    assertEmailDelivered(result);
 
     logger.info("[sendInvoiceAvailableEmail] Invoice available email sent", {
-      userId,
-      invoiceNumber,
+      eventName: "invoice_available_email_sent",
+      status: "succeeded",
+      ...subjectReference(userId),
     });
   } catch (error) {
     logger.error("[sendInvoiceAvailableEmail] Failed to send email", {
-      error,
-      userId,
+      eventName: "invoice_available_email_failed",
+      status: "failed",
+      errorCode: getOperationalErrorCode(error),
+      ...subjectReference(userId),
     });
   }
 };

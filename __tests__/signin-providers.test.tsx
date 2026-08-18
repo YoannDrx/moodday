@@ -1,6 +1,8 @@
 import { authClient } from "@/lib/auth-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
 import { screen, waitFor } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SignInCredentialsAndMagicLinkForm } from "../app/auth/signin/sign-in-credentials-and-magic-link-form";
@@ -19,9 +21,6 @@ vi.mock("next/navigation", async () => {
 describe("SignInCredentialsAndMagicLinkForm", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-
-    // Set default localStorage state for sign-in-with-credentials
-    window.localStorage.setItem("sign-in-with-credentials", "true");
 
     // Mock window.location
     Object.defineProperty(window, "location", {
@@ -42,6 +41,11 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
       data: { success: true },
       error: null,
     });
+
+    vi.mocked(authClient.signIn.passkey).mockResolvedValue({
+      data: { token: "passkey-session", user: { id: "user-1" } },
+      error: null,
+    } as never);
   });
 
   it("should render email and password fields in credentials mode", async () => {
@@ -60,6 +64,17 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
     // Should have a link to switch to magic link
     expect(screen.getByText(/login with magic link/i)).toBeInTheDocument();
+  });
+
+  it("renders the credential fields in the initial server markup", () => {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={new QueryClient()}>
+        <SignInCredentialsAndMagicLinkForm />
+      </QueryClientProvider>,
+    );
+
+    expect(html).toContain('type="password"');
+    expect(html).toContain('name="password"');
   });
 
   it("should switch to magic link mode when clicking the link", async () => {
@@ -164,6 +179,52 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
 // Test social provider buttons
 describe("SignInProvidersContainer", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "location", {
+      value: {
+        origin: "http://localhost:3000",
+        href: "http://localhost:3000/auth/signin",
+      },
+      writable: true,
+    });
+    vi.mocked(authClient.signIn.passkey).mockResolvedValue({
+      data: { token: "passkey-session", user: { id: "user-1" } },
+      error: null,
+    } as never);
+  });
+
+  it("offers passkey sign-in and redirects after successful WebAuthn", async () => {
+    const { user } = setup(
+      <SignInProviders providers={[]} callbackUrl="/dashboard" />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /continue with a passkey/i }),
+    );
+
+    await waitFor(() => expect(authClient.signIn.passkey).toHaveBeenCalled());
+    expect(window.location.href).toBe("http://localhost:3000/dashboard");
+  });
+
+  it("keeps the user on sign-in when WebAuthn is cancelled", async () => {
+    vi.mocked(authClient.signIn.passkey).mockResolvedValue({
+      data: null,
+      error: new Error("Authentication cancelled"),
+    } as never);
+    const { user } = setup(<SignInProviders providers={[]} />);
+
+    await user.click(
+      screen.getByRole("button", { name: /continue with a passkey/i }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Unable to sign in with a passkey",
+      ),
+    );
+    expect(window.location.href).toBe("http://localhost:3000/auth/signin");
+  });
+
   it("should render GitHub button when enabled", async () => {
     setup(<SignInProviders providers={["github"]} />);
 

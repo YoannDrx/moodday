@@ -1,6 +1,16 @@
 # Runbook de baseline Prisma
 
-Statut : procédure répétée le 2026-08-07 sur une branche Neon isolée.
+Statut : procédure répétée le 2026-08-18 sur PostgreSQL 17.11 local jetable. La
+répétition d'une copie de structure de Production sur une cible fournisseur
+isolée reste une gate séparée.
+
+La CI exécute aussi `pnpm verify:migration-upgrade` sur PostgreSQL 17 jetable.
+Ce contrôle construit le schéma des 12 migrations de la release précédente,
+insère des données témoins valides et orphelines, puis applique les 12 migrations
+suivantes. Il vérifie les 24 migrations, 41 tables publiques (dont la table
+technique `_prisma_migrations`), l'absence de drift, la
+préservation des données valides, le nettoyage ciblé des orphelins, le backfill
+des révisions de médicaments et l'absence de consentement fabriqué.
 
 Le dépôt utilise `prisma/schema/schema.prisma` avec les migrations dans
 `prisma/migrations`. Aucun dossier `prisma/schema/migrations` ne doit être
@@ -36,7 +46,9 @@ migrations postérieures, puis `prisma migrate status`.
 
 ## Gates de validation
 
-- Le statut annonce dix migrations et « Database schema is up to date ».
+- Le statut annonce 24 migrations et « Database schema is up to date ».
+- La base vide obtenue contient 41 tables et `prisma migrate diff` ne détecte
+  aucune différence avec le schéma courant.
 - La comparaison de schéma fournisseur entre le clone et son parent est vide.
 - Une requête synthétique `SELECT 1` réussit via Prisma.
 - Aucune URL, mot de passe, donnée utilisateur ou chaîne de connexion n'est

@@ -202,14 +202,8 @@ export default async function AboutPage() {
               </Typography>
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
-                  href="/careers"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-lg px-6 py-3 font-semibold transition-colors"
-                >
-                  {t("about.team.joinCta")}
-                </Link>
-                <Link
                   href="/contact"
-                  className="border-border text-foreground hover:bg-muted inline-flex items-center rounded-lg border px-6 py-3 font-semibold transition-colors"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-lg px-6 py-3 font-semibold transition-colors"
                 >
                   {t("about.team.contactCta")}
                 </Link>

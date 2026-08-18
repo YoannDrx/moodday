@@ -3,27 +3,48 @@ import { validateCronRequest } from "@/lib/cron";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { route } from "@/lib/zod-route";
-import { addDays, startOfDay } from "date-fns";
+import { runOperationalJob } from "@/lib/operations/job-runner";
+import {
+  addCivilDays,
+  getCivilDayRange,
+  getDateKeyForTimeZone,
+} from "@/lib/temporal/civil-date";
+import {
+  getRequestId,
+  getRequestLogFields,
+} from "@/lib/operations/request-context";
 
 export const maxDuration = 300;
 
 export const GET = route.handler(async (request) => {
+  const startedAt = Date.now();
+  const requestId = getRequestId(request);
   const unauthorizedResponse = validateCronRequest(request);
   if (unauthorizedResponse) return unauthorizedResponse;
 
-  const today = startOfDay(new Date());
-  const in3Days = startOfDay(addDays(today, 3));
-  const in1Day = startOfDay(addDays(today, 1));
-  const in3DaysEnd = startOfDay(addDays(in3Days, 1));
-  const in1DayEnd = startOfDay(addDays(in1Day, 1));
+  const job = await runOperationalJob({
+    jobName: "subscription-reminders",
+    intervalMs: 24 * 60 * 60 * 1000,
+    task: async () => sendSubscriptionReminders({ requestId, startedAt }),
+  });
+  return job.skipped ? { ok: true, skipped: true } : job.result;
+});
+
+async function sendSubscriptionReminders(requestContext: {
+  requestId: string;
+  startedAt: number;
+}) {
+  const today = getDateKeyForTimeZone(new Date(), "UTC");
+  const in3Days = getCivilDayRange(addCivilDays(today, 3), "UTC");
+  const in1Day = getCivilDayRange(addCivilDays(today, 1), "UTC");
 
   // Find trials expiring in 3 days
   const trialsExpiring3Days = await prisma.subscription.findMany({
     where: {
       status: "trialing",
       periodEnd: {
-        gte: in3Days,
-        lt: in3DaysEnd,
+        gte: in3Days.start,
+        lt: in3Days.endExclusive,
       },
     },
     include: {
@@ -42,8 +63,8 @@ export const GET = route.handler(async (request) => {
     where: {
       status: "trialing",
       periodEnd: {
-        gte: in1Day,
-        lt: in1DayEnd,
+        gte: in1Day.start,
+        lt: in1Day.endExclusive,
       },
     },
     include: {
@@ -73,7 +94,13 @@ export const GET = route.handler(async (request) => {
   results3Days.forEach((result) => {
     if (result.status === "rejected") {
       logger.error("[subscription-reminders] Failed to send J-3 reminder", {
+        eventName: "subscription_reminder_delivery_failed",
+        status: "failed",
         errorCode: "email_delivery_failed",
+        ...getRequestLogFields({
+          ...requestContext,
+          route: "/api/cron/subscription-reminders",
+        }),
       });
     }
   });
@@ -81,16 +108,28 @@ export const GET = route.handler(async (request) => {
   results1Day.forEach((result) => {
     if (result.status === "rejected") {
       logger.error("[subscription-reminders] Failed to send J-1 reminder", {
+        eventName: "subscription_reminder_delivery_failed",
+        status: "failed",
         errorCode: "email_delivery_failed",
+        ...getRequestLogFields({
+          ...requestContext,
+          route: "/api/cron/subscription-reminders",
+        }),
       });
     }
   });
 
   logger.info("[subscription-reminders] Cron completed", {
+    eventName: "subscription_reminders_completed",
+    status: "succeeded",
     trialsChecked3Days: trialsExpiring3Days.length,
     trialsChecked1Day: trialsExpiring1Day.length,
     sent3Days,
     sent1Day,
+    ...getRequestLogFields({
+      ...requestContext,
+      route: "/api/cron/subscription-reminders",
+    }),
   });
 
   return {
@@ -100,4 +139,4 @@ export const GET = route.handler(async (request) => {
     sent3Days,
     sent1Day,
   };
-});
+}

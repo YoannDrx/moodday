@@ -15,7 +15,10 @@ import {
 } from "@/features/page/layout";
 import { useI18n } from "@/i18n/provider";
 import { resolveActionResult } from "@/lib/actions/actions-utils";
-import { LIMITS_CONFIG, getPlanLimits } from "@/lib/auth/stripe/auth-plans";
+import {
+  LIMITS_CONFIG,
+  getPlanLimits,
+} from "@/lib/auth/stripe/auth-plans-data";
 import { normalizePlanCode } from "@/lib/billing/entitlements";
 import type { UserActiveSubscription } from "@/lib/user/get-user-subscription";
 import { cn } from "@/lib/utils";

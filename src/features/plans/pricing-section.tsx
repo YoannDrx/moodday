@@ -9,7 +9,17 @@ import Link from "next/link";
 import { useState } from "react";
 import { PricingCard, type PricingMode } from "./pricing-card";
 
-export function Pricing({ mode = "dashboard" }: { mode?: PricingMode }) {
+export function Pricing({
+  mode = "dashboard",
+  billingEnabled = false,
+  aiInsightsEnabled = false,
+  caregiverSharingEnabled = false,
+}: {
+  mode?: PricingMode;
+  billingEnabled?: boolean;
+  aiInsightsEnabled?: boolean;
+  caregiverSharingEnabled?: boolean;
+}) {
   const [isYearly, setIsYearly] = useState(false);
   const { t } = useI18n();
 
@@ -22,7 +32,11 @@ export function Pricing({ mode = "dashboard" }: { mode?: PricingMode }) {
               {t("pricing.title")}
             </h2>
             <p className="text-muted-foreground max-w-[700px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              {t("pricing.description")}
+              {t(
+                billingEnabled
+                  ? "pricing.description"
+                  : "pricing.descriptionUnavailable",
+              )}
             </p>
           </div>
 
@@ -40,6 +54,7 @@ export function Pricing({ mode = "dashboard" }: { mode?: PricingMode }) {
             <Switch
               checked={isYearly}
               onCheckedChange={setIsYearly}
+              aria-label={`${t("pricing.monthly")} / ${t("pricing.yearly")}`}
               className="data-[state=checked]:bg-primary"
             />
             <div
@@ -68,12 +83,17 @@ export function Pricing({ mode = "dashboard" }: { mode?: PricingMode }) {
               plan={plan}
               isYearly={isYearly}
               mode={mode}
+              billingEnabled={billingEnabled}
+              aiInsightsEnabled={aiInsightsEnabled}
+              caregiverSharingEnabled={caregiverSharingEnabled}
             />
           ))}
         </div>
 
         <div className="mt-16 text-center">
-          <p className="text-muted-foreground">{t("pricing.footer")}</p>
+          <p className="text-muted-foreground">
+            {t(billingEnabled ? "pricing.footer" : "pricing.footerUnavailable")}
+          </p>
           <p className="text-muted-foreground mt-2">
             {t("pricing.customPlan")}{" "}
             <Link

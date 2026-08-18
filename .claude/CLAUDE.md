@@ -6,12 +6,17 @@ Guide pour Claude Code sur le projet Moodday.
 
 ## À propos de Moodday
 
-**Moodday** est un template boilerplate Next.js 15 pour démarrer rapidement de nouveaux projets avec une stack moderne et complète.
+**Moodday** est un journal personnel PWA de santé mentale, confidentiel et non
+médical, destiné aux adultes en France. Il permet de conserver ses propres
+repères d'humeur, de traitements et de bien-être sans établir de diagnostic ni
+formuler de recommandation thérapeutique.
 
-### Fonctionnalités incluses
+### Services principaux
 
-- Authentification multi-providers (GitHub, Google, Email)
-- Paiements Stripe (abonnements)
+- Authentification Better Auth ; les fournisseurs ne sont activés que lorsque
+  leur configuration est complète
+- Paiements Stripe, protégés par une porte de disponibilité et désactivés par
+  défaut avant validation de production
 - Emails transactionnels (Resend)
 - Base de données PostgreSQL (NeonDB + Prisma)
 
@@ -31,9 +36,9 @@ Guide pour Claude Code sur le projet Moodday.
 
 ### Setup et diagnostic
 
-- `pnpm init-project` - Initialiser un nouveau projet (première fois)
-- `pnpm setup` - Configuration interactive des services cloud
 - `pnpm doctor` - Diagnostic de santé du projet
+- `pnpm env:audit` - Vérifier les conventions de configuration locale
+- `pnpm verify` - Exécuter la porte de qualité locale complète
 
 ### Base de données
 
@@ -63,19 +68,17 @@ Le projet utilise plusieurs CLIs pour automatiser le setup et le déploiement.
 ### Installation
 
 ```bash
-npm i -g @vercel/cli neonctl @upstash/cli stripe gh
+npm i -g @vercel/cli neonctl stripe gh
 ```
 
 ### Liste des CLIs
 
-| CLI       | Package            | Commande login       | Usage                       |
-| --------- | ------------------ | -------------------- | --------------------------- |
-| `gh`      | `gh`               | `gh auth login`      | GitHub                      |
-| `vercel`  | `@vercel/cli`      | `vercel login`       | Déploiement                 |
-| `neon`    | `neonctl`          | `neon auth`          | PostgreSQL (NeonDB)         |
-| `upstash` | `@upstash/cli`     | `upstash auth login` | Redis (Upstash)             |
-| `stripe`  | `stripe`           | `stripe login`       | Paiements (optionnel)       |
-
+| CLI      | Package       | Commande login  | Usage                 |
+| -------- | ------------- | --------------- | --------------------- |
+| `gh`     | `gh`          | `gh auth login` | GitHub                |
+| `vercel` | `@vercel/cli` | `vercel login`  | Déploiement           |
+| `neon`   | `neonctl`     | `neon auth`     | PostgreSQL (NeonDB)   |
+| `stripe` | `stripe`      | `stripe login`  | Paiements (optionnel) |
 
 ---
 
@@ -181,7 +184,6 @@ npm i -g @vercel/cli neonctl @upstash/cli stripe gh
 
 - Toutes les routes API DOIVENT utiliser `@/lib/zod-route.ts`
 - Toujours lire `zod-route.ts` avant de créer des routes
-- Toutes les requêtes API DOIVENT utiliser `@/lib/up-fetch.ts` (jamais `fetch` directement)
 
 ---
 
@@ -208,7 +210,6 @@ npm i -g @vercel/cli neonctl @upstash/cli stripe gh
 - `src/lib/actions/actions-utils.ts` - Utilitaires server actions
 - `src/lib/actions/safe-actions.ts` - Logique safe actions
 - `src/lib/zod-route.ts` - Logique routes API
-- `src/lib/up-fetch.ts` - Client fetch amélioré
 - `src/components/ui/form.tsx` - Composants formulaires
 - `prisma/schema.prisma` - Schema base de données
 - `src/site-config.ts` - Configuration du site
@@ -233,7 +234,10 @@ Toujours utiliser les paths TypeScript :
 
 ## Debugging et tâches complexes
 
-Pour les logiques complexes et le debugging, utilise des logs. Ajoute beaucoup de logs à chaque étape et DEMANDE-MOI DE T'ENVOYER les logs pour debugger facilement.
+Pour les logiques complexes, utiliser des événements structurés contenant un
+nom d'événement, un identifiant de requête, une durée, un statut et un code
+d'erreur. Ne jamais journaliser de contenu de santé, adresse e-mail, token,
+payload fournisseur ou URL de fichier privée.
 
 ---
 
@@ -265,7 +269,10 @@ C'est **NON-NÉGOCIABLE**. Ne saute jamais cette étape. Lire les fichiers exist
 
 ## BMAD-METHOD (optionnel)
 
-BMAD (Breakthrough Method for Agile AI Driven Development) est un framework d'agents IA spécialisés pour le développement agile. Il peut être installé via `pnpm setup`.
+BMAD (Breakthrough Method for Agile AI Driven Development) est un framework
+d'agents IA spécialisés pour le développement agile. Ses fichiers sont déjà
+versionnés dans `_bmad/` ; Moodday ne possède volontairement aucun script de
+provisionnement générique des services.
 
 ### Commande rapide
 

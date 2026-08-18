@@ -69,7 +69,7 @@ const statusStyles: Record<OfflineOperationStatus, string> = {
   conflict: "bg-red-50 text-red-700",
 };
 
-export function OfflineSyncContent() {
+export function OfflineSyncContent({ ownerId }: { ownerId: string }) {
   const { locale, t } = useI18n();
   const [operations, setOperations] = useState<SafeOperation[]>([]);
   const [isOnline, setIsOnline] = useState(true);
@@ -79,10 +79,10 @@ export function OfflineSyncContent() {
 
   const loadOperations = useCallback(async () => {
     try {
-      await compactOfflineOperations();
+      await compactOfflineOperations(ownerId);
       const [actions, moods] = await Promise.all([
-        getQueuedActions(),
-        getQueuedMoodEntries(),
+        getQueuedActions(ownerId),
+        getQueuedMoodEntries(ownerId),
       ]);
       const safeActions = actions.map((operation) => ({
         id: operation.id,
@@ -110,7 +110,7 @@ export function OfflineSyncContent() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     const updateConnection = () => setIsOnline(navigator.onLine);
@@ -140,8 +140,8 @@ export function OfflineSyncContent() {
     setIsSyncing(true);
     try {
       const [actions, moods] = await Promise.all([
-        syncQueuedActions(),
-        syncQueuedMoodEntries(),
+        syncQueuedActions(ownerId),
+        syncQueuedMoodEntries(ownerId),
       ]);
       await loadOperations();
       if (actions.remaining + moods.remaining === 0) {
@@ -157,14 +157,14 @@ export function OfflineSyncContent() {
   };
 
   const retry = async (id: string) => {
-    await retryOfflineOperation(id);
+    await retryOfflineOperation(ownerId, id);
     notifyOfflineQueueChanged();
     toast.info(t("settings.offline.retryStarted"));
     await synchronize();
   };
 
   const discard = async (id: string) => {
-    await discardOfflineOperation(id);
+    await discardOfflineOperation(ownerId, id);
     notifyOfflineQueueChanged();
     toast.success(t("settings.offline.discarded"));
   };

@@ -10,6 +10,7 @@ import { TrendsContent } from "./_components/trends-content";
 import { getRequiredUser } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -48,6 +49,7 @@ export default async function TrendsPage() {
       canCreateConsultationReport={
         getEntitlements(subscription).consultationReports
       }
+      billingEnabled={getFeatureAvailability("billing").enabled}
     />
   );
 }

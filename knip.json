@@ -1,5 +1,13 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
+  "include": [
+    "files",
+    "dependencies",
+    "devDependencies",
+    "unlisted",
+    "binaries",
+    "unresolved"
+  ],
   "ignore": [
     "src/components/ui/*",
     "*.config.js",
@@ -8,12 +16,25 @@
     "src/site-config.ts",
     "e2e/**",
     ".claude/**",
-    "prisma/**"
+    "prisma/**",
+    "artifacts/**"
   ],
+  "ignoreDependencies": ["tailwindcss", "tailwindcss-animate"],
+  "ignoreBinaries": ["stripe"],
   "paths": {
     "@/*": ["./src/*"],
     "@app/*": ["./app/*"],
     "@email/*": ["./emails/*"]
   },
-  "entry": ["**/unauthorized.tsx", "**/sitemap.tsx", "src/components/**"]
+  "entry": [
+    "**/unauthorized.tsx",
+    "**/sitemap.tsx",
+    "proxy.ts",
+    "public/sw.js",
+    "scripts/better-auth-schema.config.ts",
+    "lighthouserc.cjs",
+    "lighthouserc.release.cjs",
+    "scripts/lighthouse-auth.cjs",
+    "src/components/**"
+  ]
 }

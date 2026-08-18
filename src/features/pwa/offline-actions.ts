@@ -14,6 +14,7 @@ import { notifyOfflineQueueChanged } from "./offline-events";
 import {
   addOfflineOperation,
   countOfflineOperations,
+  getOfflineErrorCategory,
   getOfflineFailureStatus,
   getOfflineRetryDelay,
   getSafeOfflineTimeZone,
@@ -68,8 +69,12 @@ export type OfflineActionPayload =
 
 export type OfflineActionEntry = {
   id: string;
+  ownerId: string;
+  schemaVersion: 2;
   payload: OfflineActionPayload;
   createdAt: string;
+  localDateAtCreation: string;
+  timeZoneAtCreation: string;
 };
 
 const preserveOfflineActionTime = (
@@ -98,16 +103,25 @@ const preserveOfflineActionTime = (
 };
 
 export const queueAction = async (
+  ownerId: string,
   payload: OfflineActionPayload,
-  options?: { createdAt?: Date; timeZone?: string },
+  options?: {
+    createdAt?: Date;
+    timeZone?: string;
+    expectedVersion?: string;
+  },
 ) => {
   const createdAt = options?.createdAt ?? new Date();
   const now = createdAt.toISOString();
   const timeZoneAtCreation = getSafeOfflineTimeZone(options?.timeZone);
   const entry: OfflineActionEntry = {
     id: `action:${nanoid(10)}`,
+    ownerId,
+    schemaVersion: 2,
     payload: preserveOfflineActionTime(payload, createdAt, timeZoneAtCreation),
     createdAt: now,
+    localDateAtCreation: getDateKeyForTimeZone(createdAt, timeZoneAtCreation),
+    timeZoneAtCreation,
   };
   await addOfflineOperation({
     ...entry,
@@ -115,23 +129,29 @@ export const queueAction = async (
     status: "pending",
     retryCount: 0,
     updatedAt: now,
-    timeZoneAtCreation,
+    expectedVersion: options?.expectedVersion,
   });
   notifyOfflineQueueChanged();
   return entry;
 };
 
-export const getQueuedActionCount = async () =>
-  countOfflineOperations("action");
+export const getQueuedActionCount = async (ownerId: string) =>
+  countOfflineOperations(ownerId, "action");
 
-let activeSync: Promise<{
-  synced: number;
-  remaining: number;
-  conflicts: number;
-}> | null = null;
+const activeSyncByOwner = new Map<
+  string,
+  Promise<{
+    synced: number;
+    remaining: number;
+    conflicts: number;
+  }>
+>();
 
-const runQueuedActionSync = async () => {
-  const queue = await listOfflineOperations<OfflineActionPayload>("action");
+const runQueuedActionSync = async (ownerId: string) => {
+  const queue = await listOfflineOperations<OfflineActionPayload>(
+    ownerId,
+    "action",
+  );
   if (queue.length === 0) {
     return { synced: 0, remaining: 0, conflicts: 0 };
   }
@@ -142,7 +162,7 @@ const runQueuedActionSync = async () => {
     if (item.status === "conflict" || !isOfflineOperationDue(item)) continue;
 
     try {
-      await updateOfflineOperation(item.id, { status: "syncing" });
+      await updateOfflineOperation(ownerId, item.id, { status: "syncing" });
       const payload = item.payload;
       switch (payload.type) {
         case "med_intake": {
@@ -201,7 +221,7 @@ const runQueuedActionSync = async () => {
         default:
           throw new Error("Unknown offline action");
       }
-      await removeOfflineOperation(item.id);
+      await removeOfflineOperation(ownerId, item.id);
       synced += 1;
     } catch (error) {
       const message =
@@ -210,10 +230,11 @@ const runQueuedActionSync = async () => {
           : "Offline synchronization failed";
       const retryCount = item.retryCount + 1;
       const status = getOfflineFailureStatus(message);
-      await updateOfflineOperation(item.id, {
+      await updateOfflineOperation(ownerId, item.id, {
         status,
         retryCount,
         lastError: message,
+        errorCategory: getOfflineErrorCategory(message),
         nextAttemptAt:
           status === "failed"
             ? new Date(
@@ -224,7 +245,10 @@ const runQueuedActionSync = async () => {
     }
   }
 
-  const remaining = await listOfflineOperations<OfflineActionPayload>("action");
+  const remaining = await listOfflineOperations<OfflineActionPayload>(
+    ownerId,
+    "action",
+  );
   notifyOfflineQueueChanged();
   return {
     synced,
@@ -233,14 +257,17 @@ const runQueuedActionSync = async () => {
   };
 };
 
-export const syncQueuedActions = async () => {
-  activeSync ??= runQueuedActionSync().finally(() => {
-    activeSync = null;
+export const syncQueuedActions = async (ownerId: string) => {
+  const existing = activeSyncByOwner.get(ownerId);
+  if (existing) return existing;
+  const current = runQueuedActionSync(ownerId).finally(() => {
+    activeSyncByOwner.delete(ownerId);
   });
-  return activeSync;
+  activeSyncByOwner.set(ownerId, current);
+  return current;
 };
 
-export const getQueuedActions = async () =>
-  listOfflineOperations<OfflineActionPayload>("action");
+export const getQueuedActions = async (ownerId: string) =>
+  listOfflineOperations<OfflineActionPayload>(ownerId, "action");
 
 export type QueuedActionOperation = OfflineOperation<OfflineActionPayload>;

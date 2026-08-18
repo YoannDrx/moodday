@@ -1,7 +1,13 @@
 import { createSafeActionClient } from "next-safe-action";
-import { getRequiredAdmin, getRequiredUser } from "../auth/auth-user";
+import {
+  getRequiredAdmin,
+  getRequiredUser,
+  getRequiredVerifiedUser,
+  getRequiredRecentUser,
+} from "../auth/auth-user";
 import { ApplicationError } from "../errors/application-error";
 import { logger } from "../logger";
+import { assertWritesAvailable } from "../maintenance";
 
 /**
  * Base safe action client with error handling
@@ -28,9 +34,16 @@ import { logger } from "../logger";
  *   });
  * ```
  */
-export const action = createSafeActionClient({
+const baseActionClient = createSafeActionClient({
   handleServerError,
 });
+
+const writeActionClient = baseActionClient.use(async ({ next }) => {
+  assertWritesAvailable();
+  return next();
+});
+
+export const action = writeActionClient;
 
 /**
  * Authenticated safe action client
@@ -57,9 +70,7 @@ export const action = createSafeActionClient({
  *   });
  * ```
  */
-export const authAction = createSafeActionClient({
-  handleServerError,
-}).use(async ({ next }) => {
+export const authAction = writeActionClient.use(async ({ next }) => {
   const user = await getRequiredUser();
 
   return next({
@@ -67,6 +78,16 @@ export const authAction = createSafeActionClient({
       user: user,
     },
   });
+});
+
+export const verifiedAuthAction = writeActionClient.use(async ({ next }) => {
+  const user = await getRequiredVerifiedUser();
+  return next({ ctx: { user } });
+});
+
+export const sensitiveAuthAction = writeActionClient.use(async ({ next }) => {
+  const user = await getRequiredRecentUser();
+  return next({ ctx: { user } });
 });
 
 /**
@@ -80,9 +101,7 @@ export const authAction = createSafeActionClient({
  *
  * Use this for actions that require admin role access.
  */
-export const adminAction = createSafeActionClient({
-  handleServerError,
-}).use(async ({ next }) => {
+export const adminAction = writeActionClient.use(async ({ next }) => {
   const user = await getRequiredAdmin();
 
   return next({
@@ -94,7 +113,11 @@ export const adminAction = createSafeActionClient({
 
 function handleServerError(e: Error) {
   if (e instanceof ApplicationError) {
-    logger.debug("[DEV] - Action Error", e.message);
+    logger.debug("Action rejected", {
+      eventName: "action_rejected",
+      status: "rejected",
+      errorCode: e.name,
+    });
     return e.message;
   }
 
@@ -102,10 +125,6 @@ function handleServerError(e: Error) {
     errorCode: "action_failed",
     errorName: e.name,
   });
-
-  if (process.env.NODE_ENV === "development") {
-    return e.message;
-  }
 
   return "An unexpected error occurred.";
 }

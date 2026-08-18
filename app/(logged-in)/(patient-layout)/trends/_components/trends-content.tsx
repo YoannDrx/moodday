@@ -72,6 +72,7 @@ type TrendsContentProps = {
   insights?: Insight[];
   canViewUnlimitedHistory: boolean;
   canCreateConsultationReport: boolean;
+  billingEnabled: boolean;
 };
 
 type PeriodKey = "7" | "30" | "90";
@@ -89,6 +90,7 @@ export function TrendsContent({
   insights,
   canViewUnlimitedHistory,
   canCreateConsultationReport,
+  billingEnabled,
 }: TrendsContentProps) {
   const { locale, t } = useI18n();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("30");
@@ -170,7 +172,7 @@ export function TrendsContent({
   const energyCorrelation = calculateCorrelation(
     buildPairs(currentData?.moodEntries, "energy"),
   );
-  const medicationCorrelation = currentData?.medicationAdherence ?? null;
+  const medicationAdherence = currentData?.medicationAdherence ?? null;
 
   const formatPercent = (value: number | null | undefined) =>
     value === null || value === undefined ? "--" : `${value}%`;
@@ -227,19 +229,30 @@ export function TrendsContent({
                 : "Choose a period, review changes, and prepare your questions. Moodday does not infer medical causes."}
             </p>
           </div>
-          <Link
-            href={canCreateConsultationReport ? "/export" : "/pricing"}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[#1E7775]"
-          >
-            {canCreateConsultationReport
-              ? locale === "fr"
-                ? "Préparer le rapport"
-                : "Prepare report"
-              : locale === "fr"
-                ? "Découvrir Plus"
-                : "Explore Plus"}
-            <ChevronRight className="size-4" />
-          </Link>
+          {canCreateConsultationReport || billingEnabled ? (
+            <Link
+              href={canCreateConsultationReport ? "/export" : "/pricing"}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[#1E7775]"
+            >
+              {canCreateConsultationReport
+                ? locale === "fr"
+                  ? "Préparer le rapport"
+                  : "Prepare report"
+                : locale === "fr"
+                  ? "Découvrir Plus"
+                  : "Explore Plus"}
+              <ChevronRight className="size-4" />
+            </Link>
+          ) : (
+            <span
+              aria-disabled="true"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white/70"
+            >
+              {locale === "fr"
+                ? "PDF indisponible avant l’ouverture de Plus"
+                : "PDF unavailable until Plus opens"}
+            </span>
+          )}
         </div>
       </div>
 
@@ -289,7 +302,7 @@ export function TrendsContent({
               <Calendar className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last7Days")}
               </p>
               <div className="flex items-center gap-2">
@@ -331,7 +344,7 @@ export function TrendsContent({
               <TrendingUp className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last30Days")}
               </p>
               <p className="text-2xl font-bold">{avg30}/10</p>
@@ -356,11 +369,17 @@ export function TrendsContent({
               <BarChart2 className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last90Days")}
               </p>
               <p className="text-2xl font-bold">
-                {canViewUnlimitedHistory ? `${avg90}/10` : "Plus"}
+                {canViewUnlimitedHistory
+                  ? `${avg90}/10`
+                  : billingEnabled
+                    ? "Plus"
+                    : locale === "fr"
+                      ? "Indisponible"
+                      : "Unavailable"}
               </p>
             </div>
           </div>
@@ -444,18 +463,18 @@ export function TrendsContent({
               <div className="rounded-2xl border border-[var(--sage)]/20 bg-[var(--sage)]/5 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">
-                    {t("trends.correlations.medicationStability")}
+                    {t("trends.correlations.medicationAdherence")}
                   </span>
                   <span className="text-lg font-bold text-[var(--sage-dark)]">
-                    {formatPercent(medicationCorrelation)}
+                    {formatPercent(medicationAdherence)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--sage)]/20">
                   <div
                     className="h-full rounded-full bg-[var(--sage)]"
                     style={{
-                      width: medicationCorrelation
-                        ? `${medicationCorrelation}%`
+                      width: medicationAdherence
+                        ? `${medicationAdherence}%`
                         : "0%",
                     }}
                   />
@@ -551,7 +570,7 @@ export function TrendsContent({
               ) : (
                 <div className="rounded-2xl border border-dashed border-gray-200 py-8 text-center">
                   <Sparkles className="mx-auto mb-2 size-8 text-gray-300" />
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-600">
                     {t("trends.insights.empty")}
                   </p>
                 </div>

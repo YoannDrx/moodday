@@ -65,10 +65,6 @@ function isLoggedIn(cmd: string): { ok: boolean; info?: string } {
         execSync("stripe config --list", { stdio: "ignore" });
         return { ok: true };
       }
-      case "upstash": {
-        execSync("upstash team list", { stdio: "ignore" });
-        return { ok: true };
-      }
       default:
         return { ok: false };
     }
@@ -150,7 +146,7 @@ function checkEnvFile(): void {
 
   if (!envFile) {
     log.error("Aucun fichier .env ou .env.local trouvé");
-    log.info("Lance: pnpm setup pour configurer le projet");
+    log.info("Copie .env-template vers .env.local, puis lance pnpm env:audit");
     return;
   }
 
@@ -175,10 +171,12 @@ function checkEnvFile(): void {
       "STRIPE_PLUS_MONTHLY_PRICE_ID",
       "STRIPE_PLUS_YEARLY_PRICE_ID",
     ],
-    "OpenAI bêta": ["OPENAI_API_KEY", "AI_SAFETY_HMAC_SECRET"],
+    "OpenAI (désactivé tant que les gates ne sont pas validés)": [
+      "OPENAI_API_KEY",
+      "AI_SAFETY_HMAC_SECRET",
+    ],
     "Web Push": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "CRON_SECRET"],
     Resend: ["RESEND_API_KEY"],
-    PostHog: ["NEXT_PUBLIC_POSTHOG_KEY"],
   };
 
   // Vérifier les variables critiques

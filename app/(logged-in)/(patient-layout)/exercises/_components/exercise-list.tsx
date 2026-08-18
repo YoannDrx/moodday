@@ -65,6 +65,7 @@ import {
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth-client";
 
 type EditingExercise = {
   id: string;
@@ -73,6 +74,8 @@ type EditingExercise = {
 };
 
 export function ExerciseList() {
+  const { data: session } = useSession();
+  const offlineOwnerId = session?.user.id ?? "";
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
@@ -93,7 +96,10 @@ export function ExerciseList() {
   const logMutation = useMutation({
     mutationFn: async (exerciseId: string) => {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction({ type: "exercise_log", exerciseId });
+        await queueAction(offlineOwnerId, {
+          type: "exercise_log",
+          exerciseId,
+        });
         return { queued: true };
       }
       const result = await logExerciseCompletion({ exerciseId });

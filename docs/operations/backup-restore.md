@@ -1,6 +1,30 @@
 # Runbook sauvegarde et restauration
 
-Statut : procédure à exécuter sur un clone anonymisé avant production.
+Statut : la restauration logique locale est automatisée ; la restauration du
+snapshot fournisseur reste à exécuter sur un clone anonymisé avant production.
+
+## Preuve locale reproductible
+
+`pnpm verify:backup-restore` crée deux bases jetables dans un conteneur
+PostgreSQL 17 dédié, applique les migrations à la source, crée uniquement un
+fixture synthétique, produit un dump logique au format custom puis le restaure
+dans la destination. Le script compare les volumes des 41 tables, la valeur
+numérique `0`, l'historique Prisma et le diff de schéma, puis détruit le dump et
+les deux bases.
+
+Dernière répétition : PostgreSQL 17.11 Alpine, le 18 août 2026. Le dump
+synthétique de 116 962 octets a pris 389 ms, la restauration 552 ms et le RPO
+observé 9 s. Cette répétition a aussi rendu le nettoyage compatible avec les
+images minimales BusyBox (`stat -c` et `rm -f`) ; un test interdit le retour
+des variantes GNU incompatibles.
+Ces mesures locales ne remplacent pas la preuve chronométrée du fournisseur.
+
+Le script refuse toute cible non locale. Les noms des deux bases doivent
+commencer respectivement par `moodday_backup_source` et
+`moodday_backup_restore`, le conteneur doit être dédié (ou fourni par le service
+PostgreSQL CI) et `BACKUP_RESTORE_ACK=local-disposable` est obligatoire. Cette
+preuve mesure un RTO et un RPO locaux ; elle ne démontre pas les engagements du
+fournisseur Production.
 
 ## Préparation
 

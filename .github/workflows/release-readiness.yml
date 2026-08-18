@@ -1,0 +1,208 @@
+name: Release readiness gates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-release@localhost:5432/moodday_release
+  DATABASE_URL_UNPOOLED: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-release@localhost:5432/moodday_release
+  BETTER_AUTH_SECRET: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-release-auth-secret
+  BETTER_AUTH_URL: http://127.0.0.1:3200
+  NODE_ENV: production
+  BILLING_ENABLED: "false"
+  AI_INSIGHTS_ENABLED: "false"
+  CAREGIVER_SHARING_ENABLED: "false"
+  PUSH_NOTIFICATIONS_ENABLED: "false"
+  ACCOUNT_IMPORT_ENABLED: "false"
+  LEGAL_TERMS_VERSION: terms-2026-08
+  LEGAL_PRIVACY_VERSION: privacy-2026-08
+  AI_CONSENT_VERSION: ai-consent-2026-08
+  HEALTH_DATA_CONSENT_VERSION: health-data-2026-08
+
+jobs:
+  migration-upgrade:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      MIGRATION_REHEARSAL_ACK: local-disposable
+      DATABASE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-migration@localhost:5432/moodday_migration_upgrade
+      DATABASE_URL_UNPOOLED: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-migration@localhost:5432/moodday_migration_upgrade
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-migration
+          POSTGRES_USER: postgres
+          POSTGRES_DB: moodday_migration_upgrade
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rehearse prior-release schema upgrade with fixtures
+        run: pnpm verify:migration-upgrade
+
+  backup-restore:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      BACKUP_RESTORE_ACK: local-disposable
+      BACKUP_RESTORE_CONTAINER: ${{ job.services.postgres.id }}
+      BACKUP_RESTORE_SOURCE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-backup@localhost:5432/moodday_backup_source_ci
+      BACKUP_RESTORE_DESTINATION_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-backup@localhost:5432/moodday_backup_restore_ci
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-backup
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rehearse logical backup and isolated restore
+        run: pnpm verify:backup-restore
+
+  database-integrity:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-release
+          POSTGRES_USER: postgres
+          POSTGRES_DB: moodday_release
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply every migration to the integrity database
+        run: pnpm prisma migrate deploy
+      - name: Prove operational job locking and retry recovery
+        run: pnpm verify:operational-jobs
+      - name: Prove medication and deletion transaction integrity
+        run: pnpm verify:medication-integrity
+
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-release
+          POSTGRES_USER: postgres
+          POSTGRES_DB: moodday_release
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma migrate deploy
+      - name: Enforce release coverage thresholds
+        run: pnpm test:coverage:release
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-coverage
+          path: coverage/
+          retention-days: 30
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    env:
+      LIGHTHOUSE_TEST_MODE: "true"
+      LIGHTHOUSE_CHROME_PATH: /usr/bin/google-chrome
+      LIGHTHOUSE_USER_EMAIL: playwright-test-lighthouse@example.invalid
+      LIGHTHOUSE_USER_PASSWORD: LighthouseCiLocalOnly1234
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-moodday-release
+          POSTGRES_USER: postgres
+          POSTGRES_DB: moodday_release
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma migrate deploy
+      - run: pnpm build
+      - name: Audit public pages and authenticated dashboard
+        run: pnpm lighthouse:release
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-lighthouse
+          path: artifacts/lighthouse/
+          retention-days: 30

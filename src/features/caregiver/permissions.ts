@@ -50,6 +50,8 @@ type RelationshipAccess = {
   caregiverId: string | null;
   status: string;
   permissions: string[];
+  accessExpiresAt?: Date | null;
+  revokedAt?: Date | null;
 };
 
 export const hasActiveCaregiverPermission = (params: {
@@ -62,6 +64,9 @@ export const hasActiveCaregiverPermission = (params: {
 
   return Boolean(
     relationship?.status === "active" &&
+      !relationship.revokedAt &&
+      (!relationship.accessExpiresAt ||
+        relationship.accessExpiresAt > new Date()) &&
       relationship.caregiverId === caregiverId &&
       relationship.patientId === patientId &&
       relationship.permissions.includes(permission),

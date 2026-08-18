@@ -6,9 +6,9 @@ import {
   Html,
   Img,
   Link,
+  Tailwind,
   Text,
-} from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
+} from "react-email";
 import type { PropsWithChildren } from "react";
 import {
   CONTACT_EMAIL,

@@ -67,7 +67,9 @@ export function isExpectedMooddayPlusPrice(
       product.metadata.app === "moodday" &&
       product.metadata.plan === "plus" &&
       product.metadata.catalog_version === BILLING_CATALOG_VERSION &&
-      product.metadata.lifecycle === "public",
+      product.metadata.lifecycle === "public" &&
+      (!env.STRIPE_TAX_ENABLED ||
+        product.tax_code === env.STRIPE_PRODUCT_TAX_CODE),
   );
 }
 
@@ -79,7 +81,7 @@ export async function assertConfiguredStripePrice(interval: BillingInterval) {
 
   const stripe = getStripe();
   const [account, price] = await Promise.all([
-    stripe.accounts.retrieve(),
+    stripe.accounts.retrieveCurrent(),
     stripe.prices.retrieve(priceId, { expand: ["product"] }),
   ]);
 

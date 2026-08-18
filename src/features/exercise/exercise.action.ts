@@ -3,19 +3,26 @@
 import { authAction } from "@/lib/actions/safe-actions";
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
+import {
+  addCivilDays,
+  getCivilDateRange,
+  getCivilDayRange,
+  getDateKeyForTimeZone,
+  getSafeTimeZone,
+} from "@/lib/temporal/civil-date";
 import { z } from "zod";
 
 // ===== Exercise Actions =====
 
 const createExerciseSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
-  description: z.string().optional(),
+  name: z.string().trim().min(1, "Le nom est requis").max(200),
+  description: z.string().max(2_000).optional(),
 });
 
 const updateExerciseSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, "Le nom est requis"),
-  description: z.string().optional().nullable(),
+  name: z.string().trim().min(1, "Le nom est requis").max(200),
+  description: z.string().max(2_000).optional().nullable(),
 });
 
 const getExercisesSchema = z.object({
@@ -115,8 +122,13 @@ export const unarchiveExercise = authAction
 export const getExercises = authAction
   .inputSchema(getExercisesSchema)
   .action(async ({ parsedInput: { includeArchived }, ctx: { user } }) => {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    });
+    const timezone = getSafeTimeZone(preferences?.timezone);
+    const today = getDateKeyForTimeZone(new Date(), timezone);
+    const { start, endExclusive } = getCivilDayRange(today, timezone);
 
     const exercises = await prisma.exercise.findMany({
       where: {
@@ -126,7 +138,7 @@ export const getExercises = authAction
       include: {
         logs: {
           where: {
-            completedAt: { gte: startOfDay },
+            completedAt: { gte: start, lt: endExclusive },
           },
           orderBy: { completedAt: "desc" },
         },
@@ -165,7 +177,7 @@ export const getExerciseById = authAction
 
 const logExerciseSchema = z.object({
   exerciseId: z.string(),
-  note: z.string().optional(),
+  note: z.string().max(5_000).optional(),
   operationId: z.string().min(1).max(80).optional(),
   completedAt: z.string().datetime().optional(),
 });
@@ -247,7 +259,7 @@ export const getExerciseHistory = authAction
   .inputSchema(
     z.object({
       exerciseId: z.string(),
-      days: z.number().optional().default(30),
+      days: z.number().int().min(1).max(365).optional().default(30),
     }),
   )
   .action(async ({ parsedInput: { exerciseId, days }, ctx: { user } }) => {
@@ -265,13 +277,19 @@ export const getExerciseHistory = authAction
       throw new ActionError("You can only view your own exercise history");
     }
 
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    });
+    const timezone = getSafeTimeZone(preferences?.timezone);
+    const endDate = getDateKeyForTimeZone(new Date(), timezone);
+    const startDate = addCivilDays(endDate, -(days - 1));
+    const range = getCivilDateRange({ startDate, endDate, timeZone: timezone });
 
     const logs = await prisma.exerciseLog.findMany({
       where: {
         exerciseId,
-        completedAt: { gte: since },
+        completedAt: { gte: range.start, lt: range.endExclusive },
       },
       orderBy: { completedAt: "desc" },
     });

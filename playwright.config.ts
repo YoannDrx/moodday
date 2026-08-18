@@ -10,14 +10,19 @@ const externalBaseUrl = getNonEmptyEnv(process.env.PLAYWRIGHT_TEST_BASE_URL);
 const playwrightPort =
   getNonEmptyEnv(process.env.PLAYWRIGHT_TEST_PORT) ??
   (process.env.CI ? "3000" : "3100");
-const serverUrl = externalBaseUrl ?? `http://127.0.0.1:${playwrightPort}`;
+// WebAuthn requires a registrable RP ID (an IP address is invalid), while
+// localhost remains a secure-context exception for browser automation.
+const serverUrl = externalBaseUrl ?? `http://localhost:${playwrightPort}`;
 const databaseGuardAlreadyConfigured =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true";
 const playwrightDatabaseUrl = getNonEmptyEnv(
   process.env.PLAYWRIGHT_DATABASE_URL,
 );
+const isPlaywrightCommand =
+  process.env.PLAYWRIGHT_REQUIRE_DATABASE_GUARD === "true" ||
+  process.argv.some((argument) => /playwright(?:\/|\\|$)/i.test(argument));
 
-if (!playwrightDatabaseUrl) {
+if (isPlaywrightCommand && !playwrightDatabaseUrl) {
   throw new Error(
     "PLAYWRIGHT_DATABASE_URL is required. Use an isolated Neon branch or a disposable local database for E2E tests.",
   );
@@ -25,12 +30,15 @@ if (!playwrightDatabaseUrl) {
 
 const playwrightDatabaseUrlUnpooled =
   getNonEmptyEnv(process.env.PLAYWRIGHT_DATABASE_URL_UNPOOLED) ??
-  playwrightDatabaseUrl;
+  playwrightDatabaseUrl ??
+  "postgresql://playwright-static-inspection@127.0.0.1:5432/playwright";
+const effectivePlaywrightDatabaseUrl =
+  playwrightDatabaseUrl ?? playwrightDatabaseUrlUnpooled;
 
 if (
   !databaseGuardAlreadyConfigured &&
   process.env.DATABASE_URL &&
-  playwrightDatabaseUrl === process.env.DATABASE_URL &&
+  effectivePlaywrightDatabaseUrl === process.env.DATABASE_URL &&
   process.env.PLAYWRIGHT_ALLOW_SHARED_DATABASE !== "true"
 ) {
   throw new Error(
@@ -38,16 +46,27 @@ if (
   );
 }
 
-process.env.DATABASE_URL = playwrightDatabaseUrl;
+process.env.DATABASE_URL = effectivePlaywrightDatabaseUrl;
 process.env.DATABASE_URL_UNPOOLED = playwrightDatabaseUrlUnpooled;
 process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED = "true";
 
 const isolatedServiceEnv = {
-  RESEND_API_KEY: "",
+  PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true",
+  // Satisfy fail-closed feature configuration without contacting Resend: all
+  // browser-test recipients use the reserved playwright-test-* prefix and are
+  // short-circuited by sendEmail.
+  RESEND_API_KEY: "re_playwright_test_only_not_a_provider_credential",
   RESEND_AUDIENCE_ID: "",
+  CRON_SECRET: "playwright-test-only-cron-secret",
   STRIPE_SECRET_KEY: "",
   STRIPE_WEBHOOK_SECRET: "",
+  CAREGIVER_SHARING_ENABLED: "true",
+  ACCOUNT_IMPORT_ENABLED: "true",
   BETTER_AUTH_URL: serverUrl,
+  // Keep the Playwright runner and its Next.js server on the same isolated
+  // signing key. Local dotenv precedence must never affect auth E2E tokens.
+  BETTER_AUTH_SECRET:
+    "moodday-playwright-only-secret-00000000000000000000000000000000",
 };
 
 Object.assign(process.env, isolatedServiceEnv);
@@ -55,6 +74,7 @@ Object.assign(process.env, isolatedServiceEnv);
 const HEADLESS = process.env.HEADLESS
   ? process.env.HEADLESS.toLowerCase() === "true"
   : true;
+const chromiumOnlyPasskeySpec = /passkey\.chromium\.spec\.ts/;
 
 const config: PlaywrightTestConfig = {
   // 50 seconds
@@ -64,10 +84,30 @@ const config: PlaywrightTestConfig = {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "firefox",
+      testIgnore: chromiumOnlyPasskeySpec,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      testIgnore: chromiumOnlyPasskeySpec,
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "mobile-chromium",
+      testIgnore: chromiumOnlyPasskeySpec,
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "mobile-webkit",
+      testIgnore: chromiumOnlyPasskeySpec,
+      use: { ...devices["iPhone 15"] },
+    },
   ],
-  // Add retry options
-  retries: 1,
-  // Add delay between retries
+  // Release evidence must never turn a transient first failure into a green
+  // check. Flaky scenarios need to fail visibly and be fixed at the source.
+  retries: 0,
   workers: 3,
   globalTeardown: require.resolve("./e2e/global-teardown.ts"),
   // Enable console logs in CI
@@ -82,14 +122,10 @@ const config: PlaywrightTestConfig = {
         "x-vercel-protection-bypass":
           process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "",
       },
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
     },
     ignoreHTTPSErrors: true,
-    video: "on-first-retry",
+    video: "retain-on-failure",
     baseURL: serverUrl,
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     viewport: { width: 1280, height: 720 },
     geolocation: { longitude: 2.3488, latitude: 48.8534 },
     permissions: ["geolocation"],
@@ -107,7 +143,7 @@ const config: PlaywrightTestConfig = {
           timeout: 120 * 1000,
           reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
           env: {
-            DATABASE_URL: playwrightDatabaseUrl,
+            DATABASE_URL: effectivePlaywrightDatabaseUrl,
             DATABASE_URL_UNPOOLED: playwrightDatabaseUrlUnpooled,
             ...isolatedServiceEnv,
           },

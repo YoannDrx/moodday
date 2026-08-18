@@ -61,7 +61,11 @@ function ObservePageContent() {
       : patients?.[0];
 
   const subject = resolvedPatient
-    ? { id: resolvedPatient.patientId, name: resolvedPatient.patientName }
+    ? {
+        id: resolvedPatient.patientId,
+        relationshipId: resolvedPatient.id,
+        name: resolvedPatient.patientName,
+      }
     : null;
 
   if (isPending || patientsLoading) {
@@ -147,7 +151,7 @@ function ObservePageContent() {
                 />
               </SelectTrigger>
               <SelectContent>
-                  {(patients ?? []).map((patient) => (
+                {(patients ?? []).map((patient) => (
                   <SelectItem key={patient.patientId} value={patient.patientId}>
                     {patient.patientName}
                   </SelectItem>
@@ -172,14 +176,14 @@ function ObservePageContent() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsContent value="checkin" className="mt-0">
               <CaregiverCheckinForm
-                subjectId={subject.id}
+                relationshipId={subject.relationshipId}
                 subjectName={subject.name}
                 onSuccess={handleSuccess}
               />
             </TabsContent>
             <TabsContent value="event" className="mt-0">
               <CaregiverEventForm
-                subjectId={subject.id}
+                relationshipId={subject.relationshipId}
                 subjectName={subject.name}
                 onSuccess={handleSuccess}
               />

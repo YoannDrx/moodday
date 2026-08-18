@@ -1,4 +1,4 @@
-import { Button } from "@react-email/components";
+import { Button } from "react-email";
 import { EMAIL_COLORS } from "./email-constants";
 
 type CTAButtonProps = {

@@ -2,77 +2,53 @@ name: E2E Playwright Tests
 
 on:
   pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "app/**"
-      - "prisma/**"
-      - "e2e/**"
-      - ".github/workflows/playwright.yml"
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "app/**"
-      - "prisma/**"
-      - "e2e/**"
 
-# Cancel previous runs on the same PR/branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    name: Playwright Tests
+    name: Playwright (${{ matrix.project }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
-
-    # Common environment variables for all steps
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, mobile-chromium, mobile-webkit]
     env:
-      # Core
-      DATABASE_URL: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
-      DATABASE_URL_UNPOOLED: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
-      PLAYWRIGHT_DATABASE_URL: "postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e@localhost:5432/nowts_test"
-      # This Postgres service is disposable and scoped to this CI job.
+      DATABASE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e@localhost:5432/moodday_e2e
+      DATABASE_URL_UNPOOLED: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e@localhost:5432/moodday_e2e
+      PLAYWRIGHT_DATABASE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e@localhost:5432/moodday_e2e
       PLAYWRIGHT_ALLOW_SHARED_DATABASE: "true"
-      BETTER_AUTH_SECRET: ""
-      BETTER_AUTH_URL: "http://localhost:3000"
-      NODE_ENV: "production"
-      # Email
-      RESEND_API_KEY: ""
-      RESEND_AUDIENCE_ID: ""
-      EMAIL_FROM: "Moodday <no-reply@example.invalid>"
-      NEXT_PUBLIC_EMAIL_CONTACT: "hello@moodday.app"
-      # Stripe
-      STRIPE_SECRET_KEY: ""
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ""
-      STRIPE_WEBHOOK_SECRET: ""
-      STRIPE_PLUS_MONTHLY_PRICE_ID: ""
-      STRIPE_PLUS_YEARLY_PRICE_ID: ""
+      BETTER_AUTH_URL: http://localhost:3000
+      EMAIL_FROM: Moodday <no-reply@example.invalid>
+      NEXT_PUBLIC_EMAIL_CONTACT: hello@moodday.app
       BILLING_ENABLED: "false"
       AI_INSIGHTS_ENABLED: "false"
-      # OAuth
-      GITHUB_CLIENT_ID: ""
-      GITHUB_CLIENT_SECRET: ""
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
-      # Analytics
-      NEXT_PUBLIC_POSTHOG_KEY: ""
-      NEXT_PUBLIC_POSTHOG_HOST: ""
-      # Playwright specific
-      PLAYWRIGHT_TEST_BASE_URL: "http://localhost:3000"
+      CAREGIVER_SHARING_ENABLED: "true"
+      PUSH_NOTIFICATIONS_ENABLED: "false"
+      ACCOUNT_IMPORT_ENABLED: "true"
+      LEGAL_TERMS_VERSION: terms-2026-08
+      LEGAL_PRIVACY_VERSION: privacy-2026-08
+      AI_CONSENT_VERSION: ai-consent-2026-08
+      HEALTH_DATA_CONSENT_VERSION: health-data-2026-08
+      PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
       HEADLESS: "true"
       CI: "true"
       PORT: 3000
-
     services:
       postgres:
-        image: postgres:15
+        image: postgres:17
         env:
-          POSTGRES_PASSWORD: "${{ github.run_id }}-${{ github.run_attempt }}-moodday-e2e"
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e
           POSTGRES_USER: postgres
-          POSTGRES_DB: nowts_test
+          POSTGRES_DB: moodday_e2e
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -80,71 +56,40 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.14.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
-          cache: "pnpm"
-
-      - name: Generate an ephemeral auth secret
-        run: openssl rand -hex 32 | sed 's/^/BETTER_AUTH_SECRET=/' >> "$GITHUB_ENV"
-
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
-
-      - name: Install dependencies
-        run: pnpm install --prod=false
-
-      - name: Generate Prisma client
-        run: pnpm prisma generate
-
-      - name: Apply database migrations
-        run: pnpm prisma migrate deploy
-
+          cache: pnpm
+      - name: Generate ephemeral auth and operational secrets
+        run: |
+          openssl rand -hex 32 | sed 's/^/BETTER_AUTH_SECRET=/' >> "$GITHUB_ENV"
+          openssl rand -hex 32 | sed 's/^/CRON_SECRET=/' >> "$GITHUB_ENV"
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate client and apply migrations
+        run: pnpm prisma generate && pnpm prisma migrate deploy
       - name: Build application
+        env:
+          NODE_ENV: production
         run: pnpm build
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install chromium --with-deps
-
+      - name: Install browser
+        run: pnpm exec playwright install ${{ contains(matrix.project, 'webkit') && 'webkit' || (matrix.project == 'firefox' && 'firefox' || 'chromium') }} --with-deps
       - name: Start application
         run: pnpm start &
-
-      - name: Wait for application to be ready
-        run: pnpm dlx wait-on@latest http://localhost:3000 --timeout 60000
-
-      - name: Run Playwright tests
-        run: pnpm test:e2e:ci
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+      - name: Wait for application
+        run: pnpm exec wait-on http://localhost:3000/api/health --timeout 60000
+      - name: Run browser suite
+        run: pnpm exec playwright test --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: test-results
-          path: test-results/
+          name: playwright-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 30

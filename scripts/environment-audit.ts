@@ -41,7 +41,12 @@ console.log("Audit d'environnement Moodday (aucun secret n'est affiché)\n");
 check("Postgres", Boolean(process.env.DATABASE_URL), safeHost("DATABASE_URL"));
 check(
   "Stripe secret",
-  hasPrefix("STRIPE_SECRET_KEY", ["sk_test_", "sk_live_"]),
+  hasPrefix("STRIPE_SECRET_KEY", [
+    "sk_test_",
+    "sk_live_",
+    "rk_test_",
+    "rk_live_",
+  ]),
   process.env.STRIPE_SECRET_KEY ? "préfixe reconnu" : "non configuré",
 );
 check(

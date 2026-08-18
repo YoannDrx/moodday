@@ -12,17 +12,17 @@ export const getAccountNavigation = (t: Translator): NavigationGroup[] => {
       title: t("account.profile.section"),
       links: [
         {
-          href: "/settings?tab=profile",
+          href: "/settings/profile",
           Icon: User2,
           label: t("account.profile.profile"),
         },
         {
-          href: "/settings?tab=notifications",
+          href: "/settings/notifications",
           Icon: Mail,
           label: t("account.profile.mail"),
         },
         {
-          href: "/settings?tab=privacy",
+          href: "/settings/privacy",
           Icon: AlertCircle,
           label: t("account.profile.danger"),
         },

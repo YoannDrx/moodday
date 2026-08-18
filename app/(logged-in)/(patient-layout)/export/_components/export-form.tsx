@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { pdf } from "@react-pdf/renderer";
 import {
   FileDown,
   Calendar,
@@ -27,7 +26,6 @@ import {
   getExportData,
   getExportPreview,
 } from "@/features/export/export.action";
-import { ExportPDFDocument } from "@/features/export/pdf-document";
 import { buildConsultationCsv } from "@/features/export/csv-export";
 import { useI18n } from "@/i18n/provider";
 
@@ -58,10 +56,12 @@ export function ExportForm({
   initialStartDate,
   initialEndDate,
   canCreateConsultationReport,
+  billingEnabled,
 }: {
   initialStartDate: string;
   initialEndDate: string;
   canCreateConsultationReport: boolean;
+  billingEnabled: boolean;
 }) {
   const { t, locale } = useI18n();
 
@@ -110,17 +110,13 @@ export function ExportForm({
 
   const pdfDownloadMutation = useMutation({
     mutationFn: async () => {
-      const result = await getExportData({
-        startDate,
-        endDate,
-        purpose: "consultation-report",
+      const query = new URLSearchParams({ startDate, endDate });
+      const response = await fetch(`/api/export/pdf?${query.toString()}`, {
+        credentials: "same-origin",
+        headers: { Accept: "application/pdf" },
       });
-      if (result.serverError) throw new Error(result.serverError);
-      if (!result.data) throw new Error(t("export.download.noData"));
-
-      const blob = await pdf(
-        <ExportPDFDocument data={result.data} locale={locale} translate={t} />,
-      ).toBlob();
+      if (!response.ok) throw new Error(t("export.download.noData"));
+      const blob = await response.blob();
 
       downloadBlob(blob, `moodday-export-${startDate}-${endDate}.pdf`);
 
@@ -238,9 +234,13 @@ export function ExportForm({
           {!canCreateConsultationReport && (
             <div className="border-primary/20 bg-primary/5 rounded-xl border p-4 text-sm">
               <p className="font-semibold">
-                {locale === "fr"
-                  ? "Le rapport de consultation PDF est inclus dans Moodday Plus."
-                  : "The PDF consultation report is included with Moodday Plus."}
+                {billingEnabled
+                  ? locale === "fr"
+                    ? "Le rapport de consultation PDF est inclus dans Moodday Plus."
+                    : "The PDF consultation report is included with Moodday Plus."
+                  : locale === "fr"
+                    ? "Le rapport PDF sera disponible après l’ouverture de Moodday Plus."
+                    : "The PDF report will be available after Moodday Plus opens."}
               </p>
               <p className="text-muted-foreground mt-1">
                 {locale === "fr"

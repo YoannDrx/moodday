@@ -20,6 +20,12 @@ export const createEndpointDeliveryKey = (
   return `${deliveryKey}:endpoint:${endpointKey}`;
 };
 
+export const shouldAttemptNotificationDelivery = (params: {
+  currentlyDue: boolean;
+  deliveryKey: string;
+  dueRetryKeys: ReadonlySet<string>;
+}) => params.currentlyDue || params.dueRetryKeys.has(params.deliveryKey);
+
 export const claimNotificationDelivery = async (params: {
   userId: string;
   deliveryKey: string;
@@ -80,25 +86,45 @@ export const completeNotificationDeliveries = async (params: {
   if (params.deliveryKeys.length === 0) return;
 
   const now = params.now ?? new Date();
-  await prisma.notificationDelivery.updateMany({
-    where: {
-      userId: params.userId,
-      deliveryKey: { in: params.deliveryKeys },
-      status: "pending",
-    },
-    data: params.sent
-      ? {
-          status: "sent",
-          sentAt: now,
-          failedAt: null,
-          nextAttemptAt: null,
-          lastErrorCode: null,
-        }
-      : {
-          status: "failed",
-          failedAt: now,
-          nextAttemptAt: new Date(now.getTime() + RETRY_DELAY_MS),
-          lastErrorCode: params.errorCode ?? "push_delivery_failed",
-        },
-  });
+  const deliveryWhere = {
+    userId: params.userId,
+    deliveryKey: { in: params.deliveryKeys },
+    status: "pending",
+  } as const;
+
+  if (params.sent) {
+    await prisma.notificationDelivery.updateMany({
+      where: deliveryWhere,
+      data: {
+        status: "sent",
+        sentAt: now,
+        failedAt: null,
+        nextAttemptAt: null,
+        lastErrorCode: null,
+      },
+    });
+    return;
+  }
+
+  const errorCode = params.errorCode ?? "push_delivery_failed";
+  await prisma.$transaction([
+    prisma.notificationDelivery.updateMany({
+      where: { ...deliveryWhere, attempts: { lt: MAX_DELIVERY_ATTEMPTS } },
+      data: {
+        status: "failed",
+        failedAt: now,
+        nextAttemptAt: new Date(now.getTime() + RETRY_DELAY_MS),
+        lastErrorCode: errorCode,
+      },
+    }),
+    prisma.notificationDelivery.updateMany({
+      where: { ...deliveryWhere, attempts: { gte: MAX_DELIVERY_ATTEMPTS } },
+      data: {
+        status: "dead",
+        failedAt: now,
+        nextAttemptAt: null,
+        lastErrorCode: errorCode,
+      },
+    }),
+  ]);
 };

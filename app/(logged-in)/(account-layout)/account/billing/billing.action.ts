@@ -1,12 +1,14 @@
 "use server";
 
-import { authAction } from "@/lib/actions/safe-actions";
+import { sensitiveAuthAction } from "@/lib/actions/safe-actions";
 import { env } from "@/lib/env";
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
 import { getServerUrl } from "@/lib/server-url";
 import { getStripe } from "@/lib/stripe";
 import { z } from "zod";
+import { assertFeatureAvailable } from "@/lib/features/availability";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const getStripeCustomerId = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -46,9 +48,16 @@ const getSafeStripeReturnUrl = (returnUrl?: string) => {
   }
 };
 
-export const openStripePortalAction = authAction
+export const openStripePortalAction = sensitiveAuthAction
   .inputSchema(stripePortalSchema)
   .action(async ({ parsedInput, ctx: { user } }) => {
+    assertFeatureAvailable("billing");
+    await enforceRateLimit({
+      scope: "stripe-portal",
+      identifier: user.id,
+      max: 10,
+      windowSeconds: 60 * 60,
+    });
     const stripeCustomerId = await getStripeCustomerId(user.id);
 
     if (!stripeCustomerId) {
@@ -72,13 +81,20 @@ export const openStripePortalAction = authAction
     };
   });
 
-export const cancelSubscriptionAction = authAction
+export const cancelSubscriptionAction = sensitiveAuthAction
   .inputSchema(
     z.object({
       returnUrl: z.string().min(1),
     }),
   )
   .action(async ({ parsedInput: { returnUrl }, ctx: { user } }) => {
+    assertFeatureAvailable("billing");
+    await enforceRateLimit({
+      scope: "stripe-portal",
+      identifier: user.id,
+      max: 10,
+      windowSeconds: 60 * 60,
+    });
     const stripeCustomerId = await getStripeCustomerId(user.id);
 
     if (!stripeCustomerId) {

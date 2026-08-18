@@ -4,13 +4,37 @@ import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getI18n } from "@/i18n/server";
-import { calculateAdherencePercent } from "@/features/medication/adherence";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { getMedicationAdherenceForUser } from "@/features/medication/adherence-service";
+import {
+  addCivilDays,
+  getCivilWeekday,
+  getDateKeyForTimeZone,
+  getSafeTimeZone,
+} from "@/lib/temporal/civil-date";
+import { getExportDateRange } from "@/features/export/date-range";
+import { calculateMoodStreak } from "./streak";
+
+const getUserTimeContext = async (userId: string, days: number) => {
+  const preferences = await prisma.userPreferences.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+  const timezone = getSafeTimeZone(preferences?.timezone);
+  const endDate = getDateKeyForTimeZone(new Date(), timezone);
+  const startDate = addCivilDays(endDate, -(days - 1));
+  const { start, endExclusive } = getExportDateRange({
+    startDate,
+    endDate,
+    timezone,
+  });
+  return { timezone, startDate, endDate, start, endExclusive };
+};
 
 // ===== Mood Chart Data (30 Days) =====
 
 const getMoodChartDataSchema = z.object({
-  days: z.number().optional().default(30),
+  days: z.number().int().min(1).max(365).optional().default(30),
 });
 
 export const getMoodChartData = authAction
@@ -19,20 +43,18 @@ export const getMoodChartData = authAction
     const subscription = await prisma.subscription.findUnique({
       where: { referenceId: user.id },
     });
-    const analyticsWindowDays = getEntitlements(
-      subscription,
-    ).analyticsWindowDays;
+    const analyticsWindowDays =
+      getEntitlements(subscription).analyticsWindowDays;
     const effectiveDays = analyticsWindowDays
       ? Math.min(days, analyticsWindowDays)
       : days;
-    const since = new Date();
-    since.setDate(since.getDate() - effectiveDays);
-    since.setHours(0, 0, 0, 0);
+    const timeContext = await getUserTimeContext(user.id, effectiveDays);
+    const since = timeContext.start;
 
     const moodEntries = await prisma.moodEntry.findMany({
       where: {
         userId: user.id,
-        createdAt: { gte: since },
+        createdAt: { gte: since, lt: timeContext.endExclusive },
       },
       orderBy: { createdAt: "asc" },
       select: {
@@ -50,7 +72,7 @@ export const getMoodChartData = authAction
     const dosageChanges = await prisma.medicationHistory.findMany({
       where: {
         medication: { userId: user.id },
-        changedAt: { gte: since },
+        changedAt: { gte: since, lt: timeContext.endExclusive },
       },
       include: {
         medication: {
@@ -60,27 +82,14 @@ export const getMoodChartData = authAction
       orderBy: { changedAt: "asc" },
     });
 
-    // Medication adherence for the same period
-    const medications = await prisma.medication.findMany({
-      where: {
+    const adherencePercent = (
+      await getMedicationAdherenceForUser({
         userId: user.id,
-        isArchived: false,
-        frequency: { not: "prn" },
-      },
-      include: {
-        intakes: {
-          where: {
-            takenAt: { gte: since },
-            skipped: false,
-          },
-        },
-      },
-    });
-
-    const adherencePercent = calculateAdherencePercent(
-      medications,
-      effectiveDays,
-    );
+        startDate: timeContext.startDate,
+        endDate: timeContext.endDate,
+        timezone: timeContext.timezone,
+      })
+    ).percent;
 
     return {
       moodEntries: moodEntries.map((entry) => ({
@@ -109,25 +118,29 @@ export const getMoodChartData = authAction
 
 export const getDashboardSummary = authAction.action(
   async ({ ctx: { user } }) => {
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - 7);
-
-    const startOfMonth = new Date(now);
-    startOfMonth.setDate(now.getDate() - 30);
-
-    // Previous week for trend calculation
-    const startOfPrevWeek = new Date(now);
-    startOfPrevWeek.setDate(now.getDate() - 14);
+    const monthContext = await getUserTimeContext(user.id, 30);
+    const weekContext = await getUserTimeContext(user.id, 7);
+    const previousWeekStartDate = addCivilDays(weekContext.startDate, -7);
+    const previousWeekRange = getExportDateRange({
+      startDate: previousWeekStartDate,
+      endDate: addCivilDays(weekContext.startDate, -1),
+      timezone: monthContext.timezone,
+    });
+    const todayRange = getExportDateRange({
+      startDate: monthContext.endDate,
+      endDate: monthContext.endDate,
+      timezone: monthContext.timezone,
+    });
+    const startOfDay = todayRange.start;
+    const startOfWeek = weekContext.start;
+    const startOfMonth = monthContext.start;
+    const startOfPrevWeek = previousWeekRange.start;
 
     // Mood data (last 7 days for mini chart) - with sleep data
     const moodEntries = await prisma.moodEntry.findMany({
       where: {
         userId: user.id,
-        createdAt: { gte: startOfWeek },
+        createdAt: { gte: startOfWeek, lt: weekContext.endExclusive },
       },
       orderBy: { createdAt: "asc" },
       select: {
@@ -194,33 +207,31 @@ export const getDashboardSummary = authAction.action(
           )
         : null;
 
-    // Medication adherence
-    const medications = await prisma.medication.findMany({
-      where: {
-        userId: user.id,
-        isArchived: false,
-        frequency: { not: "prn" },
-      },
-      include: {
-        intakes: {
-          where: {
-            takenAt: { gte: startOfMonth },
-            skipped: false,
-          },
-        },
-      },
+    const totalMeds = await prisma.medication.count({
+      where: { userId: user.id, isArchived: false },
     });
-
-    const totalMeds = medications.length;
     const todayIntakes = await prisma.medIntake.count({
       where: {
         medication: { userId: user.id, isArchived: false, isPRN: false },
-        takenAt: { gte: startOfDay },
+        OR: [
+          { scheduledForDate: monthContext.endDate },
+          {
+            scheduledForDate: null,
+            takenAt: { gte: startOfDay, lt: todayRange.endExclusive },
+          },
+        ],
         skipped: false,
       },
     });
 
-    const adherencePercent = calculateAdherencePercent(medications, 30);
+    const adherencePercent = (
+      await getMedicationAdherenceForUser({
+        userId: user.id,
+        startDate: monthContext.startDate,
+        endDate: monthContext.endDate,
+        timezone: monthContext.timezone,
+      })
+    ).percent;
 
     // Therapy sessions (last session + count this month)
     const lastTherapySession = await prisma.therapySession.findFirst({
@@ -232,7 +243,7 @@ export const getDashboardSummary = authAction.action(
     const therapySessionsThisMonth = await prisma.therapySession.count({
       where: {
         userId: user.id,
-        date: { gte: startOfMonth },
+        date: { gte: startOfMonth, lt: monthContext.endExclusive },
       },
     });
 
@@ -240,7 +251,7 @@ export const getDashboardSummary = authAction.action(
     const exerciseLogsThisWeek = await prisma.exerciseLog.count({
       where: {
         exercise: { userId: user.id },
-        completedAt: { gte: startOfWeek },
+        completedAt: { gte: startOfWeek, lt: weekContext.endExclusive },
       },
     });
 
@@ -253,20 +264,22 @@ export const getDashboardSummary = authAction.action(
 
     return {
       mood: {
-        weeklyAverage: weeklyMoodAvg
-          ? Math.round(weeklyMoodAvg * 10) / 10
-          : null,
+        weeklyAverage:
+          weeklyMoodAvg !== null ? Math.round(weeklyMoodAvg * 10) / 10 : null,
         trendPercent,
         entries: moodEntries.map((e) => ({
           value: e.value,
           date: e.createdAt.toISOString(),
         })),
         hasEntryToday: moodEntries.some(
-          (entry) => entry.createdAt.getTime() >= startOfDay.getTime(),
+          (entry) =>
+            entry.createdAt.getTime() >= startOfDay.getTime() &&
+            entry.createdAt.getTime() < todayRange.endExclusive.getTime(),
         ),
       },
       sleep: {
-        avgHours: avgSleepHours ? Math.round(avgSleepHours * 10) / 10 : null,
+        avgHours:
+          avgSleepHours !== null ? Math.round(avgSleepHours * 10) / 10 : null,
         latestQuality: latestWithSleep?.sleepQuality ?? null,
         latestHours: latestWithSleep?.sleepHours ?? null,
         avgEnergy,
@@ -298,18 +311,19 @@ export const getDashboardSummary = authAction.action(
 export const getPatternInsights = authAction.action(
   async ({ ctx: { user } }) => {
     const { t } = await getI18n();
-    const now = new Date();
-    const startOfMonth = new Date(now);
-    startOfMonth.setDate(now.getDate() - 30);
-
-    const startOfPrevMonth = new Date(now);
-    startOfPrevMonth.setDate(now.getDate() - 60);
+    const monthContext = await getUserTimeContext(user.id, 30);
+    const startOfMonth = monthContext.start;
+    const previousRange = getExportDateRange({
+      startDate: addCivilDays(monthContext.startDate, -30),
+      endDate: addCivilDays(monthContext.startDate, -1),
+      timezone: monthContext.timezone,
+    });
 
     // Mood insights
     const moodEntries = await prisma.moodEntry.findMany({
       where: {
         userId: user.id,
-        createdAt: { gte: startOfMonth },
+        createdAt: { gte: startOfMonth, lt: monthContext.endExclusive },
       },
       select: { value: true, createdAt: true },
     });
@@ -355,11 +369,15 @@ export const getPatternInsights = authAction.action(
 
       // Weekend vs weekday analysis
       const weekendMoods = moodEntries.filter((e) => {
-        const day = e.createdAt.getDay();
+        const day = getCivilWeekday(
+          getDateKeyForTimeZone(e.createdAt, monthContext.timezone),
+        );
         return day === 0 || day === 6;
       });
       const weekdayMoods = moodEntries.filter((e) => {
-        const day = e.createdAt.getDay();
+        const day = getCivilWeekday(
+          getDateKeyForTimeZone(e.createdAt, monthContext.timezone),
+        );
         return day !== 0 && day !== 6;
       });
 
@@ -385,52 +403,40 @@ export const getPatternInsights = authAction.action(
       }
     }
 
-    // Medication adherence insight
-    const medications = await prisma.medication.findMany({
-      where: {
+    const adherence = (
+      await getMedicationAdherenceForUser({
         userId: user.id,
-        isArchived: false,
-        frequency: { not: "prn" },
-      },
-      include: {
-        intakes: {
-          where: {
-            takenAt: { gte: startOfMonth },
-            skipped: false,
-          },
-        },
-      },
-    });
+        startDate: monthContext.startDate,
+        endDate: monthContext.endDate,
+        timezone: monthContext.timezone,
+      })
+    ).percent;
 
-    if (medications.length > 0) {
-      const adherence = calculateAdherencePercent(medications, 30);
-
-      if (adherence !== null) {
-        if (adherence >= 90) {
-          insights.push({
-            type: "medication",
-            message: t("insights.patterns.medication.high", {
-              value: adherence,
-            }),
-            trend: "up",
-          });
-        } else if (adherence >= 70) {
-          insights.push({
-            type: "medication",
-            message: t("insights.patterns.medication.mid", {
-              value: adherence,
-            }),
-            trend: "neutral",
-          });
-        } else if (adherence > 0) {
-          insights.push({
-            type: "medication",
-            message: t("insights.patterns.medication.low", {
-              value: adherence,
-            }),
-            trend: "down",
-          });
-        }
+    if (adherence !== null) {
+      if (adherence >= 90) {
+        insights.push({
+          type: "medication",
+          message: t("insights.patterns.medication.high", {
+            value: adherence,
+          }),
+          trend: "up",
+        });
+      } else if (adherence >= 70) {
+        insights.push({
+          type: "medication",
+          message: t("insights.patterns.medication.mid", {
+            value: adherence,
+          }),
+          trend: "neutral",
+        });
+      } else if (adherence > 0) {
+        insights.push({
+          type: "medication",
+          message: t("insights.patterns.medication.low", {
+            value: adherence,
+          }),
+          trend: "down",
+        });
       }
     }
 
@@ -438,14 +444,14 @@ export const getPatternInsights = authAction.action(
     const sessionsThisMonth = await prisma.therapySession.count({
       where: {
         userId: user.id,
-        date: { gte: startOfMonth },
+        date: { gte: startOfMonth, lt: monthContext.endExclusive },
       },
     });
 
     const sessionsPrevMonth = await prisma.therapySession.count({
       where: {
         userId: user.id,
-        date: { gte: startOfPrevMonth, lt: startOfMonth },
+        date: { gte: previousRange.start, lt: previousRange.endExclusive },
       },
     });
 
@@ -482,7 +488,7 @@ export const getPatternInsights = authAction.action(
     const exerciseLogsThisMonth = await prisma.exerciseLog.count({
       where: {
         exercise: { userId: user.id },
-        completedAt: { gte: startOfMonth },
+        completedAt: { gte: startOfMonth, lt: monthContext.endExclusive },
       },
     });
 
@@ -504,64 +510,26 @@ export const getPatternInsights = authAction.action(
 
 export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
   const { t } = await getI18n();
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-
-  // Get all mood entries from the last 90 days
-  const since = new Date(now);
-  since.setDate(since.getDate() - 90);
-  since.setHours(0, 0, 0, 0);
+  const timeContext = await getUserTimeContext(user.id, 90);
 
   const moodEntries = await prisma.moodEntry.findMany({
     where: {
       userId: user.id,
-      createdAt: { gte: since },
+      createdAt: {
+        gte: timeContext.start,
+        lt: timeContext.endExclusive,
+      },
     },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
   });
 
-  // Create a set of days with entries (YYYY-MM-DD format)
-  const daysWithEntries = new Set<string>();
-  for (const entry of moodEntries) {
-    const dateStr = entry.createdAt.toISOString().split("T")[0];
-    daysWithEntries.add(dateStr);
-  }
-
-  // Calculate current streak (consecutive days ending today or yesterday)
-  let streakDays = 0;
-  const checkDate = new Date(now);
-
-  // Check if today has an entry, if not start from yesterday
-  const todayStr = checkDate.toISOString().split("T")[0] ?? "";
-  if (!daysWithEntries.has(todayStr)) {
-    checkDate.setDate(checkDate.getDate() - 1);
-  }
-
-  // Count consecutive days (max 90 days to prevent infinite loop)
-  let counting = true;
-  let maxIterations = 90;
-  while (counting && maxIterations > 0) {
-    const dateStr = checkDate.toISOString().split("T")[0];
-    if (dateStr && daysWithEntries.has(dateStr)) {
-      streakDays++;
-      checkDate.setDate(checkDate.getDate() - 1);
-      maxIterations--;
-    } else {
-      counting = false;
-    }
-  }
-
-  // Get week progress (last 7 days, 1 = has entry, 0 = no entry)
-  const weekProgress: (0 | 1)[] = [];
-  const weekDate = new Date(now);
-  weekDate.setDate(weekDate.getDate() - 6); // Start from 6 days ago
-
-  for (let i = 0; i < 7; i++) {
-    const dateStr = weekDate.toISOString().split("T")[0];
-    weekProgress.push(daysWithEntries.has(dateStr) ? 1 : 0);
-    weekDate.setDate(weekDate.getDate() + 1);
-  }
+  const todayStr = timeContext.endDate;
+  const { streakDays, weekProgress, hasEntryToday } = calculateMoodStreak({
+    entryDates: moodEntries.map((entry) => entry.createdAt),
+    todayDate: todayStr,
+    timeZone: timeContext.timezone,
+  });
 
   // Generate subtitle based on streak
   let subtitle = "";
@@ -587,6 +555,6 @@ export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
     streakDays,
     weekProgress,
     subtitle,
-    hasEntryToday: daysWithEntries.has(todayStr),
+    hasEntryToday,
   };
 });

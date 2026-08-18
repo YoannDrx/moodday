@@ -8,7 +8,7 @@ test("password reset flow", async ({ page }) => {
   // 1. Create a test account
   const userData = await createTestAccount({
     page,
-    callbackURL: "/settings?tab=profile",
+    callbackURL: "/settings/profile",
   });
 
   // Wait to be on the account page
@@ -16,11 +16,13 @@ test("password reset flow", async ({ page }) => {
 
   await page.waitForURL(/\/settings\/profile/, { timeout: 10000 });
 
-  // 2. Sign out (redirects to "/" after signout, not "/auth/signin")
-  await page.getByTestId("user-menu-button").click();
-  await page.getByTestId("dropdown-logout").click();
-  // After sign out, user is redirected to home page "/"
-  await page.waitForURL("/", { timeout: 10000 });
+  // 2. End the session through Better Auth. The native UI sign-out flow is
+  // covered separately by the account security scenario.
+  const signOutResponse = await page.request.post("/api/auth/sign-out", {
+    data: {},
+    headers: { origin: getServerUrl() },
+  });
+  expect(signOutResponse.ok()).toBe(true);
 
   // 3. Go to forget password page
   await page.goto(`${getServerUrl()}/auth/forget-password`);
@@ -28,9 +30,17 @@ test("password reset flow", async ({ page }) => {
   // 4. Submit the email for password reset
   await page.getByLabel("Email").fill(userData.email);
   // i18n: button text is "Send reset link" or "Envoyer le lien"
+  const resetRequestPromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/api/auth/"),
+    { timeout: 15000 },
+  );
   await page
     .getByRole("button", { name: /send reset link|Envoyer le lien/i })
     .click();
+  const resetRequest = await resetRequestPromise;
+  expect(resetRequest.status()).toBe(200);
 
   // 5. Should be redirected to verify page
   await page.waitForURL(/\/auth\/verify/, { timeout: 10000 });
@@ -67,12 +77,15 @@ test("password reset flow", async ({ page }) => {
 
   // 10. Try to sign in with the new password
   await page.getByLabel("Email").fill(userData.email);
-  await page.locator('input[name="password"]').fill(newPassword);
-  // i18n: button text is "Sign in" or "Se connecter"
-  await page
+  const signInButton = page
     .getByRole("button", { name: /sign in|Se connecter/i })
-    .first()
-    .click();
+    .first();
+  await signInButton
+    .locator("xpath=ancestor::form")
+    .locator('input[name="password"]')
+    .fill(newPassword);
+  // i18n: button text is "Sign in" or "Se connecter"
+  await signInButton.click();
 
   // 11. Should be redirected to the dashboard page
   await page.waitForURL(/\/dashboard/, { timeout: 10000 });

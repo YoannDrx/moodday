@@ -1,5 +1,3 @@
-"use client";
-
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { ConsultationExportData } from "./export-types";
 
@@ -35,6 +33,10 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     backgroundColor: "#f3f4f6",
     padding: 5,
+  },
+  preparationItem: {
+    marginBottom: 5,
+    paddingLeft: 8,
   },
   row: {
     flexDirection: "row",
@@ -143,8 +145,9 @@ type PDFDocumentProps = {
   translate: (key: string, values?: Record<string, string | number>) => string;
 };
 
-const formatDate = (dateStr: string, locale: string) => {
+const formatDate = (dateStr: string, locale: string, timeZone: string) => {
   return new Date(dateStr).toLocaleDateString(locale, {
+    timeZone,
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -152,7 +155,7 @@ const formatDate = (dateStr: string, locale: string) => {
 };
 
 const formatDateKey = (dateKey: string, locale: string) =>
-  formatDate(`${dateKey}T12:00:00.000Z`, locale);
+  formatDate(`${dateKey}T12:00:00.000Z`, locale, "UTC");
 
 const frequencyLabelKeys: Record<string, string> = {
   daily: "medication.frequency.daily",
@@ -186,6 +189,60 @@ export function ExportPDFDocument({
             {t("export.pdf.timezone", { timezone: data.metadata.timezone })}
           </Text>
         </View>
+
+        {data.preparation ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {locale === "fr"
+                ? "Ma préparation"
+                : "My consultation preparation"}
+            </Text>
+            <Text style={styles.preparationItem}>
+              {data.preparation.title}
+            </Text>
+            {data.preparation.scheduledFor ? (
+              <Text style={styles.preparationItem}>
+                {locale === "fr" ? "Date prévue" : "Planned date"}: {" "}
+                {formatDate(
+                  data.preparation.scheduledFor,
+                  dateLocale,
+                  data.metadata.timezone,
+                )}
+              </Text>
+            ) : null}
+            {data.preparation.questions.length > 0 ? (
+              <View style={styles.preparationItem}>
+                <Text>
+                  {locale === "fr" ? "Mes questions" : "My questions"}:
+                </Text>
+                {data.preparation.questions.map((question, index) => (
+                  <Text key={`${index}:${question}`}>• {question}</Text>
+                ))}
+              </View>
+            ) : null}
+            {data.preparation.importantEvents.length > 0 ? (
+              <View style={styles.preparationItem}>
+                <Text>
+                  {locale === "fr"
+                    ? "Événements importants"
+                    : "Important events"}
+                  :
+                </Text>
+                {data.preparation.importantEvents.map((event, index) => (
+                  <Text key={`${index}:${event}`}>• {event}</Text>
+                ))}
+              </View>
+            ) : null}
+            {data.preparation.personalNotes ? (
+              <View style={styles.preparationItem}>
+                <Text>
+                  {locale === "fr" ? "Notes personnelles" : "Personal notes"}:
+                </Text>
+                <Text>{data.preparation.personalNotes}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Mood Summary */}
         <View style={styles.section}>
@@ -221,15 +278,38 @@ export function ExportPDFDocument({
                     {t("export.pdf.stats.entries")}
                   </Text>
                 </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>
+                    {data.mood.stats.change === null
+                      ? "—"
+                      : `${data.mood.stats.change > 0 ? "+" : ""}${data.mood.stats.change}`}
+                  </Text>
+                  <Text style={styles.statLabel}>
+                    {locale === "fr" ? "Évolution" : "Change"}
+                  </Text>
+                </View>
               </View>
               {data.mood.entries.slice(0, 15).map((entry, i) => (
                 <View key={i} style={styles.moodEntry}>
                   <Text style={styles.moodDate}>
-                    {formatDate(entry.date, dateLocale)}
+                    {formatDate(entry.date, dateLocale, data.metadata.timezone)}
                   </Text>
                   <Text style={styles.moodValue}>{entry.value}/10</Text>
                   <Text style={styles.moodNote}>
-                    {entry.note ? entry.note.slice(0, 50) : ""}
+                    {[
+                      entry.energy === null
+                        ? null
+                        : `${locale === "fr" ? "énergie" : "energy"} ${entry.energy}/10`,
+                      entry.anxiety === null
+                        ? null
+                        : `${locale === "fr" ? "anxiété" : "anxiety"} ${entry.anxiety}/10`,
+                      entry.sleepHours === null
+                        ? null
+                        : `${locale === "fr" ? "sommeil" : "sleep"} ${entry.sleepHours} h`,
+                      entry.note ? entry.note.slice(0, 50) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
                 </View>
               ))}
@@ -257,7 +337,10 @@ export function ExportPDFDocument({
             <View style={styles.row}>
               <Text style={styles.label}>{t("export.pdf.adherence")}:</Text>
               <Text style={styles.value}>
-                {data.medications.adherencePercent}%
+                {data.medications.adherencePercent}% ({data.medications.takenDoses}
+                /{data.medications.expectedDoses}{" "}
+                {locale === "fr" ? "prises prévues" : "scheduled doses"}; PRN{ " "}
+                {locale === "fr" ? "exclues" : "excluded"})
               </Text>
             </View>
           )}
@@ -283,7 +366,7 @@ export function ExportPDFDocument({
                     {med.dosageChanges
                       .map(
                         (c) =>
-                          `${formatDate(c.date, dateLocale)}: ${c.from ?? "?"} → ${c.to}`,
+                          `${formatDate(c.date, dateLocale, data.metadata.timezone)}: ${c.from ?? "?"} → ${c.to}`,
                       )
                       .join(", ")}
                   </Text>
@@ -306,7 +389,7 @@ export function ExportPDFDocument({
             data.therapy.sessions.slice(0, 5).map((session, i) => (
               <View key={i} style={styles.therapyItem}>
                 <Text style={styles.therapyDate}>
-                  {formatDate(session.date, dateLocale)}
+                  {formatDate(session.date, dateLocale, data.metadata.timezone)}
                   {session.benefitRating
                     ? ` - ${t("export.pdf.benefitRating", {
                         value: session.benefitRating,
@@ -337,7 +420,8 @@ export function ExportPDFDocument({
             <View style={styles.exerciseList}>
               {data.exercises.logs.slice(0, 20).map((log, i) => (
                 <Text key={i} style={styles.exerciseItem}>
-                  {log.name} ({formatDate(log.date, dateLocale)})
+                  {log.name} (
+                  {formatDate(log.date, dateLocale, data.metadata.timezone)})
                 </Text>
               ))}
             </View>
@@ -347,7 +431,11 @@ export function ExportPDFDocument({
         {/* Footer */}
         <Text style={styles.footer}>
           {t("export.pdf.footer", {
-            date: new Date().toLocaleDateString(dateLocale),
+            date: formatDate(
+              data.metadata.generatedAt,
+              dateLocale,
+              data.metadata.timezone,
+            ),
           })}
         </Text>
       </Page>

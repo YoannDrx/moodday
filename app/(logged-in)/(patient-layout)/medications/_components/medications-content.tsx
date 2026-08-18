@@ -39,6 +39,7 @@ import {
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import { useSession } from "@/lib/auth-client";
 import type { DoseSlotStatus } from "@/features/medication/schedule";
 
 const FREQUENCY_LABEL_KEYS: Record<string, string> = {
@@ -67,6 +68,8 @@ type MedicationWithIntakes = {
 };
 
 export function MedicationsContent() {
+  const { data: session } = useSession();
+  const offlineOwnerId = session?.user.id ?? "";
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
@@ -95,7 +98,7 @@ export function MedicationsContent() {
       const takenAt = new Date().toISOString();
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction({
+        await queueAction(offlineOwnerId, {
           type: "med_intake",
           medicationId,
           doseIndex,
@@ -204,7 +207,7 @@ export function MedicationsContent() {
               <TrendingUp className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("medication.stats.adherence")}
               </p>
               <p className="text-2xl font-bold">{adherenceRate}%</p>
@@ -219,7 +222,7 @@ export function MedicationsContent() {
               <Calendar className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("medication.stats.today")}
               </p>
               <p className="text-2xl font-bold">
@@ -236,7 +239,7 @@ export function MedicationsContent() {
               <Pill className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("medication.stats.treatments")}
               </p>
               <p className="text-2xl font-bold">{activeMedications.length}</p>

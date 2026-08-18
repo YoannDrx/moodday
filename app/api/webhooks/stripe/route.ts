@@ -3,10 +3,15 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { Prisma } from "@prisma/client";
+import {
+  getRequestId,
+  getRequestLogFields,
+} from "@/lib/operations/request-context";
+import { isMaintenanceMode, maintenanceApiResponse } from "@/lib/maintenance";
 
 export const maxDuration = 60;
 
@@ -58,30 +63,41 @@ function getSubscriptionId(object: Stripe.Event.Data.Object) {
 }
 
 async function claimEvent(event: Stripe.Event) {
-  const existing = await prisma.stripeWebhookEvent.findUnique({
-    where: { eventId: event.id },
-    select: { id: true, status: true },
-  });
-
-  if (existing?.status === "processed") return null;
-
-  if (existing) {
-    return prisma.stripeWebhookEvent.update({
-      where: { id: existing.id },
+  try {
+    return await prisma.stripeWebhookEvent.create({
       data: {
-        status: "processing",
-        attempts: { increment: 1 },
-        lastErrorCode: null,
+        eventId: event.id,
+        type: event.type,
+        stripeCreatedAt: new Date(event.created * 1000),
       },
     });
+  } catch (error) {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== "P2002"
+    ) {
+      throw error;
+    }
   }
 
-  return prisma.stripeWebhookEvent.create({
-    data: {
+  const staleBefore = new Date(Date.now() - 5 * 60_000);
+  const retry = await prisma.stripeWebhookEvent.updateMany({
+    where: {
       eventId: event.id,
-      type: event.type,
-      stripeCreatedAt: new Date(event.created * 1000),
+      OR: [
+        { status: "failed" },
+        { status: "processing", updatedAt: { lt: staleBefore } },
+      ],
     },
+    data: {
+      status: "processing",
+      attempts: { increment: 1 },
+      lastErrorCode: null,
+    },
+  });
+  if (retry.count !== 1) return null;
+  return prisma.stripeWebhookEvent.findUniqueOrThrow({
+    where: { eventId: event.id },
   });
 }
 
@@ -190,12 +206,9 @@ async function processEvent(event: Stripe.Event) {
     return;
   }
 
-  let subscription: Stripe.Subscription;
-  if (event.type === "customer.subscription.deleted") {
-    subscription = event.data.object as Stripe.Subscription;
-  } else {
-    subscription = await getStripe().subscriptions.retrieve(subscriptionId);
-  }
+  // Always read Stripe's current state. Delayed or out-of-order event payloads
+  // must never overwrite a newer subscription state stored locally.
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
   await syncSubscription(subscription);
 }
 
@@ -213,7 +226,13 @@ function getSafeErrorCode(error: unknown) {
 }
 
 export async function POST(req: NextRequest) {
-  const signature = (await headers()).get("stripe-signature");
+  const startedAt = Date.now();
+  const requestId = getRequestId(req);
+  if (isMaintenanceMode()) return maintenanceApiResponse();
+  const signature = req.headers.get("stripe-signature");
+  if (!env.BILLING_ENABLED) {
+    return NextResponse.json({ ok: true, disabled: true });
+  }
   if (!env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Webhook unavailable" }, { status: 503 });
   }
@@ -245,8 +264,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const errorCode = getSafeErrorCode(error);
     logger.error("Stripe webhook processing failed", {
+      eventName: "stripe_webhook_failed",
+      status: "failed",
       eventType: event.type,
       errorCode,
+      ...getRequestLogFields({
+        requestId,
+        route: "/api/webhooks/stripe",
+        startedAt,
+      }),
     });
     await prisma.stripeWebhookEvent.update({
       where: { id: claimed.id },

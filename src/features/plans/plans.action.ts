@@ -1,6 +1,6 @@
 "use server";
 
-import { authAction } from "@/lib/actions/safe-actions";
+import { sensitiveAuthAction } from "@/lib/actions/safe-actions";
 import {
   assertConfiguredStripePrice,
   BILLING_CATALOG_VERSION,
@@ -13,6 +13,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { getServerUrl } from "@/lib/server-url";
 import { getStripe } from "@/lib/stripe";
 import { z } from "zod";
+import { assertFeatureAvailable } from "@/lib/features/availability";
 
 const internalPathSchema = z
   .string()
@@ -33,7 +34,7 @@ const ACTIVE_STRIPE_SUBSCRIPTION_STATUSES = new Set([
   "incomplete",
 ]);
 
-export const upgradeUserAction = authAction
+export const upgradeUserAction = sensitiveAuthAction
   .inputSchema(
     z.object({
       plan: z.literal("plus"),
@@ -47,9 +48,7 @@ export const upgradeUserAction = authAction
       parsedInput: { plan, annual, successUrl, cancelUrl },
       ctx: { user },
     }) => {
-      if (!env.BILLING_ENABLED) {
-        throw new ActionError("Moodday Plus checkout is not open yet");
-      }
+      assertFeatureAvailable("billing");
       await enforceRateLimit({
         scope: "stripe-checkout",
         identifier: user.id,
@@ -84,6 +83,7 @@ export const upgradeUserAction = authAction
           email: dbUser.email,
           name: dbUser.name,
           metadata: {
+            app: "moodday",
             userId: user.id,
           },
         });
@@ -152,6 +152,7 @@ export const upgradeUserAction = authAction
             },
           ],
           mode: "subscription",
+          integration_identifier: "moodday_checkout_kqnxpajt",
           payment_method_collection: isTrialEligible ? "if_required" : "always",
           automatic_tax: { enabled: env.STRIPE_TAX_ENABLED },
           success_url: getCheckoutSuccessUrl(successUrl),
@@ -163,6 +164,7 @@ export const upgradeUserAction = authAction
           },
           subscription_data: {
             metadata: {
+              app: "moodday",
               userId: user.id,
               plan,
               catalogVersion: BILLING_CATALOG_VERSION,

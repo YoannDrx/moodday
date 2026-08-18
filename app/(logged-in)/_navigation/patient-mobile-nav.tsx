@@ -25,7 +25,7 @@ export function PatientMobileNav() {
                 "flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-colors",
                 isActive
                   ? "text-[var(--primary)]"
-                  : "text-gray-400 hover:text-gray-600",
+                  : "text-gray-600 hover:text-gray-800",
               )}
             >
               <link.Icon

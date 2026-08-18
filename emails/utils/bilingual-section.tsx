@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { Section } from "@react-email/components";
+import { Section } from "react-email";
 
 type BilingualSectionProps = PropsWithChildren<{
   lang: "fr" | "en";

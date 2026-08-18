@@ -1,4 +1,4 @@
-import type { Subscription } from "@/generated/prisma";
+import type { Subscription } from "@prisma/client";
 
 export type PlanCode = "free" | "plus";
 

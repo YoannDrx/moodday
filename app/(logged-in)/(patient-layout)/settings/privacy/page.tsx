@@ -4,6 +4,10 @@ import { getRequiredCurrentUser } from "@/lib/user/get-user";
 import { prisma } from "@/lib/prisma";
 
 import { PrivacyContent } from "./_components/privacy-content";
+import {
+  getFeatureAvailability,
+  isAiInsightsAvailableForUser,
+} from "@/lib/features/availability";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -26,9 +30,9 @@ export default async function PrivacyPage() {
   return (
     <PrivacyContent
       initialAiEnabled={preferences?.aiInsightsEnabled ?? false}
-      initialJournalNotesEnabled={
-        preferences?.aiJournalNotesEnabled ?? false
-      }
+      initialJournalNotesEnabled={preferences?.aiJournalNotesEnabled ?? false}
+      aiAvailable={isAiInsightsAvailableForUser(user.id)}
+      importAvailable={getFeatureAvailability("accountImport").enabled}
     />
   );
 }

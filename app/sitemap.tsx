@@ -14,17 +14,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/legal/privacy",
     "/legal/terms",
     "/legal/cookies",
+    "/legal/subprocessors",
   ];
 
   return [
-    ...(
-      publicRoutes.map((route) => ({
-        url: `${SiteConfig.prodUrl}${route}`,
-        lastModified: new Date(),
-        changeFrequency: "monthly" as const,
-        priority: route === "" ? 1 : 0.7,
-      })) satisfies MetadataRoute.Sitemap
-    ),
+    ...(publicRoutes.map((route) => ({
+      url: `${SiteConfig.prodUrl}${route}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: route === "" ? 1 : 0.7,
+    })) satisfies MetadataRoute.Sitemap),
     ...posts.map(
       (post) =>
         ({

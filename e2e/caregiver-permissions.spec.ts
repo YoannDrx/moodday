@@ -1,7 +1,67 @@
 import { prisma } from "@/lib/prisma";
+import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 import { createTestAccount } from "./utils/auth-test";
 import { retry } from "./utils/retry";
+
+test("enforces the Free caregiver limit across concurrent invitations", async ({
+  context,
+  page,
+}) => {
+  const patientData = await createTestAccount({
+    page,
+    callbackURL: "/dashboard",
+  });
+  const patient = await prisma.user.findUniqueOrThrow({
+    where: { email: patientData.email },
+    select: { id: true },
+  });
+  const secondPage = await context.newPage();
+  const invitedEmails = [
+    `playwright-test-concurrent-a-${faker.string.uuid()}@example.test`,
+    `playwright-test-concurrent-b-${faker.string.uuid()}@example.test`,
+  ];
+
+  try {
+    await Promise.all([page.goto("/caregiver"), secondPage.goto("/caregiver")]);
+    await Promise.all(
+      [page, secondPage].map(async (currentPage, index) => {
+        await currentPage
+          .getByRole("button", { name: /Invite someone|Inviter quelqu'un/i })
+          .last()
+          .click();
+        await currentPage
+          .getByLabel(/^Email$|^E-mail$/i)
+          .fill(invitedEmails[index] ?? "missing@example.test");
+      }),
+    );
+
+    await Promise.all(
+      [page, secondPage].map(async (currentPage) =>
+        currentPage
+          .getByRole("button", {
+            name: /Send invite|Envoyer l'invitation/i,
+          })
+          .click(),
+      ),
+    );
+
+    await expect
+      .poll(async () =>
+        prisma.caregiverRelationship.count({
+          where: {
+            patientId: patient.id,
+            status: { in: ["pending", "active"] },
+            revokedAt: null,
+          },
+        }),
+      )
+      .toBe(1);
+  } finally {
+    await secondPage.close();
+    await prisma.user.delete({ where: { id: patient.id } });
+  }
+});
 
 test("revokes caregiver access immediately after an authorized observation", async ({
   baseURL,
@@ -120,11 +180,22 @@ test("revokes caregiver access immediately after an authorized observation", asy
 
     await expect
       .poll(async () =>
-        prisma.caregiverRelationship.count({
+        prisma.caregiverRelationship.findUnique({
           where: { id: relationship.id },
+          select: {
+            status: true,
+            revokedAt: true,
+            revokedById: true,
+            inviteToken: true,
+          },
         }),
       )
-      .toBe(0);
+      .toEqual({
+        status: "revoked",
+        revokedAt: expect.any(Date),
+        revokedById: patient.id,
+        inviteToken: null,
+      });
 
     await caregiverPage.goto(`/caregiver/observe?revoked=${Date.now()}`);
     await expect(
@@ -211,7 +282,6 @@ test("declines an invitation and invalidates its token", async ({
         }),
       )
       .toEqual({ status: "declined", inviteToken: null, inviteExpiry: null });
-
   } finally {
     await caregiverContext.close();
   }
@@ -224,8 +294,9 @@ test("blocks an expired caregiver invitation", async ({
 }) => {
   const caregiverContext = await browser.newContext({ baseURL });
   const caregiverPage = await caregiverContext.newPage();
-  let expiredInviteContext: Awaited<ReturnType<typeof browser.newContext>> | null =
-    null;
+  let expiredInviteContext: Awaited<
+    ReturnType<typeof browser.newContext>
+  > | null = null;
 
   try {
     const caregiverData = await createTestAccount({
@@ -284,9 +355,7 @@ test("blocks an expired caregiver invitation", async ({
       }),
     ).toBeVisible();
     await expect(
-      expiredInvitePage.getByText(
-        /invalid|expired|invalide|expirée|expiré/i,
-      ),
+      expiredInvitePage.getByText(/invalid|expired|invalide|expirée|expiré/i),
     ).toBeVisible();
     await expect(
       expiredInvitePage.getByRole("button", {

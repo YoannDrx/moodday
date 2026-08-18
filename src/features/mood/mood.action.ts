@@ -4,16 +4,23 @@ import { authAction } from "@/lib/actions/safe-actions";
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getExportDateRange } from "@/features/export/date-range";
+import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+import {
+  addCivilDays,
+  getCivilDayRange,
+  getSafeTimeZone,
+} from "@/lib/temporal/civil-date";
 
 const createMoodEntrySchema = z.object({
   value: z.number().min(0).max(10),
-  note: z.string().optional(),
+  note: z.string().max(5_000).optional(),
 });
 
 const updateMoodEntrySchema = z.object({
   id: z.string(),
   value: z.number().min(0).max(10),
-  note: z.string().optional(),
+  note: z.string().max(5_000).optional(),
 });
 
 const deleteMoodEntrySchema = z.object({
@@ -21,8 +28,8 @@ const deleteMoodEntrySchema = z.object({
 });
 
 const getMoodEntriesSchema = z.object({
-  days: z.number().optional(), // Filter by last N days
-  limit: z.number().optional().default(50),
+  days: z.number().int().min(1).max(365).optional(),
+  limit: z.number().int().min(1).max(100).optional().default(50),
   cursor: z.string().optional(), // For pagination
 });
 
@@ -96,15 +103,27 @@ export const deleteMoodEntry = authAction
 export const getMoodEntries = authAction
   .inputSchema(getMoodEntriesSchema)
   .action(async ({ parsedInput: { days, limit, cursor }, ctx: { user } }) => {
-    const where: { userId: string; createdAt?: { gte: Date } } = {
+    const where: {
+      userId: string;
+      createdAt?: { gte: Date; lt: Date };
+    } = {
       userId: user.id,
     };
 
     // Filter by date range
     if (days) {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      where.createdAt = { gte: startDate };
+      const preferences = await prisma.userPreferences.findUnique({
+        where: { userId: user.id },
+        select: { timezone: true },
+      });
+      const endDate = getDateKeyForTimeZone(new Date(), preferences?.timezone);
+      const startDate = addCivilDays(endDate, -(days - 1));
+      const range = getExportDateRange({
+        startDate,
+        endDate,
+        timezone: preferences?.timezone,
+      });
+      where.createdAt = { gte: range.start, lt: range.endExclusive };
     }
 
     const entries = await prisma.moodEntry.findMany({
@@ -132,13 +151,18 @@ export const getMoodEntries = authAction
 
 export const getTodayMoodEntry = authAction.action(
   async ({ ctx: { user } }) => {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: { timezone: true },
+    });
+    const timezone = getSafeTimeZone(preferences?.timezone);
+    const today = getDateKeyForTimeZone(new Date(), timezone);
+    const { start, endExclusive } = getCivilDayRange(today, timezone);
 
     const entry = await prisma.moodEntry.findFirst({
       where: {
         userId: user.id,
-        createdAt: { gte: startOfDay },
+        createdAt: { gte: start, lt: endExclusive },
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -166,15 +190,15 @@ const saveMoodEntrySchema = z.object({
   operationId: z.string().min(1).max(80).optional(),
   recordedAt: z.string().datetime().optional(),
   value: z.number().min(0).max(10),
-  note: z.string().optional(),
+  note: z.string().max(5_000).optional(),
   // Extended mood tracking fields
   energy: z.number().min(1).max(10).optional(),
   sleepHours: z.number().min(0).max(24).optional(),
   sleepQuality: z.enum(["bad", "average", "good"]).optional(),
-  sleepDisturbances: z.array(z.string()).optional(),
+  sleepDisturbances: z.array(z.string().max(40)).max(20).optional(),
   anxiety: z.number().min(1).max(10).optional(),
-  tags: z.array(z.string()).optional(),
-  sideEffects: z.array(z.string()).optional(),
+  tags: z.array(z.string().max(40)).max(20).optional(),
+  sideEffects: z.array(z.string().max(40)).max(20).optional(),
 });
 
 export const saveMoodEntry = authAction

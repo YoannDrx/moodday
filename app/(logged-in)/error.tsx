@@ -14,7 +14,12 @@ const t = createTranslator(messages);
 
 export default function RouteError({ error, reset }: ErrorParams) {
   useEffect(() => {
-    logger.error(error);
+    logger.error("Route rendering failed", {
+      eventName: "authenticated_route_render_failed",
+      status: "failed",
+      errorCode: error.name || "render_error",
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

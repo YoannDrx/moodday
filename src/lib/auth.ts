@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { admin, magicLink } from "better-auth/plugins";
+import { admin, magicLink, twoFactor } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 
 import { sendEmail } from "@/lib/mail/send-email";
 import { SiteConfig } from "@/site-config";
@@ -14,8 +15,17 @@ import { setupResendCustomer } from "./auth/auth-config-setup";
 import { env } from "./env";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
-import { getServerUrl } from "./server-url";
+import {
+  getPasskeyOrigin,
+  getServerUrl,
+  getTrustedAuthOrigins,
+} from "./server-url";
 import { deleteUserDataOutsideAuthCascade } from "./user/delete-user-data";
+import { notifySignificantNewSession } from "./auth/new-session-alert";
+import {
+  getOperationalErrorCode,
+  getOperationalSubjectReference,
+} from "./operations/log-identifiers";
 
 type SocialProvidersType = Parameters<typeof betterAuth>[0]["socialProviders"];
 
@@ -39,6 +49,7 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const auth = betterAuth({
+  appName: SiteConfig.title,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -51,21 +62,49 @@ export const auth = betterAuth({
     customRules: {
       "/sign-in/email": { window: 60, max: isolatedE2ERateLimit ?? 5 },
       "/sign-up/email": { window: 300, max: isolatedE2ERateLimit ?? 5 },
-      "/forget-password": { window: 300, max: isolatedE2ERateLimit ?? 3 },
+      "/request-password-reset": {
+        window: 300,
+        max: isolatedE2ERateLimit ?? 3,
+      },
       "/change-password": { window: 300, max: isolatedE2ERateLimit ?? 5 },
       "/magic-link/send": { window: 300, max: isolatedE2ERateLimit ?? 3 },
     },
   },
   baseURL: getServerUrl(),
+  trustedOrigins: getTrustedAuthOrigins(),
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days (NFR-S5)
     updateAge: 60 * 60 * 24, // Update session every 24 hours
+    freshAge: 60 * 10, // Reauthenticate after 10 minutes for sensitive routes
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // Cache for 5 minutes
+      // Immediate device/session revocation takes precedence over the latency
+      // benefit of a signed session cache for this health-data product.
+      enabled: false,
     },
   },
   databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          try {
+            await notifySignificantNewSession({
+              id: session.id,
+              userId: session.userId,
+              userAgent: session.userAgent,
+              ipAddress: session.ipAddress,
+              createdAt: session.createdAt,
+            });
+          } catch (error) {
+            logger.error("New session alert delivery failed", {
+              eventName: "new_session_alert_failed",
+              status: "failed",
+              errorCode: getOperationalErrorCode(error),
+              subjectReference: getOperationalSubjectReference(session.userId),
+            });
+          }
+        },
+      },
+    },
     user: {
       create: {
         after: async (user, _req) => {
@@ -74,6 +113,61 @@ export const auth = betterAuth({
           } catch {
             logger.error("Failed to create Resend contact", {
               errorCode: "resend_contact_failed",
+            });
+          }
+
+          const consentInput = user as typeof user & {
+            age18Accepted?: boolean | null;
+            termsVersionAccepted?: string | null;
+            privacyVersionAccepted?: string | null;
+            healthDataConsentVersionAccepted?: string | null;
+            signupLocale?: string | null;
+            launchCountry?: string | null;
+          };
+          if (
+            consentInput.age18Accepted === true &&
+            consentInput.termsVersionAccepted === env.LEGAL_TERMS_VERSION &&
+            consentInput.privacyVersionAccepted === env.LEGAL_PRIVACY_VERSION &&
+            consentInput.healthDataConsentVersionAccepted ===
+              env.HEALTH_DATA_CONSENT_VERSION &&
+            consentInput.launchCountry === env.LAUNCH_COUNTRY
+          ) {
+            await prisma.userConsent.createMany({
+              data: [
+                {
+                  userId: user.id,
+                  purpose: "age_18",
+                  version: String(env.MINIMUM_AGE),
+                  locale: consentInput.signupLocale === "en" ? "en" : "fr",
+                  country: env.LAUNCH_COUNTRY,
+                  source: "signup",
+                },
+                {
+                  userId: user.id,
+                  purpose: "terms",
+                  version: env.LEGAL_TERMS_VERSION,
+                  locale: consentInput.signupLocale === "en" ? "en" : "fr",
+                  country: env.LAUNCH_COUNTRY,
+                  source: "signup",
+                },
+                {
+                  userId: user.id,
+                  purpose: "privacy",
+                  version: env.LEGAL_PRIVACY_VERSION,
+                  locale: consentInput.signupLocale === "en" ? "en" : "fr",
+                  country: env.LAUNCH_COUNTRY,
+                  source: "signup",
+                },
+                {
+                  userId: user.id,
+                  purpose: "health_data",
+                  version: env.HEALTH_DATA_CONSENT_VERSION,
+                  locale: consentInput.signupLocale === "en" ? "en" : "fr",
+                  country: env.LAUNCH_COUNTRY,
+                  source: "signup",
+                },
+              ],
+              skipDuplicates: true,
             });
           }
         },
@@ -85,6 +179,9 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
+    autoSignIn: false,
+    resetPasswordTokenExpiresIn: 60 * 60,
     async sendResetPassword({ user, url }) {
       await sendEmail({
         to: user.email,
@@ -101,6 +198,44 @@ export const auth = betterAuth({
     },
   },
   user: {
+    additionalFields: {
+      age18Accepted: {
+        type: "boolean",
+        required: false,
+        input: true,
+        returned: false,
+      },
+      termsVersionAccepted: {
+        type: "string",
+        required: false,
+        input: true,
+        returned: false,
+      },
+      privacyVersionAccepted: {
+        type: "string",
+        required: false,
+        input: true,
+        returned: false,
+      },
+      healthDataConsentVersionAccepted: {
+        type: "string",
+        required: false,
+        input: true,
+        returned: false,
+      },
+      signupLocale: {
+        type: "string",
+        required: false,
+        input: true,
+        returned: false,
+      },
+      launchCountry: {
+        type: "string",
+        required: false,
+        input: true,
+        returned: false,
+      },
+    },
     changeEmail: {
       enabled: true,
       sendChangeEmailVerification: async ({
@@ -122,7 +257,6 @@ export const auth = betterAuth({
           tracking: {
             template: "email-changed",
             userId: user.id,
-            metadata: { newEmail },
           },
         });
       },
@@ -150,6 +284,9 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
+    expiresIn: 60 * 60,
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -168,6 +305,8 @@ export const auth = betterAuth({
   socialProviders: SocialProviders,
   plugins: [
     magicLink({
+      expiresIn: 10 * 60,
+      storeToken: "hashed",
       sendMagicLink: async ({ email, url }) => {
         await sendEmail({
           to: email,
@@ -182,6 +321,19 @@ export const auth = betterAuth({
       },
     }),
     admin({}),
+    twoFactor({
+      issuer: SiteConfig.title,
+      allowPasswordless: true,
+    }),
+    passkey({
+      rpID: new URL(getPasskeyOrigin()).hostname,
+      rpName: SiteConfig.title,
+      origin: getPasskeyOrigin(),
+      authenticatorSelection: {
+        residentKey: "preferred",
+        userVerification: "required",
+      },
+    }),
     // Warning: always last plugin
     nextCookies(),
   ],

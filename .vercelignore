@@ -1,0 +1,12 @@
+# Local environment files must never enter a Vercel source upload. Vercel CLI
+# uses this file independently from Git ignore rules.
+.env
+.env.*
+
+# Local and generated verification artifacts
+coverage/
+test-results/
+playwright-report/
+.lighthouseci/
+ci-artifacts/
+artifacts/

@@ -1,10 +1,4 @@
-import {
-  Calendar,
-  FileText,
-  Pill,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { Calendar, FileText, Pill, Sparkles, Users } from "lucide-react";
 import type { PlanCode } from "@/lib/billing/entitlements";
 
 const DEFAULT_LIMIT = {
@@ -22,7 +16,6 @@ export type PlanLimit = typeof DEFAULT_LIMIT;
 export type AppAuthPlanData = {
   name: PlanCode;
   description?: string;
-  isPopular?: boolean;
   price: number;
   yearlyPrice?: number;
   currency: string;
@@ -43,7 +36,6 @@ export const AUTH_PLANS_DATA: AppAuthPlanData[] = [
   },
   {
     name: "plus",
-    isPopular: true,
     limits: {
       medications: -1, // Illimité
       historyDays: -1, // Illimité
@@ -77,9 +69,23 @@ export const LIMITS_CONFIG: Record<
 };
 
 // Additional features by plan
-export const ADDITIONAL_FEATURES = {
-  free: [Sparkles, FileText],
-  plus: [FileText, Sparkles, Users],
+type OptionalPlanFeature = "aiInsights" | "caregiverSharing";
+
+type AdditionalFeatureDefinition = {
+  icon: React.ElementType;
+  requires?: OptionalPlanFeature;
+};
+
+export const ADDITIONAL_FEATURES: Record<
+  PlanCode,
+  AdditionalFeatureDefinition[]
+> = {
+  free: [{ icon: Sparkles }, { icon: FileText }],
+  plus: [
+    { icon: FileText },
+    { icon: Sparkles, requires: "aiInsights" },
+    { icon: Users, requires: "caregiverSharing" },
+  ],
 };
 
 export const getPlanLimits = (plan: PlanCode = "free"): PlanLimit => {

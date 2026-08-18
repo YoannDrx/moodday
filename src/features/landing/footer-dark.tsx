@@ -2,7 +2,6 @@
 
 import { MooddayLogo } from "@/components/nowts/moodday-logo";
 import { useI18n } from "@/i18n/provider";
-import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
 import Link from "next/link";
 
 export function FooterDark() {
@@ -10,9 +9,12 @@ export function FooterDark() {
 
   const footerLinks = {
     [t("landing2.footer.links.product.title")]: [
-      { label: t("landing2.footer.links.product.features"), href: "#features" },
-      { label: t("landing2.footer.links.product.pricing"), href: "#pricing" },
-      { label: t("landing2.footer.links.product.security"), href: "#security" },
+      { label: t("landing2.footer.links.product.features"), href: "/#product" },
+      { label: t("landing2.footer.links.product.pricing"), href: "/#pricing" },
+      {
+        label: t("landing2.footer.links.product.security"),
+        href: "/#security",
+      },
     ],
     [t("landing2.footer.links.resources.title")]: [
       { label: t("landing2.footer.links.resources.blog"), href: "/posts" },
@@ -21,7 +23,6 @@ export function FooterDark() {
     [t("landing2.footer.links.company.title")]: [
       { label: t("landing2.footer.links.company.about"), href: "/about" },
       { label: t("landing2.footer.links.company.contact"), href: "/contact" },
-      { label: t("landing2.footer.links.company.careers"), href: "/careers" },
     ],
     [t("landing2.footer.links.legal.title")]: [
       {
@@ -32,6 +33,10 @@ export function FooterDark() {
       {
         label: t("landing2.footer.links.legal.cookies"),
         href: "/legal/cookies",
+      },
+      {
+        label: t("landing2.footer.links.legal.processors"),
+        href: "/legal/subprocessors",
       },
     ],
   };
@@ -46,20 +51,6 @@ export function FooterDark() {
             <p className="text-muted-foreground mt-4 max-w-xs text-sm">
               {t("landing2.footer.description")}
             </p>
-            <div className="mt-6 flex gap-4">
-              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
-                <Instagram className="size-5" />
-              </div>
-              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
-                <Linkedin className="size-5" />
-              </div>
-              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
-                <Facebook className="size-5" />
-              </div>
-              <div className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors">
-                <Twitter className="size-5" />
-              </div>
-            </div>
           </div>
 
           {/* Links */}
@@ -90,10 +81,12 @@ export function FooterDark() {
               year: new Date().getFullYear().toString(),
             })}
           </p>
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+          <Link
+            href="/status"
+            className="text-muted-foreground hover:text-foreground text-sm"
+          >
             {t("landing2.footer.status")}
-          </div>
+          </Link>
         </div>
       </div>
     </footer>

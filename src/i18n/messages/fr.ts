@@ -21,14 +21,11 @@ const fr: typeof en = {
     features: "Fonctionnalités",
     pricing: "Tarifs",
     blog: "Blog",
-    changelog: "Historique",
     menu: "Menu",
     toggleMenu: "Basculer le menu de navigation",
     logoAlt: "Logo de l'application",
-    home: "Accueil",
     analytics: "Analyses",
     dashboard: "Tableau de bord",
-    organization: "Organisation",
     account: "Compte",
     app: "Application",
     backToSite: "Retour au site",
@@ -104,6 +101,19 @@ const fr: typeof en = {
         "Utilisé pour la checklist du jour et les rappels de médicaments.",
       doseTime: "Heure de prise",
       weeklyDay: "Jour hebdomadaire",
+      lifecycleTitle: "Période du traitement",
+      lifecycleHint:
+        "Ces dates servent aux statistiques. Moodday ne recommande aucun changement de traitement.",
+      startDate: "Date de début",
+      endDate: "Date de fin (facultative)",
+      inventoryTitle: "Stock facultatif",
+      inventoryHint:
+        "Le stock n’est déduit lors d’une prise que si les unités par prise sont renseignées.",
+      stockQuantity: "Stock actuel",
+      unitsPerDose: "Unités par prise",
+      lowStockThreshold: "Seuil de stock bas",
+      changeReason: "Motif du changement (facultatif)",
+      changeReasonHint: "Ex. mise à jour saisie après une consultation",
     },
     weekDay: {
       sunday: "Dimanche",
@@ -176,6 +186,25 @@ const fr: typeof en = {
       archived: "Archivé",
       dosageHistory: "Historique des dosages",
       previousDosage: "Précédent",
+      inventory: "Stock et historique",
+      currentStock: "Stock actuel : {count}",
+      lowStock: "Seuil bas atteint",
+      inventoryNotConfigured: "Stock non configuré",
+      treatmentPeriod: "Période : {start} → {end}",
+      ongoing: "en cours",
+      inventoryEvent: "Variation : {delta}",
+      intakeRevision: "Prise {action}",
+      corrected: "corrigée",
+      cancelled: "annulée",
+      inventoryDelta: "Variation de stock",
+      inventoryReason: "Motif",
+      refill: "Réapprovisionnement",
+      correction: "Correction",
+      manual: "Ajustement manuel",
+      applyInventory: "Appliquer",
+      inventoryUpdated: "Stock mis à jour",
+      inventoryDeltaInvalid: "Saisissez une variation différente de zéro",
+      scheduleHistory: "Historique du planning",
     },
     dosageHistory: {
       title: "Historique des dosages",
@@ -266,6 +295,21 @@ const fr: typeof en = {
         loading: "Génération de l'analyse...",
         fallback: "Continuez le suivi pour voir des analyses ici.",
         localNotice: "Les analyses sont générées localement hors ligne.",
+        aiDisclaimer:
+          "Généré par IA. Ce bilan peut contenir des erreurs, ne pose pas de diagnostic et ne constitue pas un avis médical.",
+        generatedAt: "Généré le {date}",
+        dataUsed: "Données utilisées : {fields}.",
+        disableAi: "Désactiver l’IA",
+        privacy: "Confidentialité",
+        metrics: {
+          mood: "humeur",
+          energy: "énergie",
+          anxiety: "anxiété",
+          sleepHours: "durée de sommeil",
+          sleepQuality: "qualité du sommeil",
+          tags: "tags",
+          journalNotes: "note de journal (avec accord séparé)",
+        },
       },
       step1: {
         title: "Comment vous sentez-vous ?",
@@ -842,9 +886,9 @@ const fr: typeof en = {
   trends: {
     metaTitle: "Tendances",
     metaDescription:
-      "Explorez les tendances d'humeur et les corrélations dans le temps.",
+      "Explorez vos tendances et repères chiffrés dans le temps.",
     title: "Tendances",
-    subtitle: "Comprenez les schémas entre humeur, sommeil et traitements.",
+    subtitle: "Observez côte à côte humeur, sommeil et prises déclarées.",
     periods: {
       days7: "7 derniers jours",
       days30: "30 derniers jours",
@@ -865,11 +909,10 @@ const fr: typeof en = {
       },
     },
     correlations: {
-      title: "Corrélations",
-      sleepMood: "Qualité du sommeil vs humeur",
-      medicationStability:
-        "Observance des médicaments vs stabilité de l'humeur",
-      energyMood: "Énergie vs humeur",
+      title: "Repères chiffrés",
+      sleepMood: "Association statistique sommeil / humeur",
+      medicationAdherence: "Adhérence calculée sur la période",
+      energyMood: "Association statistique énergie / humeur",
     },
     insights: {
       title: "Analyses marquantes",
@@ -905,7 +948,8 @@ const fr: typeof en = {
     preferences: {
       invite: {
         title: "Inviter un aidant",
-        description: "Partagez vos progrès avec une personne de confiance.",
+        description:
+          "Proposez une invitation révocable à une personne de confiance.",
         emailPlaceholder: "E-mail de l'aidant",
         labelPlaceholder: "Libellé optionnel (ex. Dr Martin)",
       },
@@ -919,17 +963,17 @@ const fr: typeof en = {
       mood: {
         title: "Suis ton humeur",
         description:
-          "Note comment tu te sens chaque jour pour comprendre tes patterns et voir si ton traitement fonctionne.",
+          "Note comment tu te sens pour relire les tendances issues de tes propres saisies.",
       },
       medications: {
         title: "Gère tes médicaments",
         description:
-          "Garde une trace de tes médicaments et dosages. Vois les corrélations entre ton traitement et ton humeur.",
+          "Garde une trace de tes médicaments, dosages et prises déclarées, sans déduction sur leur effet.",
       },
       preferences: {
-        title: "Notifications & aidants",
+        title: "Options facultatives",
         description:
-          "Configure tes rappels et, si tu le souhaites, invite un proche de confiance.",
+          "Configure uniquement les options actuellement disponibles que tu souhaites utiliser.",
       },
       ready: {
         title: "Tu es prêt(e) !",
@@ -952,6 +996,8 @@ const fr: typeof en = {
       trends: "Bilans",
       caregiver: "Suivi aidant",
       crisis: "Ressources de crise",
+      safetyPlan: "Plan de sécurité",
+      consultation: "Préparer une consultation",
     },
   },
   caregiver: {
@@ -1026,8 +1072,43 @@ const fr: typeof en = {
         description:
           "Consultez quand un aidant ouvre votre espace partagé. Aucune note ni donnée de santé n'est enregistrée dans ce journal.",
         sharedSpace: "Espace aidant partagé consulté",
+        activity: "Activité partagée consultée",
+        moodSummary: "Tendances d’humeur consultées",
+        medicationSummary: "Synthèse des traitements consultée",
         empty: "Aucun accès aidant enregistré pour le moment.",
         error: "Le journal des accès est momentanément indisponible.",
+      },
+      digest: {
+        title: "Digest des accès",
+        description:
+          "Recevez un récapitulatif lorsque de nouveaux accès aidant ont été enregistrés.",
+        enabled: "Recevoir le digest par e-mail",
+        frequency: "Fréquence",
+        daily: "Quotidienne",
+        weekly: "Hebdomadaire",
+        privacy:
+          "L’e-mail indique seulement un nombre d’accès et d’aidants. Il ne contient aucun nom, note ou donnée de santé.",
+        saved: "Préférences du digest enregistrées",
+        saveError: "Impossible d’enregistrer les préférences du digest",
+      },
+      permissions: {
+        title: "Permissions",
+        viewMood: "Voir les tendances d’humeur",
+        viewMedications: "Voir les traitements et l’adhérence agrégée",
+        addObservations: "Ajouter des observations",
+        addEvents: "Ajouter des événements",
+        moodWindow: "Fenêtre humeur",
+        medicationWindow: "Fenêtre traitements",
+        days: "{days} jours",
+        expiry: "Expiration facultative",
+        windows: "Humeur : {mood} j · traitements : {medication} j",
+        expires: "Expire le {date}",
+        noExpiry: "Sans expiration",
+        manageTitle: "Gérer l’accès aidant",
+        manageDescription:
+          "Les changements prennent effet dès l’enregistrement et exigent une authentification récente.",
+        manageAccessibleLabel: "Gérer les permissions de {name}",
+        saved: "Accès aidant mis à jour",
       },
       inviteDialog: {
         title: "Inviter un aidant",
@@ -1200,6 +1281,8 @@ const fr: typeof en = {
       title: "Notifications",
       enabled: "Activer les notifications",
       enabledHint: "Recevoir des rappels et mises à jour",
+      permissionDenied:
+        "L’autorisation de notification n’a pas été accordée. Vous pouvez la modifier dans les réglages du navigateur.",
       dailyCheckIn: "Rappel quotidien",
       dailyCheckInHint: "Rappel pour noter ton humeur",
       checkInTime: "Heure du rappel",
@@ -1237,12 +1320,12 @@ const fr: typeof en = {
         "Avec votre accord, Moodday peut transmettre un résumé minimisé de vos données à OpenAI pour générer un bilan factuel. Cette fonction est réservée à Plus et reste désactivée par défaut.",
       aiConsent: "Autoriser les bilans IA",
       aiConsentDescription:
-        "Humeur, énergie, anxiété et sommeil agrégés uniquement.",
+        "Uniquement les valeurs d’humeur, d’énergie, d’anxiété et de sommeil affichées dans le bilan.",
       aiNotes: "Inclure mes notes de journal",
       aiNotesDescription:
         "Option séparée et désactivée par défaut. Vous pouvez la retirer à tout moment.",
       aiDisclaimer:
-        "Les réponses ne sont pas enregistrées par défaut, ne posent pas de diagnostic et ne recommandent aucune modification de traitement. En cas d'urgence, contactez le 15/112 ou le 3114.",
+        "Le stockage de la réponse API est désactivé. Les bilans ne posent pas de diagnostic et ne recommandent aucune modification de traitement. En cas d'urgence, contactez le 15/112 ou le 3114.",
       aiSaved: "Préférences IA enregistrées",
       aiSaveError: "Impossible d'enregistrer les préférences IA",
     },
@@ -1308,6 +1391,9 @@ const fr: typeof en = {
     },
     subscription: {
       title: "Abonnement",
+      unavailableTitle: "La facturation est actuellement indisponible",
+      unavailableDescription:
+        "Aucun paiement ni aucune gestion d'abonnement n'est disponible tant que la facturation est désactivée.",
       statusLabel: "Statut",
       status: {
         active: "Actif",
@@ -1427,10 +1513,14 @@ const fr: typeof en = {
   pricing: {
     title: "Tarifs simples et transparents",
     description: "Choisissez l'offre qui vous convient.",
+    descriptionUnavailable:
+      "Les offres sont présentées à titre informatif. La souscription Plus n'est pas encore ouverte.",
     monthly: "Mensuel",
     yearly: "Annuel",
     save: "Économisez {percent}",
     footer: "Annulez à tout moment. Aucun frais caché.",
+    footerUnavailable:
+      "Aucun paiement ne peut être initié tant que la facturation reste désactivée.",
     customPlan: "Besoin d'une offre sur mesure ?",
     contact: "Contactez-nous",
     checkoutCanceled: {
@@ -1446,7 +1536,6 @@ const fr: typeof en = {
     },
   },
   pricingCard: {
-    mostPopular: "Le plus populaire",
     perMonth: "/mois",
     save: "Économisez {percent}",
     billedYearly: "Facturé à l'année : {amount}",
@@ -1457,6 +1546,7 @@ const fr: typeof en = {
     ctaFree: "Commencer gratuitement",
     ctaMonthly: "Choisir mensuel",
     ctaYearly: "Choisir annuel",
+    ctaUnavailable: "Pas encore disponible",
   },
   plans: {
     names: {
@@ -1464,8 +1554,8 @@ const fr: typeof en = {
       plus: "Plus",
     },
     descriptions: {
-      free: "Suivi quotidien essentiel, journal et rappels",
-      plus: "Bilans avancés, historique analytique et cercle aidant étendu",
+      free: "Suivi quotidien essentiel et journal personnel",
+      plus: "Bilans avancés et historique analytique étendu",
     },
     limits: {
       medications: {
@@ -1763,25 +1853,6 @@ const fr: typeof en = {
       manage: "Gérer l'abonnement",
       cancel: "Annuler l'abonnement",
       reactivate: "Réactiver",
-      cancelTitle: "Annuler l'abonnement",
-      cancelDescription:
-        "Dites-nous pourquoi vous partez pour nous aider à améliorer.",
-      cancelReasonLabel: "Raison de l'annulation",
-      cancelDetailsLabel: "Détails supplémentaires",
-      cancelDetailsPlaceholder: "Dites-nous en plus...",
-      cancelDetailsMin: "Merci d'ajouter plus de détails",
-      cancelConfirm: "Confirmer l'annulation",
-      cancelBack: "Conserver l'abonnement",
-      cancelError: "Impossible d'annuler l'abonnement",
-      cancelRedirect: "Redirection vers le portail de facturation...",
-      cancelReasons: {
-        tooExpensive: "Trop cher",
-        notUsing: "Pas assez utilisé",
-        missingFeatures: "Fonctionnalités manquantes",
-        bugs: "Trop de bugs",
-        competitor: "Passage à un concurrent",
-        other: "Autre",
-      },
       detailsTitle: "Détails de facturation",
       limitsTitle: "Limites du plan",
       plan: "Formule",
@@ -1875,6 +1946,11 @@ const fr: typeof en = {
       emailPlaceholder: "vous@exemple.com",
       verifyPassword: "Confirmer le mot de passe",
       passwordMismatch: "Les mots de passe ne correspondent pas",
+      ageConsent: "Je confirme avoir au moins 18 ans.",
+      termsConsent: "J’accepte les",
+      privacyConsent: "J’ai lu et j’accepte la",
+      healthDataConsent:
+        "Je consens explicitement au traitement de mes données d’humeur, de thérapie et de traitement uniquement afin de fournir mon journal personnel Moodday. Le service ne peut pas fonctionner sans ce traitement.",
       submit: "Créer un compte",
       hasAccount: "Vous avez déjà un compte ?",
       signIn: "Se connecter",
@@ -1885,6 +1961,11 @@ const fr: typeof en = {
         verifyPasswordMin:
           "La confirmation doit contenir au moins 8 caractères",
         passwordMismatch: "Les mots de passe ne correspondent pas",
+        ageRequired: "Vous devez avoir au moins 18 ans.",
+        termsRequired: "Vous devez accepter les conditions.",
+        privacyRequired: "Vous devez accepter la politique de confidentialité.",
+        healthDataConsentRequired:
+          "Votre consentement explicite au traitement des données de santé est requis pour utiliser le journal Moodday.",
       },
     },
     forgetPassword: {
@@ -1990,51 +2071,16 @@ const fr: typeof en = {
         "Désolé, l'article ne fonctionne pas comme prévu. Veuillez réessayer plus tard.",
     },
   },
-  changelog: {
-    metaTitle: "Journal des modifications - {app}",
-    metaDescription:
-      "Restez informé des dernières fonctionnalités, améliorations et corrections.",
-    title: "Journal des modifications",
-    description:
-      "Restez informé des dernières fonctionnalités, améliorations et corrections.",
-    emptyTitle: "Aucune entrée pour le moment",
-    emptyDescription: "Revenez bientôt pour les mises à jour.",
-    latest: "Dernière",
-    newUpdate: "Nouvelle mise à jour",
-    backToChangelog: "Retour au journal",
-    detail: {
-      metaTitle: "{title} - Journal des modifications - {app}",
-      metaTitleShort: "{title} - Journal des modifications",
-      metaDescription: "Notes de version pour {title}",
-    },
-  },
-  payment: {
-    success: {
-      title: "Merci pour votre achat !",
-      description:
-        "Votre paiement a été effectué avec succès. Vous avez maintenant accès aux ressources premium. Nous sommes là pour vous aider si besoin.",
-      cta: "Commencer",
-    },
-    cancel: {
-      badge: "Paiement échoué",
-      title: "Nous n'avons pas pu traiter votre paiement",
-      lineOne: "Un problème est survenu lors du traitement du paiement.",
-      lineTwo: "Vérifiez vos informations et réessayez.",
-      lineThree:
-        "Si le problème persiste, n'hésitez pas à nous contacter pour obtenir de l'aide.",
-      lineFour: "Nous sommes là pour vous aider à résoudre cela.",
-    },
-  },
   about: {
     metaTitle: "À propos de {app}",
     metaDescription:
-      "Découvrez comment Moodday vous aide à suivre votre santé mentale avec compassion, confidentialité et des repères personnels clairs.",
+      "Découvrez le périmètre de Moodday, compagnon de suivi personnel non médical.",
     hero: {
       kicker: "Notre histoire",
       titlePrefix: "Une façon plus apaisée de",
-      titleHighlight: "suivre la santé mentale",
+      titleHighlight: "consigner ses repères",
       description:
-        "Moodday est un journal bienveillant qui vous aide à comprendre votre humeur, vos traitements et vos schémas.",
+        "Moodday est un journal personnel pour consigner humeur, sommeil et traitements déclarés, sans diagnostic.",
     },
     mission: {
       title: "Notre mission",
@@ -2047,7 +2093,7 @@ const fr: typeof en = {
       title: "Notre vision",
       paragraphOne: "Un monde où chacun se sent soutenu entre les rendez-vous.",
       paragraphTwo:
-        "Des données privées et des insights clairs pour rendre le soin plus humain.",
+        "Des données personnelles organisées pour préparer les sujets que chacun choisit d’aborder.",
     },
     values: {
       title: "Nos valeurs",
@@ -2059,32 +2105,25 @@ const fr: typeof en = {
         privacy: {
           title: "Confidentialité par défaut",
           description:
-            "Vos données restent les vôtres, avec un chiffrement robuste.",
+            "Vous gardez le contrôle de vos partages, exports et suppressions.",
         },
         science: {
-          title: "Guidé par la science",
+          title: "Prudence des formulations",
           description:
-            "Nous utilisons un langage prudent, des pratiques d'accessibilité établies et les retours des utilisateurs.",
+            "Nous séparons les observations des interprétations et excluons le diagnostic et le conseil médical.",
         },
       },
-    },
-    stats: {
-      activeUsers: "Utilisateurs actifs",
-      checkins: "Suivis d'humeur",
-      uptime: "Disponibilité",
-      appStoreRating: "Note sur l'App Store",
     },
     team: {
       title: "Une petite équipe avec une grande mission",
       description:
-        "Nous sommes une petite équipe produit dédiée à des outils personnels calmes, confidentiels et fiables.",
-      joinCta: "Rejoindre l'équipe",
+        "Pour une question produit, de support ou de confidentialité, utilisez notre canal de contact documenté.",
       contactCta: "Nous contacter",
     },
     privacyPromise: {
       title: "Promesse de confidentialité",
       description:
-        "Nous ne vendons jamais vos données de santé. Vous contrôlez ce qui est partagé et avec qui.",
+        "Vous disposez de contrôles pour vos partages, vos exports et la suppression de votre compte. Les traitements sont décrits dans la politique de confidentialité.",
     },
   },
   contact: {
@@ -2102,8 +2141,9 @@ const fr: typeof en = {
       },
       response: {
         title: "Délai de réponse",
-        description: "Nous répondons les jours ouvrés.",
-        value: "Sous 24 heures",
+        description:
+          "Les demandes sont traitées les jours ouvrés, au meilleur effort.",
+        value: "Aucun délai contractuel",
       },
       social: {
         title: "Réseaux sociaux",
@@ -2128,12 +2168,12 @@ const fr: typeof en = {
         free: {
           question: "Moodday est-il gratuit ?",
           answer:
-            "Oui. Vous pouvez commencer avec l'offre gratuite et passer à une offre supérieure à tout moment pour des analyses avancées et des exports.",
+            "L'offre gratuite est disponible. L'offre Plus et son tarif sont présentés dans le produit, mais la souscription n'est possible que lorsque son bouton d'achat est explicitement activé.",
         },
         security: {
           question: "Comment protégez-vous mes données ?",
           answer:
-            "Nous utilisons un chiffrement au repos et en transit, et vous contrôlez ce qui est partagé.",
+            "Les connexions utilisent HTTPS/TLS, les accès sont contrôlés côté serveur et vous choisissez ce qui est partagé.",
         },
         export: {
           question: "Puis-je exporter mes données pour les partager ?",
@@ -2180,7 +2220,7 @@ const fr: typeof en = {
         account: {
           title: "Compte et éligibilité",
           items: {
-            age: "Vous devez avoir au moins 16 ans.",
+            age: "Vous devez avoir au moins 18 ans et résider en France lors de ce lancement.",
             accurateInfo: "Fournissez des informations d'inscription exactes.",
             credentials: "Gardez vos identifiants confidentiels.",
             responsibility:
@@ -2228,7 +2268,7 @@ const fr: typeof en = {
         },
       },
       content:
-        "## Éditeur\n\nMoodday est édité par Yodev, entrepreneur individuel, SIREN 803 272 590. Contact : hello@moodday.app.\n\n## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 16 ans\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents.\n\n---\n\n*Dernière mise à jour : août 2026*\n\n*Contact : hello@moodday.app*",
+        "## Éditeur\n\nMoodday est édité par Yodev, entrepreneur individuel, SIREN 803 272 590. Contact : hello@moodday.app.\n\n## 1. Objet\n\nLes présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de l'application Moodday, un journal confidentiel destiné au suivi personnel de la santé mentale.\n\n## 2. Nature du service\n\n**Moodday n'est pas un dispositif médical.** L'application est un outil de suivi personnel qui vous permet de :\n- Enregistrer vos humeurs quotidiennes\n- Suivre vos traitements médicamenteux\n- Générer des rapports que vous choisissez de partager\n\nMoodday ne fournit aucun avis médical, diagnostic ou traitement. En cas de détresse ou d'urgence, contactez immédiatement un professionnel de santé ou le 3114 (numéro national de prévention du suicide).\n\n## 3. Inscription et compte\n\nPour utiliser Moodday, vous devez :\n- Être âgé d'au moins 18 ans et résider en France\n- Fournir des informations exactes lors de l'inscription\n- Maintenir la confidentialité de vos identifiants\n\nVous êtes responsable de toute activité effectuée sur votre compte.\n\n## 4. Utilisation acceptable\n\nVous vous engagez à :\n- Utiliser l'application uniquement pour votre suivi personnel\n- Ne pas partager vos identifiants\n- Ne pas tenter de contourner les mesures de sécurité\n- Respecter les droits des autres utilisateurs\n\n## 5. Cercle d'aidants\n\nSi vous invitez un proche dans votre cercle d'aidants :\n- Vous restez maître des données que vous partagez\n- Vous pouvez révoquer cet accès à tout moment\n- L'aidant s'engage à respecter la confidentialité des informations partagées\n\n## 6. Propriété intellectuelle\n\nL'ensemble des contenus de l'application (textes, graphiques, logos, icônes) sont la propriété de Moodday ou de ses concédants. Toute reproduction est interdite sans autorisation.\n\n## 7. Limitation de responsabilité\n\nMoodday ne peut être tenu responsable :\n- Des décisions médicales prises sur la base des données de l'application\n- Des interruptions temporaires du service\n- Des pertes de données en cas de force majeure\n\nL'application est fournie \"en l'état\" sans garantie d'adéquation à un usage médical particulier.\n\n## 8. Résiliation\n\nVous pouvez supprimer votre compte à tout moment depuis les paramètres. Moodday peut suspendre votre compte en cas de violation des CGU.\n\n## 9. Modifications\n\nMoodday se réserve le droit de modifier ces CGU. Vous serez notifié des changements significatifs par email ou notification dans l'application.\n\n## 10. Droit applicable\n\nLes présentes CGU sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents.\n\n---\n\n*Dernière mise à jour : août 2026*\n\n*Contact : hello@moodday.app*",
     },
     privacy: {
       metaTitle: "{app} - Politique de Confidentialité",
@@ -2247,11 +2287,12 @@ const fr: typeof en = {
         data: {
           title: "Données collectées",
           highlight:
-            "Nous ne collectons jamais la localisation ou les contacts.",
+            "Moodday n’accède pas au carnet d’adresses ni à la localisation précise de l’appareil.",
           items: {
             account: {
               label: "Compte",
-              value: "E-mail, nom (optionnel), mot de passe chiffré.",
+              value:
+                "E-mail, nom (optionnel) et empreinte sécurisée du mot de passe.",
             },
             daily: {
               label: "Suivi quotidien",
@@ -2284,8 +2325,8 @@ const fr: typeof en = {
               value: "Uniquement avec votre consentement.",
             },
             improvement: {
-              label: "Améliorer l'app",
-              value: "Analyses agrégées et anonymisées.",
+              label: "Sécurité et exploitation",
+              value: "Événements techniques structurés sans contenu de santé.",
             },
           },
         },
@@ -2411,7 +2452,7 @@ Toute modification substantielle de cette politique sera signalée sur le servic
       title: "Politique de cookies",
       description:
         "Comment Moodday utilise les cookies et technologies similaires",
-      lastUpdated: "Dernière mise à jour : Janvier 2026",
+      lastUpdated: "Dernière mise à jour : août 2026",
       intro: {
         title: "Aperçu des cookies",
         descriptionPrefix: "Les cookies aident Moodday à",
@@ -2424,17 +2465,17 @@ Toute modification substantielle de cette politique sera signalée sur le servic
         auth: {
           name: "Authentification",
           description: "Vous garde connecté et sécurisé.",
-          examples: "session_token||csrf_token",
+          examples: "Cookie de session Better Auth||État OAuth/PKCE temporaire",
         },
         security: {
           name: "Sécurité",
-          description: "Protège contre les abus et la fraude.",
-          examples: "rate_limit||device_id",
+          description: "Protège les parcours d’authentification sensibles.",
+          examples: "Vérification d’origine||Jetons temporaires à usage unique",
         },
         preferences: {
           name: "Préférences",
-          description: "Mémorise la langue et le thème.",
-          examples: "locale||theme",
+          description: "Mémorise les préférences d’interface essentielles.",
+          examples: "locale||état de la barre latérale",
         },
       },
       notUsed: {
@@ -2518,629 +2559,49 @@ Toute modification substantielle de cette politique sera signalée sur le servic
       features: "Fonctionnalités",
       security: "Sécurité",
       pricing: "Tarifs",
-      docs: "Documentation",
       guides: "Guides",
       signin: "Connexion",
-      startTrial: "Essai gratuit",
-    },
-    hero: {
-      badge: "v2.0 maintenant disponible",
-      title: "Votre santé mentale,",
-      titleHighlight: "visualisée",
-      subtitle:
-        "Un dashboard moderne pour suivre votre humeur, vos médicaments et vos patterns. Confidentialité d'abord, piloté par les données.",
-      ctaPrimary: "Commencer gratuitement",
-      ctaSecondary: "Voir les fonctionnalités",
-      stats: {
-        users: "Utilisateurs",
-        uptime: "Disponibilité",
-        rating: "Note",
-      },
-    },
-    mockup: {
-      greeting: "Bonjour, Marie",
-      date: "Mercredi 28 janvier",
-      tabs: {
-        mood: "Suivi d'humeur",
-        meds: "Médicaments",
-        insights: "Analyses",
-        reminders: "Rappels",
-      },
-      moodPanel: {
-        title: "Humeur du jour",
-        veryLow: "Très bas",
-        stable: "Stable",
-        excellent: "Excellent",
-        average: "Moyenne 7j",
-        weeklyDelta: "+12% vs la semaine dernière",
-        lastUpdated: "Dernière mise à jour",
-        lastUpdatedTime: "il y a 2 min",
-        days: {
-          mon: "Lun",
-          tue: "Mar",
-          wed: "Mer",
-          thu: "Jeu",
-          fri: "Ven",
-          sat: "Sam",
-          sun: "Dim",
-        },
-        noteLabel: "Ajouter une note",
-        notePlaceholder: "Comment vous sentez-vous ?",
-        saveButton: "Enregistrer",
-      },
-      medsPanel: {
-        title: "Médicaments du jour",
-        taken: "Pris",
-        pending: "En attente",
-        confirm: "Confirmer",
-        monthlyAdherence: "Observance mensuelle",
-        progress: "{taken}/{total} pris",
-        samples: {
-          lithium: "Lithium",
-          lamotrigine: "Lamotrigine",
-          quetiapine: "Quetiapine",
-        },
-        morning: "Matin",
-        evening: "Soir",
-        prn: "Si besoin",
-        takenAt: "Pris à",
-      },
-      insightsPanel: {
-        title: "Vos patterns",
-        sleepCorrelation: "Corrélation sommeil",
-        sleepDesc: "Meilleure humeur avec 7h+ de sommeil",
-        weekendPattern: "Pattern weekend",
-        weekendDesc: "Humeur +15% le samedi",
-        medicationEffect: "Effet médicament",
-        medicationDesc: "Pic d'efficacité à J+14",
-        updatedAgo: "Mis à jour il y a 1h",
-      },
-      remindersPanel: {
-        title: "Rappels configurés",
-        moodCheckin: "Check-in humeur",
-        morningMeds: "Médicaments matin",
-        eveningMeds: "Médicaments soir",
-        daily: "Quotidien",
-        configure: "Configurer les rappels",
-        addReminder: "Ajouter un rappel",
-        samples: {
-          quetiapine: "Quetiapine 50mg",
-          sleepReminder: "Routine de sommeil",
-        },
-      },
-    },
-    features: {
-      badge: "Fonctionnalités",
-      title: "Tout ce dont vous avez besoin",
-      subtitle:
-        "Une suite complète d'outils pour prendre soin de votre santé mentale, conçue par des professionnels et des patients.",
-      items: {
-        moodTracking: {
-          title: "Suivi d'humeur intelligent",
-          description:
-            "Enregistrez votre humeur en quelques secondes. Notre algorithme détecte automatiquement vos patterns.",
-        },
-        medications: {
-          title: "Gestion des médicaments",
-          description:
-            "Rappels intelligents, tracking d'adhérence, historique complet. Ne manquez plus jamais une prise.",
-        },
-        caregivers: {
-          title: "Cercle d'aidants",
-          description:
-            "Partagez vos données avec votre médecin ou vos proches de confiance. Vous gardez le contrôle.",
-        },
-        pdfExport: {
-          title: "Export PDF médical",
-          description:
-            "Générez des rapports formatés pour vos consultations. Imprimez ou partagez en un clic.",
-        },
-        privacy: {
-          title: "Confidentialité d'abord",
-          description:
-            "Contrôlez vos partages, vos exports et la suppression de vos données.",
-        },
-        aiInsights: {
-          title: "Insights IA",
-          description:
-            "Notre IA analyse vos données pour détecter des patterns invisibles à l'œil nu.",
-        },
-      },
-    },
-    stats: {
-      users: "Utilisateurs actifs",
-      checkins: "Check-ins enregistrés",
-      uptime: "Uptime garanti",
-      rating: "Note moyenne",
-    },
-    security: {
-      badge: "Sécurité",
-      title: "Vos données de santé méritent le plus haut niveau de protection",
-      subtitle:
-        "Nous prenons la sécurité au sérieux. Votre confiance est notre priorité absolue.",
-      features: {
-        encryption: {
-          title: "Connexions protégées",
-          description: "Les échanges avec Moodday utilisent HTTPS",
-        },
-        zeroKnowledge: {
-          title: "Données minimisées",
-          description:
-            "Nous limitons les données traitées à ce qui est nécessaire",
-        },
-        gdpr: {
-          title: "Droits utilisateur",
-          description:
-            "Accès, export et suppression sont disponibles depuis l'application",
-        },
-        euHosting: {
-          title: "Sous-traitants documentés",
-          description:
-            "Les régions et transferts sont suivis dans notre registre interne",
-        },
-        secureAuth: {
-          title: "Auth sécurisée",
-          description: "Sessions protégées et fournisseurs OAuth vérifiés",
-        },
-        audits: {
-          title: "Contrôles continus",
-          description: "Tests automatisés et procédures d'incident documentées",
-        },
-      },
-      badges: {
-        ssl: "SSL 256 bits",
-        rgpd: "Contrôle utilisateur",
-        hds: "Suivi personnel",
-      },
-    },
-    journey: {
-      title: "Une journée avec Moodday",
-      subtitle: "Découvrez comment Marie utilise Moodday au quotidien",
-      mockups: {
-        moodLogged: "Humeur enregistrée",
-        moodLoggedTime: "8h12",
-        medReminderTitle: "Rappel médicament",
-        medReminderName: "Lithium",
-        medReminderFrequency: "Quotidien",
-        medReminderNow: "Prendre maintenant",
-        medReminderConfirm: "Confirmer",
-        medTakenName: "Lithium",
-        medTakenTime: "Pris à 12h30",
-        insightTitle: "Analyse hebdomadaire",
-        insightDescription: "Humeur améliorée avec un sommeil régulier.",
-        weeklyTrend: "+12% vs la semaine dernière",
-        weekdays: {
-          mon: "Lun",
-          tue: "Mar",
-          wed: "Mer",
-          thu: "Jeu",
-          fri: "Ven",
-          sat: "Sam",
-          sun: "Dim",
-        },
-      },
-      morning: {
-        time: "7h00",
-        title: "Check-in matinal",
-        description:
-          "Marie note son humeur en 30 secondes. C'est devenu un réflexe.",
-      },
-      midday: {
-        time: "12h30",
-        title: "Rappel intelligent",
-        description:
-          "Une notification discrète lui rappelle sa prise de Lithium.",
-      },
-      evening: {
-        time: "21h00",
-        title: "Insights du jour",
-        description:
-          "Elle découvre que son humeur s'améliore quand elle dort bien.",
-      },
-      testimonial: {
-        quote:
-          "Moodday m'a aidée à comprendre mes cycles. Je ne subis plus, je comprends.",
-        author: "Marie L.",
-        role: "Utilisatrice depuis 1 an",
-      },
-    },
-    appComing: {
-      title: "Bientôt sur mobile !",
-      subtitle: "iOS et Android",
-      appStore: "App Store",
-      googlePlay: "Google Play",
-      comingSoon: "Bientôt disponible",
-      emailPlaceholder: "votre@email.com",
-      submitButton: "M'informer",
-      submitting: "Inscription...",
-      successTitle: "Vous êtes inscrit !",
-      successMessage: "Nous vous tiendrons informé de la sortie.",
-      alreadySubscribed: "Vous êtes déjà inscrit.",
-      privacyNote: "Nous respectons votre vie privée. Pas de spam.",
-      features: {
-        title: "Fonctionnalités exclusives mobile",
-        offline: "Mode hors-ligne",
-        watch: "Apple Watch et Wear OS",
-        widgets: "Widgets iOS & Android",
-        biometric: "Déverrouillage biométrique",
-      },
-    },
-    pricing: {
-      badge: "Tarifs",
-      title: "Choisissez votre plan",
-      subtitle: "Commencez gratuitement, passez Pro quand vous êtes prêt.",
-      trustBadge: "Paiements sécurisés • Annulation à tout moment",
-      toggle: {
-        monthly: "Mensuel",
-        annual: "Annuel",
-        discount: "-20%",
-      },
-      perMonth: "/mois",
-      billedAnnually: "Facturé {amount}€/an",
-      popular: "Populaire",
-      plans: {
-        free: {
-          name: "Gratuit",
-          description: "Pour commencer en douceur",
-          cta: "Commencer gratuitement",
-          features: [
-            "Suivi d'humeur illimité",
-            "2 médicaments max",
-            "Historique 7 jours",
-            "Journal basique",
-          ],
-        },
-        pro: {
-          name: "Pro",
-          description: "Pour un suivi complet",
-          cta: "Essai gratuit 14 jours",
-          features: [
-            "Tout du plan Gratuit",
-            "Médicaments illimités",
-            "Historique illimité",
-            "Insights IA avancés",
-            "Cercle d'aidants (3 personnes)",
-            "Export PDF personnalisé",
-            "Support par email",
-          ],
-        },
-        ultra: {
-          name: "Ultra",
-          description: "Toutes les fonctionnalités avancées",
-          cta: "Essai gratuit 14 jours",
-          features: [
-            "Tout du plan Pro",
-            "Aidants illimités",
-            "Support prioritaire (réponse 24h)",
-            "Export multi-formats (PDF, CSV, JSON)",
-            "Tableau de bord aidant enrichi",
-          ],
-        },
-      },
+      startTrial: "Créer un compte",
     },
     footer: {
       description:
-        "Prenez soin de votre santé mentale avec des outils modernes, sécurisés et respectueux de votre vie privée.",
+        "Consignez vos repères personnels et préparez vos consultations sans diagnostic.",
       links: {
         product: {
           title: "Produit",
           features: "Fonctionnalités",
           pricing: "Tarifs",
           security: "Sécurité",
-          changelog: "Journal des modifications",
         },
         resources: {
           title: "Ressources",
-          docs: "Documentation",
           blog: "Blog",
           guides: "Guides",
-          api: "API",
         },
         company: {
           title: "Entreprise",
           about: "À propos",
           contact: "Contact",
-          careers: "Carrières",
         },
         legal: {
           title: "Légal",
           privacy: "Confidentialité",
           terms: "CGU",
           cookies: "Cookies",
+          processors: "Sous-traitants",
         },
       },
       copyright: "© {year} Moodday. Tous droits réservés.",
-      status: "Tous les systèmes opérationnels",
-    },
-  },
-  moodday: {
-    nav: {
-      features: "Fonctionnalités",
-      pricing: "Tarifs",
-      blog: "Blog",
-      contact: "Contact",
-      getStarted: "Commencer",
-      getStartedFree: "Commencer gratuitement",
-    },
-    hero: {
-      badge: "Journal bienveillant",
-      title: "Suivez votre",
-      titleHighlight: "parcours mental",
-      titleSuffix: "en toute sérénité",
-      subtitle:
-        "Un compagnon de suivi personnel pour mieux comprendre vos journées, suivre vos traitements déclarés et préparer vos consultations.",
-      ctaPrimary: "Commencer gratuitement",
-      ctaSecondary: "Découvrir les fonctionnalités",
-      trust: {
-        gdpr: "Contrôle utilisateur",
-        encrypted: "Connexion protégée",
-        medicalPdf: "Rapport de consultation",
-      },
-      mockup: {
-        greeting: "Bonjour Marie 👋",
-        question: "Comment allez-vous aujourd'hui ?",
-        mood: "Humeur",
-        adherence: "Observance",
-        sleep: "Sommeil",
-        days: "jours",
-        quality: "Qualité",
-        moodToday: "Humeur du jour",
-        veryLow: "Très bas",
-        stable: "Stable",
-        excellent: "Excellent",
-        medication: "Lamictal 200mg",
-        takenAt: "Pris à 08:00",
-        nextSession: "Prochaine séance",
-        doctor: "Dr. Martin - Lundi 14h",
-        vsLastWeek: "vs semaine dernière",
-      },
-    },
-    features: {
-      badge: "Fonctionnalités",
-      title: "Tout ce dont vous avez besoin pour",
-      titleHighlight: "prendre soin de vous",
-      subtitle:
-        "Des outils de suivi personnel pour observer votre quotidien et préparer vos échanges avec un professionnel de santé.",
-      items: [
-        {
-          title: "Suivi d'humeur intelligent",
-          description:
-            "Enregistrez votre humeur en quelques secondes avec notre échelle intuitive. Visualisez vos tendances et identifiez les patterns.",
-        },
-        {
-          title: "Gestion des traitements",
-          description:
-            "Suivez vos médicaments, dosages et prises quotidiennes. Recevez des rappels et voyez les corrélations avec votre humeur.",
-        },
-        {
-          title: "Journal du sommeil",
-          description:
-            "Notez vos heures de sommeil et leur qualité. Comprenez l'impact du repos sur votre bien-être mental.",
-        },
-        {
-          title: "Analyses & tendances",
-          description:
-            "Visualisez vos données sur des graphiques clairs. Identifiez les facteurs qui influencent votre état mental.",
-        },
-        {
-          title: "Export PDF médical",
-          description:
-            "Générez un rapport complet pour vos consultations. Facilitez la communication avec votre psychiatre ou thérapeute.",
-        },
-        {
-          title: "Cercle d'aidants",
-          description:
-            "Invitez un proche de confiance à suivre votre parcours. Partagez uniquement ce que vous souhaitez.",
-        },
-        {
-          title: "Zéro culpabilité",
-          description:
-            "Pas de streak, pas de gamification agressive. Votre bien-être passe avant tout, à votre rythme.",
-        },
-        {
-          title: "Confidentialité totale",
-          description:
-            "Vos données sont chiffrées et vous appartiennent. Exportez ou supprimez tout à tout moment (RGPD).",
-        },
-      ],
-    },
-    roles: {
-      badge: "Pour qui ?",
-      title: "Que vous soyez",
-      titleHighlight: "patient ou aidant",
-      subtitle:
-        "Moodday s'adapte à votre situation pour vous accompagner au mieux dans votre parcours.",
-      patient: {
-        tab: "Patient(e)",
-        title: "Je suis patient(e)",
-        subtitle: "Je souhaite suivre mon parcours de santé mentale",
-        cta: "Créer mon compte patient",
-        features: [
-          {
-            title: "Suivi quotidien",
-            description:
-              "Enregistrez humeur, sommeil et traitements en 30 secondes",
-          },
-          {
-            title: "Export consultations",
-            description: "Générez un PDF complet pour votre psychiatre",
-          },
-          {
-            title: "Sans pression",
-            description: "Pas de streak ni de notifications culpabilisantes",
-          },
-          {
-            title: "Données privées",
-            description:
-              "Partage explicite, export et suppression à votre initiative",
-          },
-        ],
-      },
-      caregiver: {
-        tab: "Aidant(e)",
-        title: "Je suis aidant(e)",
-        subtitle: "Je souhaite accompagner un proche",
-        cta: "Rejoindre un cercle d'aidants",
-        features: [
-          {
-            title: "Alertes optionnelles",
-            description: "Soyez notifié uniquement si votre proche le souhaite",
-          },
-          {
-            title: "Vue d'ensemble",
-            description: "Consultez les tendances partagées par votre proche",
-          },
-          {
-            title: "Suivi médicaments",
-            description: "Aidez à la gestion des traitements si autorisé",
-          },
-          {
-            title: "Respect de l'autonomie",
-            description: "Le patient contrôle ce qu'il partage avec vous",
-          },
-        ],
-      },
-      trust: {
-        designedWith: "Pensé pour le suivi quotidien",
-        activeUsers: "Données sous votre contrôle",
-        rating: "Sans diagnostic médical",
-      },
-    },
-    faq: {
-      badge: "Questions fréquentes",
-      title: "Vous avez des questions ?",
-      subtitle:
-        "Trouvez des réponses aux questions les plus courantes sur Moodday.",
-      contactPrompt: "Vous ne trouvez pas la réponse ?",
-      contactLink: "Contactez-nous",
-      contactSubtext: "Notre équipe vous répondra dans les plus brefs délais.",
-      items: [
-        {
-          question: "Moodday remplace-t-il un suivi médical ?",
-          answer:
-            "Non, Moodday est un outil de suivi personnel qui complète votre prise en charge médicale. Il vous aide à mieux communiquer avec vos soignants en leur fournissant des données objectives sur votre parcours. En cas de crise, contactez toujours un professionnel de santé ou le 3114.",
-        },
-        {
-          question: "Mes données sont-elles confidentielles ?",
-          answer:
-            "Moodday limite les accès, protège les échanges par HTTPS et vous permet d'exporter ou supprimer vos données. Les sous-traitants et transferts applicables sont documentés dans notre politique de confidentialité.",
-        },
-        {
-          question: "Puis-je partager mes données avec mon psychiatre ?",
-          answer:
-            "Oui, vous pouvez générer un rapport PDF complet de votre historique (humeur, médicaments, sommeil) à partager lors de vos consultations. Vous contrôlez exactement ce qui est inclus dans l'export.",
-        },
-        {
-          question: "Comment fonctionne le cercle d'aidants ?",
-          answer:
-            "Vous pouvez inviter un proche de confiance à rejoindre votre cercle d'aidants. Vous décidez exactement ce qu'il peut voir (tendances générales, alertes en cas de baisse...). L'aidant ne voit jamais vos notes personnelles sans votre autorisation explicite.",
-        },
-        {
-          question: "Y a-t-il des notifications ou des streaks ?",
-          answer:
-            "Nous avons volontairement éliminé toute forme de gamification culpabilisante. Pas de streak, pas de points, pas de notifications agressives. Vous recevez un rappel doux et configurable, et si vous manquez un jour, ce n'est pas grave. Votre bien-être passe avant les statistiques.",
-        },
-        {
-          question: "Puis-je utiliser Moodday hors connexion ?",
-          answer:
-            "Oui, l'application fonctionne hors ligne pour la saisie quotidienne. Vos données se synchronisent automatiquement dès que vous retrouvez une connexion.",
-        },
-        {
-          question: "Comment annuler mon abonnement ?",
-          answer:
-            "Vous pouvez annuler à tout moment depuis les paramètres de votre compte, sans frais ni justification. Vos données restent accessibles en lecture seule pendant 30 jours après l'annulation.",
-        },
-      ],
-    },
-    cta: {
-      title: "Prêt à prendre soin de",
-      titleHighlight: "votre santé mentale",
-      titleSuffix: "?",
-      subtitle:
-        "Rejoignez des milliers de personnes qui utilisent Moodday pour mieux comprendre leur parcours et communiquer avec leurs soignants.",
-      ctaPrimary: "Commencer gratuitement",
-      ctaSecondary: "Contacter l'équipe",
-      trust: "Essai gratuit 14 jours • Sans carte bancaire • Annulation facile",
-      trustBadges: {
-        freeTrial: "Essai gratuit 14 jours",
-        noCreditCard: "Sans carte bancaire",
-        easyCancellation: "Annulation facile",
-      },
-    },
-    footer: {
-      emergency: {
-        title: "Besoin d'aide urgente ?",
-        phone: "3114 - Numéro national de prévention du suicide",
-        subtext: "Gratuit et confidentiel, 24h/24",
-      },
-      description:
-        "Votre compagnon digital pour suivre votre parcours de santé mentale. Conçu avec des professionnels de santé.",
-      disclaimer:
-        "Moodday est un outil de suivi, pas un dispositif médical. En cas de détresse, contactez un professionnel de santé.",
-      social: {
-        twitter: "Twitter",
-        linkedin: "LinkedIn",
-        instagram: "Instagram",
-      },
-      sections: {
-        product: {
-          title: "Produit",
-          features: "Fonctionnalités",
-          pricing: "Tarifs",
-          security: "Sécurité",
-          faq: "FAQ",
-        },
-        resources: {
-          title: "Ressources",
-          blog: "Blog",
-          guides: "Guides",
-          help: "Aide",
-          contact: "Contact",
-        },
-        legal: {
-          title: "Légal",
-          terms: "Conditions",
-          privacy: "Confidentialité",
-          gdpr: "RGPD",
-          cookies: "Cookies",
-        },
-      },
-      copyright: "© {year} Moodday. Tous droits réservés.",
-    },
-    newsletter: {
-      title: "Restez informé",
-      subtitle:
-        "Recevez des conseils pour votre bien-être mental et les nouveautés Moodday.",
-      placeholder: "Votre email",
-      cta: "S'inscrire",
-      success: "Merci pour votre inscription !",
-      alreadySubscribed: "Cet email est déjà inscrit.",
-      subscribed: "Vous êtes inscrit !",
-      subscribedSubtitle: "Vous recevrez bientôt nos conseils.",
-      error: "Une erreur est survenue. Réessayez.",
-      privacy: "Nous respectons votre vie privée. Désabonnement facile.",
-    },
-    mobileApp: {
-      badge: "Bientôt disponible",
-      title: "Application mobile",
-      appStore: "App Store",
-      googlePlay: "Google Play",
-      subtitle: "Emportez Moodday partout avec vous",
-      comingSoon: "Bientôt",
-      features: {
-        offline: "Mode hors-ligne",
-        notifications: "Rappels",
-        sync: "Sync auto",
-      },
+      status: "Consulter le statut du service",
     },
   },
   guides: {
     metaTitle: "Guides - {app}",
     metaDescription:
-      "Guides pratiques pour tirer le meilleur parti de Moodday dans votre parcours de santé mentale.",
+      "Guides pratiques pour utiliser les fonctions de suivi personnel de Moodday.",
     title: "Guides Pratiques",
     description:
-      "Ressources et tutoriels pour utiliser Moodday efficacement et prendre soin de votre santé mentale.",
+      "Ressources factuelles pour enregistrer vos repères et utiliser les contrôles disponibles.",
     categories: {
       start: {
         title: "Démarrage",
@@ -3152,7 +2613,7 @@ Toute modification substantielle de cette politique sera signalée sur le servic
       },
       sharing: {
         title: "Partage et sécurité",
-        description: "Partagez vos données en toute confiance",
+        description: "Comprenez les contrôles de confidentialité disponibles",
       },
     },
     cta: {
@@ -3168,80 +2629,47 @@ Toute modification substantielle de cette politique sera signalée sur le servic
         description:
           "Apprenez à configurer votre compte et à suivre votre humeur.",
         content:
-          '## Créer votre compte\n\n1. **Inscription** - Rendez-vous sur la page d\'inscription et créez votre compte avec votre email ou connectez-vous via Google/GitHub.\n\n2. **Vérification** - Confirmez votre email en cliquant sur le lien reçu dans votre boîte de réception.\n\n## Personnaliser votre profil\n\n- Accédez aux **Paramètres** depuis le menu\n- Ajoutez votre photo et vos informations personnelles\n- Configurez vos préférences de notifications\n\n## Enregistrer votre première humeur\n\n1. Depuis le tableau de bord, cliquez sur **"Mon humeur"**\n2. Utilisez le slider pour indiquer votre niveau d\'humeur (0-10)\n3. Ajoutez une note optionnelle pour décrire votre ressenti\n4. Cliquez sur **"Enregistrer"**\n\nFélicitations ! Vous venez de faire votre premier pas vers une meilleure compréhension de votre santé mentale.',
+          "## Créer votre compte\n\n1. **Inscription** - Rendez-vous sur la page d'inscription et utilisez l'une des méthodes effectivement affichées.\n\n2. **Vérification** - Confirmez votre email en cliquant sur le lien reçu dans votre boîte de réception.\n\n## Personnaliser votre profil\n\n- Accédez aux **Paramètres** depuis le menu\n- Ajoutez votre photo et vos informations personnelles\n- Vérifiez votre fuseau horaire et vos préférences d'affichage\n\n## Enregistrer votre première humeur\n\n1. Depuis le tableau de bord, cliquez sur **\"Mon humeur\"**\n2. Utilisez le slider pour indiquer votre niveau d'humeur (0-10)\n3. Ajoutez une note optionnelle pour décrire votre ressenti\n4. Cliquez sur **\"Enregistrer\"**\n\nCette saisie reste un repère personnel et ne constitue pas une évaluation médicale.",
       },
       profile: {
         title: "Configurer votre profil",
         description:
           "Personnalisez votre expérience avec vos préférences et objectifs.",
         content:
-          "## Notifications\n\n- **Rappel quotidien** - Configurez l'heure à laquelle vous souhaitez recevoir un rappel pour noter votre humeur\n- **Rappels médicaments** - Définissez des alertes pour ne jamais manquer une prise\n\n## Préférences d'affichage\n\n- **Période des graphiques** - Choisissez la période par défaut (7, 30 ou 90 jours)\n- **Thème** - Sélectionnez le mode clair, sombre ou automatique\n\n## Paramètres de confidentialité\n\n- Gérez qui peut voir vos données si vous utilisez le cercle d'aidants\n- Contrôlez les informations partagées dans vos exports PDF",
+          "## Préférences d'affichage\n\n- **Période des graphiques** - Choisissez la période par défaut (7, 30 ou 90 jours)\n- **Thème** - Sélectionnez le mode clair, sombre ou automatique\n- **Fuseau horaire** - Vérifiez le fuseau utilisé pour vos journées civiles\n\n## Paramètres de confidentialité\n\n- Consultez les consentements et fonctions actuellement disponibles\n- Contrôlez les informations incluses dans vos exports",
       },
       moodTracking: {
         title: "Suivi de l'humeur",
         description:
           "Apprenez à enregistrer et analyser vos variations d'humeur quotidiennes.",
         content:
-          "## Enregistrer votre humeur\n\n1. **Le slider 0-10** - Utilisez l'échelle intuitive pour indiquer votre niveau d'humeur\n   - 0-3 : Humeur basse\n   - 4-6 : Humeur neutre\n   - 7-10 : Bonne humeur\n\n2. **Les notes** - Ajoutez du contexte à vos entrées pour mieux comprendre vos patterns\n\n## Analyser vos tendances\n\n- Consultez vos **graphiques** sur 7, 30 ou 90 jours\n- Identifiez les **patterns récurrents** (jours de la semaine, événements)\n- Observez les **corrélations** avec vos médicaments et votre sommeil\n\n## Modifier ou supprimer une entrée\n\n- Cliquez sur une entrée dans l'historique\n- Utilisez le bouton **\"Modifier\"** pour ajuster l'humeur ou la note\n- Utilisez **\"Supprimer\"** si vous souhaitez retirer une entrée",
+          "## Enregistrer votre humeur\n\n1. **Le slider 0-10** - Utilisez l'échelle intuitive pour indiquer votre niveau d'humeur\n   - 0-3 : Humeur basse\n   - 4-6 : Humeur neutre\n   - 7-10 : Bonne humeur\n\n2. **Les notes** - Ajoutez du contexte à vos entrées pour mieux relire votre période\n\n## Analyser vos tendances\n\n- Consultez vos **graphiques** sur 7, 30 ou 90 jours\n- Comparez vos repères déclarés sans en déduire de cause\n- Préparez vos propres questions pour une consultation\n\n## Modifier ou supprimer une entrée\n\n- Cliquez sur une entrée dans l'historique\n- Utilisez le bouton **\"Modifier\"** pour ajuster l'humeur ou la note\n- Utilisez **\"Supprimer\"** si vous souhaitez retirer une entrée",
       },
       medications: {
         title: "Gérer ses médicaments",
         description:
-          "Comment ajouter, suivre et recevoir des rappels pour vos traitements.",
+          "Comment ajouter un traitement déclaré et enregistrer vos prises.",
         content:
-          '## Ajouter un médicament\n\n1. Allez dans **"Traitements"** depuis le menu\n2. Cliquez sur **"Ajouter un médicament"**\n3. Renseignez le nom, le dosage et la fréquence\n4. Activez l\'option **PRN** si vous le prenez aussi "si besoin"\n\n## Enregistrer vos prises\n\n- Chaque jour, marquez vos médicaments comme pris\n- Pour les PRN, utilisez le bouton **"Prendre"** et ajoutez une raison optionnelle\n- Consultez votre historique de prises dans le détail du médicament\n\n## Historique des dosages\n\n- Lors d\'un changement de dosage, le système garde un historique\n- Visualisez l\'impact des changements sur votre humeur\n\n## Archiver un médicament\n\n- Quand vous arrêtez un traitement, archivez-le plutôt que de le supprimer\n- L\'historique est conservé pour vos consultations médicales',
+          '## Ajouter un médicament\n\n1. Allez dans **"Traitements"** depuis le menu\n2. Cliquez sur **"Ajouter un médicament"**\n3. Renseignez le nom, le dosage et la fréquence\n4. Activez l\'option **PRN** si vous le prenez aussi "si besoin"\n\n## Enregistrer vos prises\n\n- Chaque jour, marquez vos médicaments comme pris\n- Pour les PRN, utilisez le bouton **"Prendre"** et ajoutez une raison optionnelle\n- Consultez votre historique de prises dans le détail du médicament\n\n## Historique des dosages\n\n- Lors d\'un changement de dosage, le système garde un historique\n- Relisez les changements à côté de vos repères, sans en déduire de cause\n\n## Archiver un médicament\n\n- Quand vous arrêtez un traitement, archivez-le plutôt que de le supprimer\n- L\'historique est conservé pour préparer vos consultations',
       },
       reports: {
         title: "Rapports et statistiques",
         description:
           "Générez des rapports PDF pour vos consultations médicales.",
         content:
-          '## Générer un export PDF\n\n1. Allez dans **"Export"** depuis le menu Outils\n2. Sélectionnez la période (2 semaines, 1 mois, 3 mois ou personnalisée)\n3. Cliquez sur **"Aperçu"** pour voir le contenu\n4. Téléchargez le PDF avec **"Télécharger PDF"**\n\n## Contenu du rapport\n\n- **Graphique d\'humeur** sur la période sélectionnée\n- **Statistiques** : moyenne, tendance, nombre d\'entrées\n- **Médicaments** : liste des traitements et observance\n- **Séances de thérapie** enregistrées\n\n## Partager avec votre médecin\n\n- Imprimez le PDF pour votre consultation\n- Ou envoyez-le par email à votre professionnel de santé\n\n## Export RGPD\n\n- Dans **Compte > Exporter mes données**, téléchargez toutes vos données au format JSON\n- Conforme au Règlement Général sur la Protection des Données',
+          '## Générer un export PDF\n\n1. Allez dans **"Export"** depuis le menu Outils\n2. Sélectionnez la période (2 semaines, 1 mois, 3 mois ou personnalisée)\n3. Cliquez sur **"Aperçu"** pour voir le contenu\n4. Téléchargez le PDF avec **"Télécharger PDF"**\n\n## Contenu du rapport\n\n- **Repères d\'humeur et de sommeil** sur la période sélectionnée\n- **Statistiques** : moyenne, évolution et nombre d\'entrées\n- **Traitements déclarés** : liste, changements et adhérence expliquée\n- **Séances de thérapie** enregistrées\n\n## Utiliser le rapport\n\n- Imprimez-le ou transmettez-le vous-même par le canal de votre choix\n- Moodday ne l\'envoie pas automatiquement à un professionnel\n\n## Export de compte\n\n- Dans **Paramètres > Confidentialité**, téléchargez vos données au format JSON\n- Consultez la politique de confidentialité pour exercer vos droits',
       },
       caregivers: {
         title: "Cercle d'aidants",
         description: "Partagez votre évolution avec vos proches de confiance.",
         content:
-          "## Inviter un aidant\n\n1. Accédez à **\"Suivi aidant\"** depuis le menu\n2. Entrez l'email de la personne à inviter\n3. Définissez les permissions (lecture seule ou interactions)\n\n## Ce que vos aidants peuvent voir\n\n- **Tendances d'humeur** générales (pas les notes détaillées)\n- **Observance médicamenteuse** (pourcentage)\n- **Alertes** si vous ne vous connectez pas pendant plusieurs jours\n\n## Ce qui reste privé\n\n- Vos notes personnelles\n- Les détails de vos séances de thérapie\n- Le contenu de vos entrées quotidiennes\n\n## Gérer les accès\n\n- Révoquez l'accès d'un aidant à tout moment\n- Modifiez les permissions selon vos besoins\n- Recevez une notification quand un aidant consulte vos données",
+          "## Inviter un aidant\n\n1. Accédez à **\"Suivi aidant\"** depuis le menu\n2. Entrez l'email de la personne à inviter\n3. Définissez les permissions, les fenêtres de 7, 30 ou 90 jours et une expiration facultative\n\n## Ce que vos aidants peuvent voir\n\n- **Tendances d'humeur** générales, sans notes\n- **Traitements actifs et adhérence agrégée**, sans notes de prise\n- **Contributions** uniquement avec la permission correspondante\n\n## Ce qui reste privé\n\n- Vos notes personnelles\n- Les détails de vos séances de thérapie\n- Le contenu de vos entrées quotidiennes\n\n## Gérer les accès\n\n- Révoquez l'accès d'un aidant à tout moment\n- Modifiez les permissions et fenêtres selon vos besoins\n- Consultez le journal des accès et activez un digest quotidien ou hebdomadaire",
       },
       privacy: {
         title: "Confidentialité & Sécurité",
-        description: "Comment nous protégeons vos données de santé sensibles.",
+        description:
+          "Consultez les contrôles d'accès, d'export et de suppression disponibles.",
       },
-    },
-  },
-  careers: {
-    metaTitle: "Carrières - {app}",
-    metaDescription:
-      "Rejoignez l'équipe Moodday et aidez-nous à construire des outils qui améliorent la santé mentale.",
-    title: "Rejoignez notre équipe",
-    description:
-      "Nous construisons des outils qui aident les gens à prendre soin de leur santé mentale. Envie de faire la différence ?",
-    values: {
-      title: "Nos valeurs",
-      items: [
-        {
-          title: "L'empathie avant tout",
-          description:
-            "Nous concevons pour des personnes réelles avec de vrais défis. La compassion guide tout ce que nous faisons.",
-        },
-        {
-          title: "Remote & Flexible",
-          description:
-            "Travaillez d'où vous voulez. Nous vous faisons confiance pour gérer votre temps et livrer un excellent travail.",
-        },
-        {
-          title: "Orienté impact",
-          description:
-            "Chaque fonctionnalité que nous construisons vise à améliorer le parcours de santé mentale de quelqu'un.",
-        },
-      ],
-    },
-    openPositions: {
-      title: "Pas de postes ouverts",
-      description:
-        "Nous n'avons pas de postes ouverts actuellement, mais nous recherchons toujours des talents. Envoyez-nous une candidature spontanée !",
-      cta: "Nous contacter",
     },
   },
 };

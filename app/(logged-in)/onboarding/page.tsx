@@ -4,6 +4,7 @@ import { getI18n } from "@/i18n/server";
 import { getRequiredUser } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
 import { OnboardingWizard } from "./_components/onboarding-wizard";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -25,5 +26,14 @@ export default async function OnboardingPage() {
     redirect("/dashboard");
   }
 
-  return <OnboardingWizard />;
+  return (
+    <OnboardingWizard
+      pushNotificationsEnabled={
+        getFeatureAvailability("pushNotifications").enabled
+      }
+      caregiverSharingEnabled={
+        getFeatureAvailability("caregiverSharing").enabled
+      }
+    />
+  );
 }

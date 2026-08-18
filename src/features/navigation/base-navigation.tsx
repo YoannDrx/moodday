@@ -17,7 +17,7 @@ import { LanguageToggle } from "@/features/i18n/language-toggle";
 import { Layout } from "@/features/page/layout";
 import { getI18n } from "@/i18n/server";
 import { SiteConfig } from "@/site-config";
-import { Building2, Home, User } from "lucide-react";
+import { LayoutDashboard, User } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import { SidebarUserButton } from "../sidebar/sidebar-user-button";
 
@@ -54,19 +54,13 @@ const BaseSidebar = async () => {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButtonLink href="/orgs">
-              <Building2 />
-              <span>{t("nav.organization")}</span>
+            <SidebarMenuButtonLink href="/dashboard">
+              <LayoutDashboard />
+              <span>{t("nav.dashboard")}</span>
             </SidebarMenuButtonLink>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButtonLink href="/home">
-              <Home />
-              <span>{t("nav.home")}</span>
-            </SidebarMenuButtonLink>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButtonLink href="/settings?tab=profile">
+            <SidebarMenuButtonLink href="/settings/profile">
               <User />
               <span>{t("nav.account")}</span>
             </SidebarMenuButtonLink>

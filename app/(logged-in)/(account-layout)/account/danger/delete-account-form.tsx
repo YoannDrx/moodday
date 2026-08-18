@@ -20,13 +20,12 @@ import { toast } from "sonner";
 export function DeleteAccountForm() {
   const { t } = useI18n();
   const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      return unwrapSafePromise(
+    mutationFn: async () =>
+      unwrapSafePromise(
         authClient.deleteUser({
           callbackURL: "/auth/goodbye",
         }),
-      );
-    },
+      ),
   });
 
   return (

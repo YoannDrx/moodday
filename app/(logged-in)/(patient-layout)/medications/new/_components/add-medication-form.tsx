@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,10 @@ import {
 import { createMedication } from "@/features/medication/medication.action";
 import { normalizeScheduleTimesForFrequency } from "@/features/medication/schedule";
 import { useI18n } from "@/i18n/provider";
+import {
+  getCivilWeekday,
+  getDateKeyForTimeZone,
+} from "@/lib/temporal/civil-date";
 
 const scheduleTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const WEEKDAY_KEYS = [
@@ -41,6 +45,7 @@ const WEEKDAY_KEYS = [
   "medication.weekDay.friday",
   "medication.weekDay.saturday",
 ] as const;
+const getTodayWeekday = () => getCivilWeekday(getDateKeyForTimeZone());
 
 const getFormSchema = (t: (key: string) => string) =>
   z.object({
@@ -50,6 +55,21 @@ const getFormSchema = (t: (key: string) => string) =>
     isPRN: z.boolean().default(false),
     scheduleTimes: z.array(scheduleTimeSchema).max(2).default(["09:00"]),
     weeklyDay: z.number().int().min(0).max(6).nullable().optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().nullable().optional(),
+    stockQuantity: z
+      .number()
+      .nonnegative()
+      .max(1_000_000)
+      .nullable()
+      .optional(),
+    unitsPerDose: z.number().positive().max(1_000_000).nullable().optional(),
+    lowStockThreshold: z
+      .number()
+      .nonnegative()
+      .max(1_000_000)
+      .nullable()
+      .optional(),
   });
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
@@ -58,6 +78,7 @@ export function AddMedicationForm() {
   const { t } = useI18n();
   const router = useRouter();
   const formSchema = useMemo(() => getFormSchema(t), [t]);
+  const operationId = useRef(crypto.randomUUID());
 
   const form = useZodForm({
     schema: formSchema,
@@ -67,13 +88,21 @@ export function AddMedicationForm() {
       frequency: "daily",
       isPRN: false,
       scheduleTimes: ["09:00"],
-      weeklyDay: new Date().getDay(),
+      weeklyDay: getTodayWeekday(),
+      startDate: getDateKeyForTimeZone(),
+      endDate: null,
+      stockQuantity: null,
+      unitsPerDose: null,
+      lowStockThreshold: null,
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const result = await createMedication(values);
+      const result = await createMedication({
+        ...values,
+        operationId: operationId.current,
+      });
       if (result.serverError) {
         throw new Error(result.serverError);
       }
@@ -109,11 +138,14 @@ export function AddMedicationForm() {
     form.setValue("frequency", value);
     form.setValue(
       "scheduleTimes",
-      normalizeScheduleTimesForFrequency(value, form.getValues("scheduleTimes")),
+      normalizeScheduleTimesForFrequency(
+        value,
+        form.getValues("scheduleTimes"),
+      ),
     );
 
     if (value === "weekly" && form.getValues("weeklyDay") == null) {
-      form.setValue("weeklyDay", new Date().getDay());
+      form.setValue("weeklyDay", getTodayWeekday());
     }
 
     if (value === "prn") {
@@ -274,7 +306,7 @@ export function AddMedicationForm() {
                 <div className="mt-4 space-y-2">
                   <FormLabel>{t("medication.form.weeklyDay")}</FormLabel>
                   <Select
-                    value={String(form.watch("weeklyDay") ?? new Date().getDay())}
+                    value={String(form.watch("weeklyDay") ?? getTodayWeekday())}
                     onValueChange={(value) =>
                       form.setValue("weeklyDay", Number(value))
                     }
@@ -294,6 +326,95 @@ export function AddMedicationForm() {
               )}
             </div>
           )}
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
+            <p className="text-sm font-bold text-gray-800">
+              {t("medication.form.lifecycleTitle")}
+            </p>
+            <p className="mb-4 text-sm text-gray-500">
+              {t("medication.form.lifecycleHint")}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("medication.form.startDate")}</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("medication.form.endDate")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        value={field.value ?? ""}
+                        min={form.watch("startDate")}
+                        onChange={(event) =>
+                          field.onChange(event.target.value || null)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
+            <p className="text-sm font-bold text-gray-800">
+              {t("medication.form.inventoryTitle")}
+            </p>
+            <p className="mb-4 text-sm text-gray-500">
+              {t("medication.form.inventoryHint")}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {(
+                [
+                  ["stockQuantity", "stockQuantity"],
+                  ["unitsPerDose", "unitsPerDose"],
+                  ["lowStockThreshold", "lowStockThreshold"],
+                ] as const
+              ).map(([name, label]) => (
+                <FormField
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t(`medication.form.${label}`)}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={name === "unitsPerDose" ? "0.001" : "0"}
+                          step="0.001"
+                          value={field.value ?? ""}
+                          onChange={(event) =>
+                            field.onChange(
+                              event.target.value === ""
+                                ? null
+                                : Number(event.target.value),
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Submit */}
           <div className="flex gap-3">

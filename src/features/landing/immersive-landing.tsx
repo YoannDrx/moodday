@@ -10,7 +10,6 @@ import { getActivePublicClaims } from "@/lib/public-claims";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  BellRing,
   BookHeart,
   CalendarCheck,
   Check,
@@ -21,6 +20,7 @@ import {
   LockKeyhole,
   Menu,
   MoonStar,
+  Pill,
   ShieldCheck,
   Sparkles,
   X,
@@ -61,13 +61,13 @@ const copy = {
         {
           time: "08:10",
           title: "Check-in rapide",
-          description: "Humeur, énergie et sommeil en quinze secondes.",
+          description: "Humeur, énergie et sommeil en quelques instants.",
         },
         {
           time: "12:30",
-          title: "Rappel de traitement",
+          title: "Prise enregistrée",
           description:
-            "Confirmez une prise sans ouvrir un formulaire complexe.",
+            "Consignez une prise sans ouvrir un formulaire complexe.",
         },
         {
           time: "20:45",
@@ -98,7 +98,7 @@ const copy = {
         "Vous choisissez qui peut voir une information et vous pouvez révoquer cet accès. Les notes personnelles ne sont jamais partagées par défaut.",
       permissions: [
         "Tendances d'humeur",
-        "Suivi des prises",
+        "Adhérence agrégée",
         "Ajouter une observation",
       ],
       revoked: "Accès révocable à tout moment",
@@ -117,6 +117,8 @@ const copy = {
       title: "Commencez avec un seul repère aujourd'hui.",
       description:
         "Le suivi essentiel reste gratuit. Plus ajoute les bilans avancés et le Mode Consultation.",
+      descriptionUnavailable:
+        "Le suivi essentiel reste gratuit. L’offre Plus sera proposée après la validation finale des paiements.",
       primary: "Créer mon espace",
       secondary: "Découvrir les tarifs",
     },
@@ -172,12 +174,12 @@ const copy = {
         {
           time: "08:10",
           title: "Quick check-in",
-          description: "Mood, energy, and sleep in fifteen seconds.",
+          description: "Mood, energy, and sleep in a few moments.",
         },
         {
           time: "12:30",
-          title: "Treatment reminder",
-          description: "Confirm an intake without opening a complex form.",
+          title: "Logged intake",
+          description: "Record an intake without opening a complex form.",
         },
         {
           time: "20:45",
@@ -206,7 +208,11 @@ const copy = {
       title: "Share less, but share what matters.",
       description:
         "You choose who can see information and can revoke access. Personal notes are never shared by default.",
-      permissions: ["Mood trends", "Intake tracking", "Add an observation"],
+      permissions: [
+        "Mood trends",
+        "Aggregated adherence",
+        "Add an observation",
+      ],
       revoked: "Access can be revoked at any time",
       personRole: "Trusted caregiver",
       allowed: "Allowed",
@@ -223,6 +229,8 @@ const copy = {
       title: "Start with one reference point today.",
       description:
         "Essential tracking stays free. Plus adds advanced summaries and Consultation Mode.",
+      descriptionUnavailable:
+        "Essential tracking stays free. Plus will be offered after final payment validation.",
       primary: "Create my space",
       secondary: "See pricing",
     },
@@ -245,11 +253,21 @@ const copy = {
   },
 } as const;
 
-export function ImmersiveLanding() {
+export function ImmersiveLanding({
+  billingEnabled,
+  aiInsightsEnabled,
+  caregiverSharingEnabled,
+}: {
+  billingEnabled: boolean;
+  aiInsightsEnabled: boolean;
+  caregiverSharingEnabled: boolean;
+}) {
   const { locale } = useI18n();
   const t = copy[locale === "en" ? "en" : "fr"];
   const [menuOpen, setMenuOpen] = useState(false);
-  const claims = getActivePublicClaims("landing");
+  const claims = getActivePublicClaims("landing").filter(
+    (claim) => claim.id !== "caregiver-permissions" || caregiverSharingEnabled,
+  );
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[#F7F5F0] text-[#183432] dark:bg-[#102523] dark:text-[#F7F5F0]">
@@ -373,8 +391,8 @@ export function ImmersiveLanding() {
                   {t.hero.secondary}
                 </Link>
               </div>
-              <p className="mt-6 flex max-w-xl items-start gap-2 text-sm leading-6 text-[#667673] dark:text-white/60">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#1E7775]" />
+              <p className="mt-6 flex max-w-xl items-start gap-2 text-sm leading-6 text-[#52635F] dark:text-white/75">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#196966]" />
                 {t.hero.disclaimer}
               </p>
             </div>
@@ -392,8 +410,8 @@ export function ImmersiveLanding() {
                   <span className="text-sm font-bold text-[#183432]">
                     {t.preview.today}
                   </span>
-                  <span className="rounded-full bg-[#D9F1EE] px-2.5 py-1 text-xs font-bold text-[#1E7775]">
-                    15 sec
+                  <span className="rounded-full bg-[#D9F1EE] px-2.5 py-1 text-xs font-bold text-[#196966]">
+                    {locale === "fr" ? "Rapide" : "Quick"}
                   </span>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
@@ -407,7 +425,7 @@ export function ImmersiveLanding() {
                     />
                   ))}
                 </div>
-                <p className="mt-3 text-xs text-[#667673]">{t.preview.hint}</p>
+                <p className="mt-3 text-xs text-[#52635F]">{t.preview.hint}</p>
               </div>
             </div>
           </div>
@@ -422,14 +440,14 @@ export function ImmersiveLanding() {
               <h2 className="mt-4 font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
                 {t.today.title}
               </h2>
-              <p className="mt-5 text-lg leading-8 text-[#667673] dark:text-white/70">
+              <p className="mt-5 text-lg leading-8 text-[#52635F] dark:text-white/75">
                 {t.today.description}
               </p>
             </div>
             <div className="mt-12 grid gap-5 md:grid-cols-3">
               {t.today.steps.map((step, index) => {
                 const Icon =
-                  [CalendarCheck, BellRing, MoonStar][index] ?? CalendarCheck;
+                  [CalendarCheck, Pill, MoonStar][index] ?? CalendarCheck;
                 return (
                   <article
                     key={step.time}
@@ -439,12 +457,12 @@ export function ImmersiveLanding() {
                       <span className="flex size-12 items-center justify-center rounded-2xl bg-[#D9F1EE] text-[#1E7775]">
                         <Icon className="size-6" />
                       </span>
-                      <span className="font-mono text-sm text-[#667673]">
+                      <span className="font-mono text-sm text-[#52635F]">
                         {step.time}
                       </span>
                     </div>
                     <h3 className="mt-8 text-xl font-bold">{step.title}</h3>
-                    <p className="mt-3 leading-7 text-[#667673] dark:text-white/65">
+                    <p className="mt-3 leading-7 text-[#52635F] dark:text-white/75">
                       {step.description}
                     </p>
                   </article>
@@ -494,11 +512,11 @@ export function ImmersiveLanding() {
                     <span className="size-3 rounded-full bg-[#1E7775]" />
                     <p className="font-bold">{t.preview.observation}</p>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#667673]">
+                  <p className="mt-3 text-sm leading-6 text-[#52635F]">
                     {t.preview.observationText}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[#D9F1EE] px-3 py-1 text-xs font-bold text-[#1E7775]">
+                    <span className="rounded-full bg-[#D9F1EE] px-3 py-1 text-xs font-bold text-[#196966]">
                       {t.preview.evidenceOne}
                     </span>
                     <span className="rounded-full bg-[#E9E1F4] px-3 py-1 text-xs font-bold text-[#66558D]">
@@ -508,7 +526,7 @@ export function ImmersiveLanding() {
                 </div>
                 <div className="rounded-2xl border border-[#1E7775]/15 p-5">
                   <p className="text-sm font-bold">{t.preview.question}</p>
-                  <p className="mt-2 text-sm text-[#667673]">
+                  <p className="mt-2 text-sm text-[#52635F]">
                     {t.preview.questionText}
                   </p>
                 </div>
@@ -521,70 +539,72 @@ export function ImmersiveLanding() {
           </div>
         </section>
 
-        <section className="px-5 py-20 lg:px-8 lg:py-28">
-          <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[2.5rem] bg-[#E9E1F4] p-6 sm:p-10">
-              <div className="rounded-3xl bg-white p-6 shadow-lg">
-                <div className="flex items-center gap-4">
-                  <span className="flex size-12 items-center justify-center rounded-full bg-[#D9F1EE]">
-                    <HeartHandshake className="size-6 text-[#1E7775]" />
-                  </span>
-                  <div>
-                    <p className="font-bold">Camille</p>
-                    <p className="text-sm text-[#667673]">
-                      {t.caregivers.personRole}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 space-y-3">
-                  {t.caregivers.permissions.map((permission, index) => (
-                    <div
-                      key={permission}
-                      className="flex items-center justify-between rounded-xl border border-[#183432]/8 p-3"
-                    >
-                      <span className="text-sm font-semibold">
-                        {permission}
-                      </span>
-                      <span
-                        className={cn(
-                          "rounded-full px-2.5 py-1 text-xs font-bold",
-                          index < 2
-                            ? "bg-[#D9F1EE] text-[#1E7775]"
-                            : "bg-[#F1ECE3] text-[#667673]",
-                        )}
-                      >
-                        {index < 2
-                          ? t.caregivers.allowed
-                          : t.caregivers.private}
-                      </span>
+        {caregiverSharingEnabled ? (
+          <section className="px-5 py-20 lg:px-8 lg:py-28">
+            <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-[2.5rem] bg-[#E9E1F4] p-6 sm:p-10">
+                <div className="rounded-3xl bg-white p-6 shadow-lg">
+                  <div className="flex items-center gap-4">
+                    <span className="flex size-12 items-center justify-center rounded-full bg-[#D9F1EE]">
+                      <HeartHandshake className="size-6 text-[#1E7775]" />
+                    </span>
+                    <div>
+                      <p className="font-bold">Camille</p>
+                      <p className="text-sm text-[#52635F]">
+                        {t.caregivers.personRole}
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {t.caregivers.permissions.map((permission, index) => (
+                      <div
+                        key={permission}
+                        className="flex items-center justify-between rounded-xl border border-[#183432]/8 p-3"
+                      >
+                        <span className="text-sm font-semibold">
+                          {permission}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-1 text-xs font-bold",
+                            index < 2
+                              ? "bg-[#D9F1EE] text-[#196966]"
+                              : "bg-[#F1ECE3] text-[#52635F]",
+                          )}
+                        >
+                          {index < 2
+                            ? t.caregivers.allowed
+                            : t.caregivers.private}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#52635F]">
+                    <LockKeyhole className="size-4" />
+                    {t.caregivers.revoked}
+                  </p>
                 </div>
-                <p className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#667673]">
-                  <LockKeyhole className="size-4" />
-                  {t.caregivers.revoked}
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-[0.18em] text-[#1E7775] uppercase">
+                  {t.caregivers.eyebrow}
                 </p>
+                <h2 className="mt-4 font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+                  {t.caregivers.title}
+                </h2>
+                <p className="mt-6 text-lg leading-8 text-[#52635F] dark:text-white/75">
+                  {t.caregivers.description}
+                </p>
+                <Link
+                  href="/auth/signup"
+                  className="mt-8 inline-flex items-center gap-2 font-bold text-[#1E7775]"
+                >
+                  {t.caregivers.action} <ChevronRight className="size-4" />
+                </Link>
               </div>
             </div>
-            <div>
-              <p className="text-sm font-bold tracking-[0.18em] text-[#1E7775] uppercase">
-                {t.caregivers.eyebrow}
-              </p>
-              <h2 className="mt-4 font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
-                {t.caregivers.title}
-              </h2>
-              <p className="mt-6 text-lg leading-8 text-[#667673] dark:text-white/70">
-                {t.caregivers.description}
-              </p>
-              <Link
-                href="/auth/signup"
-                className="mt-8 inline-flex items-center gap-2 font-bold text-[#1E7775]"
-              >
-                {t.caregivers.action} <ChevronRight className="size-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <section
           id="security"
@@ -612,7 +632,7 @@ export function ImmersiveLanding() {
                     <p className="mt-5 leading-7 font-semibold">
                       {locale === "en" ? claim.claimEn : claim.claim}
                     </p>
-                    <p className="mt-4 text-xs text-[#667673]">
+                    <p className="mt-4 text-xs text-[#52635F]">
                       {locale === "en" ? "Reviewed" : "Revu le"}{" "}
                       {new Intl.DateTimeFormat(locale).format(
                         new Date(claim.reviewedAt),
@@ -626,7 +646,12 @@ export function ImmersiveLanding() {
         </section>
 
         <div id="pricing">
-          <Pricing mode="landing" />
+          <Pricing
+            mode="landing"
+            billingEnabled={billingEnabled}
+            aiInsightsEnabled={aiInsightsEnabled}
+            caregiverSharingEnabled={caregiverSharingEnabled}
+          />
         </div>
 
         <section className="px-5 py-20 lg:px-8 lg:py-28">
@@ -635,8 +660,10 @@ export function ImmersiveLanding() {
             <h2 className="mx-auto mt-6 max-w-3xl font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
               {t.cta.title}
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white/75">
-              {t.cta.description}
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white">
+              {billingEnabled
+                ? t.cta.description
+                : t.cta.descriptionUnavailable}
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
@@ -666,7 +693,7 @@ export function ImmersiveLanding() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row">
           <div>
             <MooddayLogo />
-            <p className="mt-2 text-sm text-[#667673] dark:text-white/60">
+            <p className="mt-2 text-sm text-[#52635F] dark:text-white/75">
               {t.footer}
             </p>
           </div>

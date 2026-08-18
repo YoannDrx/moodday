@@ -49,14 +49,14 @@ const checkInSchema = z.object({
 type CheckInFormValues = z.infer<typeof checkInSchema>;
 
 type CaregiverCheckinFormProps = {
-  subjectId: string;
+  relationshipId: string;
   subjectName: string;
   onSuccess?: () => void;
   className?: string;
 };
 
 export function CaregiverCheckinForm({
-  subjectId,
+  relationshipId,
   subjectName,
   onSuccess,
   className,
@@ -75,7 +75,7 @@ export function CaregiverCheckinForm({
     setIsSubmitting(true);
     try {
       const result = await createObservation({
-        subjectId,
+        relationshipId,
         ...data,
       });
       if (result.serverError) {

@@ -3,7 +3,7 @@
 import { defaultLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages";
 import { createTranslator } from "@/i18n/translator";
-import { env } from "@/lib/env";
+import { SiteConfig } from "@/site-config";
 import Link from "next/link";
 import type { PropsWithChildren } from "react";
 import { Typography } from "../../components/nowts/typography";
@@ -34,7 +34,7 @@ export function Page400Client(props: Page400ClientProps) {
           {t("error.badRequest.cta")}
         </Link>
         <Link
-          href={`mailto:${env.NEXT_PUBLIC_EMAIL_CONTACT}`}
+          href={`mailto:${SiteConfig.company.email}`}
           className={buttonVariants({ variant: "outline" })}
         >
           {t("support.contact")}

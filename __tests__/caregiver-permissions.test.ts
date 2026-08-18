@@ -43,6 +43,35 @@ describe("caregiver permissions", () => {
     ).toBe(true);
   });
 
+  it("denies missing, revoked, and expired relationships", () => {
+    for (const relationship of [
+      null,
+      { ...activeRelationship, revokedAt: new Date() },
+      { ...activeRelationship, accessExpiresAt: new Date(Date.now() - 1) },
+    ]) {
+      expect(
+        hasActiveCaregiverPermission({
+          relationship,
+          caregiverId: "caregiver-1",
+          patientId: "patient-1",
+          permission: "view_mood",
+        }),
+      ).toBe(false);
+    }
+
+    expect(
+      hasActiveCaregiverPermission({
+        relationship: {
+          ...activeRelationship,
+          accessExpiresAt: new Date(Date.now() + 60_000),
+        },
+        caregiverId: "caregiver-1",
+        patientId: "patient-1",
+        permission: "view_mood",
+      }),
+    ).toBe(true);
+  });
+
   it.each([
     ["pending relationship", { ...activeRelationship, status: "pending" }],
     [
@@ -99,6 +128,15 @@ describe("caregiver permissions", () => {
         userId: "stranger",
       }),
     ).toBe(false);
+    expect(
+      canLeaveCaregiverRelationship({ relationship: null, userId: "stranger" }),
+    ).toBe(false);
+    expect(
+      canManageCaregiverRelationship({
+        relationship: null,
+        userId: "patient-1",
+      }),
+    ).toBe(false);
   });
 
   it("keeps the oldest relationships writable up to the plan limit", () => {
@@ -118,6 +156,13 @@ describe("caregiver permissions", () => {
         caregiverLimit: 1,
       }),
     ).toBe(true);
+    expect(
+      isCaregiverRelationshipReadOnly({
+        relationshipId: "missing",
+        orderedRelationshipIds,
+        caregiverLimit: 0,
+      }),
+    ).toBe(false);
   });
 
   it("removes write capabilities but preserves view access after downgrade", () => {
@@ -133,5 +178,9 @@ describe("caregiver permissions", () => {
       "view_mood",
       "view_medications",
     ]);
+    expect(hasCaregiverWritePermission(["view_mood"])).toBe(false);
+    expect(getEffectiveCaregiverPermissions([...permissions], false)).toEqual(
+      permissions,
+    );
   });
 });

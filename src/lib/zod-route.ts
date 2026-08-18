@@ -1,9 +1,10 @@
 import { createZodRoute } from "next-zod-route";
 import { NextResponse } from "next/server";
-import { getUser } from "./auth/auth-user";
+import { getAuthorizedApiUser } from "./auth/auth-user";
 import { ApplicationError } from "./errors/application-error";
 import { ZodRouteError } from "./errors/zod-route-error";
 import { logger } from "./logger";
+import { assertWritesAvailable } from "./maintenance";
 
 /**
  * Base route handler with automatic error handling and validation
@@ -21,7 +22,11 @@ import { logger } from "./logger";
 export const route = createZodRoute({
   handleServerError: (e: Error) => {
     if (e instanceof ZodRouteError) {
-      logger.debug("[DEV] - ZodRouteError", e);
+      logger.debug("Route rejected", {
+        eventName: "route_rejected",
+        status: "rejected",
+        errorCode: e.name,
+      });
       return NextResponse.json(
         { message: e.message },
         {
@@ -31,15 +36,19 @@ export const route = createZodRoute({
     }
 
     if (e instanceof ApplicationError) {
-      logger.debug("[DEV] - ApplicationError", e);
+      logger.debug("Route application error", {
+        eventName: "route_application_error",
+        status: "rejected",
+        errorCode: e.name,
+      });
       return NextResponse.json({ message: e.message }, { status: 400 });
     }
 
-    logger.info("Unknown Error", e);
-
-    if (process.env.NODE_ENV === "development") {
-      return NextResponse.json({ message: e.message }, { status: 500 });
-    }
+    logger.info("Route failed", {
+      eventName: "route_failed",
+      status: "failed",
+      errorCode: e.name || "unknown_error",
+    });
 
     return NextResponse.json(
       { message: "Internal server error" },
@@ -55,10 +64,11 @@ export const route = createZodRoute({
  * Use THIS route whenever you want to get the user session.
  */
 export const authRoute = route.use(async ({ next }) => {
-  const user = await getUser();
+  assertWritesAvailable();
+  const user = await getAuthorizedApiUser();
 
   if (!user) {
-    throw new ZodRouteError("Session not found!", 401);
+    throw new ZodRouteError("Authenticated, verified account required", 401);
   }
 
   return next({

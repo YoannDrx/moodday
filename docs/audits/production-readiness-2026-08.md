@@ -1,6 +1,6 @@
 # Moodday — audit de préparation production
 
-Dernière revue : 2026-08-10
+Dernière revue : 2026-08-18
 
 Propriétaire : Product & Engineering
 
@@ -17,24 +17,45 @@ Les statuts autorisés sont : `Prod prouvé`, `Candidat prod`, `Partiel`,
 `UI/claim only` et `Bloqué`. `PROJECT_STATUS.md` reste une source historique,
 pas une preuve de release.
 
+## État courant au 18 août 2026
+
+Les matrices datées du 10 août ci-dessous sont conservées comme historique de
+décision. La source exécutable actuelle est
+[`production-release-gates.md`](../operations/production-release-gates.md),
+avec ses [preuves consolidées](../operations/release-evidence-2026-08-13.md).
+
+Depuis la revue du 10 août, les contrôles d'entitlements serveur, la CSP sans
+`unsafe-inline`/`unsafe-eval` en Production, les Test Clocks automatisés, la
+réconciliation et les alertes déterministes, la file hors ligne chiffrée, les
+permissions aidant, les migrations additives et les seuils de couverture ont
+été implémentés et prouvés localement. Ils ne transforment toutefois aucun
+domaine en `Prod prouvé` sans smoke et preuves fournisseur Production.
+
+L'incident de paquet Preview du 14 août a rouvert une porte P0 d'isolation des
+secrets. La preview concernée a été supprimée sans promotion. Les rotations,
+révocations et revues d'activité sont obligatoires selon le
+[runbook dédié](../operations/credential-rotation.md). Aucune nouvelle preview
+ou activation publique Stripe/IA n'est autorisée avant fermeture de cette
+porte.
+
 ## Matrice initiale
 
-| Domaine                    | Surface et données                             | Entitlement                     | Preuves actuelles                                                                       | Dépendances / risques                                            | Statut        | Condition de sortie                                                         |
-| -------------------------- | ---------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------- |
-| Authentification et compte | Better Auth, profil, mot de passe, suppression | Free                            | E2E inscription, mot de passe, suppression et URL canonique verts                       | Smoke prod et alertes auth à compléter                           | Candidat prod | Smoke prod, contrôle cookies/headers, alertes auth                          |
-| Humeur et journal          | `/mood`, `MoodEntry`, queue offline            | Free                            | E2E online/offline et idempotence verts                                                 | Conflits multi-appareils et smoke prod                           | Candidat prod | E2E conflits multi-appareils et smoke prod                                  |
-| Sommeil, énergie, anxiété  | Champs `MoodEntry`, dashboard et bilans        | Free                            | Lecture/agrégation implémentées                                                         | Cas incomplets et accessibilité                                  | Candidat prod | Cas limites, résumés textuels et E2E                                        |
-| Traitements et prises      | `Medication`, `MedIntake`, historique          | Free                            | CRUD, planification et idempotence                                                      | Fiabilité du scheduler                                           | Candidat prod | Livraison push contrôlée sur deux navigateurs                               |
-| Thérapie et exercices      | `TherapySession`, `Exercise`, logs             | Free                            | Parcours implémentés                                                                    | Couverture E2E limitée                                           | Candidat prod | E2E création/modification/suppression                                       |
-| Bilans                     | `/trends`, agrégats et corrélations            | Free 30 j / Plus illimité       | Visualisations existantes                                                               | Entitlements et vocabulaire                                      | Partiel       | Enforcement serveur, accessibilité et Mode Consultation                     |
-| Exports                    | PDF, CSV, JSON                                 | Portabilité Free / rapport Plus | E2E JSON/CSV Free, PDF Plus et CSP WASM verts                                           | Smoke prod, revue du contenu clinique et conservation locale     | Candidat prod | Smoke prod et validation humaine du rapport                                 |
-| Cercle aidant              | Relations, permissions, journal d'accès        | 1 Free / 3 Plus                 | E2E permissions/révocation et enforcement serveur du downgrade                          | Journal visible et E2E downgrade complet                         | Candidat prod | Journal visible et E2E downgrade concurrent                                 |
-| PWA/offline                | Service worker, IndexedDB, queues              | Free                            | Scénario offline présent                                                                | Résolution explicite des conflits                                | Partiel       | E2E multi-opération et reprise après erreur                                 |
-| Notifications              | Push, cron, `NotificationDelivery`             | Essentiel Free                  | Idempotence E2E, retries bornés, migrations live et livraison indépendante par endpoint | Preuve VAPID multi-appareils et alerte cron                      | Partiel       | Smoke VAPID sur deux navigateurs et alertes                                 |
-| Stripe                     | Checkout, portail, webhook, `Subscription`     | Plus                            | Sandbox dédié, catalogue/portail, webhook signé et rejeu idempotent prouvés             | Test Clocks, compte live non vérifié et réconciliation monitorée | Bloqué        | Scénarios Test Clocks, miroir live, KYC et alerte de réconciliation validés |
-| IA                         | Journal et bilans                              | Réflexion Free / 8 Plus         | Service unique, consentement, schéma strict, 61 cas d'évaluation et quota glissant 24 h | AIPD/DPA/transferts, clé par environnement et validation humaine | Bloqué        | Gates juridiques, projets séparés, corpus critique et bêta fermée           |
-| Sécurité/conformité        | Headers, régions, docs, logs                   | Tous                            | TLS, HSTS, CSP, suppression/export et fonctions Preview en `fra1`                       | `unsafe-inline`, sous-traitants partagés, AIPD/DPA/HDS           | Bloqué        | P0 clos, AIPD/DPA, revue juridique et runbooks éprouvés                     |
-| Marketing/SEO              | Landing, sitemap, metadata                     | Public                          | Landing originale, registre de claims, robots, sitemap Moodday et assets OG             | Perf p75, preuves externes et smoke public                       | Candidat prod | Aucun claim expiré, mesures CWV et smoke public validés                     |
+| Domaine                    | Surface et données                             | Entitlement                     | Preuves actuelles                                                                                                                      | Dépendances / risques                                                       | Statut        | Condition de sortie                                                         |
+| -------------------------- | ---------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------- |
+| Authentification et compte | Better Auth, profil, mot de passe, suppression | Free                            | E2E inscription, mot de passe, suppression et URL canonique verts                                                                      | Smoke prod et alertes auth à compléter                                      | Candidat prod | Smoke prod, contrôle cookies/headers, alertes auth                          |
+| Humeur et journal          | `/mood`, `MoodEntry`, queue offline            | Free                            | E2E online/offline et idempotence verts                                                                                                | Conflits multi-appareils et smoke prod                                      | Candidat prod | E2E conflits multi-appareils et smoke prod                                  |
+| Sommeil, énergie, anxiété  | Champs `MoodEntry`, dashboard et bilans        | Free                            | Lecture/agrégation implémentées                                                                                                        | Cas incomplets et accessibilité                                             | Candidat prod | Cas limites, résumés textuels et E2E                                        |
+| Traitements et prises      | `Medication`, `MedIntake`, historique          | Free                            | CRUD, planification et idempotence                                                                                                     | Fiabilité du scheduler                                                      | Candidat prod | Livraison push contrôlée sur deux navigateurs                               |
+| Thérapie et exercices      | `TherapySession`, `Exercise`, logs             | Free                            | Parcours implémentés                                                                                                                   | Couverture E2E limitée                                                      | Candidat prod | E2E création/modification/suppression                                       |
+| Bilans                     | `/trends`, agrégats et corrélations            | Free 30 j / Plus illimité       | Visualisations existantes                                                                                                              | Entitlements et vocabulaire                                                 | Partiel       | Enforcement serveur, accessibilité et Mode Consultation                     |
+| Exports                    | PDF, CSV, JSON                                 | Portabilité Free / rapport Plus | E2E JSON/CSV Free, PDF Plus et CSP WASM verts                                                                                          | Smoke prod, revue du contenu clinique et conservation locale                | Candidat prod | Smoke prod et validation humaine du rapport                                 |
+| Cercle aidant              | Relations, permissions, journal d'accès        | 1 Free / 3 Plus                 | E2E permissions/révocation et enforcement serveur du downgrade                                                                         | Journal visible et E2E downgrade complet                                    | Candidat prod | Journal visible et E2E downgrade concurrent                                 |
+| PWA/offline                | Service worker, IndexedDB, queues              | Free                            | Scénario offline présent                                                                                                               | Résolution explicite des conflits                                           | Partiel       | E2E multi-opération et reprise après erreur                                 |
+| Notifications              | Push, cron, `NotificationDelivery`             | Essentiel Free                  | Idempotence E2E, retries bornés, migrations live et livraison indépendante par endpoint                                                | Preuve VAPID multi-appareils et alerte cron                                 | Partiel       | Smoke VAPID sur deux navigateurs et alertes                                 |
+| Stripe                     | Checkout, portail, webhook, `Subscription`     | Plus                            | Prix serveur, webhook signé/idempotent, réconciliation bidirectionnelle et runner Test Clocks                                          | Compte test sans charges, métadonnées incomplètes, live/KYC/TVA non validés | Bloqué        | Compte test prêt, matrice Test Clocks verte, miroir live, KYC et TVA signés |
+| IA                         | Journal et bilans                              | Fallback Free / 8 Plus          | Consentements séparés, schéma strict, quota mensuel/journalier atomique, 100 cas live synthétiques à 100 % critique et rollout interne | AIPD/DPA/transferts, secrets par environnement et validation humaine        | Bloqué        | Gates juridiques, revue humaine et bêta interne signées                     |
+| Sécurité/conformité        | Headers, régions, docs, logs                   | Tous                            | TLS, HSTS, CSP, suppression/export et fonctions Preview en `fra1`                                                                      | `unsafe-inline`, sous-traitants partagés, AIPD/DPA/HDS                      | Bloqué        | P0 clos, AIPD/DPA, revue juridique et runbooks éprouvés                     |
+| Marketing/SEO              | Landing, sitemap, metadata                     | Public                          | Landing originale, registre de claims, robots, sitemap Moodday et assets OG                                                            | Perf p75, preuves externes et smoke public                                  | Candidat prod | Aucun claim expiré, mesures CWV et smoke public validés                     |
 
 ## Gates de lancement
 
@@ -49,7 +70,9 @@ pas une preuve de release.
 - [ ] Parcours crise, export, suppression et révocation aidant testés en production.
 - [ ] CI complète verte, smoke prod et tableau de bord opérationnel disponibles.
 - [ ] Revue juridique/comptable écrite pour données de santé, HDS, TVA et textes.
-- [ ] IA limitée à la bêta jusqu'à réussite du corpus critique.
+- [x] IA techniquement limitée aux identifiants internes jusqu'à réussite du
+      corpus critique ; le corpus synthétique est vert, le passage public reste
+      soumis aux signatures juridique et humaine.
 
 ## Preuves de la revue initiale
 
@@ -111,8 +134,9 @@ pas une preuve de release.
   devise, intervalle, taxation, lookup keys et métadonnées du produit. Il
   réutilise une session ouverte, bloque un abonnement déjà actif et résiste aux
   créations concurrentes via une clé d'idempotence de cinq minutes.
-- Le quota IA Plus est désormais glissant sur 24 heures, en plus de la limite
-  de huit générations par période mensuelle.
+- Le quota IA Plus est d'une génération par journée civile utilisateur, en
+  plus de la limite de huit générations par période mensuelle. Son admission
+  et la concurrence globale sont sérialisées dans PostgreSQL.
 - Un clone de la production Neon, `br-autumn-bird-agfi2xlt`, a reçu avec succès
   les deux migrations en attente. Les 12 migrations sont à jour et
   `prisma migrate diff` ne détecte aucune dérive après application.
@@ -150,15 +174,20 @@ pas une preuve de release.
 
 ### Blocages de lancement encore ouverts
 
-| Priorité | Blocage prouvé                                                                                                                 | Impact                                                                              | Condition exacte de fermeture                                                                                      |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| P0       | Le compte Stripe live n'est pas vérifié (`charges_enabled=false`, `details_submitted=false`).                                  | Aucun paiement live fiable ou légalement attribuable.                               | KYC, coordonnées légales/bancaires, support et descriptor validés, puis catalogue/portail/webhook live reproduits. |
-| P0       | Resend n'est pas encore isolé entre Preview et Production ; le client Google OAuth reste partagé malgré les callbacks séparés. | Emails ou OAuth susceptibles de croiser les environnements.                         | Ressources et secrets dédiés, audit d'identifiants vert et rotation des valeurs partagées.                         |
-| P0       | AIPD, DPA/transferts, registre, durées de conservation, HDS et TVA n'ont pas de validation écrite.                             | Mise en ligne de données sensibles et IA juridiquement non validée.                 | Avis juridique/comptable écrit et textes publics alignés sur les décisions.                                        |
-| P0       | La restauration depuis une sauvegarde et les alertes opérationnelles ne sont pas prouvées de bout en bout.                     | Défaillance silencieuse de base, auth, webhook, cron, export ou suppression.        | Restauration chronométrée, alertes déclenchées volontairement, runbooks éprouvés et smoke prod signé.              |
-| P1       | La CSP conserve `'unsafe-inline'` pour les scripts Next/Stripe.                                                                | Surface XSS plus large que la cible finale.                                         | Nonces/hashes compatibles Next et Stripe validés sans régression E2E.                                              |
-| P1       | Les scénarios Stripe Test Clocks et la réconciliation avec alertes ne sont pas encore automatisés.                             | Essai, grâce, paiement échoué et événements hors ordre non prouvés de bout en bout. | Matrice Test Clocks verte et alerte de divergence observée.                                                        |
-| P1       | L'IA n'a pas de validation humaine ni de gate juridique sur données réelles.                                                   | Risque de sortie inadaptée et de transfert non autorisé.                            | Validation du corpus critique, AIPD/DPA, bêta allowlist et kill switch testé.                                      |
+Cette table conserve la photographie de fermeture du 10 août. Depuis, le P1
+CSP a été fermé et les Test Clocks ainsi que la réconciliation ont été
+automatisés ; leur exécution fournisseur et les autres lignes P0 restent
+ouvertes dans la [checklist courante](../operations/production-release-gates.md).
+
+| Priorité | Blocage prouvé                                                                                                                 | Impact                                                                                 | Condition exacte de fermeture                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| P0       | Le compte Stripe live n'est pas vérifié (`charges_enabled=false`, `details_submitted=false`).                                  | Aucun paiement live fiable ou légalement attribuable.                                  | KYC, coordonnées légales/bancaires, support et descriptor validés, puis catalogue/portail/webhook live reproduits. |
+| P0       | Resend n'est pas encore isolé entre Preview et Production ; le client Google OAuth reste partagé malgré les callbacks séparés. | Emails ou OAuth susceptibles de croiser les environnements.                            | Ressources et secrets dédiés, audit d'identifiants vert et rotation des valeurs partagées.                         |
+| P0       | AIPD, DPA/transferts, registre, durées de conservation, HDS et TVA n'ont pas de validation écrite.                             | Mise en ligne de données sensibles et IA juridiquement non validée.                    | Avis juridique/comptable écrit et textes publics alignés sur les décisions.                                        |
+| P0       | La restauration depuis une sauvegarde et les alertes opérationnelles ne sont pas prouvées de bout en bout.                     | Défaillance silencieuse de base, auth, webhook, cron, export ou suppression.           | Restauration chronométrée, alertes déclenchées volontairement, runbooks éprouvés et smoke prod signé.              |
+| P1       | La CSP conserve `'unsafe-inline'` pour les scripts Next/Stripe.                                                                | Surface XSS plus large que la cible finale.                                            | Nonces/hashes compatibles Next et Stripe validés sans régression E2E.                                              |
+| P1       | Les scénarios Stripe Test Clocks et la réconciliation avec alertes ne sont pas encore automatisés.                             | Essai, grâce, paiement échoué et événements hors ordre non prouvés de bout en bout.    | Matrice Test Clocks verte et alerte de divergence observée.                                                        |
+| P1       | Le corpus IA synthétique est techniquement vert, mais la validation humaine et la gate juridique ne sont pas signées.          | Risque de sortie inadaptée et de transfert non autorisé malgré les filtres techniques. | AIPD/DPA, revue compétente des scénarios, texte de consentement et bêta interne signés.                            |
 
 Aucun domaine ne passe encore au statut `Prod prouvé` : les migrations live,
 la suite locale et la Preview sont solides, mais les gates Stripe live,
