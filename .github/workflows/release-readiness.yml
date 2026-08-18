@@ -62,7 +62,6 @@ jobs:
     env:
       NODE_ENV: test
       BACKUP_RESTORE_ACK: local-disposable
-      BACKUP_RESTORE_CONTAINER: ${{ job.services.postgres.id }}
       BACKUP_RESTORE_SOURCE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-backup@localhost:5432/moodday_backup_source_ci
       BACKUP_RESTORE_DESTINATION_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-moodday-backup@localhost:5432/moodday_backup_restore_ci
     services:
@@ -90,6 +89,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Rehearse logical backup and isolated restore
+        env:
+          BACKUP_RESTORE_CONTAINER: ${{ job.services.postgres.id }}
         run: pnpm verify:backup-restore
 
   database-integrity:
