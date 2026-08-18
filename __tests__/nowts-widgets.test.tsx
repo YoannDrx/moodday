@@ -164,7 +164,13 @@ describe("Moodday product widgets", () => {
         <BenefitRating value={2} onChange={onRatingChange} size="lg" />
       </div>,
     );
-    fireEvent.click(screen.getByRole("slider"));
+    const slider = screen.getByRole("slider");
+    expect(slider).not.toHaveAttribute("aria-label");
+    expect(slider.querySelector("[aria-label]")).toHaveAttribute(
+      "aria-label",
+      "mood.slider.currentValueAria",
+    );
+    fireEvent.click(slider);
     fireEvent.click(screen.getByText("tag:sleep"));
     fireEvent.click(screen.getByText("tag:work"));
     const stars = screen.getAllByRole("button").slice(-5);

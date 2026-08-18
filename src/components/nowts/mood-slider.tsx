@@ -109,7 +109,6 @@ export function MoodSlider({
           "relative flex w-full touch-none items-center select-none",
           disabled && "cursor-not-allowed opacity-50",
         )}
-        aria-label={t("mood.slider.aria")}
       >
         <SliderPrimitive.Track className="relative h-3 w-full grow overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <SliderPrimitive.Range
