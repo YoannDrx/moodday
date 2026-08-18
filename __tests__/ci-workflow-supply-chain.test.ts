@@ -61,7 +61,7 @@ describe("CI workflow supply chain", () => {
     );
     const allowedAdvisories = [
       ...workflow.matchAll(/^\s*allow-ghsas:\s*(.+)$/gm),
-    ].map((match) => match[1]?.trim());
+    ].map((match) => match[1].trim());
 
     expect(allowedAdvisories).toEqual(["GHSA-jmr9-qjv8-65gv"]);
     expect(workflow).toContain("pnpm test:coverage:release");
