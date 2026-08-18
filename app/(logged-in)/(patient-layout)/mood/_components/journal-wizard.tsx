@@ -492,7 +492,7 @@ export function JournalWizard({
             <div className="p-8">
               {/* Step 1: Mood & Energy */}
               {step === 1 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-10 duration-300">
+                <div className="animate-in slide-in-from-right-4 space-y-10 duration-300">
                   {/* Emoji indicator */}
                   <div className="flex justify-center">
                     <div className="rounded-2xl bg-gray-50 p-4">
@@ -586,7 +586,7 @@ export function JournalWizard({
 
               {/* Step 2: Sleep */}
               {step === 2 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
+                <div className="animate-in slide-in-from-right-4 space-y-8 duration-300">
                   {/* Sleep duration */}
                   <div className="flex flex-col items-center gap-4 rounded-2xl bg-gray-50 p-6">
                     <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
@@ -684,7 +684,7 @@ export function JournalWizard({
 
               {/* Step 3: Medications */}
               {step === 3 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
+                <div className="animate-in slide-in-from-right-4 space-y-6 duration-300">
                   {medicationsLoading ? (
                     <div className="space-y-3">
                       <Skeleton className="h-16 rounded-xl" />
@@ -785,7 +785,7 @@ export function JournalWizard({
 
               {/* Step 4: Symptoms & Events */}
               {step === 4 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
+                <div className="animate-in slide-in-from-right-4 space-y-8 duration-300">
                   {/* Symptoms */}
                   <div className="space-y-3">
                     <label className="block text-xs font-bold tracking-widest text-gray-400 uppercase">
@@ -875,7 +875,7 @@ export function JournalWizard({
 
               {/* Step 5: Notes & Summary */}
               {step === 5 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
+                <div className="animate-in slide-in-from-right-4 space-y-6 duration-300">
                   <div className="overflow-hidden rounded-xl border border-gray-100">
                     <textarea
                       value={entry.notes}

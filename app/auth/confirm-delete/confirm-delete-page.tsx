@@ -21,7 +21,7 @@ import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function ConfirmDeletePage({
@@ -34,6 +34,7 @@ export function ConfirmDeletePage({
   const router = useRouter();
   const { t } = useI18n();
   const { data: session } = useSession();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,11 +56,14 @@ export function ConfirmDeletePage({
       return result;
     },
     onError: (error) => {
+      setIsLoading(false);
       setError(error.message);
       toast.error(error.message);
     },
     onSuccess: () => window.location.replace(callbackUrl),
   });
+
+  useEffect(() => setIsHydrated(true), []);
 
   const handleConfirmDelete = () => {
     setIsLoading(true);
@@ -100,11 +104,19 @@ export function ConfirmDeletePage({
             loading={isLoading || confirmDeleteMutation.isPending}
             variant="destructive"
             onClick={handleConfirmDelete}
-            className="flex-1"
+            disabled={
+              !isHydrated || isLoading || confirmDeleteMutation.isPending
+            }
+            className="flex-1 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
           >
             {t("auth.confirmDelete.confirm")}
           </LoadingButton>
-          <Button variant="outline" onClick={handleCancel} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={!isHydrated || confirmDeleteMutation.isPending}
+            className="flex-1"
+          >
             {t("actions.cancel")}
           </Button>
         </div>
