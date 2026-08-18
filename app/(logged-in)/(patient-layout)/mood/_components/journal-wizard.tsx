@@ -26,6 +26,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   symptomLabels,
@@ -41,6 +42,7 @@ import {
 } from "@/features/medication/medication.action";
 import { queueMoodEntry } from "@/features/pwa/offline-queue";
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import { useSession } from "@/lib/auth-client";
 import { getAiJournalInsight } from "@/features/insights/ai-insight.action";
 import { useI18n } from "@/i18n/provider";
 
@@ -63,6 +65,27 @@ type TodayMedication = {
   dosage: string;
   frequency: string;
   intakes: { id: string; skipped: boolean }[];
+};
+
+type CustomTag = {
+  id: string;
+  displayLabel: string;
+  category: "context" | "trigger" | "protective";
+  color: string | null;
+};
+
+type AiTransparency = {
+  generatedAt: string;
+  date: string;
+  dataFields: (
+    | "mood"
+    | "energy"
+    | "anxiety"
+    | "sleepHours"
+    | "sleepQuality"
+    | "tags"
+    | "journalNotes"
+  )[];
 };
 
 const initialEntry: JournalEntry = {
@@ -97,15 +120,29 @@ const steps = [
   { id: 5, icon: Feather, color: "var(--sage)" },
 ];
 
-export function JournalWizard() {
+export function JournalWizard({
+  aiAvailable,
+  customTags,
+}: {
+  aiAvailable: boolean;
+  customTags: CustomTag[];
+}) {
+  const { data: session } = useSession();
+  const offlineOwnerId = session?.user.id ?? "";
   const { t, locale } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const maxStep = 5;
   const [entry, setEntry] = useState<JournalEntry>(initialEntry);
   const [isSaving, setIsSaving] = useState(false);
+  const [includeNotesInInsight, setIncludeNotesInInsight] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [aiSource, setAiSource] = useState<"ai" | "heuristic" | null>(null);
+  const [aiSource, setAiSource] = useState<
+    "ai" | "heuristic" | "safety" | null
+  >(null);
+  const [aiTransparency, setAiTransparency] = useState<AiTransparency | null>(
+    null,
+  );
   const [insightRequested, setInsightRequested] = useState(false);
 
   // Get today's date formatted
@@ -143,6 +180,27 @@ export function JournalWizard() {
     } else {
       setEntry({ ...entry, events: [...entry.events, event] });
     }
+  };
+
+  const toggleCustomTag = (tag: CustomTag) => {
+    const target = tag.category === "trigger" ? "symptoms" : "events";
+    const selected = entry[target];
+    if (selected.includes(tag.displayLabel)) {
+      setEntry({
+        ...entry,
+        [target]: selected.filter((value) => value !== tag.displayLabel),
+      });
+      return;
+    }
+    if (entry.symptoms.length + entry.events.length >= 20) {
+      toast.error(
+        locale === "fr"
+          ? "Vous pouvez sélectionner jusqu’à 20 tags."
+          : "You can select up to 20 tags.",
+      );
+      return;
+    }
+    setEntry({ ...entry, [target]: [...selected, tag.displayLabel] });
   };
 
   const toggleSleepDisturbance = (disturbance: string) => {
@@ -226,7 +284,7 @@ export function JournalWizard() {
       };
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueMoodEntry(payload);
+        await queueMoodEntry(offlineOwnerId, payload);
         toast.success(t("mood.entry.offlineSaved"));
         router.push("/dashboard");
         return;
@@ -261,10 +319,16 @@ export function JournalWizard() {
       onSuccess: (result) => {
         setAiInsight(result.data.message);
         setAiSource(result.data.source);
+        setAiTransparency(
+          "transparency" in result.data
+            ? (result.data.transparency ?? null)
+            : null,
+        );
       },
       onError: () => {
         setAiInsight(fallbackInsight);
         setAiSource("heuristic");
+        setAiTransparency(null);
       },
     },
   );
@@ -286,8 +350,22 @@ export function JournalWizard() {
       sleepQuality: entry.sleepQuality,
       notes: entry.notes,
       tags: [...entry.symptoms, ...entry.events],
+      includeJournalNotes: aiAvailable && includeNotesInInsight,
     });
-  }, [step, maxStep, insightRequested, fetchInsight, entry]);
+  }, [
+    step,
+    maxStep,
+    insightRequested,
+    fetchInsight,
+    entry,
+    includeNotesInInsight,
+    aiAvailable,
+  ]);
+
+  const handleInsightNotesChange = (checked: boolean) => {
+    setIncludeNotesInInsight(checked);
+    setInsightRequested(false);
+  };
 
   const insightText =
     insightStatus === "executing"
@@ -341,6 +419,7 @@ export function JournalWizard() {
                 <div key={s.id} className="flex items-center">
                   {/* Step circle */}
                   <button
+                    aria-label={`${locale === "fr" ? "Étape" : "Step"} ${s.id}`}
                     onClick={() => setStep(s.id)}
                     className={cn(
                       "flex size-10 items-center justify-center rounded-full border-2 transition-all duration-300",
@@ -392,7 +471,7 @@ export function JournalWizard() {
                   />
                 </div>
                 <div>
-                  <p className="text-xs font-bold tracking-widest text-gray-400 uppercase">
+                  <p className="text-xs font-bold tracking-widest text-gray-600 uppercase">
                     {t("mood.journal.stepLabel", {
                       current: step,
                       total: maxStep,
@@ -424,7 +503,10 @@ export function JournalWizard() {
                   {/* Mood Slider */}
                   <div className="space-y-4">
                     <div className="flex items-end justify-between">
-                      <label className="font-bold text-gray-700">
+                      <label
+                        htmlFor="mood-range"
+                        className="font-bold text-gray-700"
+                      >
                         {t("mood.journal.step1.moodLabel")}
                       </label>
                       <span className="text-2xl font-black text-[var(--primary)]">
@@ -432,6 +514,7 @@ export function JournalWizard() {
                       </span>
                     </div>
                     <input
+                      id="mood-range"
                       type="range"
                       min="1"
                       max="10"
@@ -441,7 +524,7 @@ export function JournalWizard() {
                       }
                       className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-100 accent-[var(--primary)]"
                     />
-                    <div className="flex justify-between text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                    <div className="flex justify-between text-[10px] font-bold tracking-widest text-gray-600 uppercase">
                       <span>{t("mood.journal.step1.moodScale.low")}</span>
                       <span>{t("mood.journal.step1.moodScale.high")}</span>
                     </div>
@@ -450,7 +533,10 @@ export function JournalWizard() {
                   {/* Energy Slider */}
                   <div className="space-y-4">
                     <div className="flex items-end justify-between">
-                      <label className="font-bold text-gray-700">
+                      <label
+                        htmlFor="energy-range"
+                        className="font-bold text-gray-700"
+                      >
                         {t("mood.journal.step1.energyLabel")}
                       </label>
                       <span className="text-2xl font-black text-[var(--sage)]">
@@ -458,6 +544,7 @@ export function JournalWizard() {
                       </span>
                     </div>
                     <input
+                      id="energy-range"
                       type="range"
                       min="1"
                       max="10"
@@ -472,7 +559,10 @@ export function JournalWizard() {
                   {/* Anxiety Slider */}
                   <div className="space-y-4">
                     <div className="flex items-end justify-between">
-                      <label className="font-bold text-gray-700">
+                      <label
+                        htmlFor="anxiety-range"
+                        className="font-bold text-gray-700"
+                      >
                         {t("mood.journal.step1.anxietyLabel")}
                       </label>
                       <span className="text-2xl font-black text-red-500">
@@ -480,6 +570,7 @@ export function JournalWizard() {
                       </span>
                     </div>
                     <input
+                      id="anxiety-range"
                       type="range"
                       min="1"
                       max="10"
@@ -740,6 +831,45 @@ export function JournalWizard() {
                       ))}
                     </div>
                   </div>
+
+                  {customTags.length > 0 ? (
+                    <div className="space-y-3">
+                      <label className="block text-xs font-bold tracking-widest text-gray-400 uppercase">
+                        {locale === "fr"
+                          ? "Mes tags personnalisés"
+                          : "My custom tags"}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {customTags.map((tag) => {
+                          const selected =
+                            tag.category === "trigger"
+                              ? entry.symptoms.includes(tag.displayLabel)
+                              : entry.events.includes(tag.displayLabel);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => toggleCustomTag(tag)}
+                              className={cn(
+                                "rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                                selected
+                                  ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+                              )}
+                              style={
+                                selected || !tag.color
+                                  ? undefined
+                                  : { borderColor: tag.color }
+                              }
+                            >
+                              {tag.displayLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
 
@@ -766,6 +896,25 @@ export function JournalWizard() {
                     </div>
                   </div>
 
+                  {aiAvailable ? (
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">
+                          {t("mood.journal.insight.includeNotes")}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t("mood.journal.insight.includeNotesDescription")}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={includeNotesInInsight}
+                        disabled={entry.notes.trim().length === 0}
+                        onCheckedChange={handleInsightNotesChange}
+                        aria-label={t("mood.journal.insight.includeNotes")}
+                      />
+                    </div>
+                  ) : null}
+
                   {/* AI Insight */}
                   <div className="flex gap-4 rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
@@ -778,6 +927,48 @@ export function JournalWizard() {
                       <p className="text-sm leading-relaxed text-gray-600">
                         {insightText}
                       </p>
+                      {aiSource === "ai" ? (
+                        <div className="mt-3 space-y-1 text-xs leading-relaxed text-gray-500">
+                          <p>{t("mood.journal.insight.aiDisclaimer")}</p>
+                          {aiTransparency ? (
+                            <>
+                              <p>
+                                {t("mood.journal.insight.generatedAt", {
+                                  date: new Intl.DateTimeFormat(locale, {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  }).format(
+                                    new Date(aiTransparency.generatedAt),
+                                  ),
+                                })}
+                              </p>
+                              <p>
+                                {t("mood.journal.insight.dataUsed", {
+                                  fields: aiTransparency.dataFields
+                                    .map((field) =>
+                                      t(
+                                        `mood.journal.insight.metrics.${field}`,
+                                      ),
+                                    )
+                                    .join(", "),
+                                })}
+                              </p>
+                            </>
+                          ) : null}
+                          <p>
+                            <Link
+                              className="underline"
+                              href="/settings/privacy"
+                            >
+                              {t("mood.journal.insight.disableAi")}
+                            </Link>{" "}
+                            ·{" "}
+                            <Link className="underline" href="/legal/privacy">
+                              {t("mood.journal.insight.privacy")}
+                            </Link>
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

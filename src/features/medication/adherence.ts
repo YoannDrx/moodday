@@ -1,23 +1,57 @@
-const DAY_IN_MS = 1000 * 60 * 60 * 24;
+import {
+  enumerateCivilDateKeys,
+  getCivilWeekday,
+  getDateKeyForTimeZone,
+} from "@/lib/temporal/civil-date";
 
-export type MedicationWithIntakes = {
+export type MedicationIntakeForAdherence = {
+  id?: string;
+  scheduledForDate: string | null;
+  doseIndex: number | null;
+  skipped: boolean;
+  takenAt?: Date;
+};
+
+export type MedicationScheduleForAdherence = {
+  effectiveDate: string;
   frequency: string;
-  intakes: unknown[];
+  weeklyDay: number | null;
+  scheduleTimes: string[];
 };
 
-export const getInclusiveDayCount = (start: Date, end: Date) => {
-  const startDay = new Date(start);
-  startDay.setHours(0, 0, 0, 0);
-
-  const endDay = new Date(end);
-  endDay.setHours(0, 0, 0, 0);
-
-  return Math.max(0, Math.floor((endDay.getTime() - startDay.getTime()) / DAY_IN_MS) + 1);
+export type MedicationForAdherence = {
+  id: string;
+  frequency: string;
+  isPRN?: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  weeklyDay: number | null;
+  scheduleTimes: string[];
+  intakes: MedicationIntakeForAdherence[];
+  scheduleRevisions: MedicationScheduleForAdherence[];
 };
 
-export const getExpectedDosesForFrequency = (frequency: string, days: number) => {
+export type MedicationAdherenceResult = {
+  expectedDoses: number;
+  takenDoses: number;
+  percent: number | null;
+};
+
+export const getInclusiveDayCount = (
+  start: Date,
+  end: Date,
+  timeZone?: string | null,
+) =>
+  enumerateCivilDateKeys(
+    getDateKeyForTimeZone(start, timeZone),
+    getDateKeyForTimeZone(end, timeZone),
+  ).length;
+
+export const getExpectedDosesForFrequency = (
+  frequency: string,
+  days: number,
+) => {
   if (days <= 0 || frequency === "prn") return 0;
-
   switch (frequency) {
     case "twice_daily":
       return days * 2;
@@ -39,8 +73,9 @@ export const getExpectedDosesForMedications = (
     0,
   );
 
+/** Legacy aggregate retained for old callers while they migrate to civil dates. */
 export const calculateAdherencePercent = (
-  medications: MedicationWithIntakes[],
+  medications: { frequency: string; intakes: unknown[] }[],
   days: number,
 ) => {
   const expected = getExpectedDosesForMedications(medications, days);
@@ -48,6 +83,109 @@ export const calculateAdherencePercent = (
     (sum, medication) => sum + medication.intakes.length,
     0,
   );
+  return expected > 0
+    ? Math.min(100, Math.round((taken / expected) * 100))
+    : null;
+};
 
-  return expected > 0 ? Math.min(100, Math.round((taken / expected) * 100)) : null;
+const getScheduleForDate = (
+  medication: MedicationForAdherence,
+  dateKey: string,
+) => {
+  const applicableRevision = [...medication.scheduleRevisions]
+    .filter((revision) => revision.effectiveDate <= dateKey)
+    .sort((left, right) =>
+      right.effectiveDate.localeCompare(left.effectiveDate),
+    )
+    .at(0);
+  return (
+    applicableRevision ?? {
+      effectiveDate: medication.startDate ?? dateKey,
+      frequency: medication.frequency,
+      weeklyDay: medication.weeklyDay,
+      scheduleTimes: medication.scheduleTimes,
+    }
+  );
+};
+
+const getExpectedDoseIndices = (
+  schedule: MedicationScheduleForAdherence,
+  dateKey: string,
+) => {
+  switch (schedule.frequency) {
+    case "prn":
+      return [];
+    case "twice_daily":
+      return [0, 1];
+    case "weekly":
+      return schedule.weeklyDay === getCivilWeekday(dateKey) ? [0] : [];
+    case "daily":
+    default:
+      return [0];
+  }
+};
+
+export const calculateMedicationAdherence = ({
+  medications,
+  startDate,
+  endDate,
+  todayDate,
+}: {
+  medications: MedicationForAdherence[];
+  startDate: string;
+  endDate: string;
+  todayDate: string;
+}): MedicationAdherenceResult => {
+  const effectiveEndDate = endDate < todayDate ? endDate : todayDate;
+  if (startDate > effectiveEndDate) {
+    return { expectedDoses: 0, takenDoses: 0, percent: null };
+  }
+
+  let expectedDoses = 0;
+  let takenDoses = 0;
+
+  for (const medication of medications) {
+    if (medication.isPRN || medication.frequency === "prn") continue;
+    const medicationStart =
+      medication.startDate && medication.startDate > startDate
+        ? medication.startDate
+        : startDate;
+    const medicationEnd =
+      medication.endDate && medication.endDate < effectiveEndDate
+        ? medication.endDate
+        : effectiveEndDate;
+    if (medicationStart > medicationEnd) continue;
+
+    const takenKeys = new Set(
+      medication.intakes
+        .filter(
+          (intake) =>
+            !intake.skipped &&
+            intake.scheduledForDate !== null &&
+            intake.scheduledForDate >= medicationStart &&
+            intake.scheduledForDate <= medicationEnd,
+        )
+        .map((intake) => `${intake.scheduledForDate}:${intake.doseIndex ?? 0}`),
+    );
+
+    for (const dateKey of enumerateCivilDateKeys(
+      medicationStart,
+      medicationEnd,
+    )) {
+      const schedule = getScheduleForDate(medication, dateKey);
+      for (const doseIndex of getExpectedDoseIndices(schedule, dateKey)) {
+        expectedDoses += 1;
+        if (takenKeys.has(`${dateKey}:${doseIndex}`)) takenDoses += 1;
+      }
+    }
+  }
+
+  return {
+    expectedDoses,
+    takenDoses,
+    percent:
+      expectedDoses === 0
+        ? null
+        : Math.min(100, Math.round((takenDoses / expectedDoses) * 100)),
+  };
 };

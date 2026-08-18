@@ -1,4 +1,4 @@
-const CACHE_NAME = "moodday-cache-v3";
+const CACHE_NAME = "moodday-cache-v5";
 const OFFLINE_URL = "/offline";
 const PRECACHE_ASSETS = [
   OFFLINE_URL,
@@ -40,25 +40,31 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
 
-  // Ne pas intercepter les requêtes de navigation (pages HTML)
-  // pour éviter les problèmes de redirection (auth, etc.)
-  if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
-    return;
-  }
-
-  // Session, API and React Server Component responses are user-specific.
-  // They must never be persisted in the shared HTTP cache.
+  // Authenticated/API/framework requests are never handled by the worker,
+  // including top-level POST navigations such as the logout endpoint.
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/_next/") ||
     url.pathname.startsWith("/auth/") ||
     url.pathname.startsWith("/invite/")
   ) {
-    event.respondWith(fetch(request));
     return;
   }
 
+  // Only the explicit offline page is served by the worker. Application
+  // navigations, redirects and authenticated pages always use the browser's
+  // native network stack.
+  if (request.mode === "navigate") {
+    if (url.pathname === OFFLINE_URL) {
+      event.respondWith(
+        caches.match(OFFLINE_URL).then((cached) => cached || fetch(request)),
+      );
+    }
+    return;
+  }
+
+  // Session, API and React Server Component responses are user-specific.
+  // They must never be persisted in the shared HTTP cache.
   const acceptHeader = request.headers.get("accept") || "";
   const isRscRequest =
     acceptHeader.includes("text/x-component") ||
@@ -66,7 +72,6 @@ self.addEventListener("fetch", (event) => {
     request.headers.get("rsc") === "1" ||
     request.url.includes("__rsc");
   if (isRscRequest) {
-    event.respondWith(fetch(request));
     return;
   }
 
@@ -78,7 +83,6 @@ self.addEventListener("fetch", (event) => {
     url.pathname === "/manifest.webmanifest";
 
   if (!isCacheableStaticAsset) {
-    event.respondWith(fetch(request));
     return;
   }
 
@@ -89,10 +93,7 @@ self.addEventListener("fetch", (event) => {
       return fetch(request)
         .then((response) => {
           const responseClone = response.clone();
-          if (
-            response.status === 200 &&
-            response.type !== "opaque"
-          ) {
+          if (response.status === 200 && response.type !== "opaque") {
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone).catch(() => undefined);
             });
@@ -122,11 +123,13 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        client.postMessage({ type: "PUSH_SUBSCRIPTION_CHANGED" });
-      }
-    }),
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          client.postMessage({ type: "PUSH_SUBSCRIPTION_CHANGED" });
+        }
+      }),
   );
 });
 
@@ -138,7 +141,8 @@ self.addEventListener("notificationclick", (event) => {
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         const targetUrl =
-          event.notification?.data?.url && typeof event.notification.data.url === "string"
+          event.notification?.data?.url &&
+          typeof event.notification.data.url === "string"
             ? event.notification.data.url
             : "/";
         if (clientList.length > 0) {

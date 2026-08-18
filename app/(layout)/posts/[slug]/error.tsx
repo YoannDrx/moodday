@@ -12,7 +12,12 @@ export default function RouteError({ error, reset }: ErrorParams) {
   const { t } = useI18n();
 
   useEffect(() => {
-    logger.error(error);
+    logger.error("Public content route rendering failed", {
+      eventName: "public_content_render_failed",
+      status: "failed",
+      errorCode: error.name || "render_error",
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

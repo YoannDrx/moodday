@@ -1,5 +1,6 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 import { SubscriptionContent } from "./_components/subscription-content";
 
@@ -12,5 +13,6 @@ export const generateMetadata = combineWithParentMetadata(async () => {
 });
 
 export default function SubscriptionPage() {
-  return <SubscriptionContent />;
+  const billingEnabled = getFeatureAvailability("billing").enabled;
+  return <SubscriptionContent billingEnabled={billingEnabled} />;
 }

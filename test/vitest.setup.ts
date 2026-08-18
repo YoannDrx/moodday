@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { PrismaClient } from "@/generated/prisma";
+import type { PrismaClient } from "@prisma/client";
 import type { AuthClientType } from "@/lib/auth-client";
 import { cleanup } from "@testing-library/react";
 import { fetch } from "cross-fetch";
@@ -106,6 +106,14 @@ vi.mock("next/navigation", async () => {
 
   return {
     ...actual,
+    useRouter: vi.fn().mockReturnValue({
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      prefetch: vi.fn(),
+    }),
     useSearchParams: vi.fn().mockReturnValue(createMockSearchParams()),
     readonlySearchParamsHook: vi.fn().mockReturnValue(createMockSearchParams()),
   };
@@ -124,6 +132,7 @@ vi.mock("@/lib/mail/resend", () => ({ resend }));
 vi.mock("@/lib/env", () => ({ env: {} }));
 vi.mock("@/lib/auth/auth-user", () => ({
   getUser: vi.fn(),
+  getAuthorizedApiUser: vi.fn(),
   getRequiredUser: vi.fn(),
 }));
 vi.mock("@/lib/organizations/get-org", () => ({
@@ -171,7 +180,8 @@ vi.mock("@/i18n/provider", () => {
           nameRequired: "Name is required",
           emailInvalid: "Invalid email address",
           passwordMin: "Password must be at least 8 characters",
-          verifyPasswordMin: "Password confirmation must be at least 8 characters",
+          verifyPasswordMin:
+            "Password confirmation must be at least 8 characters",
           passwordMismatch: "Password does not match",
         },
       },

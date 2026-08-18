@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Bell,
   Check,
   ChevronRight,
   Circle,
@@ -33,18 +32,12 @@ import {
   GlassCardTitle,
 } from "@/components/nowts/glass-card";
 import { MoodSlider } from "@/components/nowts/mood-slider";
-import { StreakCard } from "@/components/nowts/streak-card";
-import { MoodChart } from "@/components/nowts/mood-chart";
-import { PageLayout } from "@/components/nowts/page-layout";
-import {
-  deleteMoodEntry,
-  saveMoodEntry,
-} from "@/features/mood/mood.action";
+import { LazyMoodChart } from "@/components/nowts/lazy-mood-chart";
+import { deleteMoodEntry, saveMoodEntry } from "@/features/mood/mood.action";
 import {
   getDashboardSummary,
   getMoodChartData,
   getPatternInsights,
-  getStreakData,
 } from "@/features/insights/insights.action";
 import {
   getTodayIntakes,
@@ -65,10 +58,6 @@ import {
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 import type { DoseSlotStatus } from "@/features/medication/schedule";
 
-type DashboardContentProps = {
-  userName: string;
-};
-
 type DashboardDoseSlot = {
   id: string;
   doseIndex: number;
@@ -78,14 +67,14 @@ type DashboardDoseSlot = {
   status: DoseSlotStatus;
 };
 
-export function DashboardContent({ userName }: DashboardContentProps) {
-  const { t, locale } = useI18n();
+export function DashboardContent({ ownerId: initialOwnerId }: { ownerId: string }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [currentMood, setCurrentMood] = useState(7);
   const [currentEnergy, setCurrentEnergy] = useState(5);
   const [hasQueuedMood, setHasQueuedMood] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isOnline, queuedCount } = useOfflineStatus();
+  const { isOnline, queuedCount, ownerId } = useOfflineStatus(initialOwnerId);
   const showSaveError = (error: unknown) =>
     toast.error(
       getOfflineStorageErrorMessage(error, {
@@ -117,16 +106,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     queryKey: ["pattern-insights"],
     queryFn: async () => {
       const result = await getPatternInsights();
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data;
-    },
-  });
-
-  // Fetch streak data
-  const { data: streakData, isLoading: streakLoading } = useQuery({
-    queryKey: ["streak-data"],
-    queryFn: async () => {
-      const result = await getStreakData();
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
     },
@@ -174,7 +153,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
       const takenAt = new Date().toISOString();
       if (!isOnline) {
-        await queueAction({
+        await queueAction(ownerId ?? "", {
           type: "med_intake",
           medicationId,
           doseIndex,
@@ -215,7 +194,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     try {
       const takenAt = new Date().toISOString();
       if (!isOnline) {
-        await queueAction({
+        await queueAction(ownerId ?? "", {
           type: "med_skip",
           medicationId,
           doseIndex,
@@ -243,23 +222,12 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     }
   };
 
-  // Get today's date formatted
-  const today = new Date().toLocaleDateString(
-    locale === "fr" ? "fr-FR" : "en-US",
-    {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    },
-  );
-
   // Handle mood save
   const handleSaveMood = async () => {
     setIsSaving(true);
     try {
       if (!isOnline) {
-        const queuedEntry = await queueMoodEntry({
+        const queuedEntry = await queueMoodEntry(ownerId ?? "", {
           value: currentMood,
           energy: currentEnergy,
         });
@@ -269,7 +237,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
           action: {
             label: t("mood.entry.undo"),
             onClick: () => {
-              void discardQueuedMoodEntry(queuedEntry.id)
+              void discardQueuedMoodEntry(ownerId ?? "", queuedEntry.id)
                 .then(() => {
                   setHasQueuedMood(false);
                   toast.success(t("mood.entry.undone"));
@@ -327,7 +295,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] }),
         queryClient.invalidateQueries({ queryKey: ["mood-chart"] }),
-        queryClient.invalidateQueries({ queryKey: ["streak-data"] }),
         queryClient.invalidateQueries({ queryKey: ["pattern-insights"] }),
       ]);
     } catch (error) {
@@ -351,22 +318,10 @@ export function DashboardContent({ userName }: DashboardContentProps) {
   const pendingMedicationCount = medicationDoseSlots.filter(
     ({ slot }) => slot.status === "pending",
   ).length;
-  const hasMoodToday = hasQueuedMood || (streakData?.hasEntryToday ?? false);
+  const hasMoodToday = hasQueuedMood || (summary?.mood.hasEntryToday ?? false);
 
   return (
-    <PageLayout
-      title={t("dashboard.greeting", { name: userName.split(" ")[0] })}
-      subtitle={t("dashboard.today", { date: today })}
-      headerRight={
-        <Link
-          href="/settings/notifications"
-          aria-label={t("settings.sidebar.notifications")}
-          className="glass-card flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]"
-        >
-          <Bell className="size-6" />
-        </Link>
-      }
-    >
+    <>
       {(!isOnline || queuedCount > 0) && (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
           <WifiOff className="size-5 shrink-0" />
@@ -490,7 +445,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                     </label>
                     <output
                       htmlFor="quick-check-in-energy"
-                      className="min-w-12 rounded-full bg-[var(--sage)]/10 px-3 py-1 text-center text-sm font-bold text-[var(--sage)] tabular-nums"
+                      className="min-w-12 rounded-full bg-[var(--sage)]/10 px-3 py-1 text-center text-sm font-bold text-[var(--sage-dark)] tabular-nums"
                     >
                       {t("dashboard.quickMood.energyValue", {
                         value: currentEnergy,
@@ -610,7 +565,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                             >
                               {medication.name}
                             </p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-gray-600">
                               {medication.dosage} • {t(slot.labelKey)}
                               {slot.scheduledTime
                                 ? ` ${slot.scheduledTime}`
@@ -637,7 +592,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                                   scheduledForDate: slot.scheduledForDate,
                                 });
                               }}
-                              className="rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                              className="rounded-lg px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                             >
                               {t("medication.intake.skipDose")}
                             </button>
@@ -647,11 +602,11 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                       );
                     })
                 ) : (
-                  <div className="py-4 text-center text-sm text-gray-400">
+                  <div className="py-4 text-center text-sm text-gray-600">
                     {t("dashboard.medications.empty")}{" "}
                     <Link
                       href="/medications/new"
-                      className="text-[var(--primary)] hover:underline"
+                      className="text-[var(--primary)] underline underline-offset-2"
                     >
                       {t("medication.list.addNew")}
                     </Link>
@@ -711,7 +666,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                     </p>
                   </>
                 ) : (
-                  <p className="text-gray-400">{t("dashboard.sleep.noData")}</p>
+                  <p className="text-gray-600">{t("dashboard.sleep.noData")}</p>
                 )}
               </div>
 
@@ -774,7 +729,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
             {chartLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : (
-              <MoodChart
+              <LazyMoodChart
                 moodEntries={chartData?.moodEntries ?? []}
                 dosageChanges={chartData?.dosageChanges ?? []}
                 height={200}
@@ -786,17 +741,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
         {/* Right Column: Sidebar Stats & Caregivers */}
         <div className="space-y-8 lg:col-span-4">
-          {/* Streak Card */}
-          {streakLoading || !streakData ? (
-            <Skeleton className="h-48 w-full rounded-[32px]" />
-          ) : (
-            <StreakCard
-              streakDays={streakData.streakDays}
-              weekProgress={streakData.weekProgress as (0 | 1)[]}
-              subtitle={streakData.subtitle}
-            />
-          )}
-
           {/* Insights Section */}
           <GlassCard padding="md" variant="elevated">
             <GlassCardHeader>
@@ -840,7 +784,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
             <Link
               href="/trends"
-              className="mt-6 flex w-full items-center justify-center rounded-xl border border-dashed border-gray-200 py-3 text-xs font-bold text-gray-400 uppercase transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              className="mt-6 flex w-full items-center justify-center rounded-xl border border-dashed border-gray-300 py-3 text-xs font-bold text-gray-600 uppercase transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >
               {t("dashboard.insights.viewMore")}
             </Link>
@@ -856,6 +800,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
               </GlassCardTitle>
               <Link
                 href="/caregiver"
+                aria-label={t("dashboard.caregivers.open")}
                 className="text-[var(--primary)] transition-colors hover:text-[var(--primary-dark)]"
               >
                 <PlusCircle className="size-5" />
@@ -898,7 +843,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                       </div>
                       <div className="flex-grow">
                         <p className="text-sm font-bold">{displayName}</p>
-                        <p className="text-[10px] font-medium text-gray-400">
+                        <p className="text-[10px] font-medium text-gray-600">
                           {statusLabel}
                         </p>
                       </div>
@@ -913,7 +858,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
                   );
                 })
               ) : (
-                <div className="py-3 text-center text-sm text-gray-400">
+                <div className="py-3 text-center text-sm text-gray-600">
                   {t("dashboard.caregivers.empty")}
                 </div>
               )}
@@ -921,6 +866,6 @@ export function DashboardContent({ userName }: DashboardContentProps) {
           </GlassCard>
         </div>
       </div>
-    </PageLayout>
+    </>
   );
 }

@@ -1,9 +1,9 @@
-import type { Prisma } from "@/generated/prisma";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { pretty, render } from "@react-email/render";
+import { pretty, render } from "react-email";
 import { nanoid } from "nanoid";
+import { getOperationalIdentifier } from "@/lib/operations/log-identifiers";
 import { resendMailAdapter } from "./resend";
 
 type EmailParams = {
@@ -56,7 +56,6 @@ const mailAdapter: MailAdapter = resendMailAdapter;
 type EmailTrackingParams = {
   template: string;
   userId?: string;
-  metadata?: Prisma.InputJsonValue;
 };
 
 type SendEmailParams = Omit<EmailParams, "from" | "html"> & {
@@ -78,9 +77,9 @@ export const sendEmail = async (params: SendEmailParams) => {
       ? emailParams.to.some((to) => to.startsWith("playwright-test-"))
       : emailParams.to.startsWith("playwright-test-")
   ) {
-    logger.info("[sendEmail] Sending email to playwright-test", {
-      subject: emailParams.subject,
-      to: emailParams.to,
+    logger.info("Email delivery skipped for isolated browser test", {
+      eventName: "email_delivery_test_skipped",
+      status: "succeeded",
     });
 
     return {
@@ -107,7 +106,11 @@ export const sendEmail = async (params: SendEmailParams) => {
   });
 
   if (result.error) {
-    logger.error("[sendEmail] Error", { result, subject: emailParams.subject });
+    logger.error("Email delivery failed", {
+      eventName: "email_delivery_failed",
+      status: "failed",
+      errorCode: result.error.name,
+    });
   }
 
   // Log to database if tracking is enabled
@@ -120,17 +123,25 @@ export const sendEmail = async (params: SendEmailParams) => {
       await prisma.emailLog.create({
         data: {
           resendId: result.data?.id ?? null,
-          to: toAddress,
-          subject: emailParams.subject,
+          recipientReference: getOperationalIdentifier(
+            "email-recipient",
+            toAddress.trim().toLocaleLowerCase("en-US"),
+          ),
+          to: "[redacted]",
+          subject: tracking.template,
           template: tracking.template,
           userId: tracking.userId,
-          metadata: tracking.metadata ?? undefined,
+          metadata: undefined,
           status: result.error ? "failed" : "sent",
-          error: result.error?.message ?? null,
+          error: result.error?.name ?? null,
         },
       });
-    } catch (err) {
-      logger.error("[sendEmail] Failed to log email to database", { err });
+    } catch (error) {
+      logger.error("Email delivery audit write failed", {
+        eventName: "email_delivery_audit_failed",
+        status: "failed",
+        errorCode: error instanceof Error ? error.name : "unknown_error",
+      });
     }
   }
 

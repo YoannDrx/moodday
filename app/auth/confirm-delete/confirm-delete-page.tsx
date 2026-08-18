@@ -11,6 +11,12 @@ import {
 import { LoadingButton } from "@/features/form/submit-button";
 import { useI18n } from "@/i18n/provider";
 import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
+import { purgeOfflineDataForOwner } from "@/features/pwa/offline-store";
+import {
+  purgeAuthenticatedBrowserCaches,
+  unsubscribeCurrentPush,
+} from "@/features/pwa/push-client";
 import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
@@ -27,6 +33,7 @@ export function ConfirmDeletePage({
 }) {
   const router = useRouter();
   const { t } = useI18n();
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,19 +42,23 @@ export function ConfirmDeletePage({
       if (!token) {
         throw new Error(t("auth.confirmDelete.invalidToken"));
       }
-      return unwrapSafePromise(
+      const result = await unwrapSafePromise(
         authClient.deleteUser({
           token,
         }),
       );
+      void unsubscribeCurrentPush().catch(() => undefined);
+      if (session?.user.id) {
+        await purgeOfflineDataForOwner(session.user.id).catch(() => undefined);
+      }
+      await purgeAuthenticatedBrowserCaches().catch(() => undefined);
+      return result;
     },
     onError: (error) => {
       setError(error.message);
       toast.error(error.message);
     },
-    onSuccess: () => {
-      router.push(callbackUrl);
-    },
+    onSuccess: () => window.location.replace(callbackUrl),
   });
 
   const handleConfirmDelete = () => {
@@ -56,11 +67,11 @@ export function ConfirmDeletePage({
   };
 
   const handleCancel = () => {
-    router.push("/settings?tab=privacy");
+    router.push("/settings/privacy");
   };
 
   if (!token) {
-    router.push("/settings?tab=privacy");
+    router.push("/settings/privacy");
     return null;
   }
 

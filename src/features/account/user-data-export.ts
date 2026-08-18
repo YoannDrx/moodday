@@ -2,6 +2,23 @@ import { prisma } from "@/lib/prisma";
 
 export const buildUserDataExport = async (user: { id: string }) =>
   prisma.$transaction(async (tx) => {
+    const now = new Date();
+    const activeCaregiverRelationships =
+      await tx.caregiverRelationship.findMany({
+        where: {
+          caregiverId: user.id,
+          status: "active",
+          revokedAt: null,
+          OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
+        },
+        select: { id: true, patientId: true },
+      });
+    const accessiblePatientIds = activeCaregiverRelationships.map(
+      ({ patientId }) => patientId,
+    );
+    const accessibleRelationshipIds = activeCaregiverRelationships.map(
+      ({ id }) => id,
+    );
     const [
       userProfile,
       preferences,
@@ -13,6 +30,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
       caregiverObservations,
       caregiverEvents,
       caregiverAccessLog,
+      consents,
+      moodTags,
+      consultationPreparations,
+      safetyPlan,
     ] = await Promise.all([
       tx.user.findUnique({
         where: { id: user.id },
@@ -73,6 +94,11 @@ export const buildUserDataExport = async (user: { id: string }) =>
           isArchived: true,
           scheduleTimes: true,
           weeklyDay: true,
+          startDate: true,
+          endDate: true,
+          stockQuantity: true,
+          unitsPerDose: true,
+          lowStockThreshold: true,
           createdAt: true,
           updatedAt: true,
           intakes: {
@@ -95,6 +121,48 @@ export const buildUserDataExport = async (user: { id: string }) =>
               previousDosage: true,
               reason: true,
               changedAt: true,
+            },
+          },
+          scheduleRevisions: {
+            orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              effectiveDate: true,
+              dosage: true,
+              frequency: true,
+              scheduleTimes: true,
+              weeklyDay: true,
+              unitsPerDose: true,
+              reason: true,
+              createdAt: true,
+            },
+          },
+          inventoryEvents: {
+            orderBy: { occurredAt: "asc" },
+            select: {
+              id: true,
+              medIntakeId: true,
+              quantityDelta: true,
+              reason: true,
+              occurredAt: true,
+              createdAt: true,
+            },
+          },
+          intakeRevisions: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              medIntakeId: true,
+              action: true,
+              previousSkipped: true,
+              nextSkipped: true,
+              previousTakenAt: true,
+              nextTakenAt: true,
+              previousDoseIndex: true,
+              nextDoseIndex: true,
+              previousDateKey: true,
+              nextDateKey: true,
+              createdAt: true,
             },
           },
         },
@@ -134,7 +202,15 @@ export const buildUserDataExport = async (user: { id: string }) =>
       }),
       tx.caregiverRelationship.findMany({
         where: {
-          OR: [{ patientId: user.id }, { caregiverId: user.id }],
+          OR: [
+            { patientId: user.id },
+            {
+              caregiverId: user.id,
+              status: "active",
+              revokedAt: null,
+              OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
+            },
+          ],
         },
         orderBy: { createdAt: "asc" },
         select: {
@@ -147,13 +223,23 @@ export const buildUserDataExport = async (user: { id: string }) =>
           permissions: true,
           status: true,
           inviteExpiry: true,
+          accessExpiresAt: true,
+          revokedAt: true,
+          moodWindowDays: true,
+          medicationWindowDays: true,
           createdAt: true,
           updatedAt: true,
         },
       }),
       tx.caregiverObservation.findMany({
         where: {
-          OR: [{ observerId: user.id }, { subjectId: user.id }],
+          OR: [
+            { subjectId: user.id, visibleToPatient: true },
+            {
+              observerId: user.id,
+              subjectId: { in: accessiblePatientIds },
+            },
+          ],
         },
         orderBy: { createdAt: "asc" },
         select: {
@@ -172,7 +258,13 @@ export const buildUserDataExport = async (user: { id: string }) =>
       }),
       tx.caregiverEvent.findMany({
         where: {
-          OR: [{ reporterId: user.id }, { subjectId: user.id }],
+          OR: [
+            { subjectId: user.id, visibleToPatient: true },
+            {
+              reporterId: user.id,
+              subjectId: { in: accessiblePatientIds },
+            },
+          ],
         },
         orderBy: { eventDate: "asc" },
         select: {
@@ -190,7 +282,13 @@ export const buildUserDataExport = async (user: { id: string }) =>
       }),
       tx.caregiverAccessLog.findMany({
         where: {
-          OR: [{ patientId: user.id }, { caregiverId: user.id }],
+          OR: [
+            { patientId: user.id },
+            {
+              caregiverId: user.id,
+              relationshipId: { in: accessibleRelationshipIds },
+            },
+          ],
         },
         orderBy: { accessedAt: "asc" },
         select: {
@@ -202,12 +300,69 @@ export const buildUserDataExport = async (user: { id: string }) =>
           accessedAt: true,
         },
       }),
+      tx.userConsent.findMany({
+        where: { userId: user.id },
+        orderBy: { acceptedAt: "asc" },
+        select: {
+          purpose: true,
+          version: true,
+          locale: true,
+          country: true,
+          source: true,
+          acceptedAt: true,
+          revokedAt: true,
+        },
+      }),
+      tx.moodTagDefinition.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          normalizedLabel: true,
+          displayLabel: true,
+          category: true,
+          color: true,
+          isArchived: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      tx.consultationPreparation.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          scheduledFor: true,
+          title: true,
+          questions: true,
+          importantEvents: true,
+          periodStartDate: true,
+          periodEndDate: true,
+          personalNotes: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      tx.safetyPlan.findUnique({
+        where: { userId: user.id },
+        select: {
+          warningSigns: true,
+          copingStrategies: true,
+          safePlaces: true,
+          trustedContacts: true,
+          professionalContacts: true,
+          lastReviewedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
     ]);
 
     return {
       exportMetadata: {
         exportDate: new Date().toISOString(),
-        dataVersion: "2.1",
+        dataVersion: "2.2",
         applicationName: "Moodday",
         userId: user.id,
         timezone: preferences?.timezone ?? null,
@@ -225,6 +380,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
       medications,
       therapySessions,
       exercises,
+      consents,
+      moodTags,
+      consultationPreparations,
+      safetyPlan,
       caregiverCircle: {
         relationships: caregiverRelationships,
         observations: caregiverObservations,

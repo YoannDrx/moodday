@@ -1,3 +1,9 @@
+import {
+  getCivilWeekday,
+  getDateKeyForTimeZone,
+} from "@/lib/temporal/civil-date";
+export { getDateKeyForTimeZone } from "@/lib/temporal/civil-date";
+
 export type DoseSlotStatus = "pending" | "taken" | "skipped";
 
 export type DoseSlotLabelKey =
@@ -33,7 +39,6 @@ type SchedulableMedication = {
   intakes: ScheduledIntake[];
 };
 
-const padDatePart = (value: number) => String(value).padStart(2, "0");
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const isValidScheduleTime = (time: string) => TIME_PATTERN.test(time);
 
@@ -94,44 +99,17 @@ export const normalizeWeeklyDay = (
     return weeklyDay;
   }
 
-  return fallbackDate.getDay();
+  return getCivilWeekday(getDateKeyForTimeZone(fallbackDate));
 };
 
-export const getLocalDateKey = (date = new Date()) =>
-  `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(
-    date.getDate(),
-  )}`;
-
-export const getDateKeyForTimeZone = (
-  date = new Date(),
-  timeZone?: string | null,
-) => {
-  if (!timeZone) return getLocalDateKey(date);
-
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(date);
-
-    const year = parts.find((part) => part.type === "year")?.value;
-    const month = parts.find((part) => part.type === "month")?.value;
-    const day = parts.find((part) => part.type === "day")?.value;
-
-    if (!year || !month || !day) return getLocalDateKey(date);
-
-    return `${year}-${month}-${day}`;
-  } catch {
-    return getLocalDateKey(date);
-  }
-};
-
-export const parseDateKeyAsLocalDate = (dateKey: string) => {
-  const [year = "0", month = "1", day = "1"] = dateKey.split("-");
-  return new Date(Number(year), Number(month) - 1, Number(day));
-};
+export const isIntakeForDateInTimeZone = (
+  intake: Pick<ScheduledIntake, "scheduledForDate" | "takenAt">,
+  dateKey: string,
+  timeZone: string,
+) =>
+  intake.scheduledForDate === dateKey ||
+  (intake.scheduledForDate === null &&
+    getDateKeyForTimeZone(intake.takenAt, timeZone) === dateKey);
 
 export const getDoseDefinitionsForFrequency = (
   frequency: string,
@@ -180,21 +158,19 @@ export const getDoseDefinitionsForFrequency = (
 
 export const isWeeklyMedicationDueOnDate = (
   createdAt: Date,
-  targetDate: Date,
+  targetDate: string,
   weeklyDay?: number | null,
-) => normalizeWeeklyDay(weeklyDay, createdAt) === targetDate.getDay();
+) => normalizeWeeklyDay(weeklyDay, createdAt) === getCivilWeekday(targetDate);
 
 export const buildMedicationDoseSlots = (
   medication: SchedulableMedication,
-  scheduledForDate = getLocalDateKey(),
+  scheduledForDate = getDateKeyForTimeZone(),
 ) => {
-  const targetDate = parseDateKeyAsLocalDate(scheduledForDate);
-
   if (
     medication.frequency === "weekly" &&
     !isWeeklyMedicationDueOnDate(
       medication.createdAt,
-      targetDate,
+      scheduledForDate,
       medication.weeklyDay,
     )
   ) {

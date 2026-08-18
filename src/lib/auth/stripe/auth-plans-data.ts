@@ -1,17 +1,10 @@
-import {
-  Calendar,
-  FileText,
-  HeadphonesIcon,
-  Pill,
-  Sparkles,
-  Users,
-  Zap,
-} from "lucide-react";
+import { Calendar, FileText, Pill, Sparkles, Users } from "lucide-react";
+import type { PlanCode } from "@/lib/billing/entitlements";
 
 const DEFAULT_LIMIT = {
-  medications: 2,
-  historyDays: 7,
-  caregivers: 0,
+  medications: -1,
+  historyDays: 30,
+  caregivers: 1,
 };
 
 export type PlanLimit = typeof DEFAULT_LIMIT;
@@ -21,9 +14,8 @@ export type PlanLimit = typeof DEFAULT_LIMIT;
  * This can be safely imported in "use client" components
  */
 export type AppAuthPlanData = {
-  name: string;
+  name: PlanCode;
   description?: string;
-  isPopular?: boolean;
   price: number;
   yearlyPrice?: number;
   currency: string;
@@ -43,8 +35,7 @@ export const AUTH_PLANS_DATA: AppAuthPlanData[] = [
     yearlyPrice: 0,
   },
   {
-    name: "pro",
-    isPopular: true,
+    name: "plus",
     limits: {
       medications: -1, // Illimité
       historyDays: -1, // Illimité
@@ -53,23 +44,8 @@ export const AUTH_PLANS_DATA: AppAuthPlanData[] = [
     freeTrial: {
       days: 14,
     },
-    price: 9.99,
-    yearlyPrice: 95.9,
-    currency: "EUR",
-  },
-  {
-    name: "ultra",
-    isPopular: false,
-    limits: {
-      medications: -1, // Illimité
-      historyDays: -1, // Illimité
-      caregivers: -1, // Illimité
-    },
-    freeTrial: {
-      days: 14,
-    },
-    price: 19.99,
-    yearlyPrice: 191.9,
+    price: 7.99,
+    yearlyPrice: 59.99,
     currency: "EUR",
   },
 ];
@@ -93,13 +69,26 @@ export const LIMITS_CONFIG: Record<
 };
 
 // Additional features by plan
-export const ADDITIONAL_FEATURES = {
-  free: [Sparkles, FileText],
-  pro: [FileText, Sparkles, HeadphonesIcon],
-  ultra: [Zap, FileText],
+type OptionalPlanFeature = "aiInsights" | "caregiverSharing";
+
+type AdditionalFeatureDefinition = {
+  icon: React.ElementType;
+  requires?: OptionalPlanFeature;
 };
 
-export const getPlanLimits = (plan = "free"): PlanLimit => {
+export const ADDITIONAL_FEATURES: Record<
+  PlanCode,
+  AdditionalFeatureDefinition[]
+> = {
+  free: [{ icon: Sparkles }, { icon: FileText }],
+  plus: [
+    { icon: FileText },
+    { icon: Sparkles, requires: "aiInsights" },
+    { icon: Users, requires: "caregiverSharing" },
+  ],
+};
+
+export const getPlanLimits = (plan: PlanCode = "free"): PlanLimit => {
   const planLimits = AUTH_PLANS_DATA.find((p) => p.name === plan)?.limits;
 
   return planLimits ?? DEFAULT_LIMIT;

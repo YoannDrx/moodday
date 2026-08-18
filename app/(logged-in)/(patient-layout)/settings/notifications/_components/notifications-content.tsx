@@ -22,10 +22,25 @@ import {
 import { useI18n } from "@/i18n/provider";
 import { ToggleEmailCheckbox } from "@app/(logged-in)/(account-layout)/account/email/toggle-email-checkbox";
 import { getEmailPreferencesAction } from "@app/(logged-in)/(account-layout)/account/email/mail-account.action";
+import { useSession } from "@/lib/auth-client";
+import {
+  getPushContentMode,
+  setPushContentMode,
+} from "@/features/pwa/push-content-mode";
+import { useEffect, useState } from "react";
 
 export function NotificationsContent() {
   const { t } = useI18n();
+  const { data: session } = useSession();
+  const [detailedOnThisDevice, setDetailedOnThisDevice] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const ownerId = session?.user.id;
+    setDetailedOnThisDevice(
+      ownerId ? getPushContentMode(ownerId) === "detailed" : false,
+    );
+  }, [session?.user.id]);
 
   const { data: preferences, isLoading } = useQuery({
     queryKey: ["user-preferences"],
@@ -66,6 +81,20 @@ export function NotificationsContent() {
     },
   });
 
+  const updatePushPermission = async (checked: boolean) => {
+    if (checked && "Notification" in window) {
+      const permission =
+        Notification.permission === "default"
+          ? await Notification.requestPermission()
+          : Notification.permission;
+      if (permission !== "granted") {
+        toast.error(t("settings.notifications.permissionDenied"));
+        return;
+      }
+    }
+    notificationMutation.mutate({ notificationsEnabled: checked });
+  };
+
   return (
     <PageLayout
       title={t("settings.notifications.title")}
@@ -101,11 +130,9 @@ export function NotificationsContent() {
                 </div>
               </div>
               <Switch
-                checked={preferences?.notificationsEnabled ?? true}
+                checked={preferences?.notificationsEnabled ?? false}
                 onCheckedChange={(checked) =>
-                  notificationMutation.mutate({
-                    notificationsEnabled: checked,
-                  })
+                  void updatePushPermission(checked)
                 }
               />
             </div>
@@ -199,6 +226,30 @@ export function NotificationsContent() {
                     </p>
                   </div>
                 )}
+
+                <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4">
+                  <div className="pr-4">
+                    <p className="font-bold text-gray-800">
+                      Afficher le nom du traitement sur cet appareil
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Désactivé par défaut. Activez-le uniquement sur un
+                      appareil personnel et de confiance.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={detailedOnThisDevice}
+                    onCheckedChange={(checked) => {
+                      const ownerId = session?.user.id;
+                      if (!ownerId) return;
+                      setDetailedOnThisDevice(checked);
+                      setPushContentMode(
+                        ownerId,
+                        checked ? "detailed" : "generic",
+                      );
+                    }}
+                  />
+                </div>
 
                 {emailPreferences?.available ? (
                   <div className="rounded-2xl border border-gray-100 bg-white p-4">

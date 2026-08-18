@@ -16,7 +16,10 @@ const countBy = <T extends string>(values: T[]) =>
   }, {});
 
 export const buildOfflineDiagnostic = (params: {
-  operations: OfflineOperation[];
+  operations: Pick<
+    OfflineOperation,
+    "kind" | "status" | "retryCount" | "createdAt"
+  >[];
   generatedAt?: Date;
   online: boolean;
   storage?: StorageEstimate;

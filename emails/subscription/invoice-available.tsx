@@ -1,4 +1,4 @@
-import { Heading, Preview, Text } from "@react-email/components";
+import { Heading, Preview, Text } from "react-email";
 import { Signature } from "../components/signature";
 import { BilingualSection } from "../utils/bilingual-section";
 import { CTAButton } from "../utils/cta-button";
@@ -11,7 +11,6 @@ type InvoiceAvailableEmailProps = {
   invoiceNumber: string;
   amount: string;
   invoiceDate: string;
-  invoiceUrl: string;
 };
 
 export default function InvoiceAvailableEmail({
@@ -19,7 +18,6 @@ export default function InvoiceAvailableEmail({
   invoiceNumber = "INV-2025-001",
   amount = "9,99 €",
   invoiceDate = "15 février 2025",
-  invoiceUrl = "https://moodday.app/invoices/123",
 }: InvoiceAvailableEmailProps) {
   const billingUrl = EMAIL_URLS.billing();
 
@@ -103,7 +101,7 @@ export default function InvoiceAvailableEmail({
           </Text>
         </div>
 
-        <CTAButton href={invoiceUrl}>Télécharger la facture</CTAButton>
+        <CTAButton href={billingUrl}>Consulter mes factures</CTAButton>
 
         <Text
           style={{
@@ -198,7 +196,7 @@ export default function InvoiceAvailableEmail({
           </Text>
         </div>
 
-        <CTAButton href={invoiceUrl}>Download invoice</CTAButton>
+        <CTAButton href={billingUrl}>View my invoices</CTAButton>
 
         <Text
           style={{

@@ -138,8 +138,8 @@ describe("FormAutoSave", () => {
     await user.type(screen.getByTestId("name-input"), "John Doe");
     await user.type(screen.getByTestId("email-input"), "john@example.com");
 
-    // Focus the name input
-    screen.getByTestId("name-input").focus();
+    // Focus through user-event so React receives the update inside act().
+    await user.click(screen.getByTestId("name-input"));
 
     // JSDOM reports a non-macOS platform, so `mod+s` resolves to Ctrl+S.
     await user.keyboard("{Control>}s{/Control}");

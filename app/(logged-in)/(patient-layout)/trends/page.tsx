@@ -7,6 +7,10 @@ import {
 } from "@/features/insights/insights.action";
 
 import { TrendsContent } from "./_components/trends-content";
+import { getRequiredUser } from "@/lib/auth/auth-user";
+import { prisma } from "@/lib/prisma";
+import { getEntitlements } from "@/lib/billing/entitlements";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -17,14 +21,21 @@ export const generateMetadata = combineWithParentMetadata(async () => {
 });
 
 export default async function TrendsPage() {
+  const user = await getRequiredUser();
   // Fetch data server-side
-  const [chartResult7, chartResult30, chartResult90, insightsResult] =
-    await Promise.all([
-      getMoodChartData({ days: 7 }),
-      getMoodChartData({ days: 30 }),
-      getMoodChartData({ days: 90 }),
-      getPatternInsights(),
-    ]);
+  const [
+    chartResult7,
+    chartResult30,
+    chartResult90,
+    insightsResult,
+    subscription,
+  ] = await Promise.all([
+    getMoodChartData({ days: 7 }),
+    getMoodChartData({ days: 30 }),
+    getMoodChartData({ days: 90 }),
+    getPatternInsights(),
+    prisma.subscription.findUnique({ where: { referenceId: user.id } }),
+  ]);
 
   return (
     <TrendsContent
@@ -32,6 +43,13 @@ export default async function TrendsPage() {
       chartData30={chartResult30.data}
       chartData90={chartResult90.data}
       insights={insightsResult.data}
+      canViewUnlimitedHistory={
+        getEntitlements(subscription).analyticsWindowDays === null
+      }
+      canCreateConsultationReport={
+        getEntitlements(subscription).consultationReports
+      }
+      billingEnabled={getFeatureAvailability("billing").enabled}
     />
   );
 }

@@ -17,17 +17,35 @@ const queryClient = new QueryClient();
 type ProvidersProps = PropsWithChildren<{
   locale: Locale;
   messages: Messages;
+  nonce?: string;
+  pushNotificationsEnabled: boolean;
+  vapidPublicKey?: string;
 }>;
 
-export const Providers = ({ children, locale, messages }: ProvidersProps) => {
+export const Providers = ({
+  children,
+  locale,
+  messages,
+  nonce,
+  pushNotificationsEnabled,
+  vapidPublicKey,
+}: ProvidersProps) => {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      nonce={nonce}
+    >
       <QueryClientProvider client={queryClient}>
         <I18nProvider locale={locale} messages={messages}>
           <Toaster />
           <DialogManagerRenderer />
           <GlobalDialogLazy />
-          <PwaManager />
+          <PwaManager
+            pushNotificationsEnabled={pushNotificationsEnabled}
+            vapidPublicKey={vapidPublicKey}
+          />
           {children}
           {process.env.NODE_ENV === "development" && (
             <ReactQueryDevtools initialIsOpen={false} />

@@ -11,6 +11,9 @@ import {
   Zap,
   Activity,
   Pill,
+  FileText,
+  LockKeyhole,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +27,7 @@ import {
 import { PageLayout } from "@/components/nowts/page-layout";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { useI18n } from "@/i18n/provider";
+import Link from "next/link";
 
 type MoodEntry = {
   id: string;
@@ -66,6 +70,9 @@ type TrendsContentProps = {
     medicationAdherence?: number | null;
   };
   insights?: Insight[];
+  canViewUnlimitedHistory: boolean;
+  canCreateConsultationReport: boolean;
+  billingEnabled: boolean;
 };
 
 type PeriodKey = "7" | "30" | "90";
@@ -81,8 +88,11 @@ export function TrendsContent({
   chartData30,
   chartData90,
   insights,
+  canViewUnlimitedHistory,
+  canCreateConsultationReport,
+  billingEnabled,
 }: TrendsContentProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("30");
 
   // Calculate averages
@@ -162,7 +172,7 @@ export function TrendsContent({
   const energyCorrelation = calculateCorrelation(
     buildPairs(currentData?.moodEntries, "energy"),
   );
-  const medicationCorrelation = currentData?.medicationAdherence ?? null;
+  const medicationAdherence = currentData?.medicationAdherence ?? null;
 
   const formatPercent = (value: number | null | undefined) =>
     value === null || value === undefined ? "--" : `${value}%`;
@@ -201,20 +211,76 @@ export function TrendsContent({
       subtitle={t("trends.subtitle")}
       maxWidth="7xl"
     >
+      <div className="mb-8 overflow-hidden rounded-3xl bg-[#183432] p-6 text-white shadow-lg sm:p-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#8DDDE0]">
+              <FileText className="size-4" />
+              {locale === "fr" ? "Mode Consultation" : "Consultation Mode"}
+            </div>
+            <h2 className="mt-3 text-2xl font-bold">
+              {locale === "fr"
+                ? "Organisez les faits avant votre rendez-vous."
+                : "Organize the facts before your appointment."}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              {locale === "fr"
+                ? "Choisissez une période, relisez les changements et préparez vos questions. Moodday ne déduit aucune cause médicale."
+                : "Choose a period, review changes, and prepare your questions. Moodday does not infer medical causes."}
+            </p>
+          </div>
+          {canCreateConsultationReport || billingEnabled ? (
+            <Link
+              href={canCreateConsultationReport ? "/export" : "/pricing"}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[#1E7775]"
+            >
+              {canCreateConsultationReport
+                ? locale === "fr"
+                  ? "Préparer le rapport"
+                  : "Prepare report"
+                : locale === "fr"
+                  ? "Découvrir Plus"
+                  : "Explore Plus"}
+              <ChevronRight className="size-4" />
+            </Link>
+          ) : (
+            <span
+              aria-disabled="true"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white/70"
+            >
+              {locale === "fr"
+                ? "PDF indisponible avant l’ouverture de Plus"
+                : "PDF unavailable until Plus opens"}
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Period Selector */}
       <div className="mb-8 flex gap-2">
         {(["7", "30", "90"] as PeriodKey[]).map((period) => (
           <button
             key={period}
-            onClick={() => setSelectedPeriod(period)}
+            onClick={() => {
+              if (period !== "90" || canViewUnlimitedHistory) {
+                setSelectedPeriod(period);
+              }
+            }}
+            disabled={period === "90" && !canViewUnlimitedHistory}
             className={cn(
               "rounded-2xl px-5 py-2.5 text-sm font-semibold transition-all",
               selectedPeriod === period
                 ? "shadow-soft bg-[var(--primary)] text-white"
                 : "glass-card text-gray-600 hover:bg-white",
+              period === "90" &&
+                !canViewUnlimitedHistory &&
+                "cursor-not-allowed opacity-60",
             )}
           >
             {t(periodLabelKeys[period])}
+            {period === "90" && !canViewUnlimitedHistory && (
+              <LockKeyhole className="ml-1.5 inline size-3" />
+            )}
           </button>
         ))}
       </div>
@@ -236,7 +302,7 @@ export function TrendsContent({
               <Calendar className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last7Days")}
               </p>
               <div className="flex items-center gap-2">
@@ -278,7 +344,7 @@ export function TrendsContent({
               <TrendingUp className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last30Days")}
               </p>
               <p className="text-2xl font-bold">{avg30}/10</p>
@@ -294,17 +360,27 @@ export function TrendsContent({
             "cursor-pointer transition-all",
             selectedPeriod === "90" && "ring-2 ring-[var(--primary)]/30",
           )}
-          onClick={() => setSelectedPeriod("90")}
+          onClick={() => {
+            if (canViewUnlimitedHistory) setSelectedPeriod("90");
+          }}
         >
           <div className="flex items-center gap-4">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--lavender)]/20 text-[var(--lavender-dark)]">
               <BarChart2 className="size-7" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase">
+              <p className="text-xs font-semibold text-gray-600 uppercase">
                 {t("trends.stats.last90Days")}
               </p>
-              <p className="text-2xl font-bold">{avg90}/10</p>
+              <p className="text-2xl font-bold">
+                {canViewUnlimitedHistory
+                  ? `${avg90}/10`
+                  : billingEnabled
+                    ? "Plus"
+                    : locale === "fr"
+                      ? "Indisponible"
+                      : "Unavailable"}
+              </p>
             </div>
           </div>
         </GlassCard>
@@ -387,18 +463,18 @@ export function TrendsContent({
               <div className="rounded-2xl border border-[var(--sage)]/20 bg-[var(--sage)]/5 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">
-                    {t("trends.correlations.medicationStability")}
+                    {t("trends.correlations.medicationAdherence")}
                   </span>
                   <span className="text-lg font-bold text-[var(--sage-dark)]">
-                    {formatPercent(medicationCorrelation)}
+                    {formatPercent(medicationAdherence)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--sage)]/20">
                   <div
                     className="h-full rounded-full bg-[var(--sage)]"
                     style={{
-                      width: medicationCorrelation
-                        ? `${medicationCorrelation}%`
+                      width: medicationAdherence
+                        ? `${medicationAdherence}%`
                         : "0%",
                     }}
                   />
@@ -423,6 +499,11 @@ export function TrendsContent({
                   />
                 </div>
               </div>
+              <p className="text-muted-foreground text-xs leading-5">
+                {locale === "fr"
+                  ? "Ces indicateurs décrivent une association dans vos saisies. Ils ne démontrent ni cause, ni effet médical."
+                  : "These indicators describe an association in your entries. They do not establish a cause or medical effect."}
+              </p>
             </GlassCardContent>
           </GlassCard>
 
@@ -489,7 +570,7 @@ export function TrendsContent({
               ) : (
                 <div className="rounded-2xl border border-dashed border-gray-200 py-8 text-center">
                   <Sparkles className="mx-auto mb-2 size-8 text-gray-300" />
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-600">
                     {t("trends.insights.empty")}
                   </p>
                 </div>

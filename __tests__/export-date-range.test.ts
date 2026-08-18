@@ -27,15 +27,15 @@ describe("export date range", () => {
     expect(range.endExclusive.toISOString()).toBe("2026-03-29T22:00:00.000Z");
   });
 
-  it("falls back to UTC for an invalid stored time zone", () => {
+  it("falls back to the France launch timezone for an invalid stored zone", () => {
     const range = getExportDateRange({
       startDate: "2026-01-10",
       endDate: "2026-01-11",
       timezone: "Invalid/Timezone",
     });
 
-    expect(range.timezone).toBe("UTC");
-    expect(range.start.toISOString()).toBe("2026-01-10T00:00:00.000Z");
-    expect(range.endExclusive.toISOString()).toBe("2026-01-12T00:00:00.000Z");
+    expect(range.timezone).toBe("Europe/Paris");
+    expect(range.start.toISOString()).toBe("2026-01-09T23:00:00.000Z");
+    expect(range.endExclusive.toISOString()).toBe("2026-01-11T23:00:00.000Z");
   });
 });

@@ -1,15 +1,18 @@
 export const SiteConfig = {
   title: "Moodday",
-  prodUrl: "https://moodday.app",
+  prodUrl: "https://www.moodday.app",
   appId: "moodday",
-  domain: "moodday.app",
+  domain: "www.moodday.app",
   appIcon: "/icons/android-chrome-512x512.png",
   company: {
-    name: "Moodday",
-    address: "", // Add your company address
+    name: "Yodev",
+    legalForm: "Entrepreneur individuel",
+    siren: "803 272 590",
+    address: "",
+    email: "hello@moodday.app",
   },
   brand: {
-    primary: "#2BA09F", // Teal - Moodday calming color
+    primary: "#1E7775",
   },
   team: {
     image: "https://github.com/YoannDrx.png",

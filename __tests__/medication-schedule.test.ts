@@ -4,6 +4,7 @@ import {
   createScheduledDoseKey,
   getDateKeyForTimeZone,
   hasOfflineDoseConflict,
+  isIntakeForDateInTimeZone,
   normalizeScheduleTimesForFrequency,
 } from "@/features/medication/schedule";
 import { describe, expect, it } from "vitest";
@@ -94,6 +95,20 @@ describe("medication schedule", () => {
     expect(getDateKeyForTimeZone(instant, "America/New_York")).toBe(
       "2026-05-16",
     );
+  });
+
+  it("classifies legacy intakes using the user's timezone", () => {
+    const legacyIntake = {
+      scheduledForDate: null,
+      takenAt: new Date("2026-05-16T23:30:00.000Z"),
+    };
+
+    expect(
+      isIntakeForDateInTimeZone(legacyIntake, "2026-05-17", "Europe/Paris"),
+    ).toBe(true);
+    expect(
+      isIntakeForDateInTimeZone(legacyIntake, "2026-05-17", "America/New_York"),
+    ).toBe(false);
   });
 
   it("creates a stable scheduled dose key", () => {

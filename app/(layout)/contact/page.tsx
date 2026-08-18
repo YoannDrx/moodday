@@ -10,15 +10,7 @@ import { SectionLayout } from "@/features/landing/section-layout";
 import { getI18n } from "@/i18n/server";
 import { serverToast } from "@/lib/server-toast";
 import { SiteConfig } from "@/site-config";
-import {
-  Mail,
-  MessageSquare,
-  Clock,
-  Send,
-  HelpCircle,
-  Twitter,
-  Linkedin,
-} from "lucide-react";
+import { Mail, Clock, Send, HelpCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -73,7 +65,7 @@ export default async function ContactPage() {
       <SectionLayout size="lg" variant="transparent" className="pt-0 lg:pt-0">
         <div className="mx-auto max-w-5xl">
           {/* Contact Cards */}
-          <div className="mb-12 grid gap-6 md:grid-cols-3">
+          <div className="mb-12 grid gap-6 md:grid-cols-2">
             {/* Email Card */}
             <div className="border-border bg-card hover:border-primary/30 rounded-2xl border p-6 transition-all hover:shadow-lg">
               <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-blue-500/10">
@@ -121,38 +113,6 @@ export default async function ContactPage() {
               </span>
             </div>
 
-            {/* Social Card */}
-            <div className="border-border bg-card hover:border-primary/30 rounded-2xl border p-6 transition-all hover:shadow-lg">
-              <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-violet-500/10">
-                <MessageSquare className="size-6 text-violet-500" />
-              </div>
-              <Typography
-                variant="h3"
-                className="text-foreground mb-2 font-bold"
-              >
-                {t("contact.cards.social.title")}
-              </Typography>
-              <Typography
-                variant="p"
-                className="text-muted-foreground mb-4 text-sm"
-              >
-                {t("contact.cards.social.description")}
-              </Typography>
-              <div className="flex gap-3">
-                <a
-                  href="#"
-                  className="bg-muted hover:bg-muted/80 flex size-9 items-center justify-center rounded-lg transition-colors"
-                >
-                  <Twitter className="text-muted-foreground size-4" />
-                </a>
-                <a
-                  href="#"
-                  className="bg-muted hover:bg-muted/80 flex size-9 items-center justify-center rounded-lg transition-colors"
-                >
-                  <Linkedin className="text-muted-foreground size-4" />
-                </a>
-              </div>
-            </div>
           </div>
 
           {/* Contact Form */}
@@ -373,7 +333,7 @@ export default async function ContactPage() {
                 </div>
 
                 <Link
-                  href="/#faq"
+                  href="/help"
                   className="text-primary mt-4 block text-center text-sm font-semibold hover:underline"
                 >
                   {t("contact.faq.more")}

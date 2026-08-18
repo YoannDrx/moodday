@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useSession } from "@/lib/auth-client";
-import { env } from "@/lib/env";
 import { getUserPreferences } from "@/features/preferences/preferences.action";
 import { syncQueuedMoodEntries } from "./offline-queue";
 import { syncQueuedActions } from "./offline-actions";
-import { compactOfflineOperations } from "./offline-store";
+import {
+  compactOfflineOperations,
+  setActiveOfflineOwner,
+} from "./offline-store";
+import { unsubscribeCurrentPush } from "./push-client";
+import { getPushContentMode, type PushContentMode } from "./push-content-mode";
 
 const urlBase64ToUint8Array = (base64String: string) => {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -17,7 +21,20 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 };
 
-const subscribeToPush = async (vapidKey: string) => {
+const getPushDeviceId = () => {
+  const storageKey = "moodday.push.device-id";
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  window.localStorage.setItem(storageKey, created);
+  return created;
+};
+
+const subscribeToPush = async (
+  vapidKey: string,
+  locale: "fr" | "en",
+  contentMode: "generic" | "detailed" = "generic",
+) => {
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
 
@@ -29,30 +46,51 @@ const subscribeToPush = async (vapidKey: string) => {
   await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription.toJSON()),
+    body: JSON.stringify({
+      ...subscription.toJSON(),
+      deviceId: getPushDeviceId(),
+      locale,
+      contentMode,
+      trustedDevice: contentMode === "detailed",
+    }),
   });
 };
 
-const unsubscribeFromPush = async () => {
-  const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.getSubscription();
-  if (!subscription) return;
-
-  await fetch("/api/push/unsubscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: subscription.endpoint }),
-  });
-
-  await subscription.unsubscribe();
-};
-
-export function PwaManager() {
+export function PwaManager({
+  pushNotificationsEnabled,
+  vapidPublicKey,
+}: {
+  pushNotificationsEnabled: boolean;
+  vapidPublicKey?: string;
+}) {
   const { data: session } = useSession();
+  const [contentMode, setContentMode] = useState<PushContentMode>("generic");
+
+  useEffect(() => {
+    if (session?.user.id) setActiveOfflineOwner(session.user.id);
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    const ownerId = session?.user.id;
+    if (!ownerId) {
+      setContentMode("generic");
+      return;
+    }
+    setContentMode(getPushContentMode(ownerId));
+    const handleMode = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{ ownerId: string; mode: PushContentMode }>
+      ).detail;
+      if (detail.ownerId === ownerId) setContentMode(detail.mode);
+    };
+    window.addEventListener("moodday:push-content-mode", handleMode);
+    return () =>
+      window.removeEventListener("moodday:push-content-mode", handleMode);
+  }, [session?.user.id]);
 
   const { data: preferences } = useQuery({
     queryKey: ["user-preferences"],
-    enabled: !!session?.user,
+    enabled: !!session?.user && pushNotificationsEnabled,
     queryFn: async () => {
       const result = await getUserPreferences();
       if (result.serverError) throw new Error(result.serverError);
@@ -64,62 +102,73 @@ export function PwaManager() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(async (registration) => registration.update())
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
-    if (!preferences) return;
+    if (!pushNotificationsEnabled || !preferences) return;
     if (!("Notification" in window)) return;
     if (!("serviceWorker" in navigator)) return;
     if (!("PushManager" in window)) return;
 
-    const vapidKey = env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidKey) return;
+    if (!vapidPublicKey) return;
 
     if (!preferences.notificationsEnabled) {
-      void unsubscribeFromPush().catch(() => undefined);
-      return;
-    }
-
-    if (Notification.permission === "default") {
-      void Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          void subscribeToPush(vapidKey).catch(() => undefined);
-        }
-      });
+      void unsubscribeCurrentPush().catch(() => undefined);
       return;
     }
 
     if (Notification.permission === "granted") {
-      void subscribeToPush(vapidKey).catch(() => undefined);
+      void subscribeToPush(
+        vapidPublicKey,
+        preferences.locale === "en" ? "en" : "fr",
+        contentMode,
+      ).catch(() => undefined);
     }
-  }, [preferences]);
+  }, [contentMode, preferences, pushNotificationsEnabled, vapidPublicKey]);
 
   useEffect(() => {
-    if (!preferences?.notificationsEnabled) return;
+    if (!pushNotificationsEnabled || !preferences?.notificationsEnabled) return;
     if (!("serviceWorker" in navigator)) return;
 
-    const vapidKey = env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidKey) return;
+    if (!vapidPublicKey) return;
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type !== "PUSH_SUBSCRIPTION_CHANGED") return;
-      void subscribeToPush(vapidKey).catch(() => undefined);
+      void subscribeToPush(
+        vapidPublicKey,
+        preferences.locale === "en" ? "en" : "fr",
+        contentMode,
+      ).catch(() => undefined);
     };
 
     navigator.serviceWorker.addEventListener("message", handleMessage);
     return () => {
       navigator.serviceWorker.removeEventListener("message", handleMessage);
     };
-  }, [preferences?.notificationsEnabled]);
+  }, [
+    preferences?.locale,
+    preferences?.notificationsEnabled,
+    contentMode,
+    pushNotificationsEnabled,
+    vapidPublicKey,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const ownerId = session?.user.id;
+    if (!ownerId) return;
 
     const handleOnline = async () => {
       if (navigator.onLine) {
-        await compactOfflineOperations();
-        await Promise.all([syncQueuedMoodEntries(), syncQueuedActions()]);
+        await compactOfflineOperations(ownerId);
+        await Promise.all([
+          syncQueuedMoodEntries(ownerId),
+          syncQueuedActions(ownerId),
+        ]);
       }
     };
 
@@ -129,7 +178,7 @@ export function PwaManager() {
     return () => {
       window.removeEventListener("online", handleOnline);
     };
-  }, []);
+  }, [session?.user.id]);
 
   return null;
 }

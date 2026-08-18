@@ -21,11 +21,14 @@ const data: ConsultationExportData = {
       {
         value: 6,
         energy: 4,
+        anxiety: 3,
+        sleepHours: 7.5,
+        sleepQuality: "good",
         note: 'Calme, mais "fatiguée"\nAprès-midi',
         date: "2026-07-16T08:30:00.000Z",
       },
     ],
-    stats: { average: 6, min: 6, max: 6, count: 1 },
+    stats: { average: 6, min: 6, max: 6, count: 1, change: null },
   },
   medications: {
     list: [
@@ -47,6 +50,8 @@ const data: ConsultationExportData = {
       },
     ],
     adherencePercent: 100,
+    expectedDoses: 1,
+    takenDoses: 1,
   },
   therapy: { sessions: [], count: 0 },
   exercises: {
@@ -72,5 +77,37 @@ describe("consultation CSV export", () => {
     expect(csv).toContain("medication_intake");
     expect(csv).toContain("exercise");
     expect(csv.split("\r\n").filter(Boolean)).toHaveLength(4);
+  });
+
+  it("serializes therapy rows and blank nullable cells without the string null", () => {
+    const csv = buildConsultationCsv({
+      ...data,
+      mood: { entries: [], stats: data.mood.stats },
+      medications: { ...data.medications, list: [] },
+      therapy: {
+        sessions: [
+          {
+            date: "2026-07-16T10:00:00.000Z",
+            notes: "Simple note",
+            benefitRating: null,
+          },
+        ],
+        count: 1,
+      },
+      exercises: {
+        logs: [
+          {
+            name: "Marche",
+            date: "2026-07-16T11:00:00.000Z",
+            note: null,
+          },
+        ],
+        count: 1,
+      },
+    });
+
+    expect(csv).toContain("therapy_session");
+    expect(csv).toContain("exercise");
+    expect(csv).not.toContain(",null,");
   });
 });

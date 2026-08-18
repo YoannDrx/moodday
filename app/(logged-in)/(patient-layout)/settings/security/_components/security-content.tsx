@@ -12,8 +12,14 @@ import { PageLayout } from "@/components/nowts/page-layout";
 import { useI18n } from "@/i18n/provider";
 import { ChangeEmailForm } from "@app/(logged-in)/(account-layout)/account/change-email/change-email-form";
 import { ChangePasswordForm } from "@app/(logged-in)/(account-layout)/account/change-password/change-password-form";
+import { AccountSecurityControls } from "./account-security-controls";
+import { AccountSignOutButton } from "@app/(logged-in)/(account-layout)/account/account-sign-out-button";
 
-export function SecurityContent() {
+export function SecurityContent({
+  twoFactorEnabled,
+}: {
+  twoFactorEnabled: boolean;
+}) {
   const { t } = useI18n();
 
   return (
@@ -38,6 +44,8 @@ export function SecurityContent() {
 
         <ChangeEmailForm />
         <ChangePasswordForm />
+        <AccountSecurityControls initialTwoFactorEnabled={twoFactorEnabled} />
+        <AccountSignOutButton label={t("auth.logout")} />
       </div>
     </PageLayout>
   );

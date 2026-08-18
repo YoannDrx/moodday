@@ -9,8 +9,208 @@ import {
   signOutAccount,
 } from "./utils/auth-test";
 import { retry } from "./utils/retry";
+import { generateTotpFromUri } from "./utils/totp";
 
 test.describe("account", () => {
+  test("TOTP enrollment and recovery codes work end to end", async ({
+    page,
+  }, testInfo) => {
+    const authHeaders = {
+      origin: getServerUrl(),
+      "x-forwarded-for": `192.0.2.${(testInfo.workerIndex % 200) + 1}`,
+    };
+    const userData = await createTestAccount({
+      page,
+      callbackURL: "/settings/security",
+    });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: userData.email },
+      select: { id: true },
+    });
+
+    const enrollmentResponse = await page.request.post(
+      "/api/auth/two-factor/enable",
+      {
+        data: { password: userData.password, issuer: "Moodday" },
+        headers: authHeaders,
+      },
+    );
+    expect(enrollmentResponse.ok()).toBe(true);
+    const enrollment = (await enrollmentResponse.json()) as {
+      totpURI: string;
+      backupCodes: string[];
+    };
+    expect(enrollment.backupCodes).toHaveLength(10);
+    const recoveryCode = enrollment.backupCodes[0];
+    expect(recoveryCode).toBeTruthy();
+
+    const pendingTwoFactor = await prisma.twoFactor.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    expect(pendingTwoFactor.verified).toBe(false);
+    expect(pendingTwoFactor.backupCodes).not.toContain(recoveryCode);
+    expect(pendingTwoFactor.secret).not.toContain(
+      new URL(enrollment.totpURI).searchParams.get("secret") ?? "missing",
+    );
+
+    const verificationResponse = await page.request.post(
+      "/api/auth/two-factor/verify-totp",
+      {
+        data: {
+          code: generateTotpFromUri(enrollment.totpURI),
+          trustDevice: false,
+        },
+        headers: authHeaders,
+      },
+    );
+    expect(verificationResponse.ok()).toBe(true);
+    expect(
+      await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { twoFactorEnabled: true },
+      }),
+    ).toEqual({ twoFactorEnabled: true });
+
+    expect(
+      (
+        await page.request.post("/api/auth/sign-out", {
+          data: {},
+          headers: authHeaders,
+        })
+      ).ok(),
+    ).toBe(true);
+    const pendingSignIn = await page.request.post("/api/auth/sign-in/email", {
+      data: {
+        email: userData.email,
+        password: userData.password,
+        callbackURL: "/dashboard",
+      },
+      headers: authHeaders,
+    });
+    expect(pendingSignIn.ok()).toBe(true);
+    expect(await pendingSignIn.json()).toMatchObject({
+      twoFactorRedirect: true,
+    });
+
+    const recoveryResponse = await page.request.post(
+      "/api/auth/two-factor/verify-backup-code",
+      {
+        data: { code: recoveryCode, trustDevice: false },
+        headers: authHeaders,
+      },
+    );
+    expect(recoveryResponse.ok()).toBe(true);
+    const consumedTwoFactor = await prisma.twoFactor.findFirstOrThrow({
+      where: { userId: user.id },
+      select: { backupCodes: true },
+    });
+    expect(consumedTwoFactor.backupCodes).not.toBe(
+      pendingTwoFactor.backupCodes,
+    );
+
+    const reusedRecoveryCode = await page.request.post(
+      "/api/auth/two-factor/verify-backup-code",
+      {
+        data: { code: recoveryCode, trustDevice: false },
+        headers: authHeaders,
+      },
+    );
+    expect([401, 429]).toContain(reusedRecoveryCode.status());
+
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
+  test("an existing account must accept the current legal versions", async ({
+    page,
+  }) => {
+    const userData = await createTestAccount({
+      page,
+      callbackURL: "/dashboard",
+    });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: userData.email },
+      select: { id: true },
+    });
+    await prisma.userConsent.deleteMany({ where: { userId: user.id } });
+
+    await page.goto("/dashboard");
+    await page.waitForURL((url) => url.pathname === "/auth/consent");
+    const requiredConsents = page.getByRole("checkbox");
+    await expect(requiredConsents).toHaveCount(4);
+    for (let index = 0; index < 4; index += 1) {
+      // Consent controls are intentionally exercised in document order.
+      // eslint-disable-next-line no-await-in-loop
+      await requiredConsents.nth(index).check();
+    }
+    await page
+      .getByRole("button", {
+        name: /Accept and continue|Accepter et continuer/i,
+      })
+      .click();
+    await page.waitForURL((url) => url.pathname === "/dashboard");
+
+    const accepted = await prisma.userConsent.findMany({
+      where: { userId: user.id, revokedAt: null },
+      select: { purpose: true, version: true, source: true },
+    });
+    expect(accepted.map(({ purpose }) => purpose).sort()).toEqual([
+      "age_18",
+      "health_data",
+      "privacy",
+      "terms",
+    ]);
+    expect(accepted.every(({ version }) => version.length > 0)).toBe(true);
+    expect(accepted.every(({ source }) => source === "migration_gate")).toBe(
+      true,
+    );
+
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
+  test("sensitive auth endpoints require a session less than ten minutes old", async ({
+    page,
+  }) => {
+    const userData = await createTestAccount({
+      page,
+      callbackURL: "/settings/security",
+    });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: userData.email },
+      select: { id: true },
+    });
+
+    const freshResponse = await page.request.post(
+      "/api/auth/passkey/delete-passkey",
+      {
+        data: { id: "missing-e2e-passkey" },
+        headers: { origin: getServerUrl() },
+      },
+    );
+    expect(freshResponse.status()).not.toBe(401);
+    expect(await freshResponse.json()).not.toEqual({
+      error: "Recent authentication required",
+    });
+
+    await prisma.session.updateMany({
+      where: { userId: user.id },
+      data: { createdAt: new Date(Date.now() - 11 * 60 * 1000) },
+    });
+
+    const staleResponse = await page.request.post(
+      "/api/auth/passkey/delete-passkey",
+      {
+        data: { id: "missing-e2e-passkey" },
+        headers: { origin: getServerUrl() },
+      },
+    );
+    expect(staleResponse.status()).toBe(403);
+    await expect(staleResponse.json()).resolves.toEqual({
+      error: "Recent authentication required",
+    });
+
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
   test("delete account flow", async ({ page }) => {
     const userData = await createTestAccount({
       page,
@@ -109,12 +309,21 @@ test.describe("account", () => {
     const resetToken = token;
     const confirmUrl = `${getServerUrl()}/auth/confirm-delete?token=${resetToken}&callbackUrl=/auth/goodbye`;
     await page.goto(confirmUrl);
+    // The deletion request itself is verified here; service-worker behavior is
+    // covered by the dedicated offline suite. Unregister it to avoid WebKit's
+    // emulated worker lifecycle retaining a superseded script between pages.
+    await page.evaluate(async () => {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(async (item) => item.unregister()));
+    });
 
     // i18n: button text is "Delete account" (EN) / "Supprimer le compte" (FR)
     await page
       .getByRole("button", { name: /Delete account|Supprimer le compte/i })
       .click();
-    await page.waitForURL(/\/auth\/goodbye/, { timeout: 10000 });
+    await page.waitForURL((url) => url.pathname === "/auth/goodbye", {
+      timeout: 10000,
+    });
     // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
     await expect(
       page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
@@ -221,14 +430,26 @@ test.describe("account", () => {
       callbackURL: "/settings/security",
     });
     await page.waitForURL(/\/settings\/security/, { timeout: 10000 });
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
 
     const newPassword = faker.internet.password({
       length: 12,
       memorable: true,
     });
-    await page.locator('input[name="currentPassword"]').fill(userData.password);
-    await page.locator('input[name="newPassword"]').fill(newPassword);
-    await page.locator('input[name="confirmPassword"]').fill(newPassword);
+    const currentPasswordInput = page.locator(
+      'input[name="currentPassword"]',
+    );
+    const newPasswordInput = page.locator('input[name="newPassword"]');
+    const confirmPasswordInput = page.locator(
+      'input[name="confirmPassword"]',
+    );
+    await expect(currentPasswordInput).toBeVisible();
+    await currentPasswordInput.fill(userData.password);
+    await newPasswordInput.fill(newPassword);
+    await confirmPasswordInput.fill(newPassword);
+    await expect(currentPasswordInput).toHaveValue(userData.password);
+    await expect(newPasswordInput).toHaveValue(newPassword);
+    await expect(confirmPasswordInput).toHaveValue(newPassword);
     // i18n: button text is "Update password" or "Mettre à jour le mot de passe"
     await page
       .getByRole("button", { name: /Update password|Mettre à jour/i })

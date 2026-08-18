@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   updateMany: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -11,18 +12,63 @@ vi.mock("@/lib/prisma", () => ({
       create: mocks.create,
       updateMany: mocks.updateMany,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
 import {
   claimNotificationDelivery,
   completeNotificationDeliveries,
+  createEndpointDeliveryKey,
+  shouldAttemptNotificationDelivery,
 } from "../src/features/notifications/delivery";
 
 describe("notification delivery claims", () => {
   beforeEach(() => {
     mocks.create.mockReset();
     mocks.updateMany.mockReset();
+    mocks.transaction.mockReset();
+    mocks.transaction.mockImplementation(async (operations) =>
+      Promise.all(operations),
+    );
+  });
+
+  it("isolates idempotency per endpoint without storing the endpoint", () => {
+    const baseKey = "daily-checkin:2026-08-10";
+    const endpointA = "https://push.example.test/subscription-a";
+    const endpointB = "https://push.example.test/subscription-b";
+
+    const keyA = createEndpointDeliveryKey(baseKey, endpointA);
+    const keyB = createEndpointDeliveryKey(baseKey, endpointB);
+
+    expect(keyA).not.toBe(keyB);
+    expect(keyA).toMatch(/^daily-checkin:2026-08-10:endpoint:[\w-]{24}$/);
+    expect(keyA).not.toContain(endpointA);
+  });
+
+  it("retries an arrived delivery after its original reminder window", () => {
+    const dueRetryKeys = new Set(["delivery-retry"]);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: false,
+        deliveryKey: "delivery-retry",
+        dueRetryKeys,
+      }),
+    ).toBe(true);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: false,
+        deliveryKey: "future-delivery",
+        dueRetryKeys,
+      }),
+    ).toBe(false);
+    expect(
+      shouldAttemptNotificationDelivery({
+        currentlyDue: true,
+        deliveryKey: "new-delivery",
+        dueRetryKeys,
+      }),
+    ).toBe(true);
   });
 
   it("claims a new delivery exactly once", async () => {
@@ -89,7 +135,49 @@ describe("notification delivery claims", () => {
         },
         status: "pending",
       },
-      data: { status: "sent", sentAt: now, failedAt: null },
+      data: {
+        status: "sent",
+        sentAt: now,
+        failedAt: null,
+        nextAttemptAt: null,
+        lastErrorCode: null,
+      },
     });
+  });
+
+  it("stores only an expurgated retry code after a failed delivery", async () => {
+    const now = new Date("2026-07-16T10:00:00.000Z");
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+
+    await completeNotificationDeliveries({
+      userId: "user-1",
+      deliveryKeys: ["daily-checkin:2026-07-16"],
+      sent: false,
+      now,
+    });
+
+    expect(mocks.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({ attempts: { lt: 3 } }),
+        data: expect.objectContaining({
+          status: "failed",
+          lastErrorCode: "push_delivery_failed",
+          nextAttemptAt: new Date("2026-07-16T10:05:00.000Z"),
+        }),
+      }),
+    );
+    expect(mocks.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({ attempts: { gte: 3 } }),
+        data: expect.objectContaining({
+          status: "dead",
+          lastErrorCode: "push_delivery_failed",
+          nextAttemptAt: null,
+        }),
+      }),
+    );
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
   });
 });

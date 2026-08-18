@@ -25,12 +25,14 @@ import { authClient } from "@/lib/auth-client";
 import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 export function ChangePasswordForm() {
   const router = useRouter();
   const { t } = useI18n();
+  const [isHydrated, setIsHydrated] = useState(false);
   const ChangePasswordFormSchema = z
     .object({
       currentPassword: z.string().min(1, t("account.password.currentRequired")),
@@ -72,6 +74,8 @@ export function ChangePasswordForm() {
     },
   });
 
+  useEffect(() => setIsHydrated(true), []);
+
   function onSubmit(values: z.infer<typeof ChangePasswordFormSchema>) {
     changePasswordMutation.mutate(values);
   }
@@ -83,7 +87,12 @@ export function ChangePasswordForm() {
         <CardDescription>{t("account.password.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+        <Form
+          form={form}
+          onSubmit={onSubmit}
+          disabled={!isHydrated || changePasswordMutation.isPending}
+          className="space-y-4"
+        >
           <FormField
             control={form.control}
             name="currentPassword"
@@ -91,7 +100,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.currentLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -104,7 +117,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.newLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -117,7 +134,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.confirmLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -146,7 +167,7 @@ export function ChangePasswordForm() {
           <LoadingButton
             loading={changePasswordMutation.isPending}
             type="submit"
-            className="w-full"
+            className="w-full disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
           >
             {t("account.password.submit")}
           </LoadingButton>

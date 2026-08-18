@@ -1,4 +1,3 @@
-import { getServerUrl } from "@/lib/server-url";
 import { SiteConfig } from "@/site-config";
 
 // MoodDay Brand Colors
@@ -33,24 +32,21 @@ export const EMAIL_FONTS = {
   fallback: "Arial, sans-serif",
 } as const;
 
-// Get the base URL for email assets
-export const getEmailBaseUrl = () => {
-  let baseUrl = getServerUrl();
-  // Email clients can't handle localhost URL
-  if (baseUrl.startsWith("http://localhost")) {
-    baseUrl = SiteConfig.prodUrl;
-  }
-  return baseUrl;
-};
+// Email links always target the canonical production origin. Keeping this
+// value independent from request headers and environment variables prevents a
+// compromised deployment configuration from injecting links into messages.
+const EMAIL_BASE_URL = "https://www.moodday.app" as const;
+
+export const getEmailBaseUrl = () => EMAIL_BASE_URL;
 
 // Email URLs
 export const EMAIL_URLS = {
-  logo: () => `${getEmailBaseUrl()}${SiteConfig.appIcon}`,
-  dashboard: () => `${getEmailBaseUrl()}/dashboard`,
-  pricing: () => `${getEmailBaseUrl()}/pricing`,
-  billing: () => `${getEmailBaseUrl()}/account/billing`,
-  settings: () => `${getEmailBaseUrl()}/settings`,
-  unsubscribe: () => `${getEmailBaseUrl()}/settings/notifications`,
+  logo: () => "https://www.moodday.app/icons/android-chrome-512x512.png",
+  dashboard: () => "https://www.moodday.app/dashboard",
+  pricing: () => "https://www.moodday.app/pricing",
+  billing: () => "https://www.moodday.app/account/billing",
+  settings: () => "https://www.moodday.app/settings",
+  unsubscribe: () => "https://www.moodday.app/settings/notifications",
 } as const;
 
 // Contact email

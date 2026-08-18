@@ -8,7 +8,12 @@ import { useEffect } from "react";
 
 export default function RouteError({ error }: ErrorParams) {
   useEffect(() => {
-    logger.error(error);
+    logger.error("Account route rendering failed", {
+      eventName: "account_route_render_failed",
+      status: "failed",
+      errorCode: error.name || "render_error",
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

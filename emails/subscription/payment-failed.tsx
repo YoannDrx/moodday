@@ -1,4 +1,4 @@
-import { Heading, Preview, Text } from "@react-email/components";
+import { Heading, Preview, Text } from "react-email";
 import { Signature } from "../components/signature";
 import { BilingualSection } from "../utils/bilingual-section";
 import { CTAButton } from "../utils/cta-button";

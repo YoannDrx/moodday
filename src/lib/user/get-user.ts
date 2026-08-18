@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "next/navigation";
-import { logger } from "../logger";
 
 export type CurrentUserPayload = {
   id: string;
@@ -15,6 +14,7 @@ export type CurrentUserPayload = {
     periodStart: Date | null;
     periodEnd: Date | null;
     cancelAtPeriodEnd: boolean | null;
+    graceEndsAt: Date | null;
   } | null;
   stripeCustomerId: string | null;
 };
@@ -33,8 +33,6 @@ export const getCurrentUser = async (): Promise<CurrentUserPayload | null> => {
     },
   });
 
-  logger.debug("subs", user);
-
   if (!user) {
     return null;
   }
@@ -52,6 +50,7 @@ export const getCurrentUser = async (): Promise<CurrentUserPayload | null> => {
           periodStart: user.subscription.periodStart,
           periodEnd: user.subscription.periodEnd,
           cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
+          graceEndsAt: user.subscription.graceEndsAt,
         }
       : null,
     stripeCustomerId: user.stripeCustomerId,

@@ -28,7 +28,7 @@ type DosageChange = {
   date: string;
 };
 
-type MoodChartProps = {
+export type MoodChartProps = {
   moodEntries: MoodEntry[];
   dosageChanges?: DosageChange[];
   showDosageMarkers?: boolean;

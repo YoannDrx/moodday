@@ -37,6 +37,9 @@ export function ResetPasswordPage({ token }: { token: string }) {
 
   const passwordForm = useZodForm({
     schema: passwordFormSchema,
+    defaultValues: {
+      password: "",
+    },
   });
 
   const resetPasswordMutation = useMutation({
@@ -53,8 +56,8 @@ export function ResetPasswordPage({ token }: { token: string }) {
     },
     onSuccess: () => {
       toast.success(t("auth.resetPassword.success"));
-      const newUrl = `${window.location.origin}/auth/signin`;
-      window.location.href = newUrl;
+      router.replace("/auth/signin");
+      router.refresh();
     },
   });
 

@@ -10,6 +10,16 @@ describe("getCallbackUrl", () => {
     expect(getCallbackUrl("/dashboard")).toBe("/dashboard");
   });
 
+  it("normalizes the literal null callback to the public home page", () => {
+    window.history.pushState(
+      {},
+      "",
+      "http://localhost:3000/auth/signin?callbackUrl=null",
+    );
+
+    expect(getCallbackUrl("/dashboard")).toBe("/");
+  });
+
   it("allows same-origin relative callback URLs", () => {
     window.history.pushState(
       {},
@@ -48,5 +58,23 @@ describe("getCallbackUrl", () => {
     );
 
     expect(getCallbackUrl("/dashboard")).toBe("/dashboard");
+  });
+
+  it("falls back when URL normalization throws", () => {
+    window.history.pushState(
+      {},
+      "",
+      "http://localhost:3000/auth/signin?callbackUrl=/dashboard",
+    );
+    const OriginalURL = globalThis.URL;
+    globalThis.URL = function ThrowingURL() {
+      throw new TypeError("invalid URL");
+    } as unknown as typeof URL;
+
+    try {
+      expect(getCallbackUrl("/safe")).toBe("/safe");
+    } finally {
+      globalThis.URL = OriginalURL;
+    }
   });
 });

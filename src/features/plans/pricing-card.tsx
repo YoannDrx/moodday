@@ -31,10 +31,16 @@ export function PricingCard({
   plan,
   isYearly,
   mode = "dashboard",
+  billingEnabled = false,
+  aiInsightsEnabled = false,
+  caregiverSharingEnabled = false,
 }: {
   plan: AppAuthPlanData;
   isYearly?: boolean;
   mode?: PricingMode;
+  billingEnabled?: boolean;
+  aiInsightsEnabled?: boolean;
+  caregiverSharingEnabled?: boolean;
 }) {
   const { locale, t, tm } = useI18n();
 
@@ -68,8 +74,8 @@ export function PricingCard({
     new Intl.NumberFormat(locale, {
       style: "currency",
       currency: plan.currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+      maximumFractionDigits: 2,
     }).format(value);
   const additionalFeatures =
     tm<{ label: string; description: string }[]>(
@@ -77,22 +83,13 @@ export function PricingCard({
     ) ?? [];
   const additionalIcons =
     ADDITIONAL_FEATURES[plan.name as keyof typeof ADDITIONAL_FEATURES];
+  const optionalFeatureAvailability = {
+    aiInsights: aiInsightsEnabled,
+    caregiverSharing: caregiverSharingEnabled,
+  };
 
   return (
-    <Card
-      className={cn(
-        "flex flex-col pb-0 transition-all duration-200 hover:shadow-lg",
-        plan.isPopular && "border-primary relative overflow-hidden shadow-md",
-      )}
-    >
-      {plan.isPopular && (
-        <div className="absolute top-5 right-0">
-          <div className="bg-primary text-primary-foreground rounded-l-full px-4 py-1 text-xs font-semibold">
-            {t("pricingCard.mostPopular")}
-          </div>
-        </div>
-      )}
-
+    <Card className="flex flex-col pb-0 transition-all duration-200 hover:shadow-lg">
       <CardHeader className={cn("pb-0")}>
         <CardTitle className="text-2xl capitalize">
           {t(`plans.names.${plan.name}`)}
@@ -135,7 +132,7 @@ export function PricingCard({
             </p>
           )}
 
-          {plan.freeTrial && (
+          {plan.freeTrial && billingEnabled && (
             <div className="bg-primary/10 text-primary mt-3 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium">
               <Clock className="mr-1.5 size-3.5" />
               {t("pricingCard.freeTrial", { days: plan.freeTrial.days })}
@@ -144,13 +141,17 @@ export function PricingCard({
         </div>
 
         <div className="space-y-6">
-          <h4 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+          <p className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
             {t("pricingCard.includes")}
-          </h4>
+          </p>
 
           <ul className="space-y-5">
             {/* Generate features from limits object */}
             {Object.entries(plan.limits).map(([key, value]) => {
+              if (key === "caregivers" && !caregiverSharingEnabled) {
+                return null;
+              }
+
               const limitConfig =
                 LIMITS_CONFIG[key as keyof typeof LIMITS_CONFIG];
 
@@ -163,9 +164,15 @@ export function PricingCard({
                   </div>
                   <div>
                     <p className="font-medium">
-                      {t(`plans.limits.${key}.label`, {
-                        value: value as number,
-                      })}
+                      {value === -1
+                        ? t(`plans.limits.${key}.labelUnlimited`)
+                        : value === 0
+                          ? t(`plans.limits.${key}.labelNone`)
+                          : key === "caregivers" && value === 1
+                            ? t("plans.limits.caregivers.labelOne")
+                            : t(`plans.limits.${key}.label`, {
+                                value: value as number,
+                              })}
                     </p>
                     <p className="text-muted-foreground text-sm">
                       {t(`plans.limits.${key}.description`)}
@@ -176,12 +183,21 @@ export function PricingCard({
             })}
 
             {/* Additional features based on plan */}
-            {additionalIcons.map((Icon, index) => {
+            {additionalIcons.map((feature, index) => {
               const translated = additionalFeatures.at(index);
 
               if (!translated) {
                 return null;
               }
+
+              if (
+                feature.requires &&
+                !optionalFeatureAvailability[feature.requires]
+              ) {
+                return null;
+              }
+
+              const Icon = feature.icon;
 
               return (
                 <li key={index} className="flex items-start">
@@ -202,13 +218,22 @@ export function PricingCard({
       </CardContent>
 
       <CardFooter className="pt-6 pb-8">
-        {mode === "landing" ? (
+        {plan.name === "plus" && !billingEnabled ? (
+          <span
+            aria-disabled="true"
+            className={cn(
+              buttonVariants({ size: "lg", variant: "secondary" }),
+              "pointer-events-none w-full text-base font-medium opacity-70",
+            )}
+          >
+            {t("pricingCard.ctaUnavailable")}
+          </span>
+        ) : mode === "landing" ? (
           <Link
             href={`/auth/signup?plan=${plan.name}`}
             className={cn(
               buttonVariants({ size: "lg" }),
               "w-full text-base font-medium",
-              plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
             )}
           >
             {plan.price === 0
@@ -220,12 +245,11 @@ export function PricingCard({
         ) : (
           <LoadingButton
             loading={isPending}
+            disabled={plan.name === "free" || !billingEnabled}
             size="lg"
-            className={cn(
-              "w-full text-base font-medium",
-              plan.isPopular ? "bg-primary hover:bg-primary/90" : "",
-            )}
+            className="w-full text-base font-medium"
             onClick={() => {
+              if (plan.name !== "plus") return;
               upgradeUser({
                 plan: plan.name,
                 annual: isYearly,

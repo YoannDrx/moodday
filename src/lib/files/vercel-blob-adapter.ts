@@ -7,7 +7,9 @@ import type { UploadFileAdapter } from "./upload-file";
 const sanitizeFilename = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-export const isManagedMooddayBlobUrl = (value?: string | null) => {
+export const isManagedMooddayBlobUrl = (
+  value?: string | null,
+): value is string => {
   if (!value) return false;
 
   try {

@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "releaseScope": "moodday-fr-18-plus-2026-08",
+  "items": [
+    {
+      "requirement": "data_controller",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "dpo",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "legal_bases",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "health_consent",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "legal_documents",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "dpia",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "hds",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "processors",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "retention",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "incident_response",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "clinical_safety",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "openai_processing",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "tax",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "stripe_live",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "vercel_production",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "neon_production",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "github_production",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "resend_production",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "credential_rotation",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "accessibility",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    },
+    {
+      "requirement": "go_no_go",
+      "status": "pending",
+      "approvedAt": null,
+      "validUntil": null,
+      "evidenceReference": null,
+      "approverReference": null,
+      "releaseCommit": null
+    }
+  ]
+}

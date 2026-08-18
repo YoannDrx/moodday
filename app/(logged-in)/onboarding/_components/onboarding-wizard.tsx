@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -47,7 +47,13 @@ type OnboardingStep = {
   optional?: boolean;
 };
 
-export function OnboardingWizard() {
+export function OnboardingWizard({
+  pushNotificationsEnabled,
+  caregiverSharingEnabled,
+}: {
+  pushNotificationsEnabled: boolean;
+  caregiverSharingEnabled: boolean;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
@@ -63,22 +69,28 @@ export function OnboardingWizard() {
   const [medicationFrequency, setMedicationFrequency] = useState<
     "daily" | "twice_daily" | "weekly" | "prn"
   >("daily");
+  const medicationOperationId = useRef(crypto.randomUUID());
 
   // Preferences + caregiver state
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [dailyCheckInReminder, setDailyCheckInReminder] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    pushNotificationsEnabled,
+  );
+  const [dailyCheckInReminder, setDailyCheckInReminder] = useState(
+    pushNotificationsEnabled,
+  );
   const [dailyCheckInTime, setDailyCheckInTime] = useState("09:00");
-  const [medicationReminders, setMedicationReminders] = useState(true);
-  const [medicationReminderTime, setMedicationReminderTime] =
-    useState("09:00");
+  const [medicationReminders, setMedicationReminders] = useState(
+    pushNotificationsEnabled,
+  );
+  const [medicationReminderTime, setMedicationReminderTime] = useState("09:00");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<
     "family" | "friend" | "professional"
   >("family");
   const [inviteLabel, setInviteLabel] = useState("");
 
-  const steps: OnboardingStep[] = useMemo(
-    () => [
+  const steps: OnboardingStep[] = useMemo(() => {
+    const availableSteps: OnboardingStep[] = [
       {
         key: "welcome",
         icon: <Heart className="size-12 text-pink-500" />,
@@ -98,22 +110,26 @@ export function OnboardingWizard() {
         descriptionKey: "onboarding.steps.medications.description",
         optional: true,
       },
-      {
-        key: "preferences",
-        icon: <Bell className="size-12 text-amber-500" />,
-        titleKey: "onboarding.steps.preferences.title",
-        descriptionKey: "onboarding.steps.preferences.description",
-        optional: true,
-      },
+      ...(pushNotificationsEnabled || caregiverSharingEnabled
+        ? [
+            {
+              key: "preferences" as const,
+              icon: <Bell className="size-12 text-amber-500" />,
+              titleKey: "onboarding.steps.preferences.title",
+              descriptionKey: "onboarding.steps.preferences.description",
+              optional: true,
+            },
+          ]
+        : []),
       {
         key: "ready",
         icon: <Sparkles className="size-12 text-emerald-500" />,
         titleKey: "onboarding.steps.ready.title",
         descriptionKey: "onboarding.steps.ready.description",
       },
-    ],
-    [],
-  );
+    ];
+    return availableSteps;
+  }, [caregiverSharingEnabled, pushNotificationsEnabled]);
 
   const updateProgressMutation = useMutation({
     mutationFn: async (step: number) => {
@@ -141,6 +157,7 @@ export function OnboardingWizard() {
         name: medicationName.trim(),
         dosage: medicationDosage.trim(),
         frequency: medicationFrequency,
+        operationId: medicationOperationId.current,
       });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
@@ -220,9 +237,11 @@ export function OnboardingWizard() {
       }
 
       if (current.key === "preferences") {
-        await preferencesMutation.mutateAsync();
+        if (pushNotificationsEnabled) {
+          await preferencesMutation.mutateAsync();
+        }
 
-        if (inviteEmail.trim().length > 0) {
+        if (caregiverSharingEnabled && inviteEmail.trim().length > 0) {
           const validation = emailSchema.safeParse(inviteEmail.trim());
           if (!validation.success) {
             toast.error(t("onboarding.errors.invalidInviteEmail"));
@@ -384,143 +403,147 @@ export function OnboardingWizard() {
 
           {current.key === "preferences" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">
-                      {t("settings.notifications.title")}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {t("settings.notifications.enabledHint")}
-                    </p>
+              {pushNotificationsEnabled && (
+                <>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">
+                          {t("settings.notifications.title")}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {t("settings.notifications.enabledHint")}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={notificationsEnabled}
+                        onCheckedChange={setNotificationsEnabled}
+                      />
+                    </div>
                   </div>
-                  <Switch
-                    checked={notificationsEnabled}
-                    onCheckedChange={setNotificationsEnabled}
-                  />
-                </div>
-              </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">
-                      {t("settings.notifications.dailyCheckIn")}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {t("settings.notifications.dailyCheckInHint")}
-                    </p>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">
+                          {t("settings.notifications.dailyCheckIn")}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {t("settings.notifications.dailyCheckInHint")}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={dailyCheckInReminder}
+                        onCheckedChange={setDailyCheckInReminder}
+                      />
+                    </div>
+                    {dailyCheckInReminder && (
+                      <div className="mt-3">
+                        <Label>{t("settings.notifications.checkInTime")}</Label>
+                        <Input
+                          type="time"
+                          value={dailyCheckInTime}
+                          onChange={(e) => setDailyCheckInTime(e.target.value)}
+                          className="mt-2"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <Switch
-                    checked={dailyCheckInReminder}
-                    onCheckedChange={setDailyCheckInReminder}
-                  />
-                </div>
-                {dailyCheckInReminder && (
-                  <div className="mt-3">
-                    <Label>{t("settings.notifications.checkInTime")}</Label>
-                    <Input
-                      type="time"
-                      value={dailyCheckInTime}
-                      onChange={(e) => setDailyCheckInTime(e.target.value)}
-                      className="mt-2"
-                    />
-                  </div>
-                )}
-              </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">
-                      {t("settings.notifications.medicationReminders")}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {t("settings.notifications.medicationRemindersHint")}
-                    </p>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">
+                          {t("settings.notifications.medicationReminders")}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {t("settings.notifications.medicationRemindersHint")}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={medicationReminders}
+                        onCheckedChange={setMedicationReminders}
+                      />
+                    </div>
+                    {medicationReminders && (
+                      <div className="mt-3">
+                        <Label>
+                          {t("settings.notifications.medicationReminderTime")}
+                        </Label>
+                        <Input
+                          type="time"
+                          value={medicationReminderTime}
+                          onChange={(e) =>
+                            setMedicationReminderTime(e.target.value)
+                          }
+                          className="mt-2"
+                        />
+                        <p className="text-muted-foreground mt-2 text-sm">
+                          {t(
+                            "settings.notifications.medicationReminderTimeHint",
+                          )}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <Switch
-                    checked={medicationReminders}
-                    onCheckedChange={setMedicationReminders}
-                  />
-                </div>
-                {medicationReminders && (
-                  <div className="mt-3">
-                    <Label>
-                      {t("settings.notifications.medicationReminderTime")}
-                    </Label>
+                </>
+              )}
+
+              {caregiverSharingEnabled && (
+                <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
+                  <p className="font-semibold">
+                    {t("onboarding.preferences.invite.title")}
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    {t("onboarding.preferences.invite.description")}
+                  </p>
+                  <div className="mt-4 grid gap-3">
                     <Input
-                      type="time"
-                      value={medicationReminderTime}
-                      onChange={(e) =>
-                        setMedicationReminderTime(e.target.value)
-                      }
-                      className="mt-2"
-                    />
-                    <p className="text-muted-foreground mt-2 text-sm">
-                      {t(
-                        "settings.notifications.medicationReminderTimeHint",
+                      placeholder={t(
+                        "onboarding.preferences.invite.emailPlaceholder",
                       )}
-                    </p>
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                    <Select
+                      value={inviteRole}
+                      onValueChange={(value) =>
+                        setInviteRole(
+                          value as "family" | "friend" | "professional",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="family">
+                          {t("caregiver.roles.family")}
+                        </SelectItem>
+                        <SelectItem value="friend">
+                          {t("caregiver.roles.friend")}
+                        </SelectItem>
+                        <SelectItem value="professional">
+                          {t("caregiver.roles.professional")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder={t(
+                        "onboarding.preferences.invite.labelPlaceholder",
+                      )}
+                      value={inviteLabel}
+                      onChange={(e) => setInviteLabel(e.target.value)}
+                    />
                   </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
-                <p className="font-semibold">
-                  {t("onboarding.preferences.invite.title")}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  {t("onboarding.preferences.invite.description")}
-                </p>
-                <div className="mt-4 grid gap-3">
-                  <Input
-                    placeholder={t(
-                      "onboarding.preferences.invite.emailPlaceholder",
-                    )}
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                  <Select
-                    value={inviteRole}
-                    onValueChange={(value) =>
-                      setInviteRole(value as "family" | "friend" | "professional")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="family">
-                        {t("caregiver.roles.family")}
-                      </SelectItem>
-                      <SelectItem value="friend">
-                        {t("caregiver.roles.friend")}
-                      </SelectItem>
-                      <SelectItem value="professional">
-                        {t("caregiver.roles.professional")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder={t(
-                      "onboarding.preferences.invite.labelPlaceholder",
-                    )}
-                    value={inviteLabel}
-                    onChange={(e) => setInviteLabel(e.target.value)}
-                  />
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* Actions */}
           <div className="mt-8 flex flex-col gap-3">
-            <Button
-              onClick={handleNext}
-              disabled={isBusy}
-              className="w-full"
-            >
+            <Button onClick={handleNext} disabled={isBusy} className="w-full">
               {isLastStep ? t("onboarding.start") : t("onboarding.next")}
               <ChevronRight className="ml-2 size-4" />
             </Button>

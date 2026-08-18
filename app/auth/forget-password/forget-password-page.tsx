@@ -24,6 +24,7 @@ import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -34,9 +35,13 @@ const EmailFormSchema = z.object({
 export function ForgetPasswordPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const emailForm = useZodForm({
     schema: EmailFormSchema,
+    defaultValues: {
+      email: "",
+    },
   });
 
   const forgetPasswordMutation = useMutation({
@@ -55,6 +60,8 @@ export function ForgetPasswordPage() {
       router.push("/auth/verify");
     },
   });
+
+  useEffect(() => setIsHydrated(true), []);
 
   function onSubmitEmail(values: z.infer<typeof EmailFormSchema>) {
     forgetPasswordMutation.mutate(values);
@@ -80,34 +87,35 @@ export function ForgetPasswordPage() {
       </CardHeader>
 
       <CardFooter className="border-t pt-6">
-        <Form
-          form={emailForm}
-          onSubmit={onSubmitEmail}
-          className="w-full space-y-4"
-        >
-          <FormField
-            control={emailForm.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("auth.form.email")}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={t("auth.form.emailPlaceholder")}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <LoadingButton
-            loading={forgetPasswordMutation.isPending}
-            type="submit"
-            className="w-full"
+        <Form form={emailForm} onSubmit={onSubmitEmail} className="w-full">
+          <fieldset
+            disabled={!isHydrated || forgetPasswordMutation.isPending}
+            className="space-y-4"
           >
-            {t("auth.forgetPassword.submit")}
-          </LoadingButton>
+            <FormField
+              control={emailForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("auth.form.email")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t("auth.form.emailPlaceholder")}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <LoadingButton
+              loading={forgetPasswordMutation.isPending}
+              type="submit"
+              className="w-full disabled:opacity-100"
+            >
+              {t("auth.forgetPassword.submit")}
+            </LoadingButton>
+          </fieldset>
         </Form>
       </CardFooter>
     </Card>

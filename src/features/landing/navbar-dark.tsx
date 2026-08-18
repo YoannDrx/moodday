@@ -22,12 +22,12 @@ export function NavbarDark() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navLinks = [
-    { label: t("landing2.nav.features"), href: "/#features" },
+    { label: t("landing2.nav.features"), href: "/#product" },
     { label: t("landing2.nav.security"), href: "/#security" },
     { label: t("landing2.nav.pricing"), href: "/#pricing" },
     { label: t("landing2.nav.guides"), href: "/guides" },
@@ -102,6 +102,10 @@ export function NavbarDark() {
 
           {/* Mobile menu button */}
           <button
+            type="button"
+            aria-label={t("nav.toggleMenu")}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="public-mobile-navigation"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="text-muted-foreground hover:bg-muted hover:text-foreground ml-2 flex size-10 items-center justify-center rounded-lg transition-colors md:hidden"
           >
@@ -116,7 +120,10 @@ export function NavbarDark() {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="border-border bg-background/95 border-t backdrop-blur-lg md:hidden">
+        <div
+          id="public-mobile-navigation"
+          className="border-border bg-background/95 border-t backdrop-blur-lg md:hidden"
+        >
           <nav className="mx-auto max-w-7xl space-y-1 px-6 py-4">
             {navLinks.map((link) => (
               <Link

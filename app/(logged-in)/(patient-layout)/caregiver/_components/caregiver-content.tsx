@@ -13,6 +13,7 @@ import {
   Activity,
   Shield,
   Trash2,
+  Settings2,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -72,19 +73,37 @@ import {
 import {
   getCaregiverAccessLog,
   getCaregiverActivity,
+  getCaregiverDigestPreferences,
   getCaregiverSummary,
   getMyCaregivers,
   getMyPatients,
   inviteCaregiver,
   removeCaregiverRelationship,
+  updateCaregiverPermissions,
+  updateCaregiverDigestPreferences,
 } from "@/features/caregiver/caregiver.action";
 import { useI18n } from "@/i18n/provider";
+import {
+  caregiverPermissionValues,
+  type CaregiverPermission,
+} from "@/features/caregiver/permissions";
 
 type CaregiverSummary = {
   observationsThisWeek: number;
   observationsThisMonth: number;
   eventsThisMonth: number;
   concerningEvents: number;
+};
+
+type AccessWindowDays = 7 | 30 | 90;
+
+type EditableCaregiver = {
+  id: string;
+  label: string;
+  permissions: CaregiverPermission[];
+  accessExpiresAt: string;
+  moodWindowDays: AccessWindowDays;
+  medicationWindowDays: AccessWindowDays;
 };
 
 export function CaregiverContent() {
@@ -105,6 +124,38 @@ export function CaregiverContent() {
     "family" | "friend" | "professional"
   >("family");
   const [inviteLabel, setInviteLabel] = useState("");
+  const [invitePermissions, setInvitePermissions] = useState<
+    CaregiverPermission[]
+  >(["view_mood", "add_observations", "add_events"]);
+  const [inviteMoodWindowDays, setInviteMoodWindowDays] =
+    useState<AccessWindowDays>(30);
+  const [inviteMedicationWindowDays, setInviteMedicationWindowDays] =
+    useState<AccessWindowDays>(30);
+  const [inviteAccessExpiresOn, setInviteAccessExpiresOn] = useState("");
+  const [editingCaregiver, setEditingCaregiver] =
+    useState<EditableCaregiver | null>(null);
+
+  const permissionLabels: Record<CaregiverPermission, string> = {
+    view_mood: t("caregiver.dashboard.permissions.viewMood"),
+    view_medications: t("caregiver.dashboard.permissions.viewMedications"),
+    add_observations: t("caregiver.dashboard.permissions.addObservations"),
+    add_events: t("caregiver.dashboard.permissions.addEvents"),
+  };
+  const accessResourceLabels: Record<string, string> = {
+    shared_space: t("caregiver.dashboard.accessLog.sharedSpace"),
+    activity: t("caregiver.dashboard.accessLog.activity"),
+    mood_summary: t("caregiver.dashboard.accessLog.moodSummary"),
+    medication_summary: t("caregiver.dashboard.accessLog.medicationSummary"),
+  };
+  const togglePermission = (
+    current: CaregiverPermission[],
+    permission: CaregiverPermission,
+  ) =>
+    current.includes(permission)
+      ? current.filter((value) => value !== permission)
+      : [...current, permission];
+  const endOfUtcDate = (date: string) =>
+    date ? `${date}T23:59:59.000Z` : undefined;
 
   const { data: patients, isLoading: patientsLoading } = useQuery({
     queryKey: ["my-patients"],
@@ -116,24 +167,29 @@ export function CaregiverContent() {
   });
 
   const hasPatients = (patients?.length ?? 0) > 0;
-  const activityMode = hasPatients ? "caregiver" : "patient";
+  const activityScope = hasPatients
+    ? ({
+        kind: "relationship",
+        relationshipId: patients?.[0]?.id ?? "",
+      } as const)
+    : ({ kind: "patient" } as const);
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["caregiver-summary", activityMode],
+    queryKey: ["caregiver-summary", activityScope],
     queryFn: async () => {
-      const result = await getCaregiverSummary({ mode: activityMode });
+      const result = await getCaregiverSummary({ scope: activityScope });
       if (result.serverError) throw new Error(result.serverError);
       return result.data as CaregiverSummary;
     },
   });
 
   const { data: activity, isLoading: activityLoading } = useQuery({
-    queryKey: ["caregiver-activity", activityMode],
+    queryKey: ["caregiver-activity", activityScope],
     queryFn: async () => {
       const result = await getCaregiverActivity({
         days: 30,
         limit: 10,
-        mode: activityMode,
+        scope: activityScope,
       });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
@@ -162,12 +218,25 @@ export function CaregiverContent() {
     },
   });
 
+  const { data: digestPreferences } = useQuery({
+    queryKey: ["caregiver-digest-preferences"],
+    queryFn: async () => {
+      const result = await getCaregiverDigestPreferences();
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+  });
+
   const inviteMutation = useMutation({
     mutationFn: async () => {
       const result = await inviteCaregiver({
         email: inviteEmail,
         role: inviteRole,
         label: inviteLabel || undefined,
+        permissions: invitePermissions,
+        moodWindowDays: inviteMoodWindowDays,
+        medicationWindowDays: inviteMedicationWindowDays,
+        accessExpiresAt: endOfUtcDate(inviteAccessExpiresOn),
       });
       if (result.serverError) throw new Error(result.serverError);
       return result.data;
@@ -177,6 +246,10 @@ export function CaregiverContent() {
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteLabel("");
+      setInvitePermissions(["view_mood", "add_observations", "add_events"]);
+      setInviteMoodWindowDays(30);
+      setInviteMedicationWindowDays(30);
+      setInviteAccessExpiresOn("");
       void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
     },
     onError: (error) => {
@@ -200,6 +273,45 @@ export function CaregiverContent() {
     onError: (error) => {
       toast.error(t(error.message));
     },
+  });
+
+  const digestMutation = useMutation({
+    mutationFn: async (next: {
+      enabled: boolean;
+      frequency: "daily" | "weekly";
+    }) => {
+      const result = await updateCaregiverDigestPreferences(next);
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["caregiver-digest-preferences"],
+      });
+      toast.success(t("caregiver.dashboard.digest.saved"));
+    },
+    onError: () => toast.error(t("caregiver.dashboard.digest.saveError")),
+  });
+
+  const accessMutation = useMutation({
+    mutationFn: async (next: EditableCaregiver) => {
+      const result = await updateCaregiverPermissions({
+        relationshipId: next.id,
+        label: next.label || undefined,
+        permissions: next.permissions,
+        accessExpiresAt: endOfUtcDate(next.accessExpiresAt) ?? null,
+        moodWindowDays: next.moodWindowDays,
+        medicationWindowDays: next.medicationWindowDays,
+      });
+      if (result.serverError) throw new Error(result.serverError);
+      return result.data;
+    },
+    onSuccess: () => {
+      setEditingCaregiver(null);
+      void queryClient.invalidateQueries({ queryKey: ["my-caregivers"] });
+      toast.success(t("caregiver.dashboard.permissions.saved"));
+    },
+    onError: (error) => toast.error(t(error.message)),
   });
 
   // Today's date
@@ -242,7 +354,7 @@ export function CaregiverContent() {
                   <Eye className="size-7" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase">
+                  <p className="text-xs font-semibold text-gray-600 uppercase">
                     {t("caregiver.dashboard.stats.week")}
                   </p>
                   <p className="text-2xl font-bold">
@@ -259,7 +371,7 @@ export function CaregiverContent() {
                   <Activity className="size-7" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase">
+                  <p className="text-xs font-semibold text-gray-600 uppercase">
                     {t("caregiver.dashboard.stats.month")}
                   </p>
                   <p className="text-2xl font-bold">
@@ -276,7 +388,7 @@ export function CaregiverContent() {
                   <AlertTriangle className="size-7" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase">
+                  <p className="text-xs font-semibold text-gray-600 uppercase">
                     {t("caregiver.dashboard.stats.events")}
                   </p>
                   <p className="text-2xl font-bold">
@@ -308,7 +420,7 @@ export function CaregiverContent() {
                   <Shield className="size-7" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase">
+                  <p className="text-xs font-semibold text-gray-600 uppercase">
                     {t("caregiver.dashboard.stats.concerning")}
                   </p>
                   <p className="text-2xl font-bold">
@@ -403,7 +515,7 @@ export function CaregiverContent() {
               ) : !activity || activity.length === 0 ? (
                 <div className="py-12 text-center">
                   <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-gray-100">
-                    <Eye className="size-8 text-gray-400" />
+                    <Eye className="size-8 text-gray-600" />
                   </div>
                   <h3 className="mb-2 font-bold text-gray-800">
                     {t("caregiver.dashboard.activity.emptyTitle")}
@@ -508,7 +620,7 @@ export function CaregiverContent() {
                                 {item.notes}
                               </p>
                             )}
-                            <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
+                            <p className="mt-2 flex items-center gap-1 text-xs text-gray-600">
                               <Clock className="size-3" />
                               {timeAgo}
                             </p>
@@ -563,7 +675,7 @@ export function CaregiverContent() {
                             {item.description}
                           </p>
                           <div className="mt-2 flex items-center gap-3">
-                            <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <span className="flex items-center gap-1 text-xs text-gray-600">
                               <Clock className="size-3" />
                               {timeAgo}
                             </span>
@@ -625,7 +737,7 @@ export function CaregiverContent() {
                         <p className="font-bold text-gray-800">
                           {patient.patientName}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-600">
                           {patient.patientEmail}
                         </p>
                       </div>
@@ -685,7 +797,7 @@ export function CaregiverContent() {
                       </div>
                       <div className="min-w-0 flex-grow">
                         <p className="font-bold text-gray-800">{displayName}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-600">
                           {roleLabelKeys[caregiver.role]
                             ? t(roleLabelKeys[caregiver.role])
                             : caregiver.role}
@@ -694,7 +806,61 @@ export function CaregiverContent() {
                               "caregiver.dashboard.circle.statusPending",
                             )}`}
                         </p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {(caregiver.permissions as CaregiverPermission[]).map(
+                            (permission) => (
+                              <Badge
+                                key={permission}
+                                variant="outline"
+                                className="text-[10px]"
+                              >
+                                {permissionLabels[permission]}
+                              </Badge>
+                            ),
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {t("caregiver.dashboard.permissions.windows", {
+                            mood: caregiver.moodWindowDays,
+                            medication: caregiver.medicationWindowDays,
+                          })}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {caregiver.accessExpiresAt
+                            ? t("caregiver.dashboard.permissions.expires", {
+                                date: new Date(
+                                  caregiver.accessExpiresAt,
+                                ).toLocaleDateString(localeTag),
+                              })
+                            : t("caregiver.dashboard.permissions.noExpiry")}
+                        </p>
                       </div>
+                      {caregiver.status !== "revoked" ? (
+                        <button
+                          type="button"
+                          aria-label={t(
+                            "caregiver.dashboard.permissions.manageAccessibleLabel",
+                            { name: displayName },
+                          )}
+                          className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
+                          onClick={() =>
+                            setEditingCaregiver({
+                              id: caregiver.id,
+                              label: caregiver.label ?? "",
+                              permissions:
+                                caregiver.permissions as CaregiverPermission[],
+                              accessExpiresAt:
+                                caregiver.accessExpiresAt?.slice(0, 10) ?? "",
+                              moodWindowDays:
+                                caregiver.moodWindowDays as AccessWindowDays,
+                              medicationWindowDays:
+                                caregiver.medicationWindowDays as AccessWindowDays,
+                            })
+                          }
+                        >
+                          <Settings2 className="size-4" />
+                        </button>
+                      ) : null}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button
@@ -702,7 +868,7 @@ export function CaregiverContent() {
                               "caregiver.dashboard.circle.removeAccessibleLabel",
                               { name: displayName },
                             )}
-                            className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500"
+                            className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-red-50 hover:text-red-700"
                           >
                             <Trash2 className="size-4" />
                           </button>
@@ -749,7 +915,7 @@ export function CaregiverContent() {
 
               <button
                 onClick={() => setInviteDialogOpen(true)}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-400 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-600 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
                 <UserPlus className="size-4" />
                 {t("caregiver.dashboard.circle.inviteCta")}
@@ -796,11 +962,12 @@ export function CaregiverContent() {
                           {entry.caregiverName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {t("caregiver.dashboard.accessLog.sharedSpace")}
+                          {accessResourceLabels[entry.resource] ??
+                            t("caregiver.dashboard.accessLog.sharedSpace")}
                         </p>
                       </div>
                       <time
-                        className="shrink-0 text-xs text-gray-400"
+                        className="shrink-0 text-xs text-gray-600"
                         dateTime={entry.accessedAt}
                         title={new Date(entry.accessedAt).toLocaleString(
                           localeTag,
@@ -819,6 +986,62 @@ export function CaregiverContent() {
                   {t("caregiver.dashboard.accessLog.empty")}
                 </p>
               )}
+            </GlassCardContent>
+          </GlassCard>
+
+          <GlassCard padding="md" variant="elevated">
+            <GlassCardHeader>
+              <GlassCardTitle
+                icon={<Shield className="size-5 text-[var(--primary)]" />}
+              >
+                {t("caregiver.dashboard.digest.title")}
+              </GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
+              <p className="text-sm leading-relaxed text-gray-500">
+                {t("caregiver.dashboard.digest.description")}
+              </p>
+              <label className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-3 text-sm font-semibold text-gray-700">
+                {t("caregiver.dashboard.digest.enabled")}
+                <input
+                  type="checkbox"
+                  checked={digestPreferences?.enabled ?? true}
+                  disabled={!digestPreferences || digestMutation.isPending}
+                  onChange={(event) =>
+                    digestMutation.mutate({
+                      enabled: event.target.checked,
+                      frequency: digestPreferences?.frequency ?? "weekly",
+                    })
+                  }
+                  className="size-5 accent-[var(--primary)]"
+                />
+              </label>
+              <label className="block space-y-2 text-sm font-semibold text-gray-700">
+                <span>{t("caregiver.dashboard.digest.frequency")}</span>
+                <select
+                  value={digestPreferences?.frequency ?? "weekly"}
+                  disabled={
+                    !digestPreferences?.enabled || digestMutation.isPending
+                  }
+                  onChange={(event) =>
+                    digestMutation.mutate({
+                      enabled: digestPreferences?.enabled ?? true,
+                      frequency: event.target.value as "daily" | "weekly",
+                    })
+                  }
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3"
+                >
+                  <option value="daily">
+                    {t("caregiver.dashboard.digest.daily")}
+                  </option>
+                  <option value="weekly">
+                    {t("caregiver.dashboard.digest.weekly")}
+                  </option>
+                </select>
+              </label>
+              <p className="text-xs leading-relaxed text-gray-500">
+                {t("caregiver.dashboard.digest.privacy")}
+              </p>
             </GlassCardContent>
           </GlassCard>
 
@@ -850,7 +1073,7 @@ export function CaregiverContent() {
 
       {/* Invite Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {t("caregiver.dashboard.inviteDialog.title")}
@@ -900,6 +1123,80 @@ export function CaregiverContent() {
                 </SelectContent>
               </Select>
             </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold">
+                {t("caregiver.dashboard.permissions.title")}
+              </legend>
+              {caregiverPermissionValues.map((permission) => (
+                <label
+                  key={permission}
+                  className="flex items-center gap-3 rounded-xl border p-3 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={invitePermissions.includes(permission)}
+                    onChange={() =>
+                      setInvitePermissions((current) =>
+                        togglePermission(current, permission),
+                      )
+                    }
+                  />
+                  {permissionLabels[permission]}
+                </label>
+              ))}
+            </fieldset>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Label className="space-y-2">
+                <span>{t("caregiver.dashboard.permissions.moodWindow")}</span>
+                <select
+                  value={inviteMoodWindowDays}
+                  onChange={(event) =>
+                    setInviteMoodWindowDays(
+                      Number(event.target.value) as AccessWindowDays,
+                    )
+                  }
+                  className="h-11 w-full rounded-xl border px-3"
+                >
+                  {[7, 30, 90].map((days) => (
+                    <option key={days} value={days}>
+                      {t("caregiver.dashboard.permissions.days", { days })}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+              <Label className="space-y-2">
+                <span>
+                  {t("caregiver.dashboard.permissions.medicationWindow")}
+                </span>
+                <select
+                  value={inviteMedicationWindowDays}
+                  onChange={(event) =>
+                    setInviteMedicationWindowDays(
+                      Number(event.target.value) as AccessWindowDays,
+                    )
+                  }
+                  className="h-11 w-full rounded-xl border px-3"
+                >
+                  {[7, 30, 90].map((days) => (
+                    <option key={days} value={days}>
+                      {t("caregiver.dashboard.permissions.days", { days })}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+            </div>
+            <Label htmlFor="invite-expiry" className="space-y-2">
+              <span>{t("caregiver.dashboard.permissions.expiry")}</span>
+              <Input
+                id="invite-expiry"
+                type="date"
+                value={inviteAccessExpiresOn}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(event) =>
+                  setInviteAccessExpiresOn(event.target.value)
+                }
+              />
+            </Label>
             <div className="space-y-2">
               <Label htmlFor="invite-label">
                 {t("caregiver.dashboard.inviteDialog.labelLabel")}
@@ -928,6 +1225,127 @@ export function CaregiverContent() {
               {inviteMutation.isPending
                 ? t("caregiver.dashboard.inviteDialog.sending")
                 : t("caregiver.dashboard.inviteDialog.send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editingCaregiver !== null}
+        onOpenChange={(open) => !open && setEditingCaregiver(null)}
+      >
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {t("caregiver.dashboard.permissions.manageTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("caregiver.dashboard.permissions.manageDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          {editingCaregiver ? (
+            <div className="space-y-4 py-4">
+              <Label className="space-y-2">
+                <span>{t("caregiver.dashboard.inviteDialog.labelLabel")}</span>
+                <Input
+                  value={editingCaregiver.label}
+                  onChange={(event) =>
+                    setEditingCaregiver({
+                      ...editingCaregiver,
+                      label: event.target.value,
+                    })
+                  }
+                />
+              </Label>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-semibold">
+                  {t("caregiver.dashboard.permissions.title")}
+                </legend>
+                {caregiverPermissionValues.map((permission) => (
+                  <label
+                    key={permission}
+                    className="flex items-center gap-3 rounded-xl border p-3 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editingCaregiver.permissions.includes(
+                        permission,
+                      )}
+                      onChange={() =>
+                        setEditingCaregiver({
+                          ...editingCaregiver,
+                          permissions: togglePermission(
+                            editingCaregiver.permissions,
+                            permission,
+                          ),
+                        })
+                      }
+                    />
+                    {permissionLabels[permission]}
+                  </label>
+                ))}
+              </fieldset>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(["moodWindowDays", "medicationWindowDays"] as const).map(
+                  (field) => (
+                    <Label key={field} className="space-y-2">
+                      <span>
+                        {t(
+                          field === "moodWindowDays"
+                            ? "caregiver.dashboard.permissions.moodWindow"
+                            : "caregiver.dashboard.permissions.medicationWindow",
+                        )}
+                      </span>
+                      <select
+                        value={editingCaregiver[field]}
+                        onChange={(event) =>
+                          setEditingCaregiver({
+                            ...editingCaregiver,
+                            [field]: Number(
+                              event.target.value,
+                            ) as AccessWindowDays,
+                          })
+                        }
+                        className="h-11 w-full rounded-xl border px-3"
+                      >
+                        {[7, 30, 90].map((days) => (
+                          <option key={days} value={days}>
+                            {t("caregiver.dashboard.permissions.days", {
+                              days,
+                            })}
+                          </option>
+                        ))}
+                      </select>
+                    </Label>
+                  ),
+                )}
+              </div>
+              <Label className="space-y-2">
+                <span>{t("caregiver.dashboard.permissions.expiry")}</span>
+                <Input
+                  type="date"
+                  value={editingCaregiver.accessExpiresAt}
+                  onChange={(event) =>
+                    setEditingCaregiver({
+                      ...editingCaregiver,
+                      accessExpiresAt: event.target.value,
+                    })
+                  }
+                />
+              </Label>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCaregiver(null)}>
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              disabled={!editingCaregiver || accessMutation.isPending}
+              onClick={() =>
+                editingCaregiver && accessMutation.mutate(editingCaregiver)
+              }
+            >
+              {t("actions.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

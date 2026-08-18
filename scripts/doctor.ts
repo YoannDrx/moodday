@@ -65,10 +65,6 @@ function isLoggedIn(cmd: string): { ok: boolean; info?: string } {
         execSync("stripe config --list", { stdio: "ignore" });
         return { ok: true };
       }
-      case "upstash": {
-        execSync("upstash team list", { stdio: "ignore" });
-        return { ok: true };
-      }
       default:
         return { ok: false };
     }
@@ -116,7 +112,6 @@ function checkCLIs(): void {
     { cmd: "gh", name: "GitHub CLI" },
     { cmd: "vercel", name: "Vercel CLI" },
     { cmd: "neon", name: "NeonDB CLI" },
-    { cmd: "upstash", name: "Upstash CLI" },
     { cmd: "stripe", name: "Stripe CLI" },
   ];
 
@@ -151,7 +146,7 @@ function checkEnvFile(): void {
 
   if (!envFile) {
     log.error("Aucun fichier .env ou .env.local trouvé");
-    log.info("Lance: pnpm setup pour configurer le projet");
+    log.info("Copie .env-template vers .env.local, puis lance pnpm env:audit");
     return;
   }
 
@@ -170,10 +165,18 @@ function checkEnvFile(): void {
   const optionalGroups = {
     "GitHub OAuth": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
     "Google OAuth": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
-    Stripe: ["STRIPE_SECRET_KEY", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"],
+    Stripe: [
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_PLUS_MONTHLY_PRICE_ID",
+      "STRIPE_PLUS_YEARLY_PRICE_ID",
+    ],
+    "OpenAI (désactivé tant que les gates ne sont pas validés)": [
+      "OPENAI_API_KEY",
+      "AI_SAFETY_HMAC_SECRET",
+    ],
+    "Web Push": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "CRON_SECRET"],
     Resend: ["RESEND_API_KEY"],
-    Redis: ["REDIS_URL"],
-    PostHog: ["NEXT_PUBLIC_POSTHOG_KEY"],
   };
 
   // Vérifier les variables critiques

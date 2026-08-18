@@ -44,6 +44,10 @@ import {
   updateTherapySession,
 } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
+import {
+  getDateKeyForTimeZone,
+  getSafeTimeZone,
+} from "@/lib/temporal/civil-date";
 import { cn } from "@/lib/utils";
 
 type EditingSession = {
@@ -121,18 +125,20 @@ export function TherapySessionList() {
       session.date instanceof Date ? session.date : new Date(session.date);
     setEditingSession({
       id: session.id,
-      date: dateObj.toISOString().split("T")[0] ?? "",
+      date: getDateKeyForTimeZone(dateObj, getSafeTimeZone(data?.timezone)),
       notes: session.notes,
       benefitRating: session.benefitRating,
     });
   };
 
   const sessions = data?.sessions ?? [];
+  const timezone = getSafeTimeZone(data?.timezone);
 
   // Today's date
   const today = new Date().toLocaleDateString(
     locale === "fr" ? "fr-FR" : "en-US",
     {
+      timeZone: timezone,
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -226,6 +232,10 @@ export function TherapySessionList() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <time
+                      dateTime={getDateKeyForTimeZone(
+                        new Date(session.date),
+                        timezone,
+                      )}
                       className={cn(
                         "font-bold",
                         session.benefitRating && session.benefitRating >= 4
@@ -236,6 +246,7 @@ export function TherapySessionList() {
                       {new Date(session.date).toLocaleDateString(
                         locale === "fr" ? "fr-FR" : "en-US",
                         {
+                          timeZone: timezone,
                           day: "numeric",
                           month: "long",
                           year: "numeric",
@@ -320,6 +331,7 @@ export function TherapySessionList() {
                   id="edit-date"
                   type="date"
                   value={editingSession.date}
+                  max={getDateKeyForTimeZone(new Date(), timezone)}
                   onChange={(e) =>
                     setEditingSession({
                       ...editingSession,

@@ -1,9 +1,12 @@
-import type { Prisma } from "@/generated/prisma";
+import type { Prisma } from "@prisma/client";
 
 export const CAREGIVER_ACCESS_WINDOW_MS = 15 * 60 * 1000;
 
 export const CAREGIVER_ACCESS_RESOURCES = {
   sharedSpace: "shared_space",
+  activity: "activity",
+  moodSummary: "mood_summary",
+  medicationSummary: "medication_summary",
 } as const;
 
 export type CaregiverAccessResource =
@@ -67,5 +70,33 @@ export const recordCaregiverSharedSpaceAccess = async (params: {
     skipDuplicates: true,
   });
 
+  return result.count;
+};
+
+export const recordCaregiverResourceAccess = async (params: {
+  client: CaregiverAccessLogWriter;
+  caregiverId: string;
+  relationship: ActiveCaregiverRelationship;
+  resource: CaregiverAccessResource;
+  now?: Date;
+}) => {
+  const now = params.now ?? new Date();
+  const result = await params.client.caregiverAccessLog.createMany({
+    data: [
+      {
+        patientId: params.relationship.patientId,
+        caregiverId: params.caregiverId,
+        relationshipId: params.relationship.id,
+        resource: params.resource,
+        accessKey: buildCaregiverAccessKey({
+          relationshipId: params.relationship.id,
+          resource: params.resource,
+          now,
+        }),
+        accessedAt: now,
+      },
+    ],
+    skipDuplicates: true,
+  });
   return result.count;
 };

@@ -7,13 +7,18 @@ import { z } from "zod";
 
 const postsDirectory = path.join(process.cwd(), "content/posts");
 
-const resolvePostsDirectory = async (locale: Locale) => {
-  const localizedDirectory = path.join(postsDirectory, locale);
+const resolvePostsLocale = async (locale: Locale) => {
+  const localizedDirectory = path.join(
+    process.cwd(),
+    "content",
+    "posts",
+    locale,
+  );
   try {
     await fs.access(localizedDirectory);
-    return localizedDirectory;
+    return locale;
   } catch {
-    return path.join(postsDirectory, defaultLocale);
+    return defaultLocale;
   }
 };
 
@@ -55,11 +60,23 @@ export const getPosts = async (
   tags?: string[],
   locale: Locale = defaultLocale,
 ) => {
-  const directory = await resolvePostsDirectory(locale);
+  const effectiveLocale = await resolvePostsLocale(locale);
+  const directory = path.join(
+    process.cwd(),
+    "content",
+    "posts",
+    effectiveLocale,
+  );
   const fileNames = await fs.readdir(directory);
   const posts: Post[] = [];
   for await (const fileName of fileNames) {
-    const fullPath = path.join(directory, fileName);
+    const fullPath = path.join(
+      process.cwd(),
+      "content",
+      "posts",
+      effectiveLocale,
+      fileName,
+    );
     const fileContents = await fs.readFile(fullPath, "utf8");
 
     const matter = fm(fileContents);

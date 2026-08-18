@@ -2,18 +2,22 @@
 
 import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
-import { deleteUserDataBeforeAccountDeletion } from "@/lib/user/delete-user-data";
 import {
-  purgeUserProfileImage,
-  replaceUserProfileImage,
-} from "./profile-image";
+  deleteUserAccountAtomically,
+  enqueueManagedProfileImageDeletion,
+} from "@/lib/user/delete-user-data";
+import { isValidIanaTimeZone } from "@/lib/temporal/civil-date";
 import { z } from "zod";
 
 // ===== Update Profile =====
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  timezone: z.string().optional(),
+  timezone: z
+    .string()
+    .max(100)
+    .refine(isValidIanaTimeZone, "Invalid IANA time zone")
+    .optional(),
   // Image can be a valid URL, an empty string (to remove), or undefined (to keep unchanged)
   image: z
     .union([z.string().url(), z.literal("")])
@@ -37,57 +41,58 @@ export const updateProfile = authAction
       updateData.image = image;
     }
 
-    if (image !== undefined) {
-      await replaceUserProfileImage({ userId: user.id, nextImage: image });
-      delete updateData.image;
-    }
-
-    const updatedUser =
-      Object.keys(updateData).length > 0
-        ? await prisma.user.update({
-            where: { id: user.id },
-            data: updateData,
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          })
-        : await prisma.user.findUnique({
-            where: { id: user.id },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          });
-
-    if (Object.keys(preferencesUpdate).length > 0) {
-      await prisma.userPreferences.upsert({
-        where: { userId: user.id },
-        create: {
-          userId: user.id,
-          ...preferencesUpdate,
-        },
-        update: preferencesUpdate,
+    return prisma.$transaction(async (transaction) => {
+      const previous = await transaction.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { image: true },
       });
-    }
+      const updatedUser =
+        Object.keys(updateData).length > 0
+          ? await transaction.user.update({
+              where: { id: user.id },
+              data: updateData,
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            })
+          : await transaction.user.findUnique({
+              where: { id: user.id },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            });
 
-    return updatedUser;
+      if (Object.keys(preferencesUpdate).length > 0) {
+        await transaction.userPreferences.upsert({
+          where: { userId: user.id },
+          create: {
+            userId: user.id,
+            ...preferencesUpdate,
+          },
+          update: preferencesUpdate,
+        });
+      }
+      if (image !== undefined && image !== previous.image) {
+        await enqueueManagedProfileImageDeletion(
+          transaction,
+          user.id,
+          previous.image,
+        );
+      }
+      return updatedUser;
+    });
   });
 
 // ===== Delete Account =====
 
 export const deleteAccount = authAction.action(async ({ ctx: { user } }) => {
-  await purgeUserProfileImage(user.id);
-  await deleteUserDataBeforeAccountDeletion(user);
-
-  // Delete user (cascade will handle the rest)
-  await prisma.user.delete({
-    where: { id: user.id },
-  });
+  await deleteUserAccountAtomically(user);
 
   return { success: true };
 });

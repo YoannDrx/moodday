@@ -4,6 +4,7 @@ import {
   Bell,
   CreditCard,
   CloudCog,
+  ClipboardList,
   Dumbbell,
   FileText,
   Globe,
@@ -15,6 +16,7 @@ import {
   Palette,
   Pill,
   Shield,
+  ShieldCheck,
   User,
   Users,
 } from "lucide-react";
@@ -24,8 +26,17 @@ type Translator = (
   values?: Record<string, string | number>,
 ) => string;
 
-export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
-  return [
+export type PatientNavigationFeatures = {
+  billing: boolean;
+  caregiverSharing: boolean;
+  pushNotifications: boolean;
+};
+
+export const getPatientNavigation = (
+  t: Translator,
+  features: PatientNavigationFeatures,
+): NavigationGroup[] => {
+  const groups: NavigationGroup[] = [
     {
       title: t("patient.nav.main"),
       defaultOpenStartPath: "/dashboard",
@@ -72,15 +83,29 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
       title: t("patient.nav.support"),
       defaultOpenStartPath: "/caregiver",
       links: [
-        {
-          href: "/caregiver",
-          Icon: Users,
-          label: t("patient.nav.caregiver"),
-        },
+        ...(features.caregiverSharing
+          ? [
+              {
+                href: "/caregiver",
+                Icon: Users,
+                label: t("patient.nav.caregiver"),
+              },
+            ]
+          : []),
         {
           href: "/crisis",
           Icon: HeartHandshake,
           label: t("patient.nav.crisis"),
+        },
+        {
+          href: "/safety-plan",
+          Icon: ShieldCheck,
+          label: t("patient.nav.safetyPlan"),
+        },
+        {
+          href: "/consultation",
+          Icon: ClipboardList,
+          label: t("patient.nav.consultation"),
         },
         {
           href: "/export",
@@ -98,11 +123,15 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
           Icon: User,
           label: t("settings.sidebar.profile"),
         },
-        {
-          href: "/settings/notifications",
-          Icon: Bell,
-          label: t("settings.sidebar.notifications"),
-        },
+        ...(features.pushNotifications
+          ? [
+              {
+                href: "/settings/notifications",
+                Icon: Bell,
+                label: t("settings.sidebar.notifications"),
+              },
+            ]
+          : []),
         {
           href: "/settings/appearance",
           Icon: Palette,
@@ -118,11 +147,15 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
           Icon: CloudCog,
           label: t("settings.sidebar.offline"),
         },
-        {
-          href: "/settings/subscription",
-          Icon: CreditCard,
-          label: t("settings.sidebar.subscription"),
-        },
+        ...(features.billing
+          ? [
+              {
+                href: "/settings/subscription",
+                Icon: CreditCard,
+                label: t("settings.sidebar.subscription"),
+              },
+            ]
+          : []),
         {
           href: "/settings/security",
           Icon: Lock,
@@ -136,6 +169,8 @@ export const getPatientNavigation = (t: Translator): NavigationGroup[] => {
       ],
     },
   ];
+
+  return groups;
 };
 
 export type PatientMobileLink = {

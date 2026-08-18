@@ -8,16 +8,25 @@ import { Pricing } from "@/features/plans/pricing-section";
 import { getI18n } from "@/i18n/server";
 import { getUserActiveSubscription } from "@/lib/user/get-user-subscription";
 import { UserBilling } from "@app/(logged-in)/(account-layout)/account/billing/user-billing";
+import { getFeatureAvailability } from "@/lib/features/availability";
 
 export default async function PricingPage() {
   const { t } = await getI18n();
   const subscription = await getUserActiveSubscription();
+  const billingEnabled = getFeatureAvailability("billing").enabled;
+  const aiInsightsEnabled = getFeatureAvailability("aiInsights").enabled;
+  const caregiverSharingEnabled =
+    getFeatureAvailability("caregiverSharing").enabled;
 
   if (subscription) {
     return (
       <>
         <UserBilling subscription={subscription} />
-        <Pricing />
+        <Pricing
+          billingEnabled={billingEnabled}
+          aiInsightsEnabled={aiInsightsEnabled}
+          caregiverSharingEnabled={caregiverSharingEnabled}
+        />
       </>
     );
   }
@@ -32,7 +41,11 @@ export default async function PricingPage() {
           </LayoutDescription>
         </LayoutHeader>
       </Layout>
-      <Pricing />
+      <Pricing
+        billingEnabled={billingEnabled}
+        aiInsightsEnabled={aiInsightsEnabled}
+        caregiverSharingEnabled={caregiverSharingEnabled}
+      />
     </>
   );
 }

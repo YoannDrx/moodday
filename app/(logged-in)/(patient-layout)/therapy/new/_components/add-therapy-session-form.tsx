@@ -25,17 +25,20 @@ import { createTherapySession } from "@/features/therapy/therapy.action";
 import { useI18n } from "@/i18n/provider";
 import { queueAction } from "@/features/pwa/offline-actions";
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import { useSession } from "@/lib/auth-client";
 
 const getFormSchema = (t: (key: string) => string) =>
   z.object({
-    date: z.date(),
+    date: z.string().date(),
     notes: z.string().min(1, t("therapy.validation.notesRequired")),
     benefitRating: z.number().min(1).max(5).optional(),
   });
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
-export function AddTherapySessionForm() {
+export function AddTherapySessionForm({ todayDate }: { todayDate: string }) {
+  const { data: session } = useSession();
+  const offlineOwnerId = session?.user.id ?? "";
   const { t } = useI18n();
   const router = useRouter();
   const [rating, setRating] = useState<number | undefined>(undefined);
@@ -44,7 +47,7 @@ export function AddTherapySessionForm() {
   const form = useZodForm({
     schema: formSchema,
     defaultValues: {
-      date: new Date(),
+      date: todayDate,
       notes: "",
       benefitRating: undefined,
     },
@@ -53,7 +56,7 @@ export function AddTherapySessionForm() {
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const result = await createTherapySession({
-        date: values.date.toISOString(),
+        date: values.date,
         notes: values.notes,
         benefitRating: values.benefitRating,
       });
@@ -74,9 +77,9 @@ export function AddTherapySessionForm() {
   const onSubmit = async (values: FormValues) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       try {
-        await queueAction({
+        await queueAction(offlineOwnerId, {
           type: "therapy_create",
-          date: values.date.toISOString(),
+          date: values.date,
           notes: values.notes,
           benefitRating: rating,
         });
@@ -110,9 +113,9 @@ export function AddTherapySessionForm() {
                 <FormControl>
                   <Input
                     type="date"
-                    value={field.value.toISOString().split("T")[0]}
-                    onChange={(e) => field.onChange(new Date(e.target.value))}
-                    max={new Date().toISOString().split("T")[0]}
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    max={todayDate}
                   />
                 </FormControl>
                 <FormMessage />

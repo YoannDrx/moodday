@@ -21,11 +21,16 @@ import {
   openStripePortalAction,
 } from "@app/(logged-in)/(account-layout)/account/billing/billing.action";
 
-export function SubscriptionContent() {
+export function SubscriptionContent({
+  billingEnabled = true,
+}: {
+  billingEnabled?: boolean;
+}) {
   const { t, tm, locale } = useI18n();
 
   const { data: subscription, isLoading } = useQuery({
     queryKey: ["subscription-summary"],
+    enabled: billingEnabled,
     queryFn: async () => {
       const result = await getSubscriptionSummary();
       if (result.serverError) throw new Error(result.serverError);
@@ -100,6 +105,31 @@ export function SubscriptionContent() {
       toast.error(error.message);
     },
   });
+
+  if (!billingEnabled) {
+    return (
+      <PageLayout
+        title={t("settings.subscription.title")}
+        subtitle={t("settings.subtitle")}
+        maxWidth="3xl"
+      >
+        <GlassCard padding="lg" variant="elevated">
+          <GlassCardHeader>
+            <GlassCardTitle
+              icon={<CreditCard className="size-5 text-[var(--primary)]" />}
+            >
+              {t("settings.subscription.unavailableTitle")}
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-muted-foreground text-sm">
+              {t("settings.subscription.unavailableDescription")}
+            </p>
+          </GlassCardContent>
+        </GlassCard>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout

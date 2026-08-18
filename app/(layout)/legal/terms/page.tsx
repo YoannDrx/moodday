@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import {
   AlertTriangle,
   BookOpen,
+  Building2,
   FileText,
   Gavel,
   Scale,
@@ -27,6 +28,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TermsPage() {
   const { t } = await getI18n();
   const sections = [
+    {
+      icon: Building2,
+      title: t("legal.terms.sections.publisher.title"),
+      content: t("legal.terms.sections.publisher.content", {
+        publisher: SiteConfig.company.name,
+        legalForm: SiteConfig.company.legalForm,
+        siren: SiteConfig.company.siren,
+      }),
+    },
     {
       icon: BookOpen,
       title: t("legal.terms.sections.service.title"),
@@ -136,13 +146,13 @@ export default async function TermsPage() {
               <div>
                 <Typography
                   variant="h3"
-                  className="mb-2 font-bold text-amber-700 dark:text-amber-400"
+                  className="mb-2 font-bold text-amber-800 dark:text-amber-300"
                 >
                   {t("legal.terms.emergency.title")}
                 </Typography>
                 <Typography
                   variant="p"
-                  className="text-amber-700 dark:text-amber-300"
+                  className="text-amber-800 dark:text-amber-200"
                 >
                   {t("legal.terms.emergency.descriptionPrefix")}{" "}
                   <span className="font-bold">

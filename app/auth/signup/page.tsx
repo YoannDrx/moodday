@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { getI18n } from "@/i18n/server";
 import { getUser } from "@/lib/auth/auth-user";
+import { env } from "@/lib/env";
 import { SiteConfig } from "@/site-config";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -45,7 +46,12 @@ export default async function AuthSignInPage() {
       </CardHeader>
       <CardContent>
         <Suspense fallback={<Loader />}>
-          <SignUpCredentialsForm />
+          <SignUpCredentialsForm
+            termsVersion={env.LEGAL_TERMS_VERSION}
+            privacyVersion={env.LEGAL_PRIVACY_VERSION}
+            healthDataConsentVersion={env.HEALTH_DATA_CONSENT_VERSION}
+            launchCountry={env.LAUNCH_COUNTRY}
+          />
         </Suspense>
 
         <Typography variant="muted" className="mt-4 text-xs">

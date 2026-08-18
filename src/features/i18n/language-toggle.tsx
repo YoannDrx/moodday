@@ -37,7 +37,7 @@ export function LanguageToggle() {
           "h-7 px-2.5 text-xs font-medium",
           locale === "fr"
             ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-            : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+            : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white",
         )}
       >
         FR
@@ -50,7 +50,7 @@ export function LanguageToggle() {
           "h-7 px-2.5 text-xs font-medium",
           locale === "en"
             ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-            : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+            : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white",
         )}
       >
         EN

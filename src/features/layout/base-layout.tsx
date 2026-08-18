@@ -1,4 +1,5 @@
-import { FooterDark, NavbarDark } from "@/features/landing";
+import { FooterDark } from "@/features/landing/footer-dark";
+import { NavbarDark } from "@/features/landing/navbar-dark";
 import type { PropsWithChildren } from "react";
 
 export function BaseLayout(props: PropsWithChildren) {

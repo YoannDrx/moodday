@@ -1,4 +1,4 @@
-import { getUser } from "@/lib/auth/auth-user";
+import { getAuthorizedApiUser } from "@/lib/auth/auth-user";
 import { ZodRouteError } from "@/lib/errors/zod-route-error";
 import { authRoute, route } from "@/lib/zod-route";
 import { describe, expect, it, vi } from "vitest";
@@ -44,7 +44,7 @@ describe("zod-route", () => {
   });
 
   it("authRoute should return 401 if user is not authenticated", async () => {
-    vi.mocked(getUser).mockResolvedValue(null);
+    vi.mocked(getAuthorizedApiUser).mockResolvedValue(null);
     const GET = authRoute.handler(() => {
       return {
         message: "test",
@@ -56,7 +56,9 @@ describe("zod-route", () => {
 
     expect(response.status).toBe(401);
     const data = await response.json();
-    expect(data).toEqual({ message: "Session not found!" });
+    expect(data).toEqual({
+      message: "Authenticated, verified account required",
+    });
   });
 
   const user = {
@@ -67,10 +69,11 @@ describe("zod-route", () => {
     createdAt: new Date(1, 1, 1, 1),
     updatedAt: new Date(1, 1, 1, 1),
     banned: null,
+    twoFactorEnabled: false,
   };
 
   it("authRoute should add the user inside the context if the user is authenticated", async () => {
-    vi.mocked(getUser).mockResolvedValue(user);
+    vi.mocked(getAuthorizedApiUser).mockResolvedValue(user);
 
     const GET = authRoute.handler((_request, { ctx }) => {
       return {

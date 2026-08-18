@@ -8,8 +8,11 @@ import { getQueuedMoodCount } from "./offline-queue";
 import { getQueuedActionCount } from "./offline-actions";
 import { OFFLINE_QUEUE_CHANGED_EVENT } from "./offline-events";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth-client";
 
 export function SyncIndicator() {
+  const { data: session } = useSession();
+  const ownerId = session?.user.id;
   const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -19,9 +22,14 @@ export function SyncIndicator() {
     let active = true;
     const update = async () => {
       setIsOnline(navigator.onLine);
+      if (!ownerId) {
+        if (active) setPendingCount(0);
+        return;
+      }
       try {
         const nextCount =
-          (await getQueuedMoodCount()) + (await getQueuedActionCount());
+          (await getQueuedMoodCount(ownerId)) +
+          (await getQueuedActionCount(ownerId));
         if (active) setPendingCount(nextCount);
       } catch {
         if (active) setPendingCount(0);
@@ -42,7 +50,7 @@ export function SyncIndicator() {
       window.removeEventListener("offline", update);
       window.removeEventListener(OFFLINE_QUEUE_CHANGED_EVENT, update);
     };
-  }, []);
+  }, [ownerId]);
 
   if (isOnline && pendingCount === 0) return null;
 

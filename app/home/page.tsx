@@ -1,5 +1,5 @@
-import HomePage from "../page";
+import { redirect } from "next/navigation";
 
-export default function LandingPage() {
-  return <HomePage />;
+export default function LegacyHomePage() {
+  redirect("/");
 }

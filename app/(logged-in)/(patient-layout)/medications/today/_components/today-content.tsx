@@ -73,10 +73,10 @@ type PRNMedication = {
   intakes: { id: string; takenAt: Date }[];
 };
 
-export function TodayContent() {
+export function TodayContent({ ownerId: initialOwnerId }: { ownerId: string }) {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
-  const { isOnline, queuedCount } = useOfflineStatus();
+  const { isOnline, queuedCount, ownerId } = useOfflineStatus(initialOwnerId);
 
   const {
     data: regularData,
@@ -121,7 +121,7 @@ export function TodayContent() {
       const takenAt = new Date().toISOString();
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction({
+        await queueAction(ownerId ?? "", {
           type: "med_intake",
           medicationId,
           doseIndex,
@@ -170,7 +170,7 @@ export function TodayContent() {
       const takenAt = new Date().toISOString();
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction({
+        await queueAction(ownerId ?? "", {
           type: "med_skip",
           medicationId,
           doseIndex,
@@ -230,7 +230,10 @@ export function TodayContent() {
   const prnMutation = useMutation({
     mutationFn: async ({ medicationId }: { medicationId: string }) => {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction({ type: "med_prn_intake", medicationId });
+        await queueAction(ownerId ?? "", {
+          type: "med_prn_intake",
+          medicationId,
+        });
         return { queued: true };
       }
       const result = await logPRNIntake({ medicationId });
@@ -313,7 +316,7 @@ export function TodayContent() {
       headerRight={
         <Link
           href="/medications"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-[var(--primary)]"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[var(--primary)]"
         >
           <ArrowLeft className="size-4" />
           {t("medication.today.backToList")}
@@ -467,7 +470,7 @@ export function TodayContent() {
                           <p className="font-bold text-gray-800">
                             {medication.name}
                           </p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-gray-600">
                             {medication.dosage}
                           </p>
                         </div>
@@ -475,7 +478,7 @@ export function TodayContent() {
                           className={cn(
                             "rounded-lg px-2 py-1 text-xs font-medium",
                             hasPendingSlot
-                              ? "bg-gray-50 text-gray-400"
+                              ? "bg-gray-50 text-gray-600"
                               : "bg-[var(--sage)]/10 text-[var(--sage-dark)]",
                           )}
                         >
@@ -542,7 +545,7 @@ export function TodayContent() {
                                 <p className="text-sm font-bold text-gray-700">
                                   {t(slot.labelKey)}
                                   {slot.scheduledTime ? (
-                                    <span className="ml-2 text-xs font-medium text-gray-400">
+                                    <span className="ml-2 text-xs font-medium text-gray-600">
                                       {slot.scheduledTime}
                                     </span>
                                   ) : null}
@@ -554,7 +557,7 @@ export function TodayContent() {
                                       ? "text-[var(--sage-dark)]"
                                       : isSkipped
                                         ? "text-orange-600"
-                                        : "text-gray-400",
+                                        : "text-gray-600",
                                   )}
                                 >
                                   {isTaken
@@ -645,7 +648,7 @@ export function TodayContent() {
                         <p className="font-bold text-gray-800">
                           {medication.name}
                         </p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-gray-600">
                           {medication.dosage}
                           {todayIntakesCount > 0 && (
                             <span className="ml-2 text-[var(--lavender-dark)]">

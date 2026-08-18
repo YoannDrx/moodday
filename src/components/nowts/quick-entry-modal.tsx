@@ -22,6 +22,7 @@ import {
   queueMoodEntry,
 } from "@/features/pwa/offline-queue";
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import { useSession } from "@/lib/auth-client";
 
 /**
  * QuickEntryModal - Fast mood entry modal (< 30 seconds)
@@ -36,6 +37,8 @@ import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
  * - Accessible
  */
 export function QuickEntryModal() {
+  const { data: session } = useSession();
+  const offlineOwnerId = session?.user.id ?? "";
   const { t } = useI18n();
   const { isOpen, editingEntry, close } = useQuickEntryStore();
   const [value, setValue] = useState(5);
@@ -172,7 +175,7 @@ export function QuickEntryModal() {
         return;
       }
       try {
-        const queuedEntry = await queueMoodEntry({
+        const queuedEntry = await queueMoodEntry(offlineOwnerId, {
           value,
           note: note.trim() || undefined,
         });
@@ -181,7 +184,7 @@ export function QuickEntryModal() {
           action: {
             label: t("mood.entry.undo"),
             onClick: () => {
-              void discardQueuedMoodEntry(queuedEntry.id)
+              void discardQueuedMoodEntry(offlineOwnerId, queuedEntry.id)
                 .then(async () => {
                   await refreshMoodQueries();
                   toast.success(t("mood.entry.undone"));
@@ -206,7 +209,16 @@ export function QuickEntryModal() {
     }
 
     saveMutation.mutate();
-  }, [close, isEditing, note, refreshMoodQueries, saveMutation, t, value]);
+  }, [
+    close,
+    isEditing,
+    note,
+    offlineOwnerId,
+    refreshMoodQueries,
+    saveMutation,
+    t,
+    value,
+  ]);
 
   const handleDelete = useCallback(() => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {

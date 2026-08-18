@@ -12,10 +12,22 @@ export type ConsultationExportData = {
     endExclusive: string;
   };
   userName: string;
+  preparation?: {
+    id: string;
+    title: string;
+    scheduledFor: string | null;
+    questions: string[];
+    importantEvents: string[];
+    personalNotes: string | null;
+    status: "draft" | "completed" | "archived";
+  } | null;
   mood: {
     entries: {
       value: number;
       energy: number | null;
+      anxiety: number | null;
+      sleepHours: number | null;
+      sleepQuality: string | null;
       note: string | null;
       date: string;
     }[];
@@ -24,6 +36,7 @@ export type ConsultationExportData = {
       min: number | null;
       max: number | null;
       count: number;
+      change: number | null;
     };
   };
   medications: {
@@ -46,6 +59,8 @@ export type ConsultationExportData = {
       }[];
     }[];
     adherencePercent: number | null;
+    expectedDoses: number;
+    takenDoses: number;
   };
   therapy: {
     sessions: {

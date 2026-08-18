@@ -62,7 +62,7 @@ const getEventSchema = (t: Translator) =>
 type EventFormValues = z.infer<ReturnType<typeof getEventSchema>>;
 
 type CaregiverEventFormProps = {
-  subjectId: string;
+  relationshipId: string;
   subjectName: string;
   onSuccess?: () => void;
   className?: string;
@@ -85,7 +85,7 @@ const severityColors: Record<number, string> = {
 };
 
 export function CaregiverEventForm({
-  subjectId,
+  relationshipId,
   subjectName,
   onSuccess,
   className,
@@ -111,7 +111,7 @@ export function CaregiverEventForm({
     setIsSubmitting(true);
     try {
       const result = await createEvent({
-        subjectId,
+        relationshipId,
         eventType: data.eventType,
         severity: data.severity,
         description: data.description,

@@ -1,4 +1,3 @@
-import { SubmitButton } from "@/features/form/submit-button";
 import {
   Layout,
   LayoutActions,
@@ -7,10 +6,8 @@ import {
   LayoutTitle,
 } from "@/features/page/layout";
 import { getI18n } from "@/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccountSignOutButton } from "./account-sign-out-button";
 
 type AccountLayoutProps = {
   children: ReactNode;
@@ -25,19 +22,7 @@ export async function AccountLayout({ children }: AccountLayoutProps) {
         <LayoutTitle>{t("account.settings.title")}</LayoutTitle>
       </LayoutHeader>
       <LayoutActions>
-        <form>
-          <SubmitButton
-            formAction={async () => {
-              "use server";
-              await auth.api.signOut({
-                headers: await headers(),
-              });
-              redirect("/");
-            }}
-          >
-            {t("account.settings.signOut")}
-          </SubmitButton>
-        </form>
+        <AccountSignOutButton label={t("account.settings.signOut")} />
       </LayoutActions>
       <LayoutContent>{children}</LayoutContent>
     </Layout>

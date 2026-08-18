@@ -19,7 +19,6 @@ import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useLocalStorage } from "react-use";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -41,15 +40,12 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       password: "",
     },
   });
-  const [mounted, setMounted] = useState(false);
-  const [isUsingCredentials, setIsUsingCredentials] = useLocalStorage(
-    "sign-in-with-credentials",
-    true,
-  );
+  const [isUsingCredentials, setIsUsingCredentialsState] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const setIsUsingCredentials = (value: boolean) => {
+    setIsUsingCredentialsState(value);
+  };
 
   const signInMutation = useMutation({
     mutationFn: async (values: LoginCredentialsFormType) => {
@@ -82,12 +78,19 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
     },
   });
 
+  useEffect(() => setIsHydrated(true), []);
+
   function onSubmit(values: LoginCredentialsFormType) {
     signInMutation.mutate(values);
   }
 
   return (
-    <Form form={form} onSubmit={onSubmit} className="max-w-lg space-y-4">
+    <Form
+      form={form}
+      onSubmit={onSubmit}
+      disabled={!isHydrated || signInMutation.isPending}
+      className="max-w-lg space-y-4"
+    >
       <FormField
         control={form.control}
         name="email"
@@ -104,7 +107,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
           </FormItem>
         )}
       />
-      {mounted && isUsingCredentials ? (
+      {isUsingCredentials ? (
         <FormField
           control={form.control}
           name="password"
@@ -131,44 +134,42 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       <LoadingButton
         loading={signInMutation.isPending}
         type="submit"
-        className="ring-offset-card w-full ring-offset-2"
+        className="ring-offset-card w-full ring-offset-2 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
       >
-        {!mounted || isUsingCredentials
+        {isUsingCredentials
           ? t("auth.signIn.submit")
           : t("auth.signIn.magicLinkSubmit")}
       </LoadingButton>
 
-      {mounted ? (
-        isUsingCredentials ? (
-          <Typography variant="muted" className="text-xs">
-            {t("auth.signIn.magicLinkPrompt")}{" "}
-            <Typography
-              variant="link"
-              as="button"
-              type="button"
-              onClick={() => {
-                setIsUsingCredentials(false);
-              }}
-            >
-              {t("auth.signIn.magicLinkAction")}
-            </Typography>
+      {isUsingCredentials ? (
+        <Typography variant="muted" className="text-xs">
+          {t("auth.signIn.magicLinkPrompt")}{" "}
+          <Typography
+            variant="link"
+            as="button"
+            type="button"
+            onClick={() => {
+              setIsUsingCredentials(false);
+            }}
+          >
+            {t("auth.signIn.magicLinkAction")}
           </Typography>
-        ) : (
-          <Typography variant="muted" className="text-xs">
-            {t("auth.signIn.passwordPrompt")}{" "}
-            <Typography
-              variant="link"
-              as="button"
-              type="button"
-              onClick={() => {
-                setIsUsingCredentials(true);
-              }}
-            >
-              {t("auth.signIn.passwordAction")}
-            </Typography>
+        </Typography>
+      ) : (
+        <Typography variant="muted" className="text-xs">
+          {t("auth.signIn.passwordPrompt")}{" "}
+          <Typography
+            variant="link"
+            as="button"
+            type="button"
+            onClick={() => {
+              setIsUsingCredentials(true);
+            }}
+          >
+            {t("auth.signIn.passwordAction")}
           </Typography>
-        )
-      ) : null}
+        </Typography>
+      )}
     </Form>
   );
 };

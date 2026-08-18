@@ -6,9 +6,9 @@ import {
 import { describe, expect, it } from "vitest";
 
 describe("notification schedule", () => {
-  it("uses UTC when a stored time zone is missing or invalid", () => {
-    expect(getSafeTimeZone(null)).toBe("UTC");
-    expect(getSafeTimeZone("Not/A-Timezone")).toBe("UTC");
+  it("uses the France launch timezone when a stored zone is missing or invalid", () => {
+    expect(getSafeTimeZone(null)).toBe("Europe/Paris");
+    expect(getSafeTimeZone("Not/A-Timezone")).toBe("Europe/Paris");
     expect(getSafeTimeZone("Europe/Paris")).toBe("Europe/Paris");
   });
 

@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { faker } from "@faker-js/faker";
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { retry } from "./retry";
 
 export const getUserEmail = () =>
@@ -35,7 +35,13 @@ export async function createTestAccount(options: {
   callbackURL?: string;
   initialUserData?: { name: string; email: string; password: string };
   admin?: boolean;
+  verifyEmail?: boolean;
 }) {
+  const browserErrors: string[] = [];
+  options.page.on("pageerror", (error) => browserErrors.push(error.message));
+  options.page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
   // Generate fake user data
   const userData = options.initialUserData ?? {
     name: faker.person.fullName(),
@@ -53,36 +59,85 @@ export async function createTestAccount(options: {
   await options.page
     .locator('input[name="verifyPassword"]')
     .fill(userData.password);
+  const requiredConsents = options.page.getByRole("checkbox");
+  for (let index = 0; index < 4; index += 1) {
+    const consent = requiredConsents.nth(index);
+    // Consent controls are intentionally exercised in document order.
+    // eslint-disable-next-line no-await-in-loop
+    await consent.check();
+    // eslint-disable-next-line no-await-in-loop
+    await expect(consent).toBeChecked();
+  }
 
   // Submit the form (supports both English "Create account" and French "Créer un compte")
+  await options.page.evaluate(() => {
+    document.querySelector("form")?.addEventListener(
+      "submit",
+      () => {
+        document.documentElement.dataset.e2eSubmitObserved = "true";
+      },
+      { once: true },
+    );
+  });
+  const signUpResponsePromise = options.page.waitForResponse(
+    (response) => response.url().includes("/api/auth/sign-up/email"),
+    { timeout: 15000 },
+  );
   await options.page
     .getByRole("button", { name: /create account|créer un compte/i })
     .click();
-
-  // Wait for navigation to complete - we should be redirected to the callback URL
-  if (options.callbackURL) {
-    await waitForCallbackUrl(options.page, options.callbackURL);
+  const signUpResponse = await signUpResponsePromise.catch(async (error) => {
+    const diagnostic = await options.page.evaluate(() => ({
+      formValid: document.querySelector("form")?.checkValidity() ?? false,
+      submitObserved:
+        document.documentElement.dataset.e2eSubmitObserved === "true",
+      fieldsetDisabled:
+        document.querySelector("fieldset")?.hasAttribute("disabled") ?? false,
+      messages: Array.from(
+        document.querySelectorAll('[data-slot="form-message"]'),
+      ).map((element) => element.textContent.trim()),
+    }));
+    throw new Error(
+      `${error instanceof Error ? error.message : "Sign-up request missing"}; diagnostic=${JSON.stringify({ ...diagnostic, browserErrors: browserErrors.map((message) => message.slice(0, 300)) })}`,
+    );
+  });
+  if (!signUpResponse.ok()) {
+    throw new Error(`Sign-up failed with HTTP ${signUpResponse.status()}`);
   }
 
+  await options.page.waitForURL(/\/auth\/verify/, { timeout: 30000 });
+
+  // Browser tests do not send email externally. This state transition models
+  // the successful, single-use verification link click; dedicated auth tests
+  // assert that the account is blocked before this transition.
+  const createdUser = await retry(
+    async () =>
+      prisma.user.findUniqueOrThrow({ where: { email: userData.email } }),
+    { maxAttempts: 5, delayMs: 250, backoff: true },
+  );
+  if (createdUser.emailVerified) {
+    throw new Error("New E2E account was unexpectedly pre-verified");
+  }
+  if (options.verifyEmail === false) return userData;
+
+  await prisma.user.update({
+    where: { id: createdUser.id },
+    data: {
+      emailVerified: true,
+      ...(options.admin ? { role: "admin", twoFactorEnabled: true } : {}),
+    },
+  });
+  await signInAccount({
+    page: options.page,
+    userData,
+    callbackURL: options.callbackURL ?? "/dashboard",
+  });
+
   if (options.admin) {
-    const user = await retry(
-      async () =>
-        prisma.user.findUniqueOrThrow({
-          where: { email: userData.email },
-        }),
-      {
-        maxAttempts: 5,
-        delayMs: 1000,
-        backoff: true,
-      },
-    );
-    logger.info("Creating admin user", user);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { role: "admin" },
+    logger.info("E2E admin account prepared", {
+      eventName: "e2e_admin_prepared",
+      status: "succeeded",
     });
-    // Wait for the database update to be committed
-    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   return userData;
@@ -130,20 +185,28 @@ export async function signInAccount(options: {
 export async function signOutAccount(options: { page: Page }) {
   const { page } = options;
 
-  // Navigate to dashboard page
-  await page.goto(`/dashboard`);
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.evaluate(async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(async (item) => item.unregister()));
+  });
+  if (new URL(page.url()).pathname !== "/settings/security") {
+    await page.goto("/settings/security");
+  }
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page
+    .getByRole("button", { name: /^Sign out$|^Log out$|^Se déconnecter$/i })
+    .click({ noWaitAfter: true });
 
-  // Open the user menu dropdown
-  const userMenuButton = page.getByTestId("user-menu-button");
-  await userMenuButton.waitFor({ state: "visible", timeout: 10000 });
-  await userMenuButton.click();
-
-  // Click logout in the dropdown
-  const logoutMenuItem = page.getByTestId("dropdown-logout");
-  await logoutMenuItem.waitFor({ state: "visible", timeout: 5000 });
-  await logoutMenuItem.click();
-
-  // After sign out, user is redirected to home page "/" (not /auth/signin)
-  await page.waitForURL("/", { timeout: 10000 });
+  // A full document replacement can hide the completed fetch event in
+  // WebKit. Assert the deterministic signed-out destination instead.
+  await page.waitForURL((url) => url.pathname === "/auth/signin", {
+    timeout: 30000,
+    waitUntil: "commit",
+  });
+  await page.goto("/dashboard");
+  await expect(page.getByText("401")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Sign in|Se connecter/i }),
+  ).toBeVisible();
 }

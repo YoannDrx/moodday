@@ -13,7 +13,8 @@ pnpm install
 ### 2. Configure environment
 
 ```bash
-pnpm setup
+cp .env-template .env.local
+pnpm env:audit
 ```
 
 ### 3. Start developing
@@ -22,40 +23,40 @@ pnpm setup
 pnpm dev
 ```
 
-## Features
+## Périmètre fonctionnel
 
-- Mood tracking (quick entry + journal détaillé + historique)
-- Sleep & energy tracking (via journal)
-- Anxiety score tracking
-- Medication management (CRUD, intakes, PRN, dosage history)
-- Therapy notes + exercises tracking
-- Caregiver circle (invites email, observations, events)
-- Insights (mood chart + patterns + dosage markers + correlations + IA optionnelle)
-- PDF personnel + exports CSV et JSON RGPD
-- User settings (notifications, display, theme light/dark/zen, timezone, avatar)
-- Onboarding wizard (mood + meds + preferences + caregiver invite)
-- PWA (manifest + offline page + offline queues + sync + push notifications serveur)
-- Authentication (Email, GitHub, Google)
-- PostgreSQL with Prisma
-- i18n (EN/FR)
-- Tests (Vitest + Playwright)
+Le cœur utilisable sans service sensible comprend :
 
-> Note : les journaux idempotents de notifications et d'accès aidant sont promus sur la branche Neon principale. La validation VAPID sur deux navigateurs nécessite encore une preview dont la base et les services tiers sont isolés de Production.
+- journal d'humeur, sommeil, énergie et anxiété, avec historique et filtres ;
+- traitements déclarés, prises, PRN, historique de dosage et adhérence descriptive ;
+- notes de thérapie, exercices et préparation de consultation ;
+- plan de sécurité personnel, ressources de crise françaises et exports ;
+- PWA, file hors ligne cloisonnée par compte et synchronisation avec gestion des conflits ;
+- authentification par e-mail, préférences de confidentialité et interface FR/EN ;
+- PostgreSQL avec Prisma et limitation de débit atomique, sans Redis ni Upstash.
 
-## Project Status (2026-01-23)
+Les modules sensibles sont implémentés mais restent désactivés par défaut et
+échouent de façon fermée tant que leurs portes de production ne sont pas
+validées : facturation Stripe, insights IA, cercle aidant, notifications push,
+import de données, fournisseurs OAuth et administration. Les associations
+statistiques affichées par le produit sont descriptives : Moodday n'en déduit
+ni causalité, ni diagnostic, ni recommandation médicale.
 
-See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully functional, what is mock/UI-only, and what remains to implement for the MVP and beyond.
+L'état détaillé des validations techniques et externes est consigné dans
+`docs/operations/production-release-gates.md`. Une fonctionnalité ne doit pas
+être annoncée comme disponible sur la seule base de sa présence dans le code.
 
 ## Commands
 
-| Command            | Description              |
-| ------------------ | ------------------------ |
-| `pnpm dev`         | Start development server |
-| `pnpm setup`       | Configure cloud services |
-| `pnpm doctor`      | Check project health     |
-| `pnpm build`       | Build for production     |
-| `pnpm test:ci`     | Run unit tests           |
-| `pnpm test:e2e:ci` | Run E2E tests            |
+| Command            | Description                            |
+| ------------------ | -------------------------------------- |
+| `pnpm dev`         | Start development server               |
+| `pnpm env:audit`   | Validate local environment conventions |
+| `pnpm doctor`      | Check project health                   |
+| `pnpm verify`      | Run the complete local quality gate    |
+| `pnpm build`       | Build for production                   |
+| `pnpm test:ci`     | Run unit tests                         |
+| `pnpm test:e2e:ci` | Run E2E tests                          |
 
 ## Stack
 
@@ -69,6 +70,9 @@ See `PROJECT_STATUS.md` for a detailed, page-by-page audit of what is fully func
 
 ## Documentation
 
+- `docs/operations/production-release-gates.md` : source de vérité des portes de production.
+- `docs/operations/production-release-runbook.md` : maintenance, migration, activation et rollback.
+- `docs/operations/completion-audit-2026-08-14.md` : audit phase par phase et preuves restantes.
 - `docs/design-system.md` : identité et règles UI/UX.
 - `docs/data-lifecycle.md` : contenu des exports, fichiers et règles de purge.
 - `docs/migrations/` : historique et procédures de migration.
