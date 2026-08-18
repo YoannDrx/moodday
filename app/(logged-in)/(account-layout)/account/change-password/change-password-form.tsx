@@ -91,7 +91,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.currentLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -104,7 +108,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.newLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -117,7 +125,11 @@ export function ChangePasswordForm() {
               <FormItem>
                 <FormLabel>{t("account.password.confirmLabel")}</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

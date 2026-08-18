@@ -430,14 +430,26 @@ test.describe("account", () => {
       callbackURL: "/settings/security",
     });
     await page.waitForURL(/\/settings\/security/, { timeout: 10000 });
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
 
     const newPassword = faker.internet.password({
       length: 12,
       memorable: true,
     });
-    await page.locator('input[name="currentPassword"]').fill(userData.password);
-    await page.locator('input[name="newPassword"]').fill(newPassword);
-    await page.locator('input[name="confirmPassword"]').fill(newPassword);
+    const currentPasswordInput = page.locator(
+      'input[name="currentPassword"]',
+    );
+    const newPasswordInput = page.locator('input[name="newPassword"]');
+    const confirmPasswordInput = page.locator(
+      'input[name="confirmPassword"]',
+    );
+    await expect(currentPasswordInput).toBeVisible();
+    await currentPasswordInput.fill(userData.password);
+    await newPasswordInput.fill(newPassword);
+    await confirmPasswordInput.fill(newPassword);
+    await expect(currentPasswordInput).toHaveValue(userData.password);
+    await expect(newPasswordInput).toHaveValue(newPassword);
+    await expect(confirmPasswordInput).toHaveValue(newPassword);
     // i18n: button text is "Update password" or "Mettre à jour le mot de passe"
     await page
       .getByRole("button", { name: /Update password|Mettre à jour/i })

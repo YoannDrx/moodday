@@ -113,6 +113,8 @@ describe("complete UI primitives", () => {
     expect(classes).toContain("text-gray-900");
     expect(classes).toContain("dark:bg-gray-950");
     expect(classes).toContain("dark:text-white");
+    expect(classes).toContain("disabled:text-gray-700");
+    expect(classes).toContain("disabled:opacity-100");
   });
 
   it("renders an interactive calendar with dropdown and custom day classes", () => {

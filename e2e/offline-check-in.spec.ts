@@ -47,7 +47,10 @@ test("queues a quick check-in offline and syncs it once online", async ({
   await page.waitForURL(/\/dashboard/);
   await context.setOffline(true);
 
-  await page.locator("#quick-check-in-energy").fill("4");
+  const energySlider = page.locator("#quick-check-in-energy");
+  await energySlider.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(energySlider).toHaveValue("4");
   await page
     .getByRole("button", { name: /Save check-in|Enregistrer/i })
     .click();
