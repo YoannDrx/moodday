@@ -30,6 +30,9 @@ jobs:
       # must receive the isolated-suite marker explicitly.
       PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true"
       BETTER_AUTH_URL: http://localhost:3000
+      # Reserved test recipients are short-circuited before any provider call;
+      # this value only satisfies fail-closed feature availability checks.
+      RESEND_API_KEY: re_playwright_test_only_not_a_provider_credential
       EMAIL_FROM: Moodday <no-reply@example.invalid>
       NEXT_PUBLIC_EMAIL_CONTACT: hello@moodday.app
       BILLING_ENABLED: "false"

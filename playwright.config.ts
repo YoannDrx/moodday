@@ -13,6 +13,8 @@ const playwrightPort =
 // WebAuthn requires a registrable RP ID (an IP address is invalid), while
 // localhost remains a secure-context exception for browser automation.
 const serverUrl = externalBaseUrl ?? `http://localhost:${playwrightPort}`;
+const getIsolatedSecret = (value: string | undefined, fallback: string) =>
+  externalBaseUrl ? (getNonEmptyEnv(value) ?? fallback) : fallback;
 const databaseGuardAlreadyConfigured =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true";
 const playwrightDatabaseUrl = getNonEmptyEnv(
@@ -57,16 +59,22 @@ const isolatedServiceEnv = {
   // short-circuited by sendEmail.
   RESEND_API_KEY: "re_playwright_test_only_not_a_provider_credential",
   RESEND_AUDIENCE_ID: "",
-  CRON_SECRET: "playwright-test-only-cron-secret",
+  CRON_SECRET: getIsolatedSecret(
+    process.env.CRON_SECRET,
+    "playwright-test-only-cron-secret",
+  ),
   STRIPE_SECRET_KEY: "",
   STRIPE_WEBHOOK_SECRET: "",
   CAREGIVER_SHARING_ENABLED: "true",
   ACCOUNT_IMPORT_ENABLED: "true",
   BETTER_AUTH_URL: serverUrl,
-  // Keep the Playwright runner and its Next.js server on the same isolated
-  // signing key. Local dotenv precedence must never affect auth E2E tokens.
-  BETTER_AUTH_SECRET:
+  // A separately started CI server and the runner must share the generated
+  // secrets. For Playwright-managed local servers, fixed test-only values keep
+  // dotenv precedence from affecting auth tokens.
+  BETTER_AUTH_SECRET: getIsolatedSecret(
+    process.env.BETTER_AUTH_SECRET,
     "moodday-playwright-only-secret-00000000000000000000000000000000",
+  ),
 };
 
 Object.assign(process.env, isolatedServiceEnv);

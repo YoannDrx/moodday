@@ -75,5 +75,8 @@ describe("CI workflow supply chain", () => {
 
     expect(workflow).toContain('PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true"');
     expect(workflow).toContain("PLAYWRIGHT_DATABASE_URL:");
+    expect(workflow).toContain(
+      "RESEND_API_KEY: re_playwright_test_only_not_a_provider_credential",
+    );
   });
 });

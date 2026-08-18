@@ -46,6 +46,10 @@ describe("test suite policy", () => {
 
     expect(playwrightConfig).toMatch(/\bretries:\s*0\b/);
     expect(playwrightConfig).not.toMatch(/\bretries:\s*[1-9]\d*\b/);
+    expect(playwrightConfig).toContain(
+      "BETTER_AUTH_SECRET: getIsolatedSecret(",
+    );
+    expect(playwrightConfig).toContain("process.env.BETTER_AUTH_SECRET,");
     expect(qualityWorkflow).toContain("run: pnpm test:coverage:release");
     expect(qualityWorkflow).not.toContain("run: pnpm test:coverage\n");
   });
