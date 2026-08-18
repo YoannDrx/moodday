@@ -76,6 +76,9 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
     expect(html).toContain('type="password"');
     expect(html).toContain('name="password"');
     expect(html).toContain("<fieldset disabled=\"\"");
+    expect(html).toContain("disabled:bg-gray-100");
+    expect(html).toContain("disabled:text-gray-700");
+    expect(html).toContain("disabled:opacity-100");
   });
 
   it("should switch to magic link mode when clicking the link", async () => {

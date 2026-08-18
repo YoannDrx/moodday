@@ -167,7 +167,7 @@ export function ChangePasswordForm() {
           <LoadingButton
             loading={changePasswordMutation.isPending}
             type="submit"
-            className="w-full"
+            className="w-full disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
           >
             {t("account.password.submit")}
           </LoadingButton>
