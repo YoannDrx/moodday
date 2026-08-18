@@ -99,3 +99,6 @@ jobs:
       - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
         with:
           fail-on-severity: high
+          # No fixed upstream release exists. The pnpm patch and its exploit
+          # regression test remain mandatory in the quality job.
+          allow-ghsas: GHSA-jmr9-qjv8-65gv

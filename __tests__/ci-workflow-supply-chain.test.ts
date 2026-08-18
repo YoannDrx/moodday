@@ -53,4 +53,17 @@ describe("CI workflow supply chain", () => {
 
     expect(networkExecutions).toEqual([]);
   });
+
+  it("allows only the extract-zip advisory covered by the mandatory patch test", () => {
+    const workflow = fs.readFileSync(
+      path.join(workflowDirectory, "code-quality.yml"),
+      "utf8",
+    );
+    const allowedAdvisories = [
+      ...workflow.matchAll(/^\s*allow-ghsas:\s*(.+)$/gm),
+    ].map((match) => match[1]?.trim());
+
+    expect(allowedAdvisories).toEqual(["GHSA-jmr9-qjv8-65gv"]);
+    expect(workflow).toContain("pnpm test:coverage:release");
+  });
 });

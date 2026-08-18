@@ -73,7 +73,9 @@ automatique propose notamment une version de Next inférieure à la version
 worktree courant passe la porte `pnpm audit:all`. Tous les avis élevés
 corrigibles de l'outillage ont été mis à niveau ; l'unique CVE sans release
 amont corrigée (`CVE-2026-56876`) est couverte par un patch pnpm et un test
-d'exploitation bloquant avant son exception d'audit ciblée.
+d'exploitation bloquant avant son exception d'audit ciblée. La dependency
+review autorise uniquement l'avis correspondant `GHSA-jmr9-qjv8-65gv` ; un
+test de workflow empêche l'élargissement silencieux de cette exception.
 
 ## Scans de secrets
 
