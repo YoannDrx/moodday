@@ -214,6 +214,12 @@ describe("journal wizard", () => {
     const user = userEvent.setup();
     render(<JournalWizard aiAvailable={true} customTags={customTags} />);
 
+    expect(
+      screen
+        .getByLabelText("mood.journal.step1.moodLabel")
+        .closest(".animate-in"),
+    ).not.toHaveClass("fade-in");
+
     fireEvent.change(screen.getByLabelText("mood.journal.step1.moodLabel"), {
       target: { value: "3" },
     });
