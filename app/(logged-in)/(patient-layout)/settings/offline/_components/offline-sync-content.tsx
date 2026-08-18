@@ -263,6 +263,7 @@ export function OfflineSyncContent({ ownerId }: { ownerId: string }) {
             {isLoading ? (
               <div
                 className="space-y-3"
+                role="status"
                 aria-busy="true"
                 aria-label={t("settings.offline.loading")}
               >

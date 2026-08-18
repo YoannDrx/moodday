@@ -18,7 +18,7 @@ import { getCallbackUrl } from "@/lib/auth/auth-utils";
 import { unwrapSafePromise } from "@/lib/promises";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -41,6 +41,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
     },
   });
   const [isUsingCredentials, setIsUsingCredentialsState] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const setIsUsingCredentials = (value: boolean) => {
     setIsUsingCredentialsState(value);
@@ -77,12 +78,19 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
     },
   });
 
+  useEffect(() => setIsHydrated(true), []);
+
   function onSubmit(values: LoginCredentialsFormType) {
     signInMutation.mutate(values);
   }
 
   return (
-    <Form form={form} onSubmit={onSubmit} className="max-w-lg space-y-4">
+    <Form
+      form={form}
+      onSubmit={onSubmit}
+      disabled={!isHydrated || signInMutation.isPending}
+      className="max-w-lg space-y-4"
+    >
       <FormField
         control={form.control}
         name="email"

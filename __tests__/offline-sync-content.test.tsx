@@ -169,8 +169,8 @@ describe("offline synchronization settings", () => {
     render(<OfflineSyncContent ownerId="user-1" />);
 
     expect(
-      screen.getByLabelText("settings.offline.loading"),
-    ).toBeInTheDocument();
+      screen.getByRole("status", { name: "settings.offline.loading" }),
+    ).toHaveAttribute("aria-busy", "true");
     await waitFor(() =>
       expect(
         screen.getAllByText("settings.offline.operation.med_intake"),
