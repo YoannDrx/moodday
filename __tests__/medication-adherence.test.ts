@@ -249,19 +249,22 @@ describe("medication adherence", () => {
   it("counts date ranges inclusively", () => {
     expect(
       getInclusiveDayCount(
-        new Date(2026, 4, 15, 0, 0, 0, 0),
-        new Date(2026, 4, 15, 23, 59, 59, 999),
+        new Date("2026-05-15T00:00:00.000+02:00"),
+        new Date("2026-05-15T23:59:59.999+02:00"),
       ),
     ).toBe(1);
 
     expect(
       getInclusiveDayCount(
-        new Date(2026, 4, 1, 0, 0, 0, 0),
-        new Date(2026, 4, 30, 23, 59, 59, 999),
+        new Date("2026-05-01T00:00:00.000+02:00"),
+        new Date("2026-05-30T23:59:59.999+02:00"),
       ),
     ).toBe(30);
     expect(
-      getInclusiveDayCount(new Date(2026, 4, 30), new Date(2026, 4, 1)),
+      getInclusiveDayCount(
+        new Date("2026-05-30T00:00:00.000+02:00"),
+        new Date("2026-05-01T00:00:00.000+02:00"),
+      ),
     ).toBe(0);
   });
 });
