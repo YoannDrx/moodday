@@ -66,4 +66,14 @@ describe("CI workflow supply chain", () => {
     expect(allowedAdvisories).toEqual(["GHSA-jmr9-qjv8-65gv"]);
     expect(workflow).toContain("pnpm test:coverage:release");
   });
+
+  it("keeps the isolated Playwright server on the E2E auth rate limits", () => {
+    const workflow = fs.readFileSync(
+      path.join(workflowDirectory, "playwright.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain('PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true"');
+    expect(workflow).toContain("PLAYWRIGHT_DATABASE_URL:");
+  });
 });

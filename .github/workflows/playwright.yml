@@ -26,6 +26,9 @@ jobs:
       DATABASE_URL_UNPOOLED: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e@localhost:5432/moodday_e2e
       PLAYWRIGHT_DATABASE_URL: postgresql://postgres:${{ github.run_id }}-${{ github.run_attempt }}-${{ strategy.job-index }}-moodday-e2e@localhost:5432/moodday_e2e
       PLAYWRIGHT_ALLOW_SHARED_DATABASE: "true"
+      # The app is started outside Playwright's webServer process in CI, so it
+      # must receive the isolated-suite marker explicitly.
+      PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true"
       BETTER_AUTH_URL: http://localhost:3000
       EMAIL_FROM: Moodday <no-reply@example.invalid>
       NEXT_PUBLIC_EMAIL_CONTACT: hello@moodday.app
