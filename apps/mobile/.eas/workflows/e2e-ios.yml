@@ -1,0 +1,20 @@
+name: Mood Day mobile E2E — iOS
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios_for_e2e:
+    name: Build iOS simulator app
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+
+  maestro_test:
+    name: Run sign-in smoke flow
+    needs: [build_ios_for_e2e]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
+      flow_path: .maestro/sign-in-smoke.yml

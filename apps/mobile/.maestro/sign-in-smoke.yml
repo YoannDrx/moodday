@@ -1,0 +1,15 @@
+appId: fr.yodev.moodday.preview
+---
+- launchApp:
+    clearState: true
+- openLink: moodday-preview://sign-in
+- assertVisible:
+    id: sign-in-screen
+- assertVisible: "Retrouve ton fil."
+- assertVisible:
+    id: sign-in-email
+- assertVisible:
+    id: sign-in-password
+- assertVisible:
+    id: sign-in-submit
+- assertNotVisible: "Connexion impossible.*"

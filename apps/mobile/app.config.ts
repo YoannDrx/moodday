@@ -2,6 +2,12 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 
 type AppVariant = "development" | "preview" | "production";
 
+const variantNames: Record<AppVariant, string> = {
+  development: "Mood Day Dev",
+  preview: "Mood Day Preview",
+  production: "Mood Day",
+};
+
 const getVariant = (): AppVariant => {
   const value = process.env.APP_VARIANT;
   if (value === "preview" || value === "production") return value;
@@ -18,10 +24,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       : variant === "preview"
         ? "moodday-preview"
         : "moodday-dev";
+  const apiUrlValue = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const configuredApiUrl = apiUrlValue === "" ? undefined : apiUrlValue;
+
+  if (variant !== "development" && !configuredApiUrl) {
+    throw new Error(
+      `EXPO_PUBLIC_API_URL is required for the ${variant} mobile variant.`,
+    );
+  }
+
+  const apiUrl = configuredApiUrl ?? "http://localhost:3000";
+  if (variant !== "development" && !apiUrl.startsWith("https://")) {
+    throw new Error(
+      `EXPO_PUBLIC_API_URL must use HTTPS for the ${variant} mobile variant.`,
+    );
+  }
 
   return {
     ...config,
-    name: variant === "production" ? "Mood Day" : `Mood Day ${variant}`,
+    name: variantNames[variant],
     slug: "mood-day",
     scheme,
     ios: {
@@ -35,7 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: {
       ...config.extra,
       appVariant: variant,
-      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000",
+      apiUrl,
     },
   };
 };

@@ -20,7 +20,7 @@
     "artifacts/**"
   ],
   "ignoreDependencies": ["tailwindcss", "tailwindcss-animate"],
-  "ignoreBinaries": ["stripe"],
+  "ignoreBinaries": ["eas", "maestro", "stripe"],
   "paths": {
     "@/*": ["./src/*"],
     "@app/*": ["./app/*"],
