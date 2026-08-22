@@ -4,6 +4,7 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  createDoseEventSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
   type SyncOperationResult,
@@ -27,6 +28,12 @@ import {
   toAppointmentDto,
 } from "../appointments/service";
 import { checkInSelection, toCheckInDto } from "../check-ins/service";
+import {
+  createDoseEventInTransaction,
+  doseEventSelection,
+  DoseEventServiceError,
+  toDoseEventDto,
+} from "../medications/service";
 import { routineSelection, toRoutineDto } from "../routines/service";
 import {
   routineOccurrenceSelection,
@@ -865,6 +872,70 @@ const applyAppointmentArtifact = async (
   return applied(operation, decision.updatedAt);
 };
 
+const applyDoseEvent = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation !== "create") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "append_only_entity");
+  }
+  const parsed = createDoseEventSchema.safeParse({
+    ...getPayloadObject(operation),
+    operationId: operation.operationId,
+    entityId: operation.entityId,
+  });
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_dose_event");
+  }
+
+  try {
+    const event = await createDoseEventInTransaction({
+      transaction,
+      userId,
+      input: parsed.data,
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, event.createdAt);
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = ["entity_id_exists", "scheduled_dose_exists"].includes(
+      error.code,
+    );
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
 const applyOperation = async (
   userId: string,
   deviceId: string,
@@ -890,6 +961,9 @@ const applyOperation = async (
 
     if (operation.entityType === "check_in") {
       return applyCheckIn(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "dose_event") {
+      return applyDoseEvent(transaction, userId, deviceId, operation);
     }
     if (operation.entityType === "routine") {
       return applyRoutine(transaction, userId, deviceId, operation);
@@ -949,6 +1023,17 @@ const hydrateChange = async (
       select: checkInSelection,
     });
     return { data: value ? toCheckInDto(value) : null };
+  }
+  if (operation.entityType === "dose_event") {
+    const value = await prisma.medIntake.findFirst({
+      where: { id: operation.entityId, medication: { userId } },
+      select: doseEventSelection,
+    });
+    return {
+      data: value
+        ? toDoseEventDto(value, value.timezone ?? "Europe/Paris")
+        : null,
+    };
   }
   if (operation.entityType === "routine") {
     const value = await prisma.routine.findFirst({

@@ -120,6 +120,7 @@ model MedIntake {
   skipped           Boolean  @default(false)
   note              String? // Reason for skip or PRN usage
   scheduledForDate  String? // Local YYYY-MM-DD date for scheduled doses
+  timezone          String? // IANA timezone captured by V2 clients
   doseIndex         Int? // 0-based slot within the scheduled day
   doseKey           String?  @unique // medicationId:scheduledForDate:doseIndex
   clientOperationId String?

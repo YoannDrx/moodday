@@ -316,6 +316,68 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/medications": {
+      get: {
+        operationId: "listMedications",
+        description:
+          "Lists patient-owned treatments without interpreting or recommending them.",
+        parameters: [
+          { name: "cursor", in: "query", schema: { type: "string" } },
+          {
+            name: "includeArchived",
+            in: "query",
+            schema: { type: "boolean", default: false },
+          },
+        ],
+        responses: {
+          "200": { description: "Cursor page of treatments" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
+    "/dose-events": {
+      get: {
+        operationId: "listDoseEvents",
+        description:
+          "Lists dose events for one explicit civil day and timezone.",
+        parameters: [
+          {
+            name: "localDate",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "date" },
+          },
+          {
+            name: "timezone",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": { description: "Dose events for the requested civil day" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "createDoseEvent",
+        description:
+          "Appends one idempotent taken, skipped or PRN event. Corrections use a later explicit workflow.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateDoseEvent" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Dose event created or replayed" },
+          "404": { description: "Treatment or dose kind unavailable" },
+          "409": { description: "The scheduled dose already has an event" },
+        },
+      },
+    },
     "/sync/push": {
       post: {
         operationId: "pushSyncOperations",
@@ -450,6 +512,29 @@ export const moodDayV2OpenApi = {
           },
         },
       },
+      CreateDoseEvent: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "medicationId",
+          "kind",
+          "localDate",
+          "timezone",
+          "occurredAt",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          medicationId: { type: "string", minLength: 1, maxLength: 128 },
+          kind: { type: "string", enum: ["taken", "skipped", "prn"] },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          occurredAt: { type: "string", format: "date-time" },
+          doseIndex: { type: ["integer", "null"], minimum: 0, maximum: 12 },
+          note: { type: ["string", "null"], maxLength: 2000 },
+        },
+      },
       SyncPush: {
         type: "object",
         required: ["deviceId", "platform", "operations"],
@@ -476,6 +561,7 @@ export const moodDayV2OpenApi = {
                   type: "string",
                   enum: [
                     "check_in",
+                    "dose_event",
                     "routine",
                     "routine_occurrence",
                     "appointment",

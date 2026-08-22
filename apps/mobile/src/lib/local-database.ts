@@ -4,6 +4,7 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  doseEventWriteSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
   type AppointmentDto,
@@ -15,6 +16,9 @@ import {
   type CreateAppointmentEventInput,
   type CreateAppointmentQuestionInput,
   type CreateCheckInInput,
+  type DoseEventDto,
+  type DoseEventWriteInput,
+  type MedicationDto,
   type RoutineDto,
   type RoutineOccurrenceDto,
   type RoutineOccurrenceWriteInput,
@@ -47,6 +51,7 @@ type PendingRow = {
 };
 
 type SnapshotRow = { payload: string };
+type SnapshotEntityType = SyncEntityType | "medication";
 
 type OperationCountRow = {
   state: "pending" | "conflict" | "rejected";
@@ -116,7 +121,7 @@ const initializeDatabase = async ({
     CREATE TABLE IF NOT EXISTS pending_sync_operation (
       operation_id TEXT PRIMARY KEY NOT NULL,
       entity_id TEXT NOT NULL,
-      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
       mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
       base_version TEXT,
       payload TEXT NOT NULL,
@@ -148,7 +153,7 @@ const initializeDatabase = async ({
         CREATE TABLE pending_sync_operation_v2 (
           operation_id TEXT PRIMARY KEY NOT NULL,
           entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
           mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
           base_version TEXT,
           payload TEXT NOT NULL,
@@ -174,7 +179,7 @@ const initializeDatabase = async ({
         CREATE TABLE pending_sync_operation_v3 (
           operation_id TEXT PRIMARY KEY NOT NULL,
           entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
           mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
           base_version TEXT,
           payload TEXT NOT NULL,
@@ -191,6 +196,32 @@ const initializeDatabase = async ({
         CREATE INDEX pending_sync_operation_state_created_at_idx
           ON pending_sync_operation(state, created_at);
         PRAGMA user_version = 3;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 4) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE pending_sync_operation_v4 (
+          operation_id TEXT PRIMARY KEY NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'conflict', 'rejected')),
+          error_code TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR IGNORE INTO pending_sync_operation_v4
+          (operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at)
+        SELECT operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at
+        FROM pending_sync_operation;
+        DROP TABLE pending_sync_operation;
+        ALTER TABLE pending_sync_operation_v4 RENAME TO pending_sync_operation;
+        CREATE INDEX pending_sync_operation_state_created_at_idx
+          ON pending_sync_operation(state, created_at);
+        PRAGMA user_version = 4;
       `);
     });
   }
@@ -374,6 +405,35 @@ export const saveRoutineOfflineFirst = async (
     mutation: "create",
     payload,
   });
+};
+
+export const saveDoseEventOfflineFirst = async (
+  ownerId: string,
+  input: DoseEventWriteInput,
+) => {
+  const payload = doseEventWriteSchema.parse(input);
+  const operationId = Crypto.randomUUID();
+  const entityId = Crypto.randomUUID();
+  const event: DoseEventDto = {
+    ...payload,
+    id: entityId,
+    operationId,
+    doseIndex: payload.doseIndex ?? null,
+    note: payload.note ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId,
+      entityType: "dose_event",
+      mutation: "create",
+      payload,
+    },
+    event,
+  );
+  return { ...result, event };
 };
 
 export const saveRoutineOccurrenceOfflineFirst = async (
@@ -610,7 +670,7 @@ export const synchronizeNow = async (ownerId: string) => {
 
 const readSnapshots = async <T>(
   ownerId: string,
-  entityType: SyncEntityType,
+  entityType: SnapshotEntityType,
 ): Promise<T[]> => {
   const database = await getLocalDatabase(ownerId);
   const rows = await database.getAllAsync<SnapshotRow>(
@@ -627,10 +687,68 @@ const readSnapshots = async <T>(
   });
 };
 
+const persistSnapshots = async <T extends { id: string }>(
+  ownerId: string,
+  entityType: SnapshotEntityType,
+  values: T[],
+  changedAt: (value: T) => string,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.withTransactionAsync(async () => {
+    const persistAt = async (index: number): Promise<void> => {
+      const value = values[index];
+      if (!value) return;
+      await database.runAsync(
+        `INSERT INTO sync_snapshot (entity_type, entity_id, payload, changed_at, deleted)
+         VALUES (?, ?, ?, ?, 0)
+         ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+           payload = excluded.payload,
+           changed_at = excluded.changed_at,
+           deleted = 0`,
+        entityType,
+        value.id,
+        JSON.stringify(value),
+        changedAt(value),
+      );
+      return persistAt(index + 1);
+    };
+    await persistAt(0);
+  });
+};
+
+export const refreshTreatmentSnapshots = async (
+  ownerId: string,
+  localDate: string,
+  timezone: string,
+) => {
+  const [medicationPage, doseEvents] = await Promise.all([
+    api.listMedications(undefined, true),
+    api.listDoseEvents(localDate, timezone),
+  ]);
+  await Promise.all([
+    persistSnapshots(
+      ownerId,
+      "medication",
+      medicationPage.items,
+      (medication) => medication.updatedAt,
+    ),
+    persistSnapshots(
+      ownerId,
+      "dose_event",
+      doseEvents,
+      (event) => event.createdAt,
+    ),
+  ]);
+};
+
 export const getCachedRoutines = async (ownerId: string) =>
   readSnapshots<RoutineDto>(ownerId, "routine");
 export const getCachedRoutineOccurrences = async (ownerId: string) =>
   readSnapshots<RoutineOccurrenceDto>(ownerId, "routine_occurrence");
+export const getCachedMedications = async (ownerId: string) =>
+  readSnapshots<MedicationDto>(ownerId, "medication");
+export const getCachedDoseEvents = async (ownerId: string) =>
+  readSnapshots<DoseEventDto>(ownerId, "dose_event");
 export const getCachedAppointments = async (ownerId: string) =>
   readSnapshots<AppointmentDto>(ownerId, "appointment");
 export const getCachedAppointmentQuestions = async (

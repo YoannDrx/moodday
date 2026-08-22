@@ -9,7 +9,7 @@ import { PrismaClient } from "@prisma/client";
 const SNAPSHOT_LAST_MIGRATION =
   "20260810120000_subscription_updated_at_no_default";
 const EXPECTED_SNAPSHOT_MIGRATIONS = 12;
-const EXPECTED_FINAL_MIGRATIONS = 27;
+const EXPECTED_FINAL_MIGRATIONS = 29;
 const EXPECTED_PUBLIC_TABLES = 64;
 
 const databaseUrl = process.env.DATABASE_URL;

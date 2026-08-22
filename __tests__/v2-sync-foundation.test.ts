@@ -208,4 +208,71 @@ describe("V2 synchronization foundation", () => {
       }),
     );
   });
+
+  it("applies an offline scheduled dose once through the append-only queue", async () => {
+    const createdAt = new Date("2026-08-23T07:30:00.000Z");
+    vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.medIntake.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(1);
+    vi.mocked(prisma.medication.findFirst).mockResolvedValue({
+      id: "medication-1",
+      isPRN: false,
+      unitsPerDose: null,
+      stockQuantity: null,
+    } as never);
+    vi.mocked(prisma.medIntake.create).mockResolvedValue({
+      id: "dose-event-1",
+      medicationId: "medication-1",
+      takenAt: createdAt,
+      skipped: false,
+      note: null,
+      scheduledForDate: "2026-08-23",
+      timezone: "Europe/Paris",
+      doseIndex: 0,
+      clientOperationId: "operation-dose-1",
+      createdAt,
+      medication: { isPRN: false },
+    } as never);
+    vi.mocked(prisma.syncOperation.create).mockResolvedValue({} as never);
+
+    const result = await pushSyncOperations("user-1", {
+      deviceId: "mobile-device-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-dose-1",
+          entityId: "dose-event-1",
+          entityType: "dose_event",
+          mutation: "create",
+          payload: {
+            medicationId: "medication-1",
+            kind: "taken",
+            localDate: "2026-08-23",
+            timezone: "Europe/Paris",
+            occurredAt: createdAt.toISOString(),
+            doseIndex: 0,
+          },
+        },
+      ],
+    });
+
+    expect(result.results[0]).toEqual({
+      operationId: "operation-dose-1",
+      entityId: "dose-event-1",
+      status: "applied",
+      code: null,
+      currentVersion: createdAt.toISOString(),
+    });
+    expect(prisma.syncOperation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        entityType: "dose_event",
+        entityId: "dose-event-1",
+        status: "applied",
+      }),
+    });
+  });
 });
