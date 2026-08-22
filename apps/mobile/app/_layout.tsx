@@ -14,6 +14,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="sign-in" />
+        <Stack.Screen name="settings" options={{ presentation: "modal" }} />
         <Stack.Screen name="routine-new" options={{ presentation: "modal" }} />
         <Stack.Screen
           name="appointment-new"

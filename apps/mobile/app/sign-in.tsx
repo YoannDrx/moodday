@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandIllustration } from "../src/components/brand-illustration";
 import { MoodDayMark } from "../src/components/moodday-mark";
 import { authClient } from "../src/lib/auth-client";
+import { clearMobileSessionInvalidation } from "../src/lib/session-security";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function SignInScreen() {
       setError("Connexion impossible. Vérifie tes informations puis réessaie.");
       return;
     }
+    clearMobileSessionInvalidation();
     router.replace("/");
   };
 

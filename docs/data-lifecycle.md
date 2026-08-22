@@ -70,8 +70,13 @@ ne sont jamais stockés en clair.
   SecureStore propre à l'appareil. Le nom de fichier contient une empreinte
   SHA-256 tronquée, jamais l'identifiant utilisateur brut. Une mutation est
   chiffrée localement avant son envoi et supprimée de la file après acquittement
-  serveur. La purge mobile lors de la suppression du compte et le contrôle des
-  opérations en attente avant déconnexion restent une gate de bêta dédiée.
+  serveur. La disparition ou le remplacement de la session ferme immédiatement
+  la base du compte précédent sans supprimer sa file. Une déconnexion ordinaire
+  est bloquée tant qu'une opération est en attente, en conflit ou rejetée :
+  l'utilisateur peut synchroniser ou confirmer séparément la suppression de la
+  base locale et de sa clé. Cette purge locale déconnecte l'appareil mais ne
+  supprime ni le compte ni les données déjà synchronisées. La propagation de la
+  suppression complète du compte vers chaque appareil reste une gate de bêta.
 - Le job technique quotidien applique, sous réserve d'approbation juridique,
   90 jours aux traces de livraison e-mail et push terminées, 12 mois aux accès
   aidant et usages IA sans contenu, 13 mois aux événements webhook Stripe et 30

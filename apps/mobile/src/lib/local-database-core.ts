@@ -5,6 +5,15 @@ export type OwnerStorageIdentity = {
   keyReference: string;
 };
 
+export type LocalOperationSummary = {
+  pending: number;
+  conflict: number;
+  rejected: number;
+  total: number;
+};
+
+export type SessionOwnerTransition = "adopt" | "lock" | "none";
+
 export const normalizeLocalOwnerId = (ownerId: string) => {
   const normalized = ownerId.trim();
   if (!normalized) throw new Error("local_database_owner_required");
@@ -22,6 +31,38 @@ export const createOwnerStorageIdentity = (
     databaseName: `moodday-v2-${normalizedHash.slice(0, 32)}.db`,
     keyReference: `moodday.database-key.v2.${normalizedHash}`,
   };
+};
+
+export const createLocalOperationSummary = (
+  rows: readonly {
+    state: "pending" | "conflict" | "rejected";
+    count: number;
+  }[],
+): LocalOperationSummary => {
+  const summary = { pending: 0, conflict: 0, rejected: 0, total: 0 };
+  for (const row of rows) {
+    if (!Number.isSafeInteger(row.count) || row.count < 0) {
+      throw new Error("local_operation_count_invalid");
+    }
+    summary[row.state] += row.count;
+    summary.total += row.count;
+  }
+  return summary;
+};
+
+export const getSessionOwnerTransition = ({
+  currentOwnerId,
+  isPending,
+  previousOwnerId,
+}: {
+  currentOwnerId?: string;
+  isPending: boolean;
+  previousOwnerId?: string;
+}): SessionOwnerTransition => {
+  if (isPending) return "none";
+  if (previousOwnerId && previousOwnerId !== currentOwnerId) return "lock";
+  if (!previousOwnerId && currentOwnerId) return "adopt";
+  return "none";
 };
 
 class SyncRejectedError extends Error {}

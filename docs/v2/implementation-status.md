@@ -149,6 +149,14 @@ publiques et aucune dérive Prisma.
 - Le pull delta utilise un curseur opaque et ordonné. Les entités mutables
   exigent une version serveur exacte ; check-ins et doses restent append-only.
 - Les snapshots récupérés sont conservés dans SQLCipher pour lecture offline.
+- La disparition d'une session, y compris après révocation serveur, ferme la
+  base SQLCipher du compte avant de réafficher la connexion. La file locale est
+  conservée pour une reconnexion du même propriétaire et reste inaccessible à
+  un autre compte.
+- L'écran « Compte et appareil » expose l'état pending/conflit/rejeté. Il bloque
+  la déconnexion lorsqu'une donnée locale n'est pas résolue, propose une
+  synchronisation, et sépare la purge destructive derrière une confirmation
+  explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
 
 Cette tranche prouve le moteur delta pour les trois premiers agrégats et les
 artefacts append-only du rendez-vous. Les brouillons, doses V2, réglages et
@@ -181,7 +189,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 149 fichiers, 954 tests
+pnpm test:ci                 # 151 fichiers, 961 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -215,7 +223,9 @@ git diff --check
   active. Les écrans web/mobile, le contrat et le journal d'accès sont codés.
 - RevenueCat, StoreKit et Google Play Billing. La projection commune des droits
   Stripe/mobile est codée, mais aucun webhook store n'est encore activé.
-- Notifications, exports V2, suppression par source et suppression de compte.
+- Notifications, exports V2, suppression par source et propagation de la
+  suppression de compte vers tous les appareils. Le verrouillage de session et
+  la purge volontaire de l'appareil courant sont codés.
 - Exécution des workflows Maestro désormais versionnés sur de vrais builds,
   tests fournisseurs, tests de fuseau et heure d'été/hiver, tests de sécurité
   et matrice d'abonnement multi-source.

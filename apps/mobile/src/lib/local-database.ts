@@ -25,6 +25,7 @@ import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import { api } from "./api";
 import {
+  createLocalOperationSummary,
   createOwnerStorageIdentity,
   normalizeLocalOwnerId,
   persistOperationBeforeSync,
@@ -43,6 +44,11 @@ type PendingRow = {
 };
 
 type SnapshotRow = { payload: string };
+
+type OperationCountRow = {
+  state: "pending" | "conflict" | "rejected";
+  count: number;
+};
 
 const databasePromises = new Map<string, Promise<SQLite.SQLiteDatabase>>();
 
@@ -175,6 +181,23 @@ export const getLocalDatabase = async (ownerId: string) => {
   return databasePromise;
 };
 
+export const closeOwnerLocalDatabase = async (ownerId: string) => {
+  const identity = await getOwnerStorageIdentity(ownerId);
+  const databasePromise = databasePromises.get(identity.databaseName);
+  databasePromises.delete(identity.databaseName);
+  if (!databasePromise) return;
+
+  const database = await databasePromise;
+  await database.closeAsync();
+};
+
+export const purgeOwnerLocalData = async (ownerId: string) => {
+  const identity = await getOwnerStorageIdentity(ownerId);
+  await closeOwnerLocalDatabase(ownerId);
+  await SQLite.deleteDatabaseAsync(identity.databaseName);
+  await SecureStore.deleteItemAsync(identity.keyReference);
+};
+
 const queueOperation = async (
   ownerId: string,
   operation: SyncPushOperation,
@@ -216,8 +239,7 @@ const saveOfflineFirst = async (
   persistOperationBeforeSync(operation, {
     queue: async () => queueOperation(ownerId, operation),
     push: async () => pushOperations([operation]),
-    remove: async () =>
-      removeQueuedOperation(ownerId, operation.operationId),
+    remove: async () => removeQueuedOperation(ownerId, operation.operationId),
     markRejected: async (code) => {
       const database = await getLocalDatabase(ownerId);
       await database.runAsync(
@@ -234,6 +256,16 @@ export const getPendingOperationCount = async (ownerId: string) => {
     "SELECT COUNT(*) AS count FROM pending_sync_operation WHERE state = 'pending'",
   );
   return row?.count ?? 0;
+};
+
+export const getLocalOperationSummary = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  const rows = await database.getAllAsync<OperationCountRow>(
+    `SELECT state, COUNT(*) AS count
+     FROM pending_sync_operation
+     GROUP BY state`,
+  );
+  return createLocalOperationSummary(rows);
 };
 
 export const saveCheckInOfflineFirst = async (
