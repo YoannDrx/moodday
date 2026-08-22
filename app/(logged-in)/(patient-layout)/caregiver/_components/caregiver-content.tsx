@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users,
@@ -117,6 +117,7 @@ export function CaregiverContent() {
     professional: "caregiver.roles.professional",
   };
   const queryClient = useQueryClient();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Invite dialog state
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -135,6 +136,8 @@ export function CaregiverContent() {
   const [inviteAccessExpiresOn, setInviteAccessExpiresOn] = useState("");
   const [editingCaregiver, setEditingCaregiver] =
     useState<EditableCaregiver | null>(null);
+
+  useEffect(() => setIsHydrated(true), []);
 
   const permissionLabels: Record<CaregiverPermission, string> = {
     view_mood: t("caregiver.dashboard.permissions.viewMood"),
@@ -496,6 +499,7 @@ export function CaregiverContent() {
         </Link>
 
         <button
+          disabled={!isHydrated}
           className="glass-card group flex items-center gap-4 rounded-2xl p-5 transition-all hover:bg-white hover:shadow-md"
           onClick={() => setInviteDialogOpen(true)}
         >
@@ -943,6 +947,7 @@ export function CaregiverContent() {
               )}
 
               <button
+                disabled={!isHydrated}
                 onClick={() => setInviteDialogOpen(true)}
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-sm font-semibold text-gray-600 transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >

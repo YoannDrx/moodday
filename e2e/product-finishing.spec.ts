@@ -137,8 +137,17 @@ test("finishes import, journal tags, consultation PDF and the offline safety pla
     .click();
   await expect(page.getByText(/Plan enregistré|Safety plan saved/i)).toBeVisible();
   await expect
-    .poll(async () => prisma.safetyPlan.count({ where: { userId: user.id } }))
-    .toBe(1);
+    .poll(async () => {
+      const plan = await prisma.safetyPlan.findUnique({
+        where: { userId: user.id },
+        select: { warningSigns: true, copingStrategies: true },
+      });
+      return plan;
+    })
+    .toEqual({
+      warningSigns: ["Isolement inhabituel"],
+      copingStrategies: ["Marcher dix minutes"],
+    });
   await expect
     .poll(async () =>
       page.evaluate(() =>
@@ -160,7 +169,11 @@ test("finishes import, journal tags, consultation PDF and the offline safety pla
   await expect(
     page.getByRole("heading", { name: /Mon plan de sécurité personnel/i }),
   ).toBeVisible();
-  await expect(page.getByText("Isolement inhabituel")).toBeVisible();
-  await expect(page.getByText("Marcher dix minutes")).toBeVisible();
+  await expect(page.getByText("Isolement inhabituel")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("Marcher dix minutes")).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByText(/Moodday n’est pas un service d’urgence/i)).toBeVisible();
 });

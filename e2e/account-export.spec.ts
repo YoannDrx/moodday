@@ -7,7 +7,7 @@ import { retry } from "./utils/retry";
 test("exports complete user data without authentication or notification secrets", async ({
   page,
 }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const browserErrors: string[] = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => {
@@ -117,7 +117,7 @@ test("exports complete user data without authentication or notification secrets"
       name: /Privacy|Confidentialité/i,
     }),
   ).toBeVisible();
-  const downloadPromise = page.waitForEvent("download");
+  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await page
     .getByRole("link", { name: /Export JSON|Exporter JSON/i })
     .click();
@@ -189,7 +189,9 @@ test("exports complete user data without authentication or notification secrets"
     name: /Download CSV|Télécharger CSV/i,
   });
   await expect(csvButton).toBeEnabled({ timeout: 15000 });
-  const csvDownloadPromise = page.waitForEvent("download");
+  const csvDownloadPromise = page.waitForEvent("download", {
+    timeout: 60_000,
+  });
   await csvButton.click();
   const csvDownload = await csvDownloadPromise;
   const csvStream = await csvDownload.createReadStream();

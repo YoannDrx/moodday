@@ -1,6 +1,6 @@
 # Mood Day V2 — état d'implémentation
 
-Date de référence : 22 août 2026.
+Date de référence : 23 août 2026.
 
 Ce document décrit la première tranche verticale réellement exécutable de la
 refonte. Il ne transforme pas la présence de code en promesse de disponibilité :
@@ -45,6 +45,11 @@ relocalisation mécanique avec la nouvelle logique métier.
   hors ligne puis se réconcilie avec le serveur. Une contrainte PostgreSQL
   garantit une seule occurrence canonique par routine et date civile, sans
   streak ni retard à rattraper.
+- Les traitements actifs et leurs prises planifiées ou ponctuelles sont
+  désormais disponibles dans Soin mobile. Une prise, un passage volontaire ou
+  une prise PRN est projeté immédiatement dans SQLCipher, conservé hors ligne,
+  puis réconcilié exactement une fois avec PostgreSQL. Le stock existant est
+  décrémenté atomiquement lorsqu'une prise est acceptée par le serveur.
 - Un rendez-vous canonique possède désormais des questions publiques ou
   privées, des repères de séance append-only, des décisions de débrief et des
   briefs versionnés. Le parcours est utilisable sur le web et sur mobile ; les
@@ -95,6 +100,7 @@ La première spécification est publiée à `/api/v2/openapi.json` et couvre :
 - `POST /api/v2/check-ins` avec `operationId` idempotent.
 - `GET|POST /api/v2/routines` ;
 - `GET|POST /api/v2/routine-occurrences` ;
+- `GET /api/v2/medications` et `GET|POST /api/v2/dose-events` ;
 - `GET|POST /api/v2/appointments` ;
 - `GET|POST /api/v2/appointments/{appointmentId}/artifacts` ;
 - `GET|POST /api/v2/circle`, `POST /api/v2/circle/accept` et
@@ -114,7 +120,9 @@ Les migrations `20260821153000_moodday_v2_foundation`,
 `20260822013000_v2_circle_contracts`,
 `20260822023000_v2_appointment_artifacts` et
 `20260822210000_v2_routine_occurrence_daily_uniqueness` ajoutent les premiers
-agrégats V2 sans supprimer les tables V1 :
+agrégats V2 sans supprimer les tables V1. La migration additive
+`20260823003000_med_intake_timezone` ajoute le fuseau capturé par les clients V2
+aux événements de prise existants :
 
 - CheckIn, Observation, DailyAggregate, SourceConnection et SyncCursor ;
 - Routine et RoutineOccurrence ;
@@ -128,11 +136,14 @@ agrégats V2 sans supprimer les tables V1 :
 
 Des contraintes SQL protègent les bornes 0–10, la cohérence des fenêtres et de
 la couverture, les check-ins rapides incomplets, les positions de question et
-les périodes de rendez-vous. Les trois migrations V2 additives ont été répétées
-sur une branche isolée puis appliquées en Production le 22 août 2026. La
-sauvegarde fournisseur `codex-v2-predeploy-backup-2026-08-22` est conservée ;
-la vérification post-déploiement compte 27 migrations réussies, 64 tables
-publiques et aucune dérive Prisma.
+les périodes de rendez-vous. Les migrations V2 additives ont été répétées sur
+des branches isolées avant livraison. La migration des prises du 23 août a été
+contrôlée sur `codex-dose-v2-predeploy-2026-08-23` : 29 migrations réussies,
+colonne nullable présente, quatre événements historiques conservés et diff de
+schéma vide avec la Production. La sauvegarde fournisseur
+`codex-v2-predeploy-backup-2026-08-22` reste conservée ; la vérification de
+Production compte également 29 migrations réussies, 64 tables publiques et
+aucune dérive Prisma.
 
 ### Offline mobile
 
@@ -147,7 +158,7 @@ publiques et aucune dérive Prisma.
   elle n'est retirée qu'après acceptation ou déduplication serveur.
 - Les opérations partagent maintenant une file générique par lots pour les
   check-ins, routines, rendez-vous, questions, repères de séance et décisions,
-  avec identifiant stable d'appareil.
+  ainsi que les prises de traitement, avec identifiant stable d'appareil.
 - Une synchronisation réussie retire l'opération ; une erreur récupérable la
   conserve sans journaliser son contenu.
 - Les payloads locaux sont revalidés avant envoi.
@@ -168,9 +179,9 @@ publiques et aucune dérive Prisma.
   synchronisation, et sépare la purge destructive derrière une confirmation
   explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
 
-Cette tranche prouve le moteur delta pour les trois premiers agrégats et les
-artefacts append-only du rendez-vous. Les brouillons, doses V2, réglages et
-conflits Google/Mood Day restent à brancher sur le même protocole.
+Cette tranche prouve le moteur delta pour les premiers agrégats, les prises de
+traitement et les artefacts append-only du rendez-vous. Les brouillons,
+réglages et conflits Google/Mood Day restent à brancher sur le même protocole.
 
 ## Direction artistique
 
@@ -199,7 +210,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 152 fichiers, 968 tests
+pnpm test:ci                 # 153 fichiers, 976 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -223,13 +234,15 @@ git diff --check
 
 - Couverture exhaustive des écrans et états en Figma ; la direction est choisie,
   mais le quota distant empêche encore le handoff complet.
-- Extension du moteur delta aux doses, brouillons et réglages, puis tests réels
-  multi-appareils et concurrence PostgreSQL.
-- Traitements V2 et plan de sécurité offline dans les clients V2. Les
-  occurrences quotidiennes de routines sont raccordées à l'API et au moteur
-  offline mobile ; leurs corrections et planifications avancées restent à
-  compléter. Le rendez-vous canonique et son brief sont raccordés ; l'export
-  PDF/lien temporaire reste à livrer.
+- Extension du moteur delta aux brouillons et réglages, puis tests réels
+  multi-appareils et concurrence PostgreSQL. Les prises append-only sont
+  raccordées au même protocole et testées localement en mode offline-first.
+- Corrections de prises, historique et régimes avancés, ainsi que plan de
+  sécurité offline dans les clients V2. Les traitements et occurrences
+  quotidiennes de routines sont raccordés à l'API et au moteur offline mobile ;
+  leurs corrections et planifications avancées restent à compléter. Le
+  rendez-vous canonique et son brief sont raccordés ; l'export PDF/lien
+  temporaire reste à livrer.
 - Google Agenda bidirectionnel, calendrier natif, HealthKit puis Health Connect.
 - Notifications d'invitation et tests réels de révocation sur session aidant
   active. Les écrans web/mobile, le contrat et le journal d'accès sont codés.
@@ -250,8 +263,9 @@ git diff --check
    check-in web → mobile → web, offline puis reconnecté.
 3. Rejouer le moteur `/sync/push` et `/sync/pull` contre PostgreSQL avec deux
    appareils, collisions, révocation et changement de fuseau.
-4. Étendre Traitements/Routines sur les mêmes contrats (occurrences, doses,
-   correction et PRN).
+4. Compléter Traitements/Routines sur les mêmes contrats : corrections,
+   historiques, régimes et planifications avancées. Les occurrences, prises
+   planifiées et PRN sont déjà raccordées.
 5. Tester Appointment canonique sur deux appareils et ajouter l'export du brief,
    puis seulement connecter Google.
 6. Ne brancher Santé et billing qu'après les gates privacy et entitlements

@@ -292,8 +292,78 @@ export const appointmentSchema = appointmentWriteSchema.safeExtend({
   updatedAt: z.iso.datetime(),
 });
 
+export const medicationFrequencySchema = z.enum([
+  "daily",
+  "twice_daily",
+  "weekly",
+  "prn",
+]);
+
+const medicationQuantitySchema = z.number().nonnegative().max(1_000_000);
+
+export const medicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  dosage: z.string(),
+  frequency: medicationFrequencySchema,
+  isPrn: z.boolean(),
+  isArchived: z.boolean(),
+  scheduleTimes: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)),
+  weeklyDay: z.number().int().min(0).max(6).nullable(),
+  startDate: z.iso.date().nullable(),
+  endDate: z.iso.date().nullable(),
+  stockQuantity: medicationQuantitySchema.nullable(),
+  unitsPerDose: medicationQuantitySchema.nullable(),
+  lowStockThreshold: medicationQuantitySchema.nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const doseEventKindSchema = z.enum(["taken", "skipped", "prn"]);
+
+export const doseEventWriteSchema = z
+  .object({
+    medicationId: z.string().min(1).max(128),
+    kind: doseEventKindSchema,
+    localDate: z.iso.date(),
+    timezone: z.string().min(1).max(80),
+    occurredAt: z.iso.datetime(),
+    doseIndex: z.number().int().min(0).max(12).nullable().optional(),
+    note: z.string().trim().max(2_000).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === "prn" && value.doseIndex != null) {
+      context.addIssue({
+        code: "custom",
+        path: ["doseIndex"],
+        message: "prn_dose_index_not_allowed",
+      });
+    }
+    if (value.kind !== "prn" && value.doseIndex == null) {
+      context.addIssue({
+        code: "custom",
+        path: ["doseIndex"],
+        message: "scheduled_dose_index_required",
+      });
+    }
+  });
+
+export const createDoseEventSchema = doseEventWriteSchema.safeExtend({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+});
+
+export const doseEventSchema = doseEventWriteSchema.safeExtend({
+  id: z.string(),
+  operationId: z.string().nullable(),
+  doseIndex: z.number().int().min(0).max(12).nullable(),
+  note: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
 export const syncEntityTypeSchema = z.enum([
   "check_in",
+  "dose_event",
   "routine",
   "routine_occurrence",
   "appointment",
@@ -529,6 +599,12 @@ export type RoutineOccurrenceDto = z.infer<typeof routineOccurrenceSchema>;
 export type AppointmentWriteInput = z.infer<typeof appointmentWriteSchema>;
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type AppointmentDto = z.infer<typeof appointmentSchema>;
+export type MedicationFrequency = z.infer<typeof medicationFrequencySchema>;
+export type MedicationDto = z.infer<typeof medicationSchema>;
+export type DoseEventKind = z.infer<typeof doseEventKindSchema>;
+export type DoseEventWriteInput = z.infer<typeof doseEventWriteSchema>;
+export type CreateDoseEventInput = z.infer<typeof createDoseEventSchema>;
+export type DoseEventDto = z.infer<typeof doseEventSchema>;
 export type CreateAppointmentQuestionInput = z.infer<
   typeof createAppointmentQuestionSchema
 >;

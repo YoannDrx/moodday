@@ -14,10 +14,13 @@ import type {
   CreateAppointmentArtifactInput,
   CreateCheckInInput,
   CreateCircleInvitationInput,
+  CreateDoseEventInput,
   CreateRoutineInput,
   CreateRoutineOccurrenceInput,
   CreateSupportRequestInput,
   EntitlementDto,
+  DoseEventDto,
+  MedicationDto,
   RespondSupportRequestInput,
   RoutineDto,
   RoutineOccurrenceDto,
@@ -104,6 +107,19 @@ export const createApiClient = ({
       request<{ items: CheckInDto[]; nextCursor: string | null }>(
         `/api/v2/check-ins${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
       ),
+    listMedications: async (cursor?: string, includeArchived = false) =>
+      request<{ items: MedicationDto[]; nextCursor: string | null }>(
+        `/api/v2/medications?includeArchived=${includeArchived}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+      ),
+    listDoseEvents: async (localDate: string, timezone: string) =>
+      request<DoseEventDto[]>(
+        `/api/v2/dose-events?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,
+      ),
+    createDoseEvent: async (input: CreateDoseEventInput) =>
+      request<DoseEventDto>("/api/v2/dose-events", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
     getToday: async (localDate: string, timezone: string) =>
       request<TodayDto>(
         `/api/v2/today?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,
