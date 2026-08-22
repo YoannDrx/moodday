@@ -165,6 +165,7 @@ describe("trends content", () => {
     expect(
       screen.getByText(/ne démontrent ni cause, ni effet médical/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Au moins 5 jours comparables/)).toBeInTheDocument();
 
     const locked90 = screen.getByRole("button", {
       name: /trends\.periods\.days90/,

@@ -13,7 +13,7 @@ export function PatientMobileNav() {
 
   return (
     <nav className="glass-card fixed right-0 bottom-0 left-0 z-50 border-t border-gray-100 pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <div className="grid grid-cols-5 items-center px-2 py-2">
+      <div className="grid grid-cols-4 items-center px-2 py-2">
         {links.map((link) => {
           const isActive =
             pathname === link.href || pathname.startsWith(`${link.href}/`);

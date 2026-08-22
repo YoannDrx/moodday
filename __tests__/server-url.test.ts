@@ -29,8 +29,22 @@ describe("server URL and authentication origins", () => {
       "https://moodday-preview-abc.vercel.app",
       "https://moodday-git-feature-team.vercel.app",
       "https://moodday-psi.vercel.app",
+      "moodday-preview://",
+      "moodday-preview://*",
     ]);
     expect(getTrustedAuthOrigins()).not.toContain("https://*.vercel.app");
+  });
+
+  it("keeps native callback schemes distinct between Production and development", () => {
+    useServerEnvironment();
+    process.env.BETTER_AUTH_URL = "https://moodday.app";
+    process.env.VERCEL_ENV = "production";
+    expect(getTrustedAuthOrigins()).toContain("moodday://");
+    expect(getTrustedAuthOrigins()).not.toContain("moodday-preview://");
+
+    delete process.env.VERCEL_ENV;
+    expect(getTrustedAuthOrigins()).toContain("moodday-dev://");
+    expect(getTrustedAuthOrigins()).toContain("exp://192.168.*.*:*/**");
   });
 
   it("binds Preview passkeys to the exact deployment host", () => {

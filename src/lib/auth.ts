@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { admin, magicLink, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
+import { expo } from "@better-auth/expo";
 
 import { sendEmail } from "@/lib/mail/send-email";
 import { SiteConfig } from "@/site-config";
@@ -304,6 +305,7 @@ export const auth = betterAuth({
   },
   socialProviders: SocialProviders,
   plugins: [
+    expo(),
     magicLink({
       expiresIn: 10 * 60,
       storeToken: "hashed",

@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandIllustration } from "@/components/brand/brand-illustration";
 import { useState } from "react";
 import {
   TrendingUp,
@@ -28,6 +29,7 @@ import { PageLayout } from "@/components/nowts/page-layout";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { useI18n } from "@/i18n/provider";
 import Link from "next/link";
+import { calculateSignedAssociation } from "@moodday/domain";
 
 type MoodEntry = {
   id: string;
@@ -137,22 +139,10 @@ export function TrendsContent({
   const trend7vs30 = calculateTrend(avg7, avg30);
 
   const calculateCorrelation = (pairs: [number, number][]) => {
-    if (pairs.length < 3) return null;
-    const meanX = pairs.reduce((sum, [x]) => sum + x, 0) / pairs.length;
-    const meanY = pairs.reduce((sum, [, y]) => sum + y, 0) / pairs.length;
-    let numerator = 0;
-    let sumSqX = 0;
-    let sumSqY = 0;
-    for (const [x, y] of pairs) {
-      const dx = x - meanX;
-      const dy = y - meanY;
-      numerator += dx * dy;
-      sumSqX += dx * dx;
-      sumSqY += dy * dy;
-    }
-    if (sumSqX === 0 || sumSqY === 0) return null;
-    const corr = numerator / Math.sqrt(sumSqX * sumSqY);
-    return Math.round(Math.abs(corr) * 100);
+    const association = calculateSignedAssociation(
+      pairs.map(([x, y]) => ({ x, y })),
+    );
+    return association ? Math.round(association.coefficient * 100) : null;
   };
 
   const buildPairs = (
@@ -176,6 +166,11 @@ export function TrendsContent({
 
   const formatPercent = (value: number | null | undefined) =>
     value === null || value === undefined ? "--" : `${value}%`;
+  const formatAssociation = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return "--";
+    if (value > 0) return `+${value}%`;
+    return `${value}%`;
+  };
 
   // Insight type colors for new design
   const insightTypeStyles = {
@@ -212,7 +207,7 @@ export function TrendsContent({
       maxWidth="7xl"
     >
       <div className="mb-8 overflow-hidden rounded-3xl bg-[#183432] p-6 text-white shadow-lg sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_180px] lg:grid-cols-[minmax(0,1fr)_220px_auto]">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 text-sm font-bold text-[#8DDDE0]">
               <FileText className="size-4" />
@@ -229,6 +224,11 @@ export function TrendsContent({
                 : "Choose a period, review changes, and prepare your questions. Moodday does not infer medical causes."}
             </p>
           </div>
+          <BrandIllustration
+            variant="landmarks"
+            sizes="220px"
+            className="hidden max-h-32 w-auto sm:block"
+          />
           {canCreateConsultationReport || billingEnabled ? (
             <Link
               href={canCreateConsultationReport ? "/export" : "/pricing"}
@@ -447,14 +447,16 @@ export function TrendsContent({
                     {t("trends.correlations.sleepMood")}
                   </span>
                   <span className="text-lg font-bold text-[var(--lavender-dark)]">
-                    {formatPercent(sleepCorrelation)}
+                    {formatAssociation(sleepCorrelation)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--lavender)]/20">
                   <div
                     className="h-full rounded-full bg-[var(--lavender-dark)]"
                     style={{
-                      width: sleepCorrelation ? `${sleepCorrelation}%` : "0%",
+                      width: sleepCorrelation
+                        ? `${Math.abs(sleepCorrelation)}%`
+                        : "0%",
                     }}
                   />
                 </div>
@@ -487,22 +489,24 @@ export function TrendsContent({
                     {t("trends.correlations.energyMood")}
                   </span>
                   <span className="text-lg font-bold text-[var(--primary)]">
-                    {formatPercent(energyCorrelation)}
+                    {formatAssociation(energyCorrelation)}
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--primary)]/10">
                   <div
                     className="h-full rounded-full bg-[var(--primary)]"
                     style={{
-                      width: energyCorrelation ? `${energyCorrelation}%` : "0%",
+                      width: energyCorrelation
+                        ? `${Math.abs(energyCorrelation)}%`
+                        : "0%",
                     }}
                   />
                 </div>
               </div>
               <p className="text-muted-foreground text-xs leading-5">
                 {locale === "fr"
-                  ? "Ces indicateurs décrivent une association dans vos saisies. Ils ne démontrent ni cause, ni effet médical."
-                  : "These indicators describe an association in your entries. They do not establish a cause or medical effect."}
+                  ? "Le signe indique le sens de l’association. Au moins 5 jours comparables sont nécessaires. Ces pistes ne démontrent ni cause, ni effet médical."
+                  : "The sign shows the direction of the association. At least 5 comparable days are required. These clues do not establish a cause or medical effect."}
               </p>
             </GlassCardContent>
           </GlassCard>

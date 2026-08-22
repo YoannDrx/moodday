@@ -85,6 +85,9 @@ vi.mock("better-auth/plugins", () => ({
 vi.mock("@better-auth/passkey", () => ({
   passkey: (options: Record<string, unknown>) => ({ kind: "passkey", options }),
 }));
+vi.mock("@better-auth/expo", () => ({
+  expo: () => ({ kind: "expo" }),
+}));
 vi.mock("@/lib/mail/send-email", () => ({ sendEmail: state.sendEmail }));
 vi.mock("@/lib/auth/auth-config-setup", () => ({
   setupResendCustomer: state.setupResendCustomer,

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CalendarHeart } from "lucide-react";
+import { MoodDayMark } from "@/components/svg/moodday-mark";
 import Link from "next/link";
 
 type MooddayLogoProps = {
@@ -44,17 +44,20 @@ export function MooddayLogo({
     <>
       <div
         className={cn(
-          "bg-primary shadow-soft flex items-center justify-center rounded-xl transition-transform group-hover:rotate-6",
+          "shadow-soft flex items-center justify-center rounded-[32%] bg-[#155c5a] transition-transform group-hover:scale-[1.03] group-hover:-rotate-2 motion-reduce:transform-none",
           config.container,
         )}
       >
-        <CalendarHeart className={cn("text-white", config.icon)} />
+        <MoodDayMark
+          className={cn("text-[#fff8eb]", config.icon)}
+          accentColor="#F3C9A8"
+        />
       </div>
       {showText && (
         <span
           className={cn("text-primary font-bold tracking-tight", config.text)}
         >
-          Moodday
+          Mood Day
         </span>
       )}
     </>

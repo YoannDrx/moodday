@@ -35,6 +35,30 @@ model User {
   consultationPreparations ConsultationPreparation[]
   safetyPlan               SafetyPlan?
 
+  // Mood Day V2 shared web/mobile domain
+  checkIns             CheckIn[]
+  observations         Observation[]
+  dailyAggregates      DailyAggregate[]
+  sourceConnections    SourceConnection[]
+  routines             Routine[]
+  clinicians           Clinician[]
+  appointments         Appointment[]
+  devices              Device[]
+  syncOperations       SyncOperation[]
+  subscriptionSources  SubscriptionSource[]
+  entitlementSnapshots EntitlementSnapshot[]
+  billingEvents        BillingEvent[]
+
+  // Mood Day V2 patient-controlled Circle
+  circleRelationshipsAsPatient   CircleRelationship[]    @relation("V2CirclePatient")
+  circleRelationshipsAsCaregiver CircleRelationship[]    @relation("V2CircleCaregiver")
+  supportRequestsCreated         SupportRequest[]        @relation("V2SupportRequestPatient")
+  supportRequestsReceived        SupportRequest[]        @relation("V2SupportRequestCaregiver")
+  circleAccessesMade             AccessLog[]             @relation("V2AccessLogActor")
+  circleAccessesReceived         AccessLog[]             @relation("V2AccessLogPatient")
+  caregiverContributionsMade     CaregiverContribution[] @relation("V2ContributionAuthor")
+  caregiverContributionsReceived CaregiverContribution[] @relation("V2ContributionPatient")
+
   // Caregiver relations
   observationsMade     CaregiverObservation[] @relation("ObserverRelation")
   observationsReceived CaregiverObservation[] @relation("SubjectRelation")

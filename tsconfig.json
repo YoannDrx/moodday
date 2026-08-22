@@ -44,6 +44,7 @@
   ],
   "exclude": [
     "node_modules",
+    "apps/mobile",
     ".next",
     "src/generated",
     ".claude",

@@ -114,21 +114,19 @@
 }
 
 :root {
-  --font-caption:
-    ui-rounded, "SF Pro Rounded", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --canvas: #f7f5f0;
-  --surface: #ffffff;
+  --font-caption: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --canvas: #f6f3ec;
+  --surface: #fffdf8;
   --surface-elevated: #ffffff;
-  --text: #1f2937;
-  --text-muted: #596271;
-  --text-subtle: #737c89;
+  --text: #18312f;
+  --text-muted: #61716f;
+  --text-subtle: #7b8886;
   --brand: #1e7775;
-  --brand-hover: #185f5e;
-  --focus-ring: #1e7775;
-  --radius-control: 12px;
-  --radius-card: 18px;
-  --radius-modal: 24px;
+  --brand-hover: #155c5a;
+  --focus-ring: #166f9e;
+  --radius-control: 18px;
+  --radius-card: 28px;
+  --radius-modal: 32px;
   --duration-instant: 0ms;
   --duration-fast: 120ms;
   --duration-normal: 200ms;
@@ -145,21 +143,21 @@
   /* Primary: Moodday Teal */
   --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --primary-dark: #185f5e;
+  --primary-dark: #155c5a;
   --primary-light: #398b88;
   --primary-darkest: #134c4b;
 
   /* Secondary: Moodday Sage */
-  --secondary: #e9e1d4;
-  --secondary-foreground: #1f2937;
+  --secondary: #f3c9a8;
+  --secondary-foreground: #18312f;
 
   /* Muted - teal tint for clear section differentiation */
-  --muted: #e6efec;
+  --muted: #ddede9;
   --muted-foreground: var(--text-muted);
 
   /* Accent: Lavender */
-  --accent: #d8cce8;
-  --accent-foreground: #1f2937;
+  --accent: #d9d2e9;
+  --accent-foreground: #18312f;
 
   /* Sage colors */
   --sage: #4e8768;
@@ -180,8 +178,8 @@
   --destructive-foreground: #ffffff;
 
   /* Borders and inputs */
-  --border: rgba(0, 0, 0, 0.06);
-  --input: rgba(0, 0, 0, 0.06);
+  --border: #dde4df;
+  --input: #d4ded8;
   --ring: var(--focus-ring);
 
   /* Charts - Moodday palette */
@@ -192,7 +190,7 @@
   --chart-5: #b57a45;
 
   /* Border radius */
-  --radius: 12px;
+  --radius: 18px;
 
   /* Sidebar */
   --sidebar: #ffffff;
@@ -1319,5 +1317,21 @@ html.dark .shiki span {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(47, 59, 51, 0.08);
+  }
+
+  .input-carnet {
+    min-height: 3rem;
+    width: 100%;
+    border: 1px solid #cad8d2;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.7rem 1rem;
+    color: #18312f;
+    font-size: 1rem;
+    outline: none;
+  }
+
+  .input-carnet:focus-visible {
+    box-shadow: 0 0 0 2px #166f9e;
   }
 }

@@ -36,6 +36,7 @@ export function PatientBreadcrumb() {
       exercises: t("patient.nav.exercises"),
       therapy: t("patient.nav.therapy"),
       caregiver: t("patient.nav.caregiver"),
+      circle: t("nav.circle"),
       observe: t("caregiver.observe.title"),
       export: t("patient.nav.export"),
       trends: t("patient.nav.trends"),
