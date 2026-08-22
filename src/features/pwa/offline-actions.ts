@@ -10,6 +10,7 @@ import {
 import { logExerciseCompletion } from "@/features/exercise/exercise.action";
 import { createTherapySession } from "@/features/therapy/therapy.action";
 import { createV2CheckIn } from "@/features/v2/check-ins/check-in.action";
+import { createV2RoutineOccurrence } from "@/features/v2/routines/routine-occurrence.action";
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { notifyOfflineQueueChanged } from "./offline-events";
 import {
@@ -32,7 +33,8 @@ export type OfflineActionType =
   | "med_prn_intake"
   | "exercise_log"
   | "therapy_create"
-  | "v2_check_in";
+  | "v2_check_in"
+  | "v2_routine_occurrence";
 
 export type OfflineActionPayload =
   | {
@@ -79,6 +81,16 @@ export type OfflineActionPayload =
       anxiety?: number;
       contexts: readonly string[];
       note?: string;
+    }
+  | {
+      type: "v2_routine_occurrence";
+      entityId: string;
+      routineId: string;
+      localDate: string;
+      timezone: string;
+      status: "completed" | "skipped";
+      completedAt?: string;
+      note?: string;
     };
 
 export type OfflineActionEntry = {
@@ -113,6 +125,7 @@ const preserveOfflineActionTime = (
       return { ...payload, completedAt: payload.completedAt ?? instant };
     case "therapy_create":
     case "v2_check_in":
+    case "v2_routine_occurrence":
       return payload;
   }
 };
@@ -244,6 +257,20 @@ const runQueuedActionSync = async (ownerId: string) => {
             irritability: payload.irritability,
             anxiety: payload.anxiety,
             contexts: [...payload.contexts],
+            note: payload.note,
+          });
+          if (result.serverError) throw new Error(result.serverError);
+          break;
+        }
+        case "v2_routine_occurrence": {
+          const result = await createV2RoutineOccurrence({
+            operationId: item.id,
+            entityId: payload.entityId,
+            routineId: payload.routineId,
+            localDate: payload.localDate,
+            timezone: payload.timezone,
+            status: payload.status,
+            completedAt: payload.completedAt,
             note: payload.note,
           });
           if (result.serverError) throw new Error(result.serverError);

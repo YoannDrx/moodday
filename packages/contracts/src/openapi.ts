@@ -107,6 +107,42 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/routine-occurrences": {
+      get: {
+        operationId: "listRoutineOccurrences",
+        parameters: [
+          {
+            name: "localDate",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "date" },
+          },
+        ],
+        responses: {
+          "200": { description: "Routine occurrences for one civil day" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "createRoutineOccurrence",
+        description:
+          "Creates one idempotent occurrence per routine and civil day.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateRoutineOccurrence",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Occurrence created or idempotently replayed" },
+          "409": { description: "An occurrence already exists for this day" },
+        },
+      },
+    },
     "/appointments": {
       get: {
         operationId: "listAppointments",
@@ -366,6 +402,30 @@ export const moodDayV2OpenApi = {
           status: { type: "string", enum: ["active", "paused", "archived"] },
         },
       },
+      CreateRoutineOccurrence: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "routineId",
+          "localDate",
+          "timezone",
+          "status",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          routineId: { type: "string", minLength: 8, maxLength: 128 },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          status: {
+            type: "string",
+            enum: ["planned", "completed", "skipped", "cancelled"],
+          },
+          completedAt: { type: ["string", "null"], format: "date-time" },
+          note: { type: ["string", "null"], maxLength: 1000 },
+        },
+      },
       CreateAppointment: {
         type: "object",
         required: ["operationId", "entityId", "title", "startsAt", "timezone"],
@@ -414,7 +474,15 @@ export const moodDayV2OpenApi = {
                 entityId: { type: "string" },
                 entityType: {
                   type: "string",
-                  enum: ["check_in", "routine", "appointment"],
+                  enum: [
+                    "check_in",
+                    "routine",
+                    "routine_occurrence",
+                    "appointment",
+                    "appointment_question",
+                    "appointment_event",
+                    "appointment_decision",
+                  ],
                 },
                 mutation: {
                   type: "string",

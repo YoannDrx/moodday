@@ -40,6 +40,11 @@ relocalisation mécanique avec la nouvelle logique métier.
   puis envoyé à l'API. Une coupure réseau conserve l'opération en attente.
 - Les rendez-vous et routines V2 peuvent être créés depuis le mobile, y compris
   hors ligne, puis apparaissent dans le hub Soin web après synchronisation.
+- Une routine active peut être marquée comme accomplie depuis Soin mobile. Le
+  résultat est projeté immédiatement dans SQLCipher, survit à un redémarrage
+  hors ligne puis se réconcilie avec le serveur. Une contrainte PostgreSQL
+  garantit une seule occurrence canonique par routine et date civile, sans
+  streak ni retard à rattraper.
 - Un rendez-vous canonique possède désormais des questions publiques ou
   privées, des repères de séance append-only, des décisions de débrief et des
   briefs versionnés. Le parcours est utilisable sur le web et sur mobile ; les
@@ -89,6 +94,7 @@ La première spécification est publiée à `/api/v2/openapi.json` et couvre :
 - `GET /api/v2/check-ins` avec pagination par curseur ;
 - `POST /api/v2/check-ins` avec `operationId` idempotent.
 - `GET|POST /api/v2/routines` ;
+- `GET|POST /api/v2/routine-occurrences` ;
 - `GET|POST /api/v2/appointments` ;
 - `GET|POST /api/v2/appointments/{appointmentId}/artifacts` ;
 - `GET|POST /api/v2/circle`, `POST /api/v2/circle/accept` et
@@ -105,9 +111,10 @@ réponses utilisent soit `{ data, requestId }`, soit une erreur structurée avec
 ### Baseline de données additive
 
 Les migrations `20260821153000_moodday_v2_foundation`,
-`20260822013000_v2_circle_contracts` et
-`20260822023000_v2_appointment_artifacts` ajoutent les premiers agrégats V2
-sans supprimer les tables V1 :
+`20260822013000_v2_circle_contracts`,
+`20260822023000_v2_appointment_artifacts` et
+`20260822210000_v2_routine_occurrence_daily_uniqueness` ajoutent les premiers
+agrégats V2 sans supprimer les tables V1 :
 
 - CheckIn, Observation, DailyAggregate, SourceConnection et SyncCursor ;
 - Routine et RoutineOccurrence ;
@@ -149,6 +156,9 @@ publiques et aucune dérive Prisma.
 - Le pull delta utilise un curseur opaque et ordonné. Les entités mutables
   exigent une version serveur exacte ; check-ins et doses restent append-only.
 - Les snapshots récupérés sont conservés dans SQLCipher pour lecture offline.
+- Les créations optimistes d'occurrence sont écrites dans la file et le
+  snapshot local dans une même transaction. Un rejet ou conflit retire la
+  projection visuelle, mais conserve la ligne de résolution chiffrée.
 - La disparition d'une session, y compris après révocation serveur, ferme la
   base SQLCipher du compte avant de réafficher la connexion. La file locale est
   conservée pour une reconnexion du même propriétaire et reste inaccessible à
@@ -189,7 +199,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 151 fichiers, 961 tests
+pnpm test:ci                 # 152 fichiers, 968 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -215,8 +225,10 @@ git diff --check
   mais le quota distant empêche encore le handoff complet.
 - Extension du moteur delta aux doses, brouillons et réglages, puis tests réels
   multi-appareils et concurrence PostgreSQL.
-- Traitements V2, occurrences de routines et plan de sécurité offline dans les
-  clients V2. Le rendez-vous canonique et son brief sont raccordés ; l'export
+- Traitements V2 et plan de sécurité offline dans les clients V2. Les
+  occurrences quotidiennes de routines sont raccordées à l'API et au moteur
+  offline mobile ; leurs corrections et planifications avancées restent à
+  compléter. Le rendez-vous canonique et son brief sont raccordés ; l'export
   PDF/lien temporaire reste à livrer.
 - Google Agenda bidirectionnel, calendrier natif, HealthKit puis Health Connect.
 - Notifications d'invitation et tests réels de révocation sur session aidant

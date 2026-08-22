@@ -25,7 +25,16 @@ export const getToday = async ({
       where: { userId, status: "active" },
       orderBy: { updatedAt: "desc" },
       take: 5,
-      select: { id: true, title: true, weeklyTarget: true },
+      select: {
+        id: true,
+        title: true,
+        weeklyTarget: true,
+        occurrences: {
+          where: { localDate },
+          select: { status: true },
+          take: 1,
+        },
+      },
     }),
     prisma.sourceConnection.findMany({
       where: { userId },
@@ -39,6 +48,12 @@ export const getToday = async ({
   const appointmentSoon =
     nextAppointment &&
     nextAppointment.startsAt.getTime() - Date.now() <= 3 * 24 * 60 * 60 * 1000;
+  const availableRoutines = routines.filter(
+    (routine) =>
+      !routine.occurrences.some((occurrence) =>
+        ["completed", "skipped", "cancelled"].includes(occurrence.status),
+      ),
+  );
 
   return {
     localDate,
@@ -46,14 +61,18 @@ export const getToday = async ({
       ? "check_in"
       : appointmentSoon
         ? "appointment_preparation"
-        : routines.length > 0
+        : availableRoutines.length > 0
           ? "routine"
           : "none",
     latestCheckIn,
     nextAppointment: nextAppointment
       ? { ...nextAppointment, startsAt: nextAppointment.startsAt.toISOString() }
       : null,
-    routines,
+    routines: routines.map((routine) => ({
+      id: routine.id,
+      title: routine.title,
+      weeklyTarget: routine.weeklyTarget,
+    })),
     sources: sources.map((source) => ({
       ...source,
       lastSyncedAt: source.lastSyncedAt?.toISOString() ?? null,

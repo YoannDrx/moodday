@@ -152,6 +152,7 @@ model RoutineOccurrence {
   routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
   @@unique([routineId, operationId])
+  @@unique([routineId, localDate])
   @@index([routineId, localDate])
   @@map("v2_routine_occurrence")
 }

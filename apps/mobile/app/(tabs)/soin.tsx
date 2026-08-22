@@ -1,4 +1,8 @@
-import type { AppointmentDto, RoutineDto } from "@moodday/contracts";
+import type {
+  AppointmentDto,
+  RoutineDto,
+  RoutineOccurrenceDto,
+} from "@moodday/contracts";
 import { color, radius, space } from "@moodday/design-tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -15,7 +19,9 @@ import { SectionCard } from "../../src/components/section-card";
 import { authClient } from "../../src/lib/auth-client";
 import {
   getCachedAppointments,
+  getCachedRoutineOccurrences,
   getCachedRoutines,
+  saveRoutineOccurrenceOfflineFirst,
   synchronizeNow,
 } from "../../src/lib/local-database";
 
@@ -29,32 +35,59 @@ const appointmentLabel = (appointment: AppointmentDto) =>
     timeZone: appointment.timezone,
   }).format(new Date(appointment.startsAt));
 
+const getLocalContext = () => {
+  const timezone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Paris";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    timezone,
+    localDate: `${value("year")}-${value("month")}-${value("day")}`,
+  };
+};
+
 export default function CareScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const ownerId = session?.user.id;
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [routines, setRoutines] = useState<RoutineDto[]>([]);
+  const [occurrences, setOccurrences] = useState<RoutineOccurrenceDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+  const [savingRoutineId, setSavingRoutineId] = useState<string>();
+  const [routineStatus, setRoutineStatus] = useState<string>();
+  const [localContext] = useState(getLocalContext);
 
   const load = useCallback(async () => {
     if (!ownerId) return;
     setIsLoading(true);
-    const [cachedAppointments, cachedRoutines] = await Promise.all([
-      getCachedAppointments(ownerId),
-      getCachedRoutines(ownerId),
-    ]);
-    setAppointments(cachedAppointments);
-    setRoutines(cachedRoutines);
-    try {
-      await synchronizeNow(ownerId);
-      const [freshAppointments, freshRoutines] = await Promise.all([
+    const [cachedAppointments, cachedRoutines, cachedOccurrences] =
+      await Promise.all([
         getCachedAppointments(ownerId),
         getCachedRoutines(ownerId),
+        getCachedRoutineOccurrences(ownerId),
       ]);
+    setAppointments(cachedAppointments);
+    setRoutines(cachedRoutines);
+    setOccurrences(cachedOccurrences);
+    try {
+      await synchronizeNow(ownerId);
+      const [freshAppointments, freshRoutines, freshOccurrences] =
+        await Promise.all([
+          getCachedAppointments(ownerId),
+          getCachedRoutines(ownerId),
+          getCachedRoutineOccurrences(ownerId),
+        ]);
       setAppointments(freshAppointments);
       setRoutines(freshRoutines);
+      setOccurrences(freshOccurrences);
       setIsOffline(false);
     } catch {
       setIsOffline(true);
@@ -83,6 +116,45 @@ export default function CareScreen() {
   const activeRoutines = routines.filter(
     (routine) => routine.status === "active",
   );
+  const todayOccurrences = occurrences.filter(
+    (occurrence) => occurrence.localDate === localContext.localDate,
+  );
+
+  const completeRoutine = async (routine: RoutineDto) => {
+    if (!ownerId) return;
+    setSavingRoutineId(routine.id);
+    setRoutineStatus(undefined);
+    try {
+      const result = await saveRoutineOccurrenceOfflineFirst(ownerId, {
+        routineId: routine.id,
+        localDate: localContext.localDate,
+        timezone: localContext.timezone,
+        status: "completed",
+        completedAt: new Date().toISOString(),
+      });
+      setOccurrences((current) => [
+        result.occurrence,
+        ...current.filter(
+          (occurrence) =>
+            !(
+              occurrence.routineId === routine.id &&
+              occurrence.localDate === localContext.localDate
+            ),
+        ),
+      ]);
+      setRoutineStatus(
+        result.pending
+          ? "Noté sur cet appareil · synchronisation en attente"
+          : "Routine notée pour aujourd’hui",
+      );
+    } catch {
+      setRoutineStatus(
+        "Impossible de noter cette routine. Rien n’a été effacé.",
+      );
+    } finally {
+      setSavingRoutineId(undefined);
+    }
+  };
 
   return (
     <Screen>
@@ -158,6 +230,54 @@ export default function CareScreen() {
                 .join(" · ")
         }
       >
+        {activeRoutines.map((routine) => {
+          const occurrence = todayOccurrences.find(
+            (item) => item.routineId === routine.id,
+          );
+          const completed = occurrence?.status === "completed";
+          return (
+            <View key={routine.id} style={styles.routineRow}>
+              <View style={styles.routineCopy}>
+                <Text style={styles.routineTitle}>{routine.title}</Text>
+                <Text style={styles.routineMeta}>
+                  {completed
+                    ? "Fait aujourd’hui · tu peux t’arrêter là"
+                    : "À ton rythme, sans série à préserver"}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={`Marquer ${routine.title} comme fait aujourd’hui`}
+                accessibilityState={{ checked: completed, disabled: completed }}
+                disabled={completed || savingRoutineId === routine.id}
+                onPress={() => void completeRoutine(routine)}
+                style={({ pressed }) => [
+                  styles.routineToggle,
+                  completed && styles.routineToggleCompleted,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.routineToggleLabel,
+                    completed && styles.routineToggleLabelCompleted,
+                  ]}
+                >
+                  {savingRoutineId === routine.id
+                    ? "…"
+                    : completed
+                      ? "✓"
+                      : "Fait"}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        })}
+        {routineStatus ? (
+          <Text accessibilityLiveRegion="polite" style={styles.routineStatus}>
+            {routineStatus}
+          </Text>
+        ) : null}
         <ActionButton
           label="Créer une routine"
           onPress={() => router.push("/routine-new")}
@@ -240,6 +360,39 @@ const styles = StyleSheet.create({
   },
   offlineText: { color: color.ink, fontSize: 13, lineHeight: 19 },
   meta: { color: color.primaryDeep, fontSize: 13, fontWeight: "700" },
+  routineRow: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[3],
+    paddingVertical: space[2],
+    borderTopWidth: 1,
+    borderTopColor: color.border,
+  },
+  routineCopy: { flex: 1, gap: space[1] },
+  routineTitle: { color: color.ink, fontSize: 15, fontWeight: "700" },
+  routineMeta: { color: color.inkMuted, fontSize: 12, lineHeight: 17 },
+  routineToggle: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: color.primary,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+  },
+  routineToggleCompleted: {
+    borderColor: color.sage,
+    backgroundColor: color.primarySoft,
+  },
+  routineToggleLabel: {
+    color: color.primaryDeep,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  routineToggleLabelCompleted: { fontSize: 20 },
+  routineStatus: { color: color.inkMuted, fontSize: 13, lineHeight: 19 },
   action: {
     minHeight: 48,
     alignItems: "center",

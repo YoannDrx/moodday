@@ -78,6 +78,8 @@ const isTerminalApiError = (
   (error.code === "authentication_required" || !error.recoverable);
 
 type OfflineOperationAdapters = {
+  discard: () => Promise<void>;
+  hideRejected: () => Promise<void>;
   markRejected: (code: string) => Promise<void>;
   push: () => Promise<SyncPushResult>;
   queue: () => Promise<void>;
@@ -102,11 +104,12 @@ export const persistOperationBeforeSync = async (
     return { pending: false, entityId: operation.entityId } as const;
   } catch (error) {
     if (isTerminalApiError(error)) {
-      await adapters.remove();
+      await adapters.discard();
       throw error;
     }
     if (error instanceof SyncRejectedError) {
       await adapters.markRejected(error.message);
+      await adapters.hideRejected();
       throw error;
     }
     return { pending: true, entityId: operation.entityId } as const;

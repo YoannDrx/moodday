@@ -58,6 +58,52 @@ export const routineSchema = routineWriteSchema.extend({
   updatedAt: z.iso.datetime(),
 });
 
+export const routineOccurrenceStatusSchema = z.enum([
+  "planned",
+  "completed",
+  "skipped",
+  "cancelled",
+]);
+
+export const routineOccurrenceWriteSchema = z
+  .object({
+    routineId: z.string().min(8).max(128),
+    localDate: z.iso.date(),
+    timezone: z.string().min(1).max(80),
+    status: routineOccurrenceStatusSchema,
+    completedAt: z.iso.datetime().nullable().optional(),
+    note: z.string().trim().max(1_000).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.status === "completed" && !value.completedAt) {
+      context.addIssue({
+        code: "custom",
+        path: ["completedAt"],
+        message: "completed_at_required",
+      });
+    }
+    if (value.status !== "completed" && value.completedAt) {
+      context.addIssue({
+        code: "custom",
+        path: ["completedAt"],
+        message: "completed_at_not_allowed",
+      });
+    }
+  });
+
+export const createRoutineOccurrenceSchema =
+  routineOccurrenceWriteSchema.safeExtend({
+    operationId: z.string().min(8).max(128),
+    entityId: z.string().min(8).max(128),
+  });
+
+export const routineOccurrenceSchema = routineOccurrenceWriteSchema.safeExtend({
+  id: z.string(),
+  operationId: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
 export const appointmentStatusSchema = z.enum([
   "scheduled",
   "completed",
@@ -249,6 +295,7 @@ export const appointmentSchema = appointmentWriteSchema.safeExtend({
 export const syncEntityTypeSchema = z.enum([
   "check_in",
   "routine",
+  "routine_occurrence",
   "appointment",
   "appointment_question",
   "appointment_event",
@@ -469,6 +516,16 @@ export type RoutineStatus = z.infer<typeof routineStatusSchema>;
 export type RoutineWriteInput = z.infer<typeof routineWriteSchema>;
 export type CreateRoutineInput = z.infer<typeof createRoutineSchema>;
 export type RoutineDto = z.infer<typeof routineSchema>;
+export type RoutineOccurrenceStatus = z.infer<
+  typeof routineOccurrenceStatusSchema
+>;
+export type RoutineOccurrenceWriteInput = z.infer<
+  typeof routineOccurrenceWriteSchema
+>;
+export type CreateRoutineOccurrenceInput = z.infer<
+  typeof createRoutineOccurrenceSchema
+>;
+export type RoutineOccurrenceDto = z.infer<typeof routineOccurrenceSchema>;
 export type AppointmentWriteInput = z.infer<typeof appointmentWriteSchema>;
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type AppointmentDto = z.infer<typeof appointmentSchema>;
