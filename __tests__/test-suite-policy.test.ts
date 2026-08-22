@@ -43,6 +43,10 @@ describe("test suite policy", () => {
       path.join(process.cwd(), ".github/workflows/code-quality.yml"),
       "utf8",
     );
+    const vitestConfig = fs.readFileSync(
+      path.join(process.cwd(), "vitest.config.mjs"),
+      "utf8",
+    );
 
     expect(playwrightConfig).toMatch(/\bretries:\s*0\b/);
     expect(playwrightConfig).not.toMatch(/\bretries:\s*[1-9]\d*\b/);
@@ -52,6 +56,9 @@ describe("test suite policy", () => {
     expect(playwrightConfig).toContain("process.env.BETTER_AUTH_SECRET,");
     expect(qualityWorkflow).toContain("run: pnpm test:coverage:release");
     expect(qualityWorkflow).not.toContain("run: pnpm test:coverage\n");
+    expect(vitestConfig).toContain('"src/**/*.{ts,tsx}"');
+    expect(vitestConfig).toContain('"app/api/**/*.{ts,tsx}"');
+    expect(vitestConfig).toMatch(/functions:\s*80/);
   });
 
   it("runs PostgreSQL integrity proofs in the release workflow", () => {
