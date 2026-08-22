@@ -63,8 +63,7 @@ export const route = createZodRoute({
  *
  * Use THIS route whenever you want to get the user session.
  */
-export const authRoute = route.use(async ({ next }) => {
-  assertWritesAvailable();
+export const readAuthRoute = route.use(async ({ next }) => {
   const user = await getAuthorizedApiUser();
 
   if (!user) {
@@ -74,4 +73,9 @@ export const authRoute = route.use(async ({ next }) => {
   return next({
     ctx: { user },
   });
+});
+
+export const authRoute = readAuthRoute.use(async ({ next }) => {
+  assertWritesAvailable();
+  return next();
 });

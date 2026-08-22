@@ -286,14 +286,14 @@ model UserPreferences {
   onboardingStep         Int     @default(0)
 
   // Display preferences
-  defaultChartPeriod             Int     @default(30) // 7, 30, 90 days
-  timezone                       String? // IANA timezone (e.g. "Europe/Paris")
-  theme                          String? // "light" | "dark" | "system" | "zen"
-  locale                         String  @default("fr")
-  notificationContentMode        String  @default("generic")
-  trustedDevice                  Boolean @default(false)
-  caregiverAccessDigestEnabled   Boolean @default(true)
-  caregiverAccessDigestFrequency String  @default("weekly")
+  defaultChartPeriod              Int       @default(30) // 7, 30, 90 days
+  timezone                        String? // IANA timezone (e.g. "Europe/Paris")
+  theme                           String? // "light" | "dark" | "system" | "zen"
+  locale                          String    @default("fr")
+  notificationContentMode         String    @default("generic")
+  trustedDevice                   Boolean   @default(false)
+  caregiverAccessDigestEnabled    Boolean   @default(true)
+  caregiverAccessDigestFrequency  String    @default("weekly")
   lastCaregiverAccessDigestSentAt DateTime?
 
   // Notification preferences (for future PWA)

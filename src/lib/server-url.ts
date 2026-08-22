@@ -53,6 +53,17 @@ export const getTrustedAuthOrigins = () =>
     toHttpsOrigin(process.env.VERCEL_URL),
     toHttpsOrigin(process.env.VERCEL_BRANCH_URL),
     toHttpsOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+    ...(process.env.VERCEL_ENV === "production"
+      ? ["moodday://", "moodday://*"]
+      : process.env.VERCEL_ENV === "preview"
+        ? ["moodday-preview://", "moodday-preview://*"]
+        : [
+            "moodday-dev://",
+            "moodday-dev://*",
+            "exp://",
+            "exp://**",
+            "exp://192.168.*.*:*/**",
+          ]),
   ]);
 
 /**

@@ -27,6 +27,10 @@ const en = {
     account: "Account",
     app: "App",
     backToSite: "Back to site",
+    today: "Today",
+    landmarks: "Landmarks",
+    care: "Care",
+    circle: "Circle",
   },
   footer: {
     description:

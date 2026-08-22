@@ -1,0 +1,662 @@
+// Mood Day V2 is additive while the production V1 remains available.
+// Mobile clients only access these records through the versioned API.
+
+model CheckIn {
+  id           String       @id @default(cuid())
+  userId       String
+  operationId  String
+  depth        CheckInDepth
+  localDate    String
+  timezone     String
+  valence      Int?
+  activation   Int?
+  irritability Int?
+  anxiety      Int?
+  contexts     String[]     @default([])
+  note         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, operationId])
+  @@index([userId, localDate, createdAt])
+  @@map("v2_check_in")
+}
+
+model Observation {
+  id               String             @id @default(cuid())
+  userId           String
+  operationId      String
+  metric           String
+  value            Decimal            @db.Decimal(18, 6)
+  unit             String
+  windowStart      DateTime
+  windowEnd        DateTime
+  localDate        String
+  timezone         String
+  provenance       ObservationSource
+  sourceReference  String?
+  coverage         Decimal?           @db.Decimal(5, 4)
+  quality          ObservationQuality @default(complete)
+  importedAt       DateTime           @default(now())
+  algorithmVersion String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, operationId])
+  @@index([userId, metric, localDate])
+  @@index([userId, provenance, importedAt])
+  @@map("v2_observation")
+}
+
+model DailyAggregate {
+  id                 String             @id @default(cuid())
+  userId             String
+  sourceConnectionId String?
+  operationId        String
+  metric             String
+  value              Decimal            @db.Decimal(18, 6)
+  unit               String
+  localDate          String
+  timezone           String
+  windowStart        DateTime
+  windowEnd          DateTime
+  provenance         ObservationSource
+  coverage           Decimal?           @db.Decimal(5, 4)
+  quality            ObservationQuality @default(complete)
+  algorithmVersion   String
+  importedAt         DateTime           @default(now())
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceConnection SourceConnection? @relation(fields: [sourceConnectionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, operationId])
+  @@index([userId, metric, localDate])
+  @@index([sourceConnectionId, importedAt])
+  @@map("v2_daily_aggregate")
+}
+
+model SourceConnection {
+  id                       String                 @id @default(cuid())
+  userId                   String
+  kind                     SourceConnectionKind
+  status                   SourceConnectionStatus @default(active)
+  externalAccountReference String?
+  permissionScope          String[]               @default([])
+  pausedAt                 DateTime?
+  revokedAt                DateTime?
+  lastSyncedAt             DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cursors         SyncCursor[]
+  dailyAggregates DailyAggregate[]
+
+  @@index([userId, kind, status])
+  @@map("v2_source_connection")
+}
+
+model SyncCursor {
+  id                 String    @id @default(cuid())
+  sourceConnectionId String
+  scope              String
+  cursor             String?
+  invalidatedAt      DateTime?
+  lastFullSyncAt     DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sourceConnection SourceConnection @relation(fields: [sourceConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceConnectionId, scope])
+  @@map("v2_sync_cursor")
+}
+
+model Routine {
+  id           String        @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  schedule     Json?
+  weeklyTarget Int?
+  status       RoutineStatus @default(active)
+  pausedAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrences RoutineOccurrence[]
+
+  @@index([userId, status])
+  @@map("v2_routine")
+}
+
+model RoutineOccurrence {
+  id          String                  @id @default(cuid())
+  routineId   String
+  operationId String
+  localDate   String
+  timezone    String
+  status      RoutineOccurrenceStatus @default(planned)
+  completedAt DateTime?
+  note        String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, operationId])
+  @@index([routineId, localDate])
+  @@map("v2_routine_occurrence")
+}
+
+model Clinician {
+  id           String    @id @default(cuid())
+  userId       String
+  displayName  String
+  specialty    String?
+  organization String?
+  contact      Json?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([userId, archivedAt])
+  @@map("v2_clinician")
+}
+
+model Appointment {
+  id                String                       @id @default(cuid())
+  userId            String
+  clinicianId       String?
+  operationId       String
+  title             String
+  startsAt          DateTime
+  endsAt            DateTime?
+  timezone          String
+  location          String?
+  status            AppointmentStatus            @default(scheduled)
+  source            AppointmentSource            @default(moodday)
+  externalEventId   String?
+  externalVersion   String?
+  preparationStatus AppointmentPreparationStatus @default(not_started)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinician Clinician?            @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
+  questions AppointmentQuestion[]
+  events    AppointmentEvent[]
+  decisions AppointmentDecision[]
+  briefs    AppointmentBrief[]
+
+  @@unique([userId, operationId])
+  @@index([userId, startsAt, status])
+  @@index([userId, externalEventId])
+  @@map("v2_appointment")
+}
+
+model AppointmentQuestion {
+  id            String    @id @default(cuid())
+  appointmentId String
+  operationId   String?
+  position      Int
+  content       String
+  privateNote   Boolean   @default(false)
+  answeredAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, operationId])
+  @@index([appointmentId, position])
+  @@map("v2_appointment_question")
+}
+
+model AppointmentEvent {
+  id            String               @id @default(cuid())
+  appointmentId String
+  operationId   String
+  type          AppointmentEventType
+  occurredAt    DateTime
+  payload       Json?
+  createdAt     DateTime             @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, operationId])
+  @@index([appointmentId, occurredAt])
+  @@map("v2_appointment_event")
+}
+
+model AppointmentDecision {
+  id             String                    @id @default(cuid())
+  appointmentId  String
+  operationId    String
+  summary        String
+  status         AppointmentDecisionStatus @default(open)
+  includeInBrief Boolean                   @default(true)
+  dueAt          DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, operationId])
+  @@index([appointmentId, status, createdAt])
+  @@map("v2_appointment_decision")
+}
+
+model AppointmentBrief {
+  id                   String    @id @default(cuid())
+  appointmentId        String
+  operationId          String
+  version              Int
+  content              Json
+  privateNotesExcluded Boolean   @default(true)
+  periodStart          DateTime?
+  periodEnd            DateTime?
+  createdAt            DateTime  @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, operationId])
+  @@unique([appointmentId, version])
+  @@index([appointmentId, createdAt])
+  @@map("v2_appointment_brief")
+}
+
+model Device {
+  id          String         @id @default(cuid())
+  userId      String
+  publicId    String
+  platform    DevicePlatform
+  displayName String?
+  trusted     Boolean        @default(false)
+  lastSeenAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncOperations SyncOperation[]
+
+  @@unique([userId, publicId])
+  @@index([userId, revokedAt])
+  @@map("v2_device")
+}
+
+model SyncOperation {
+  id            String              @id @default(cuid())
+  userId        String
+  deviceId      String?
+  operationId   String
+  entityType    String
+  entityId      String?
+  mutation      SyncMutation
+  status        SyncOperationStatus @default(applied)
+  payloadDigest String?
+  appliedAt     DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, operationId])
+  @@index([userId, createdAt])
+  @@map("v2_sync_operation")
+}
+
+model SubscriptionSource {
+  id                     String                   @id @default(cuid())
+  userId                 String
+  provider               SubscriptionProvider
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  productId              String?
+  status                 SubscriptionSourceStatus
+  currentPeriodEndsAt    DateTime?
+  lastVerifiedAt         DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalSubscriptionId])
+  @@index([userId, status])
+  @@map("v2_subscription_source")
+}
+
+model EntitlementSnapshot {
+  id              String                 @id @default(cuid())
+  userId          String
+  entitlement     String
+  active          Boolean
+  sourceProviders SubscriptionProvider[] @default([])
+  validUntil      DateTime?
+  calculatedAt    DateTime               @default(now())
+  createdAt       DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entitlement, calculatedAt])
+  @@map("v2_entitlement_snapshot")
+}
+
+model BillingEvent {
+  id              String               @id @default(cuid())
+  userId          String?
+  provider        SubscriptionProvider
+  externalEventId String
+  eventType       String
+  status          BillingEventStatus   @default(received)
+  occurredAt      DateTime
+  processedAt     DateTime?
+  errorCode       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalEventId])
+  @@index([status, createdAt])
+  @@map("v2_billing_event")
+}
+
+model CircleRelationship {
+  id                    String                   @id @default(cuid())
+  patientId             String
+  caregiverId           String?
+  operationId           String
+  invitationEmail       String
+  invitationTokenDigest String                   @unique
+  displayName           String?
+  status                CircleRelationshipStatus @default(invited)
+  invitedAt             DateTime                 @default(now())
+  expiresAt             DateTime
+  acceptedAt            DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  patient       User                    @relation("V2CirclePatient", fields: [patientId], references: [id], onDelete: Cascade)
+  caregiver     User?                   @relation("V2CircleCaregiver", fields: [caregiverId], references: [id], onDelete: SetNull)
+  contracts     ShareContract[]
+  requests      SupportRequest[]
+  contributions CaregiverContribution[]
+  accessLogs    AccessLog[]
+
+  @@unique([patientId, operationId])
+  @@index([patientId, status, createdAt])
+  @@index([caregiverId, status, createdAt])
+  @@index([invitationEmail, status])
+  @@map("v2_circle_relationship")
+}
+
+model ShareContract {
+  id             String            @id @default(cuid())
+  relationshipId String
+  version        Int
+  permissions    SharePermission[] @default([])
+  startsAt       DateTime          @default(now())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  relationship CircleRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@unique([relationshipId, version])
+  @@index([relationshipId, revokedAt, expiresAt])
+  @@map("v2_share_contract")
+}
+
+model SupportRequest {
+  id             String               @id @default(cuid())
+  patientId      String
+  caregiverId    String?
+  relationshipId String?
+  operationId    String
+  kind           SupportRequestKind
+  message        String?
+  status         SupportRequestStatus @default(pending)
+  requestedFor   DateTime?
+  respondedAt    DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  patient      User                @relation("V2SupportRequestPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  caregiver    User?               @relation("V2SupportRequestCaregiver", fields: [caregiverId], references: [id], onDelete: SetNull)
+  relationship CircleRelationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@unique([patientId, operationId])
+  @@index([patientId, status, createdAt])
+  @@index([caregiverId, status, createdAt])
+  @@map("v2_support_request")
+}
+
+model CaregiverContribution {
+  id             String                    @id @default(cuid())
+  patientId      String
+  authorId       String
+  relationshipId String
+  operationId    String
+  kind           CaregiverContributionKind
+  occurredAt     DateTime
+  content        Json?
+  createdAt      DateTime                  @default(now())
+
+  patient      User               @relation("V2ContributionPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  author       User               @relation("V2ContributionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  relationship CircleRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, operationId])
+  @@index([patientId, occurredAt])
+  @@index([relationshipId, createdAt])
+  @@map("v2_caregiver_contribution")
+}
+
+model AccessLog {
+  id             String             @id @default(cuid())
+  patientId      String
+  actorId        String
+  relationshipId String?
+  action         CircleAccessAction
+  resourceKind   String
+  requestId      String?
+  createdAt      DateTime           @default(now())
+
+  patient      User                @relation("V2AccessLogPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  actor        User                @relation("V2AccessLogActor", fields: [actorId], references: [id], onDelete: Cascade)
+  relationship CircleRelationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([relationshipId, createdAt])
+  @@map("v2_access_log")
+}
+
+enum CheckInDepth {
+  presence
+  quick
+  complete
+}
+
+enum ObservationSource {
+  user
+  healthkit
+  health_connect
+  calendar
+  caregiver
+  estimated
+}
+
+enum ObservationQuality {
+  complete
+  partial
+  estimated
+  contested
+}
+
+enum SourceConnectionKind {
+  healthkit
+  health_connect
+  google_calendar
+  native_calendar
+}
+
+enum SourceConnectionStatus {
+  active
+  paused
+  permission_denied
+  revoked
+  error
+}
+
+enum RoutineStatus {
+  active
+  paused
+  archived
+}
+
+enum RoutineOccurrenceStatus {
+  planned
+  completed
+  skipped
+  cancelled
+}
+
+enum AppointmentStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum AppointmentSource {
+  moodday
+  google_calendar
+  native_calendar
+}
+
+enum AppointmentPreparationStatus {
+  not_started
+  in_progress
+  ready
+  reviewed
+}
+
+enum AppointmentEventType {
+  preparation_started
+  question_added
+  session_started
+  session_ended
+  debriefed
+  follow_up_added
+}
+
+enum AppointmentDecisionStatus {
+  open
+  completed
+  dismissed
+}
+
+enum DevicePlatform {
+  web
+  ios
+  android
+}
+
+enum SyncMutation {
+  create
+  update
+  delete
+}
+
+enum SyncOperationStatus {
+  applied
+  duplicate
+  conflict
+  rejected
+}
+
+enum SubscriptionProvider {
+  stripe
+  app_store
+  play_store
+}
+
+enum SubscriptionSourceStatus {
+  active
+  trialing
+  grace
+  paused
+  expired
+  refunded
+}
+
+enum BillingEventStatus {
+  received
+  processed
+  ignored
+  failed
+}
+
+enum CircleRelationshipStatus {
+  invited
+  active
+  declined
+  expired
+  revoked
+}
+
+enum SharePermission {
+  mood_summary
+  medication_adherence
+  appointments
+  support_requests
+  caregiver_observations
+}
+
+enum SupportRequestKind {
+  call
+  presence
+  walk
+  meal
+  transport
+  other
+}
+
+enum SupportRequestStatus {
+  pending
+  accepted
+  declined
+  cancelled
+  completed
+}
+
+enum CaregiverContributionKind {
+  observation
+  event
+}
+
+enum CircleAccessAction {
+  viewed
+  contributed
+  responded
+  exported
+  revoked
+}

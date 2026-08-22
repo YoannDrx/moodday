@@ -9,6 +9,10 @@
     "build": "next build",
     "clean": "next lint --fix && tsc --noEmit && prettier --write .",
     "dev": "next dev --turbopack",
+    "dev:mobile": "pnpm --filter @moodday/mobile start",
+    "mobile:ios": "pnpm --filter @moodday/mobile ios",
+    "mobile:android": "pnpm --filter @moodday/mobile android",
+    "typecheck:mobile": "pnpm --filter @moodday/mobile typecheck",
     "email": "email dev",
     "format": "prettier --write .",
     "postinstall": "prisma generate",
@@ -58,7 +62,11 @@
     "seed": "pnpm tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@moodday/contracts": "workspace:*",
+    "@moodday/design-tokens": "workspace:*",
+    "@moodday/domain": "workspace:*",
     "@better-auth/passkey": "1.6.27",
+    "@better-auth/expo": "1.6.27",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.19.1",
     "@radix-ui/react-accordion": "^1.2.12",

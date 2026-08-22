@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  transpilePackages: [
+    "@moodday/contracts",
+    "@moodday/design-tokens",
+    "@moodday/domain",
+  ],
   experimental: {
     authInterrupts: true,
   },

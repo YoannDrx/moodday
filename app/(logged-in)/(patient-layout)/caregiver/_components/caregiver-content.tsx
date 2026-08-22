@@ -20,6 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { toast } from "sonner";
 
+import { BrandIllustration } from "@/components/brand/brand-illustration";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -337,6 +338,29 @@ export function CaregiverContent() {
         icon: Plus,
       }}
     >
+      <section className="mb-8 grid items-center gap-4 overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#e8f2ee,#eee7f5)] px-6 py-5 sm:grid-cols-[minmax(0,1fr)_220px] sm:px-8">
+        <div>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#1e7775] uppercase">
+            {locale === "fr" ? "Partage choisi" : "Sharing by choice"}
+          </p>
+          <h2 className="mt-2 font-[family-name:var(--font-caption)] text-2xl font-bold tracking-[-0.02em] text-[#18312f]">
+            {locale === "fr"
+              ? "Chacun voit exactement ce que tu as décidé."
+              : "Everyone sees exactly what you decided."}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-[#61716f]">
+            {locale === "fr"
+              ? "Les notes privées restent privées et aucun signal automatique n’est envoyé."
+              : "Private notes stay private and no automatic signal is ever sent."}
+          </p>
+        </div>
+        <BrandIllustration
+          variant="circle"
+          sizes="220px"
+          className="mx-auto max-h-32 w-auto"
+        />
+      </section>
+
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryLoading ? (

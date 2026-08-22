@@ -1,6 +1,10 @@
-# Moodday
+# Mood Day
 
-Moodday est un journal personnel PWA de santé mentale, confidentiel et non médical. Il aide à conserver ses propres repères d'humeur, de traitements et de bien-être sans établir de diagnostic ni formuler de recommandation thérapeutique.
+Mood Day est un compagnon de continuité de soin web et mobile, confidentiel et
+non médical. La V2 aide à garder le fil entre les journées et les rendez-vous,
+avec une promesse simple : **« Moins saisir. Mieux comprendre. Mieux se
+préparer. »** Elle n'établit aucun diagnostic et ne formule aucune recommandation
+thérapeutique.
 
 ## Quick Start
 
@@ -22,6 +26,26 @@ pnpm env:audit
 ```bash
 pnpm dev
 ```
+
+Pour l'application native, un development build est requis :
+
+```bash
+pnpm mobile:ios
+# ou
+pnpm mobile:android
+```
+
+Puis, pour relancer Metro avec le development client déjà installé :
+
+```bash
+pnpm dev:mobile
+```
+
+Le dépôt est maintenant un workspace pnpm. L'application Next.js reste
+temporairement à la racine afin de conserver le pipeline de production V1
+pendant la migration ; Expo vit dans `apps/mobile` et les contrats partagés dans
+`packages/*`. Le déplacement mécanique du web vers `apps/web` est une étape de
+stabilisation distincte, après validation des pipelines de preview.
 
 ## Périmètre fonctionnel
 
@@ -48,15 +72,19 @@ L'état détaillé des validations techniques et externes est consigné dans
 
 ## Commands
 
-| Command            | Description                            |
-| ------------------ | -------------------------------------- |
-| `pnpm dev`         | Start development server               |
-| `pnpm env:audit`   | Validate local environment conventions |
-| `pnpm doctor`      | Check project health                   |
-| `pnpm verify`      | Run the complete local quality gate    |
-| `pnpm build`       | Build for production                   |
-| `pnpm test:ci`     | Run unit tests                         |
-| `pnpm test:e2e:ci` | Run E2E tests                          |
+| Command                 | Description                            |
+| ----------------------- | -------------------------------------- |
+| `pnpm dev`              | Start development server               |
+| `pnpm dev:mobile`       | Start Expo for a development build     |
+| `pnpm mobile:ios`       | Build and run the native iOS app       |
+| `pnpm mobile:android`   | Build and run the native Android app   |
+| `pnpm typecheck:mobile` | Type-check the Expo application        |
+| `pnpm env:audit`        | Validate local environment conventions |
+| `pnpm doctor`           | Check project health                   |
+| `pnpm verify`           | Run the complete local quality gate    |
+| `pnpm build`            | Build for production                   |
+| `pnpm test:ci`          | Run unit tests                         |
+| `pnpm test:e2e:ci`      | Run E2E tests                          |
 
 ## Stack
 
@@ -71,6 +99,7 @@ L'état détaillé des validations techniques et externes est consigné dans
 ## Documentation
 
 - `docs/operations/production-release-gates.md` : source de vérité des portes de production.
+- `docs/v2/implementation-status.md` : architecture V2 livrée, décisions de migration et prochaines gates.
 - `docs/operations/production-release-runbook.md` : maintenance, migration, activation et rollback.
 - `docs/operations/completion-audit-2026-08-14.md` : audit phase par phase et preuves restantes.
 - `docs/design-system.md` : identité et règles UI/UX.

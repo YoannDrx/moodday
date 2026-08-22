@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandIllustration } from "@/components/brand/brand-illustration";
 import { MooddayLogo } from "@/components/nowts/moodday-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { LanguageToggle } from "@/features/i18n/language-toggle";
@@ -25,7 +26,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -50,7 +50,7 @@ const copy = {
       disclaimer:
         "Compagnon de suivi personnel — sans diagnostic ni recommandation médicale.",
       imageAlt:
-        "Une personne consulte calmement son téléphone près d'une fenêtre, dans un intérieur lumineux.",
+        "Un carnet ouvert devient un horizon doux, avec un repère calendrier et un cœur abricot.",
     },
     today: {
       eyebrow: "Une journée avec Moodday",
@@ -163,7 +163,7 @@ const copy = {
       disclaimer:
         "A personal tracking companion — no diagnosis or medical recommendation.",
       imageAlt:
-        "A person calmly checks their phone by a window in a bright home.",
+        "An open journal becomes a soft horizon, with a calendar marker and an apricot heart.",
     },
     today: {
       eyebrow: "A day with Moodday",
@@ -396,14 +396,14 @@ export function ImmersiveLanding({
                 {t.hero.disclaimer}
               </p>
             </div>
-            <div className="relative min-h-[420px] overflow-hidden rounded-[2.5rem] border border-white/70 bg-white shadow-[0_30px_100px_rgba(24,52,50,0.15)] lg:min-h-[610px]">
-              <Image
-                src="/images/moodday-hero-v1.webp"
+            <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-[2.5rem] border border-white/70 bg-[radial-gradient(circle_at_50%_40%,#f9efe4_0%,#dcebe6_48%,#155c5a_120%)] p-6 shadow-[0_30px_100px_rgba(24,52,50,0.15)] lg:min-h-[610px] lg:p-10">
+              <div className="absolute top-6 right-7 h-20 w-20 rounded-full border border-[#155c5a]/10 bg-white/30" />
+              <BrandIllustration
+                variant="welcome"
                 alt={t.hero.imageAlt}
-                fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 55vw"
-                className="object-cover"
+                className="max-h-[530px] drop-shadow-[0_28px_35px_rgba(21,92,90,0.22)]"
               />
               <div className="absolute right-5 bottom-5 left-5 rounded-3xl border border-white/70 bg-white/88 p-4 shadow-xl backdrop-blur-lg sm:right-auto sm:w-72">
                 <div className="flex items-center justify-between">
@@ -496,7 +496,12 @@ export function ImmersiveLanding({
                 ))}
               </ul>
             </div>
-            <div className="rounded-[2.5rem] bg-[#F7F5F0] p-5 text-[#183432] shadow-2xl sm:p-8">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#F7F5F0] p-5 text-[#183432] shadow-2xl sm:p-8">
+              <BrandIllustration
+                variant="brief"
+                sizes="160px"
+                className="absolute -top-7 -right-5 hidden w-36 opacity-90 sm:block"
+              />
               <div className="flex items-center justify-between border-b border-[#183432]/10 pb-5">
                 <div>
                   <p className="text-xs font-bold tracking-widest text-[#1E7775] uppercase">
@@ -542,7 +547,12 @@ export function ImmersiveLanding({
         {caregiverSharingEnabled ? (
           <section className="px-5 py-20 lg:px-8 lg:py-28">
             <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[2.5rem] bg-[#E9E1F4] p-6 sm:p-10">
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-[#E9E1F4] p-6 pt-32 sm:p-10 sm:pt-40">
+                <BrandIllustration
+                  variant="circle"
+                  sizes="420px"
+                  className="absolute -top-16 left-1/2 w-[420px] max-w-none -translate-x-1/2"
+                />
                 <div className="rounded-3xl bg-white p-6 shadow-lg">
                   <div className="flex items-center gap-4">
                     <span className="flex size-12 items-center justify-center rounded-full bg-[#D9F1EE]">
@@ -611,16 +621,23 @@ export function ImmersiveLanding({
           className="bg-[#E7F3F1] px-5 py-20 text-[#183432] lg:px-8 lg:py-24"
         >
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl">
-              <p className="text-sm font-bold tracking-[0.18em] text-[#1E7775] uppercase">
-                {t.trust.eyebrow}
-              </p>
-              <h2 className="mt-4 font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
-                {t.trust.title}
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-[#51625F]">
-                {t.trust.description}
-              </p>
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="max-w-3xl">
+                <p className="text-sm font-bold tracking-[0.18em] text-[#1E7775] uppercase">
+                  {t.trust.eyebrow}
+                </p>
+                <h2 className="mt-4 font-[family-name:var(--font-caption)] text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+                  {t.trust.title}
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-[#51625F]">
+                  {t.trust.description}
+                </p>
+              </div>
+              <BrandIllustration
+                variant="privacy"
+                sizes="280px"
+                className="mx-auto hidden max-h-56 w-auto lg:block"
+              />
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {claims.map((claim, index) => {

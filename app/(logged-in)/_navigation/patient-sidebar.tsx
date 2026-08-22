@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandIllustration } from "@/components/brand/brand-illustration";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,9 +17,10 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { SidebarNavigationMenu } from "@/components/ui/sidebar-utils";
+import { MoodDayMark } from "@/components/svg/moodday-mark";
 import { SidebarUserButton } from "@/features/sidebar/sidebar-user-button";
 import { useI18n } from "@/i18n/provider";
-import { CalendarHeart, ChevronDown, Phone, Sparkles } from "lucide-react";
+import { ChevronDown, Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
@@ -51,11 +53,14 @@ export function PatientSidebar({ user, features }: PatientSidebarProps) {
     >
       {/* Logo Header */}
       <SidebarHeader className="flex flex-row items-center gap-3 border-b border-gray-100 px-6 py-5">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--primary)] to-teal-400 shadow-[var(--primary)]/20 shadow-lg">
-          <CalendarHeart className="size-5 text-white" />
+        <div className="flex size-10 items-center justify-center rounded-xl bg-[#155c5a] shadow-[0_8px_20px_rgba(21,92,90,0.18)]">
+          <MoodDayMark
+            className="size-7 text-[#fff8ed]"
+            accentColor="#f3a67a"
+          />
         </div>
         <span className="text-xl font-bold tracking-tight text-gray-900">
-          Moodday
+          Mood Day
         </span>
       </SidebarHeader>
 
@@ -84,6 +89,13 @@ export function PatientSidebar({ user, features }: PatientSidebarProps) {
             </SidebarGroup>
           </ItemCollapsing>
         ))}
+        <div className="mx-1 mt-auto mb-3 overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#e7f1ed,#f5e5d8)] px-3 pt-2 group-data-[collapsible=icon]:hidden">
+          <BrandIllustration
+            variant="landmarks"
+            sizes="220px"
+            className="mx-auto h-20 w-auto"
+          />
+        </div>
       </SidebarContent>
 
       {/* Footer with CTA, SOS Card and User Button */}

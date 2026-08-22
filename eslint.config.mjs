@@ -24,6 +24,16 @@ export default [
       },
     },
   },
+  {
+    files: ["apps/mobile/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 2021,
+        project: "apps/mobile/tsconfig.json",
+        sourceType: "module",
+      },
+    },
+  },
   // Typescript
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,

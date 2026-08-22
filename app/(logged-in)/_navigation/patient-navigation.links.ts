@@ -1,22 +1,15 @@
 import type { NavigationGroup } from "@/features/navigation/navigation.type";
 import {
-  BarChart3,
   Bell,
+  Compass,
   CreditCard,
   CloudCog,
-  ClipboardList,
-  Dumbbell,
-  FileText,
   Globe,
-  Heart,
-  HeartHandshake,
+  HeartPulse,
   Home,
   Lock,
-  MessageSquare,
   Palette,
-  Pill,
   Shield,
-  ShieldCheck,
   User,
   Users,
 } from "lucide-react";
@@ -44,74 +37,27 @@ export const getPatientNavigation = (
         {
           href: "/dashboard",
           Icon: Home,
-          label: t("nav.dashboard"),
-        },
-        {
-          href: "/mood",
-          Icon: Heart,
-          label: t("patient.nav.mood"),
+          label: t("nav.today"),
         },
         {
           href: "/trends",
-          Icon: BarChart3,
-          label: t("patient.nav.trends"),
-        },
-      ],
-    },
-    {
-      title: t("patient.nav.tracking"),
-      defaultOpenStartPath: "/medications",
-      links: [
-        {
-          href: "/medications",
-          Icon: Pill,
-          label: t("patient.nav.medications"),
-        },
-        {
-          href: "/exercises",
-          Icon: Dumbbell,
-          label: t("patient.nav.exercises"),
-        },
-        {
-          href: "/therapy",
-          Icon: MessageSquare,
-          label: t("patient.nav.therapy"),
-        },
-      ],
-    },
-    {
-      title: t("patient.nav.support"),
-      defaultOpenStartPath: "/caregiver",
-      links: [
-        ...(features.caregiverSharing
-          ? [
-              {
-                href: "/caregiver",
-                Icon: Users,
-                label: t("patient.nav.caregiver"),
-              },
-            ]
-          : []),
-        {
-          href: "/crisis",
-          Icon: HeartHandshake,
-          label: t("patient.nav.crisis"),
-        },
-        {
-          href: "/safety-plan",
-          Icon: ShieldCheck,
-          label: t("patient.nav.safetyPlan"),
+          Icon: Compass,
+          label: t("nav.landmarks"),
         },
         {
           href: "/consultation",
-          Icon: ClipboardList,
-          label: t("patient.nav.consultation"),
+          Icon: HeartPulse,
+          label: t("nav.care"),
         },
-        {
-          href: "/export",
-          Icon: FileText,
-          label: t("patient.nav.export"),
-        },
+        ...(features.caregiverSharing
+          ? [
+              {
+                href: "/circle",
+                Icon: Users,
+                label: t("nav.circle"),
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -186,27 +132,22 @@ export const getPatientMobileNavigation = (
     {
       href: "/dashboard",
       Icon: Home,
-      label: t("nav.dashboard"),
-    },
-    {
-      href: "/mood",
-      Icon: Heart,
-      label: t("patient.nav.mood"),
-    },
-    {
-      href: "/medications/today",
-      Icon: Pill,
-      label: t("patient.nav.medications"),
+      label: t("nav.today"),
     },
     {
       href: "/trends",
-      Icon: BarChart3,
-      label: t("patient.nav.trends"),
+      Icon: Compass,
+      label: t("nav.landmarks"),
     },
     {
-      href: "/settings/profile",
-      Icon: User,
-      label: t("settings.sidebar.profile"),
+      href: "/consultation",
+      Icon: HeartPulse,
+      label: t("nav.care"),
+    },
+    {
+      href: "/circle",
+      Icon: Users,
+      label: t("nav.circle"),
     },
   ];
 };

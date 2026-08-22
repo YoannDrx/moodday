@@ -59,7 +59,10 @@ vi.mock("@/lib/features/availability", () => ({
   getFeatureAvailability: mocks.getFeatureAvailability,
 }));
 vi.mock("next/image", () => ({
-  default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
+  default: ({ alt }: { alt: string }) => (
+    // The mock intentionally mirrors the native semantics of an empty alt.
+    <img alt={alt} />
+  ),
 }));
 
 import HomePage from "@app/page";
@@ -110,7 +113,7 @@ describe("immersive public landing", () => {
       screen.getAllByRole("link", { name: "Commencer gratuitement" }),
     ).not.toHaveLength(0);
     expect(screen.getByRole("img")).toHaveAccessibleName(
-      "Une personne consulte calmement son téléphone près d'une fenêtre, dans un intérieur lumineux.",
+      "Un carnet ouvert devient un horizon doux, avec un repère calendrier et un cœur abricot.",
     );
   });
 

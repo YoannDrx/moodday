@@ -29,6 +29,10 @@ const fr: typeof en = {
     account: "Compte",
     app: "Application",
     backToSite: "Retour au site",
+    today: "Aujourd’hui",
+    landmarks: "Repères",
+    care: "Soin",
+    circle: "Cercle",
   },
   footer: {
     description:

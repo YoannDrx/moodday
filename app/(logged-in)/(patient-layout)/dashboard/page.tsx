@@ -1,12 +1,9 @@
 import { combineWithParentMetadata } from "@/lib/metadata";
 import { getI18n } from "@/i18n/server";
 import { getRequiredUser } from "@/lib/auth/auth-user";
-import { PageLayoutShell } from "@/components/nowts/page-layout-shell";
 import { prisma } from "@/lib/prisma";
-import { Bell } from "lucide-react";
-import Link from "next/link";
-
-import { DashboardContent } from "./_components/dashboard-content";
+import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+import { TodayView } from "@/features/v2/today/today-view";
 
 export const generateMetadata = combineWithParentMetadata(async () => {
   const { t } = await getI18n();
@@ -23,31 +20,58 @@ export default async function DashboardPage() {
     where: { userId: user.id },
     select: { timezone: true },
   });
-  const today = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+  const timezone = preferences?.timezone ?? "Europe/Paris";
+  const localDate = getDateKeyForTimeZone(new Date(), timezone);
+  const localeCode = locale === "fr" ? "fr-FR" : "en-US";
+  const today = new Intl.DateTimeFormat(localeCode, {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
-    timeZone: preferences?.timezone ?? "Europe/Paris",
+    timeZone: timezone,
   }).format(new Date());
 
+  const [initialCheckIn, nextAppointment] = await Promise.all([
+    prisma.checkIn.findFirst({
+      where: { userId: user.id, localDate },
+      orderBy: { createdAt: "desc" },
+      select: { depth: true },
+    }),
+    prisma.appointment.findFirst({
+      where: {
+        userId: user.id,
+        status: "scheduled",
+        startsAt: { gte: new Date() },
+      },
+      orderBy: { startsAt: "asc" },
+      select: { title: true, startsAt: true },
+    }),
+  ]);
+
   return (
-    <PageLayoutShell
-      title={t("dashboard.greeting", {
-        name: (user.name || t("dashboard.defaultName")).split(" ")[0],
-      })}
-      subtitle={t("dashboard.today", { date: today })}
-      headerRight={
-        <Link
-          href="/settings/notifications"
-          aria-label={t("settings.sidebar.notifications")}
-          className="glass-card flex size-12 items-center justify-center rounded-2xl text-gray-600 transition-all hover:text-[var(--primary)]"
-        >
-          <Bell className="size-6" />
-        </Link>
-      }
-    >
-      <DashboardContent ownerId={user.id} />
-    </PageLayoutShell>
+    <main className="px-4 sm:px-6 lg:px-8">
+      <TodayView
+        firstName={(user.name || t("dashboard.defaultName")).split(" ")[0] ?? ""}
+        dateLabel={today}
+        localDate={localDate}
+        timezone={timezone}
+        locale={locale === "fr" ? "fr" : "en"}
+        initialCheckIn={initialCheckIn}
+        nextAppointment={
+          nextAppointment
+            ? {
+                title: nextAppointment.title,
+                dateLabel: new Intl.DateTimeFormat(localeCode, {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: timezone,
+                }).format(nextAppointment.startsAt),
+              }
+            : null
+        }
+      />
+    </main>
   );
 }
