@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "dark" }) }));
 vi.mock("sonner", () => ({
   Toaster: (props: { theme?: string; className?: string }) => (
-    <div data-testid="sonner" data-theme={props.theme} className={props.className} />
+    <div
+      data-testid="sonner"
+      data-theme={props.theme}
+      className={props.className}
+    />
   ),
 }));
 
@@ -113,8 +117,8 @@ describe("complete UI primitives", () => {
     expect(classes).toContain("text-gray-900");
     expect(classes).toContain("dark:bg-gray-950");
     expect(classes).toContain("dark:text-white");
-    expect(classes).toContain("disabled:text-gray-700");
-    expect(classes).toContain("disabled:opacity-100");
+    expect(classes).toContain("disabled:text-gray-700!");
+    expect(classes).toContain("disabled:opacity-100!");
   });
 
   it("renders an interactive calendar with dropdown and custom day classes", () => {
@@ -170,7 +174,9 @@ describe("complete UI primitives", () => {
         </DialogContent>
       </Dialog>,
     );
-    expect(screen.getByRole("dialog", { name: "Dialog title" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Dialog title" }),
+    ).toBeInTheDocument();
 
     view.rerender(
       <Sheet open>
@@ -186,7 +192,9 @@ describe("complete UI primitives", () => {
         </SheetContent>
       </Sheet>,
     );
-    expect(screen.getByRole("dialog", { name: "Sheet title" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Sheet title" }),
+    ).toBeInTheDocument();
 
     view.rerender(
       <Popover open>
@@ -290,21 +298,37 @@ describe("complete UI primitives", () => {
         <Table>
           <TableCaption>Mood entries</TableCaption>
           <TableHeader>
-            <TableRow><TableHead>Date</TableHead></TableRow>
+            <TableRow>
+              <TableHead>Date</TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow><TableCell>13 August</TableCell></TableRow>
+            <TableRow>
+              <TableCell>13 August</TableCell>
+            </TableRow>
           </TableBody>
           <TableFooter>
-            <TableRow><TableCell>Total: 1</TableCell></TableRow>
+            <TableRow>
+              <TableCell>Total: 1</TableCell>
+            </TableRow>
           </TableFooter>
         </Table>
         <Pagination>
           <PaginationContent>
-            <PaginationItem><PaginationPrevious href="?page=1" /></PaginationItem>
-            <PaginationItem><PaginationLink href="?page=2" isActive>2</PaginationLink></PaginationItem>
-            <PaginationItem><PaginationEllipsis /></PaginationItem>
-            <PaginationItem><PaginationNext href="?page=3" /></PaginationItem>
+            <PaginationItem>
+              <PaginationPrevious href="?page=1" />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="?page=2" isActive>
+                2
+              </PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationEllipsis />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext href="?page=3" />
+            </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>,

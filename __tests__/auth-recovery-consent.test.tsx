@@ -117,7 +117,7 @@ describe("auth recovery, consent and deletion", () => {
     const view = render(<ResetPasswordPage token="reset-token" />);
     expect(
       screen.getByRole("button", { name: "auth.resetPassword.submit" }),
-    ).toHaveClass("disabled:bg-gray-100", "disabled:opacity-100");
+    ).toHaveClass("disabled:bg-gray-100!", "disabled:opacity-100!");
     fireEvent.change(
       screen.getByPlaceholderText("auth.resetPassword.passwordPlaceholder"),
       {
@@ -215,7 +215,7 @@ describe("auth recovery, consent and deletion", () => {
     render(<ConfirmDeletePage token="delete-token" />);
     expect(
       screen.getByRole("button", { name: "auth.confirmDelete.confirm" }),
-    ).toHaveClass("disabled:bg-gray-100", "disabled:opacity-100");
+    ).toHaveClass("disabled:bg-gray-100!", "disabled:opacity-100!");
     fireEvent.click(
       screen.getByRole("button", { name: "auth.confirmDelete.confirm" }),
     );

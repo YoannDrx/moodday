@@ -134,7 +134,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       <LoadingButton
         loading={signInMutation.isPending}
         type="submit"
-        className="ring-offset-card w-full ring-offset-2 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
+        className="ring-offset-card w-full ring-offset-2 disabled:bg-gray-100! disabled:text-gray-700! disabled:opacity-100! dark:disabled:bg-gray-900! dark:disabled:text-gray-300!"
       >
         {isUsingCredentials
           ? t("auth.signIn.submit")

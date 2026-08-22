@@ -120,7 +120,7 @@ export function ResetPasswordPage({ token }: { token: string }) {
           <LoadingButton
             loading={resetPasswordMutation.isPending}
             type="submit"
-            className="w-full disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100 dark:disabled:bg-gray-900 dark:disabled:text-gray-300"
+            className="w-full disabled:bg-gray-100! disabled:text-gray-700! disabled:opacity-100! dark:disabled:bg-gray-900! dark:disabled:text-gray-300!"
           >
             {t("auth.resetPassword.submit")}
           </LoadingButton>
