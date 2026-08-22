@@ -19,7 +19,7 @@
     "prisma/**",
     "artifacts/**"
   ],
-  "ignoreDependencies": ["tailwindcss", "tailwindcss-animate"],
+  "ignoreDependencies": ["tailwindcss", "tailwindcss-animate", "uuid"],
   "ignoreBinaries": ["eas", "maestro", "stripe"],
   "paths": {
     "@/*": ["./src/*"],
