@@ -329,6 +329,16 @@ describe("caregiver dashboard content", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("caregiver.roles.family")).toBeInTheDocument();
     expect(screen.getByText(/custom-role/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: 'caregiver.dashboard.permissions.manageAccessibleLabel:{"name":"Camille"}',
+      }),
+    ).toHaveClass("size-11", "shrink-0");
+    expect(
+      screen.getByRole("button", {
+        name: 'caregiver.dashboard.circle.removeAccessibleLabel:{"name":"Camille"}',
+      }),
+    ).toHaveClass("size-11", "shrink-0");
   });
 
   it("submits a normalized invitation and immediately revokes a relationship", async () => {
