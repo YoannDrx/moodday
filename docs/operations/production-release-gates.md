@@ -171,14 +171,18 @@ gate n'est pas validé.
       et aucune alerte runtime critique ou haute.
 - [x] Axe automatisé sans violation sérieuse ou critique sur 27 pages publiques
       ou authentifiées et cinq profils navigateur/appareil.
-- [x] CI jetable, répétition 12 → 24 migrations, dump logique et restauration
-      isolée alignés sur PostgreSQL 17 ; comparaison des 41 tables et absence
+- [x] CI jetable, répétition de la baseline historique jusqu'aux 27 migrations,
+      dump logique et restauration isolée alignés sur PostgreSQL 17 ;
+      comparaison des 64 tables et absence
       de dérive Prisma prouvées localement.
 - [x] Audit Neon en lecture seule : projets Production/Preview séparés et région
-      `aws-eu-central-1` confirmés, baseline actuelle de 12 migrations sans
-      migration incomplète.
-- [ ] Cible fournisseur Preview alignée sur PostgreSQL 17, répétition 12 → 24
-      migrations sur cette cible, branche Production protégée et
+      `aws-eu-central-1` confirmés ; l'audit initial comptait 12 migrations sans
+      migration incomplète et la preuve post-V2 en compte désormais 27.
+- [x] Clonage fournisseur isolé de Production prouvé le 22 août 2026 :
+      PostgreSQL 17, 27 migrations, 64 tables, aucune migration incomplète,
+      diff de schéma vide et branche jetable supprimée.
+- [ ] Cible fournisseur Preview alignée sur PostgreSQL 17, répétition intégrale
+      des 27 migrations sur cette cible, branche Production protégée et
       rétention/restauration 30 jours prouvées.
 - [ ] Organisation Neon sur une offre compatible Production et MFA imposé à
       tous ses administrateurs.

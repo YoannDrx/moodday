@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
-const EXPECTED_PUBLIC_TABLES = 41;
+const EXPECTED_PUBLIC_TABLES = 64;
 const CONTAINER_DUMP_PATH = `/tmp/moodday-backup-restore-${process.pid}.dump`;
 
 const sourceUrl = process.env.BACKUP_RESTORE_SOURCE_URL;
