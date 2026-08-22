@@ -45,7 +45,9 @@ export default function SignInScreen() {
         style={styles.keyboard}
       >
         <View style={styles.content}>
-          <MoodDayMark />
+          <View testID="sign-in-screen">
+            <MoodDayMark />
+          </View>
           <BrandIllustration variant="welcome" style={styles.illustration} />
           <Text style={styles.title}>Retrouve ton fil.</Text>
           <Text style={styles.subtitle}>
@@ -63,6 +65,7 @@ export default function SignInScreen() {
                 onChangeText={setEmail}
                 style={styles.input}
                 accessibilityLabel="Adresse e-mail"
+                testID="sign-in-email"
               />
             </View>
             <View style={styles.field}>
@@ -75,6 +78,7 @@ export default function SignInScreen() {
                 onChangeText={setPassword}
                 style={styles.input}
                 accessibilityLabel="Mot de passe"
+                testID="sign-in-password"
               />
             </View>
 
@@ -86,6 +90,7 @@ export default function SignInScreen() {
 
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Se connecter"
               disabled={!email.trim() || !password || isPending}
               onPress={() => void signIn()}
               style={({ pressed }) => [
@@ -93,6 +98,7 @@ export default function SignInScreen() {
                 (!email.trim() || !password || isPending) && styles.disabled,
                 pressed && styles.pressed,
               ]}
+              testID="sign-in-submit"
             >
               <Text style={styles.buttonLabel}>
                 {isPending ? "Connexion…" : "Se connecter"}
