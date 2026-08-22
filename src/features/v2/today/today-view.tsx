@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createV2CheckIn } from "@/features/v2/check-ins/check-in.action";
+import { queueAction } from "@/features/pwa/offline-actions";
+import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
+import { useOfflineStatus } from "@/hooks/use-offline-status";
 import {
   ArrowRight,
   CalendarDays,
@@ -55,6 +58,9 @@ const copy = {
     notePlaceholder: "Ce que tu aimerais retrouver plus tard…",
     save: "Enregistrer mon point",
     saving: "Enregistrement…",
+    savedOffline:
+      "Enregistré hors ligne. La synchronisation reprendra automatiquement.",
+    another: "Faire un autre point",
     back: "Retour",
     optional: "facultatif",
     scaleLow: "bas",
@@ -97,6 +103,8 @@ const copy = {
     notePlaceholder: "What you may want to find again later…",
     save: "Save my check-in",
     saving: "Saving…",
+    savedOffline: "Saved offline. Sync will resume automatically.",
+    another: "Add another check-in",
     back: "Back",
     optional: "optional",
     scaleLow: "low",
@@ -115,6 +123,7 @@ const copy = {
 } as const;
 
 type TodayViewProps = {
+  ownerId: string;
   firstName: string;
   dateLabel: string;
   localDate: string;
@@ -125,6 +134,7 @@ type TodayViewProps = {
 };
 
 export function TodayView({
+  ownerId: initialOwnerId,
   firstName,
   dateLabel,
   localDate,
@@ -141,6 +151,8 @@ export function TodayView({
   const [savedDepth, setSavedDepth] = useState(initialCheckIn?.depth);
   const [scores, setScores] = useState<Scores>({});
   const [note, setNote] = useState("");
+  const [isQueueing, setIsQueueing] = useState(false);
+  const { isOnline, ownerId } = useOfflineStatus(initialOwnerId);
 
   const { execute, isPending } = useAction(createV2CheckIn, {
     onSuccess: ({ data }) => {
@@ -159,9 +171,9 @@ export function TodayView({
     [scores],
   );
 
-  const submit = (depth: "presence" | "quick" | "complete") => {
-    execute({
-      operationId: crypto.randomUUID(),
+  const submit = async (depth: "presence" | "quick" | "complete") => {
+    const payload = {
+      type: "v2_check_in" as const,
       depth,
       localDate,
       timezone,
@@ -171,8 +183,48 @@ export function TodayView({
       anxiety: depth === "complete" ? scores.anxiety : undefined,
       contexts: [],
       note: depth === "complete" && note.trim() ? note.trim() : undefined,
+    };
+
+    if (!isOnline) {
+      setIsQueueing(true);
+      try {
+        await queueAction(ownerId ?? initialOwnerId, payload, {
+          timeZone: timezone,
+        });
+        setSavedDepth(depth);
+        setMode("done");
+        toast.success(labels.savedOffline);
+      } catch (error) {
+        toast.error(
+          getOfflineStorageErrorMessage(error, {
+            quota:
+              locale === "fr"
+                ? "Le stockage hors ligne est plein. Reconnecte-toi pour synchroniser."
+                : "Offline storage is full. Reconnect to sync.",
+            fallback: labels.error,
+          }),
+        );
+      } finally {
+        setIsQueueing(false);
+      }
+      return;
+    }
+
+    execute({
+      operationId: crypto.randomUUID(),
+      depth: payload.depth,
+      localDate: payload.localDate,
+      timezone: payload.timezone,
+      valence: payload.valence,
+      activation: payload.activation,
+      irritability: payload.irritability,
+      anxiety: payload.anxiety,
+      contexts: payload.contexts,
+      note: payload.note,
     });
   };
+
+  const isSaving = isPending || isQueueing;
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-5 pb-10 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
@@ -229,8 +281,8 @@ export function TodayView({
                   className="min-h-13 rounded-2xl border-[#cad8d2] bg-white px-5 text-base font-bold text-[#155c5a] hover:bg-[#f2f7f5]"
                   variant="outline"
                   size="lg"
-                  disabled={isPending}
-                  onClick={() => submit("presence")}
+                  disabled={isSaving}
+                  onClick={() => void submit("presence")}
                 >
                   <Check className="size-5" aria-hidden="true" />
                   {labels.presence}
@@ -332,12 +384,12 @@ export function TodayView({
                     ) : null}
                     <Button
                       className="min-h-11 rounded-xl bg-[#1e7775] px-6 font-bold hover:bg-[#155c5a]"
-                      disabled={!coreComplete || isPending}
+                      disabled={!coreComplete || isSaving}
                       onClick={() =>
-                        submit(mode === "complete" ? "complete" : "quick")
+                        void submit(mode === "complete" ? "complete" : "quick")
                       }
                     >
-                      {isPending ? labels.saving : labels.save}
+                      {isSaving ? labels.saving : labels.save}
                     </Button>
                   </div>
                 </div>
@@ -345,13 +397,24 @@ export function TodayView({
             ) : null}
 
             {mode === "done" ? (
-              <div className="flex min-h-20 items-center gap-4 text-[#18312f]">
+              <div className="flex min-h-20 flex-wrap items-center gap-4 text-[#18312f]">
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#dcede8] text-[#1e7775]">
                   <Check className="size-6" aria-hidden="true" />
                 </span>
                 <p className="text-sm leading-6 text-[#61716f]">
                   {labels.stopHere}
                 </p>
+                <Button
+                  variant="ghost"
+                  className="ml-auto min-h-11 rounded-xl text-[#155c5a]"
+                  onClick={() => {
+                    setScores({});
+                    setNote("");
+                    setMode("idle");
+                  }}
+                >
+                  {labels.another}
+                </Button>
               </div>
             ) : null}
           </div>

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   skipMedIntake: vi.fn(),
   logExerciseCompletion: vi.fn(),
   createTherapySession: vi.fn(),
+  createV2CheckIn: vi.fn(),
 }));
 
 vi.mock("nanoid", () => ({ nanoid: () => "offline-id" }));
@@ -30,6 +31,9 @@ vi.mock("@/features/exercise/exercise.action", () => ({
 }));
 vi.mock("@/features/therapy/therapy.action", () => ({
   createTherapySession: mocks.createTherapySession,
+}));
+vi.mock("@/features/v2/check-ins/check-in.action", () => ({
+  createV2CheckIn: mocks.createV2CheckIn,
 }));
 vi.mock("@/features/pwa/offline-events", () => ({
   notifyOfflineQueueChanged: mocks.notifyOfflineQueueChanged,
@@ -91,6 +95,7 @@ describe("offline actions", () => {
     mocks.logPRNIntake.mockResolvedValue({});
     mocks.logExerciseCompletion.mockResolvedValue({});
     mocks.createTherapySession.mockResolvedValue({});
+    mocks.createV2CheckIn.mockResolvedValue({});
   });
 
   it.each([
@@ -160,6 +165,28 @@ describe("offline actions", () => {
     [
       { type: "therapy_create", date: "2026-08-18", notes: "Notes" },
       { type: "therapy_create", date: "2026-08-18", notes: "Notes" },
+    ],
+    [
+      {
+        type: "v2_check_in",
+        depth: "quick",
+        localDate: "2026-08-18",
+        timezone: "Europe/Paris",
+        valence: 8,
+        activation: 4,
+        irritability: 6,
+        contexts: [],
+      },
+      {
+        type: "v2_check_in",
+        depth: "quick",
+        localDate: "2026-08-18",
+        timezone: "Europe/Paris",
+        valence: 8,
+        activation: 4,
+        irritability: 6,
+        contexts: [],
+      },
     ],
   ] as const)("preserves creation time for %j", async (payload, expected) => {
     const entry = await queueAction(ownerId, payload, {
@@ -232,13 +259,23 @@ describe("offline actions", () => {
         notes: "Session",
         benefitRating: 0,
       }),
+      operation({
+        type: "v2_check_in",
+        depth: "quick",
+        localDate: "2026-08-18",
+        timezone: "Europe/Paris",
+        valence: 8,
+        activation: 4,
+        irritability: 6,
+        contexts: [],
+      }),
     ];
     mocks.listOfflineOperations
       .mockResolvedValueOnce(queue)
       .mockResolvedValueOnce([]);
 
     await expect(syncQueuedActions(ownerId)).resolves.toEqual({
-      synced: 5,
+      synced: 6,
       remaining: 0,
       conflicts: 0,
     });
@@ -251,7 +288,13 @@ describe("offline actions", () => {
     expect(mocks.createTherapySession).toHaveBeenCalledWith(
       expect.objectContaining({ benefitRating: 0 }),
     );
-    expect(mocks.removeOfflineOperation).toHaveBeenCalledTimes(5);
+    expect(mocks.createV2CheckIn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: "action:v2_check_in",
+        valence: 8,
+      }),
+    );
+    expect(mocks.removeOfflineOperation).toHaveBeenCalledTimes(6);
   });
 
   it("skips conflicts and operations whose retry is not due", async () => {
@@ -279,6 +322,7 @@ describe("offline actions", () => {
     ["med_prn_intake", mocks.logPRNIntake],
     ["exercise_log", mocks.logExerciseCompletion],
     ["therapy_create", mocks.createTherapySession],
+    ["v2_check_in", mocks.createV2CheckIn],
   ] as const)("captures a %s server error for retry", async (type, action) => {
     const payloads: Record<string, OfflineActionPayload> = {
       med_intake: { type: "med_intake", medicationId: "med-1" },
@@ -289,6 +333,13 @@ describe("offline actions", () => {
         type: "therapy_create",
         date: "2026-08-18",
         notes: "Notes",
+      },
+      v2_check_in: {
+        type: "v2_check_in",
+        depth: "presence",
+        localDate: "2026-08-18",
+        timezone: "Europe/Paris",
+        contexts: [],
       },
     };
     const item = operation(payloads[type]);

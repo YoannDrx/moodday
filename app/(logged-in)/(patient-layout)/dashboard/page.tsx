@@ -48,9 +48,12 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <main className="px-4 sm:px-6 lg:px-8">
+    <div className="px-4 sm:px-6 lg:px-8">
       <TodayView
-        firstName={(user.name || t("dashboard.defaultName")).split(" ")[0] ?? ""}
+        ownerId={user.id}
+        firstName={
+          (user.name || t("dashboard.defaultName")).split(" ")[0] ?? ""
+        }
         dateLabel={today}
         localDate={localDate}
         timezone={timezone}
@@ -72,6 +75,6 @@ export default async function DashboardPage() {
             : null
         }
       />
-    </main>
+    </div>
   );
 }
