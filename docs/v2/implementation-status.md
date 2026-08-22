@@ -121,8 +121,11 @@ sans supprimer les tables V1 :
 
 Des contraintes SQL protègent les bornes 0–10, la cohérence des fenêtres et de
 la couverture, les check-ins rapides incomplets, les positions de question et
-les périodes de rendez-vous. La migration est générée et validée, mais n'a été
-appliquée à aucune base externe.
+les périodes de rendez-vous. Les trois migrations V2 additives ont été répétées
+sur une branche isolée puis appliquées en Production le 22 août 2026. La
+sauvegarde fournisseur `codex-v2-predeploy-backup-2026-08-22` est conservée ;
+la vérification post-déploiement compte 27 migrations réussies, 64 tables
+publiques et aucune dérive Prisma.
 
 ### Offline mobile
 

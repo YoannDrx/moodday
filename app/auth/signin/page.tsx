@@ -8,6 +8,7 @@ import {
 import { getI18n } from "@/i18n/server";
 import { SocialProviders } from "@/lib/auth";
 import { getUser } from "@/lib/auth/auth-user";
+import { env } from "@/lib/env";
 import { SiteConfig } from "@/site-config";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -42,7 +43,10 @@ export default async function AuthSignInPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="mt-4">
-        <SignInProviders providers={providers} />
+        <SignInProviders
+          providers={providers}
+          signupMode={env.PUBLIC_SIGNUP_MODE}
+        />
       </CardContent>
     </Card>
   );

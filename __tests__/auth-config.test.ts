@@ -129,6 +129,7 @@ const baseEnv = () => ({
   HEALTH_DATA_CONSENT_VERSION: "health-2026-08",
   LAUNCH_COUNTRY: "FR",
   MINIMUM_AGE: 18,
+  PUBLIC_SIGNUP_MODE: "closed",
 });
 
 const loadConfig = async (
@@ -167,14 +168,20 @@ describe("Better Auth production configuration", () => {
   it("enables only fully configured social providers and production rate limits", async () => {
     const config = await loadConfig();
     expect(config.socialProviders).toEqual({
-      github: { clientId: "github-client", clientSecret: "github-secret" },
-      google: { clientId: "google-client", clientSecret: "google-secret" },
+      github: {
+        clientId: "github-client",
+        clientSecret: "github-secret",
+        disableSignUp: true,
+      },
+      google: {
+        clientId: "google-client",
+        clientSecret: "google-secret",
+        disableSignUp: true,
+      },
     });
     expect(config.rateLimit.max).toBe(60);
     expect(config.rateLimit.customRules["/sign-in/email"].max).toBe(5);
-    expect(
-      config.rateLimit.customRules["/request-password-reset"].max,
-    ).toBe(3);
+    expect(config.rateLimit.customRules["/request-password-reset"].max).toBe(3);
 
     const isolated = await loadConfig(
       {
@@ -185,9 +192,9 @@ describe("Better Auth production configuration", () => {
     );
     expect(isolated.socialProviders).toEqual({});
     expect(isolated.rateLimit.max).toBe(1000);
-    expect(
-      isolated.rateLimit.customRules["/request-password-reset"].max,
-    ).toBe(1000);
+    expect(isolated.rateLimit.customRules["/request-password-reset"].max).toBe(
+      1000,
+    );
   });
 
   it("records signup consents only when every submitted version is current", async () => {

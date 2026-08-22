@@ -67,6 +67,7 @@ const isolatedServiceEnv = {
   STRIPE_WEBHOOK_SECRET: "",
   CAREGIVER_SHARING_ENABLED: "true",
   ACCOUNT_IMPORT_ENABLED: "true",
+  PUBLIC_SIGNUP_MODE: "public",
   BETTER_AUTH_URL: serverUrl,
   // A separately started CI server and the runner must share the generated
   // secrets. For Playwright-managed local servers, fixed test-only values keep

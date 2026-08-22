@@ -14,6 +14,9 @@ rollback de Moodday. Il ne constitue pas une autorisation de déployer. Toute
   début de la maintenance.
 - `AI_ROLLOUT_MODE` reste `internal` jusqu'à l'ouverture publique explicitement
   approuvée.
+- `PUBLIC_SIGNUP_MODE` reste `closed` tant que la bêta externe et la décision
+  HDS ne sont pas approuvées. Le mode `invite` n'autorise que la liste sensible
+  `PUBLIC_SIGNUP_INVITE_EMAILS`; le mode `public` exige un nouveau go/no-go.
 - Aucun secret, e-mail, URL de base complète, payload ou donnée de santé n'est
   copié dans une preuve ou un journal d'intervention.
 - Une migration additive n'est pas annulée par SQL improvisé. Le rollback

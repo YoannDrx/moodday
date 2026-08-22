@@ -40,6 +40,7 @@ const safeDefaults = {
   ACCOUNT_IMPORT_ENABLED: "false",
   ADMIN_ENABLED: "false",
   MAINTENANCE_MODE: "false",
+  PUBLIC_SIGNUP_MODE: "closed",
   AI_CONSENT_VERSION: "ai-insights-2026-08",
   AI_MONTHLY_REQUEST_BUDGET: "1000",
   AI_MAX_CONCURRENCY: "5",

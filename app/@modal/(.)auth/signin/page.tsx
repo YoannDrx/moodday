@@ -3,6 +3,7 @@ import { DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { InterceptDialog } from "@/components/utils/intercept-dialog";
 import { getI18n } from "@/i18n/server";
 import { SocialProviders } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { SignInModal } from "./signin";
 
 export default async function SignInDialogPage() {
@@ -18,7 +19,10 @@ export default async function SignInDialogPage() {
             {t("auth.signIn.description")}
           </p>
         </div>
-        <SignInModal providers={Object.keys(SocialProviders ?? {})} />
+        <SignInModal
+          providers={Object.keys(SocialProviders ?? {})}
+          signupMode={env.PUBLIC_SIGNUP_MODE}
+        />
       </DialogContent>
     </InterceptDialog>
   );

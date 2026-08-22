@@ -1903,6 +1903,8 @@ const en = {
       passwordAction: "Use password",
       noAccount: "Don't have an account?",
       signUp: "Sign up",
+      registrationClosed:
+        "Registration is temporarily closed during the private beta.",
       or: "or",
       lastUsed: "Last used",
       provider: "Continue with {provider}",
@@ -1912,6 +1914,11 @@ const en = {
       metaDescription: "Start collecting testimonials today.",
       title: "Create your {app} account",
       description: "Get started in minutes with a free account.",
+      closedTitle: "Moodday is getting ready with a small group",
+      closedDescription:
+        "New accounts are temporarily closed while we finish the private beta. If you already have an account, you can keep signing in.",
+      inviteDescription:
+        "This beta is invitation-only. Use the email address that received your invitation.",
       namePlaceholder: "Your name",
       emailPlaceholder: "you@example.com",
       verifyPassword: "Confirm password",
