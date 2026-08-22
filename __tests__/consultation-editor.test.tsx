@@ -142,7 +142,10 @@ describe("consultation preparation editor", () => {
 
   it("creates an unscheduled draft and resets or cancels editing", async () => {
     renderEditor();
-    fireEvent.change(screen.getByLabelText("Titre"), {
+    const titleInput = screen.getByLabelText("Titre");
+    await waitFor(() => expect(titleInput).toBeEnabled());
+    expect(titleInput.closest("fieldset")).toHaveAttribute("aria-busy", "false");
+    fireEvent.change(titleInput, {
       target: { value: "Nouveau" },
     });
     fireEvent.click(

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { PageLayout } from "@/components/nowts/page-layout";
@@ -54,6 +54,11 @@ export function ConsultationPreparationEditor({
   const [scheduledFor, setScheduledFor] = useState("");
   const [pending, setPending] = useState(false);
   const [editingId, setEditingId] = useState<string | undefined>();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const reset = () => {
     setEditingId(undefined);
@@ -138,7 +143,14 @@ export function ConsultationPreparationEditor({
       maxWidth="4xl"
     >
       <div className="grid gap-8 lg:grid-cols-[1fr_0.8fr]">
-        <section className="space-y-4 rounded-xl border p-5">
+        <fieldset
+          aria-busy={!hydrated || pending}
+          className="space-y-4 rounded-xl border p-5"
+          disabled={!hydrated || pending}
+        >
+          <legend className="sr-only">
+            {fr ? "Préparation du rendez-vous" : "Appointment preparation"}
+          </legend>
           <div className="space-y-2">
             <Label htmlFor="consultation-title">{fr ? "Titre" : "Title"}</Label>
             <Input
@@ -246,7 +258,7 @@ export function ConsultationPreparationEditor({
               {fr ? "Annuler la modification" : "Cancel editing"}
             </Button>
           ) : null}
-        </section>
+        </fieldset>
         <section aria-labelledby="preparations-title" className="space-y-3">
           <h2 id="preparations-title" className="text-lg font-semibold">
             {fr ? "Préparations récentes" : "Recent preparations"}

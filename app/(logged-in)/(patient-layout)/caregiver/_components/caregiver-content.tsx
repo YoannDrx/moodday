@@ -805,8 +805,11 @@ export function CaregiverContent() {
                     ].find((v) => v) ?? t("caregiver.dashboard.circle.default");
 
                   return (
-                    <div key={caregiver.id} className="flex items-center gap-3">
-                      <div className="relative">
+                    <div
+                      key={caregiver.id}
+                      className="flex scroll-mb-24 items-start gap-3"
+                    >
+                      <div className="relative shrink-0">
                         <Avatar className="size-12 border-2 border-white shadow-sm">
                           <AvatarImage
                             src={caregiver.caregiverImage ?? undefined}
@@ -859,73 +862,75 @@ export function CaregiverContent() {
                             : t("caregiver.dashboard.permissions.noExpiry")}
                         </p>
                       </div>
-                      {caregiver.status !== "revoked" ? (
-                        <button
-                          type="button"
-                          aria-label={t(
-                            "caregiver.dashboard.permissions.manageAccessibleLabel",
-                            { name: displayName },
-                          )}
-                          className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
-                          onClick={() =>
-                            setEditingCaregiver({
-                              id: caregiver.id,
-                              label: caregiver.label ?? "",
-                              permissions:
-                                caregiver.permissions as CaregiverPermission[],
-                              accessExpiresAt:
-                                caregiver.accessExpiresAt?.slice(0, 10) ?? "",
-                              moodWindowDays:
-                                caregiver.moodWindowDays as AccessWindowDays,
-                              medicationWindowDays:
-                                caregiver.medicationWindowDays as AccessWindowDays,
-                            })
-                          }
-                        >
-                          <Settings2 className="size-4" />
-                        </button>
-                      ) : null}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                        {caregiver.status !== "revoked" ? (
                           <button
+                            type="button"
                             aria-label={t(
-                              "caregiver.dashboard.circle.removeAccessibleLabel",
+                              "caregiver.dashboard.permissions.manageAccessibleLabel",
                               { name: displayName },
                             )}
-                            className="flex size-11 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-red-50 hover:text-red-700"
+                            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
+                            onClick={() =>
+                              setEditingCaregiver({
+                                id: caregiver.id,
+                                label: caregiver.label ?? "",
+                                permissions:
+                                  caregiver.permissions as CaregiverPermission[],
+                                accessExpiresAt:
+                                  caregiver.accessExpiresAt?.slice(0, 10) ?? "",
+                                moodWindowDays:
+                                  caregiver.moodWindowDays as AccessWindowDays,
+                                medicationWindowDays:
+                                  caregiver.medicationWindowDays as AccessWindowDays,
+                              })
+                            }
                           >
-                            <Trash2 className="size-4" />
+                            <Settings2 className="size-4" />
                           </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              {t("caregiver.dashboard.circle.removeTitle")}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {t(
-                                "caregiver.dashboard.circle.removeDescription",
-                                {
-                                  name: displayName,
-                                },
+                        ) : null}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              aria-label={t(
+                                "caregiver.dashboard.circle.removeAccessibleLabel",
+                                { name: displayName },
                               )}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>
-                              {t("actions.cancel")}
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() =>
-                                removeMutation.mutate(caregiver.id)
-                              }
-                              className="bg-red-500 hover:bg-red-600"
+                              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-red-50 hover:text-red-700"
                             >
-                              {t("caregiver.dashboard.circle.removeConfirm")}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 className="size-4" />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {t("caregiver.dashboard.circle.removeTitle")}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t(
+                                  "caregiver.dashboard.circle.removeDescription",
+                                  {
+                                    name: displayName,
+                                  },
+                                )}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {t("actions.cancel")}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  removeMutation.mutate(caregiver.id)
+                                }
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                {t("caregiver.dashboard.circle.removeConfirm")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   );
                 })

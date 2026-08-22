@@ -121,6 +121,7 @@ describe("complete UI primitives", () => {
     expect(classes).toContain("disabled:text-gray-700!");
     expect(classes).toContain("disabled:opacity-100!");
     expect(classTokens).toContain("disabled:opacity-100");
+    expect(classTokens).toContain("disabled:transition-none");
     expect(classTokens).not.toContain("disabled:opacity-50");
   });
 
