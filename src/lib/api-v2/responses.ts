@@ -68,22 +68,32 @@ export const withApiV2Route =
     const status = response.status;
     const invalidRequest = status === 400;
     const authenticationRequired = status === 401;
+    const recentAuthenticationRequired =
+      status === 403 &&
+      body !== null &&
+      typeof body === "object" &&
+      "message" in body &&
+      body.message === "Recent authentication required";
 
     return apiError({
       code: invalidRequest
         ? "invalid_request"
         : authenticationRequired
           ? "authentication_required"
-          : status === 403
-            ? "access_denied"
-            : "unexpected_server_error",
+          : recentAuthenticationRequired
+            ? "recent_authentication_required"
+            : status === 403
+              ? "access_denied"
+              : "unexpected_server_error",
       message: invalidRequest
         ? "La requête contient des données invalides."
         : authenticationRequired
           ? "Une connexion vérifiée est nécessaire."
-          : status === 403
-            ? "Cette action n’est pas autorisée."
-            : "Le service est momentanément indisponible.",
+          : recentAuthenticationRequired
+            ? "Reconnecte-toi avant cette action sensible."
+            : status === 403
+              ? "Cette action n’est pas autorisée."
+              : "Le service est momentanément indisponible.",
       recoverable: status < 500,
       requestId,
       status,

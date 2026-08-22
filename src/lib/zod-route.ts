@@ -1,6 +1,7 @@
 import { createZodRoute } from "next-zod-route";
 import { NextResponse } from "next/server";
-import { getAuthorizedApiUser } from "./auth/auth-user";
+import { getAuthorizedApiUser, getSession } from "./auth/auth-user";
+import { hasRecentAuthentication } from "./auth/recent-auth";
 import { ApplicationError } from "./errors/application-error";
 import { ZodRouteError } from "./errors/zod-route-error";
 import { logger } from "./logger";
@@ -79,3 +80,18 @@ export const authRoute = readAuthRoute.use(async ({ next }) => {
   assertWritesAvailable();
   return next();
 });
+
+export const sensitiveReadAuthRoute = readAuthRoute.use(async ({ next }) => {
+  const session = await getSession();
+  if (!hasRecentAuthentication(session)) {
+    throw new ZodRouteError("Recent authentication required", 403);
+  }
+  return next();
+});
+
+export const sensitiveAuthRoute = sensitiveReadAuthRoute.use(
+  async ({ next }) => {
+    assertWritesAvailable();
+    return next();
+  },
+);

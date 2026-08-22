@@ -57,6 +57,11 @@ relocalisation mécanique avec la nouvelle logique métier.
 - Le brief est construit côté serveur depuis une liste de champs autorisés. Il
   exclut structurellement les questions privées et ne lit jamais les notes du
   journal.
+- Il peut être téléchargé en PDF FR/EN ou partagé par un lien temporaire de
+  1 heure à 7 jours. Le secret reste dans le fragment `#` de l’URL et seule son
+  empreinte est conservée. Chaque lien expose son échéance et son compteur
+  d’accès sans contenu, reste révocable et exige une session récente pour sa
+  création ou sa révocation.
 - La navigation et le hub Soin ont été réorganisés selon les quatre intentions
   de la V2.
 - Les associations affichées dans Repères conservent désormais leur signe,
@@ -103,6 +108,12 @@ La première spécification est publiée à `/api/v2/openapi.json` et couvre :
 - `GET /api/v2/medications` et `GET|POST /api/v2/dose-events` ;
 - `GET|POST /api/v2/appointments` ;
 - `GET|POST /api/v2/appointments/{appointmentId}/artifacts` ;
+- `GET|POST /api/v2/appointment-briefs/{briefId}/shares`,
+  `DELETE /api/v2/appointment-briefs/{briefId}/shares/{shareId}` et
+  `GET /api/v2/appointment-briefs/{briefId}/pdf` ;
+- `POST /api/v2/shared-appointment-brief` et
+  `POST /api/v2/shared-appointment-brief/pdf`, sans cookie mais avec capacité
+  temporaire transmise dans le corps ;
 - `GET|POST /api/v2/circle`, `POST /api/v2/circle/accept` et
   `DELETE /api/v2/circle/{relationshipId}` ;
 - `GET|POST /api/v2/support-requests` et
@@ -122,7 +133,9 @@ Les migrations `20260821153000_moodday_v2_foundation`,
 `20260822210000_v2_routine_occurrence_daily_uniqueness` ajoutent les premiers
 agrégats V2 sans supprimer les tables V1. La migration additive
 `20260823003000_med_intake_timezone` ajoute le fuseau capturé par les clients V2
-aux événements de prise existants :
+aux événements de prise existants. La migration
+`20260823013000_v2_appointment_brief_sharing` ajoute les liens temporaires sans
+modifier le contenu des briefs :
 
 - CheckIn, Observation, DailyAggregate, SourceConnection et SyncCursor ;
 - Routine et RoutineOccurrence ;
@@ -133,6 +146,8 @@ aux événements de prise existants :
   AccessLog.
 - AppointmentEvent, AppointmentDecision et AppointmentBrief, ainsi qu'un reçu
   d'opération optionnel sur AppointmentQuestion.
+- AppointmentBriefShare, avec empreinte de capacité, échéance, révocation et
+  métadonnées d’accès sans contenu.
 
 Des contraintes SQL protègent les bornes 0–10, la cohérence des fenêtres et de
 la couverture, les check-ins rapides incomplets, les positions de question et
@@ -142,8 +157,18 @@ contrôlée sur `codex-dose-v2-predeploy-2026-08-23` : 29 migrations réussies,
 colonne nullable présente, quatre événements historiques conservés et diff de
 schéma vide avec la Production. La sauvegarde fournisseur
 `codex-v2-predeploy-backup-2026-08-22` reste conservée ; la vérification de
-Production compte également 29 migrations réussies, 64 tables publiques et
-aucune dérive Prisma.
+À la livraison du lot prises, Production comptait également 29 migrations
+réussies, 64 tables publiques et aucune dérive Prisma.
+
+Le partage de brief a été répété depuis zéro sur PostgreSQL 17 : 30 migrations,
+65 tables publiques et contraintes d’échéance/compteur présentes. Il a aussi
+été appliqué au clone `codex-brief-share-v2-predeploy-2026-08-23` : 30
+migrations, table vide, quatre prises historiques intactes et diff de schéma
+nul avec Production. Lors de cette vérification, la première commande Prisma a
+repris les variables locales au lieu de l’URL du clone et a donc appliqué cette
+migration additive vide en Production avant le code. L’intégrité a été vérifiée
+immédiatement ; aucun rollback destructif n’a été tenté et la sauvegarde
+antérieure reste conservée.
 
 ### Offline mobile
 
@@ -210,7 +235,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 153 fichiers, 976 tests
+pnpm test:ci                 # 154 fichiers, 983 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -241,8 +266,8 @@ git diff --check
   sécurité offline dans les clients V2. Les traitements et occurrences
   quotidiennes de routines sont raccordés à l'API et au moteur offline mobile ;
   leurs corrections et planifications avancées restent à compléter. Le
-  rendez-vous canonique et son brief sont raccordés ; l'export PDF/lien
-  temporaire reste à livrer.
+  rendez-vous canonique, son brief, l'export PDF et les liens temporaires sont
+  raccordés ; les brouillons et conflits calendrier restent à livrer.
 - Google Agenda bidirectionnel, calendrier natif, HealthKit puis Health Connect.
 - Notifications d'invitation et tests réels de révocation sur session aidant
   active. Les écrans web/mobile, le contrat et le journal d'accès sont codés.
@@ -266,7 +291,7 @@ git diff --check
 4. Compléter Traitements/Routines sur les mêmes contrats : corrections,
    historiques, régimes et planifications avancées. Les occurrences, prises
    planifiées et PRN sont déjà raccordées.
-5. Tester Appointment canonique sur deux appareils et ajouter l'export du brief,
-   puis seulement connecter Google.
+5. Tester Appointment canonique et la révocation d’un brief sur deux appareils,
+   puis connecter Google sur le modèle de conflit documenté.
 6. Ne brancher Santé et billing qu'après les gates privacy et entitlements
    correspondantes ; tester Cercle sur deux sessions avant activation.

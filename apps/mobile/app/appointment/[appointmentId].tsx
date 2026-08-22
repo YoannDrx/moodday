@@ -1,9 +1,11 @@
 import type {
   AppointmentBriefDto,
+  AppointmentBriefShareDto,
   AppointmentDecisionDto,
   AppointmentEventDto,
   AppointmentQuestionDto,
 } from "@moodday/contracts";
+import { MoodDayApiError } from "@moodday/api-client";
 import { color, radius, space } from "@moodday/design-tokens";
 import * as Crypto from "expo-crypto";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -11,6 +13,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -20,7 +23,7 @@ import {
 import { BrandIllustration } from "../../src/components/brand-illustration";
 import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
-import { api } from "../../src/lib/api";
+import { api, appBaseUrl } from "../../src/lib/api";
 import { authClient } from "../../src/lib/auth-client";
 import {
   getCachedAppointmentDecisions,
@@ -57,6 +60,8 @@ export default function AppointmentDetailScreen() {
   const [events, setEvents] = useState<AppointmentEventDto[]>([]);
   const [decisions, setDecisions] = useState<AppointmentDecisionDto[]>([]);
   const [briefs, setBriefs] = useState<AppointmentBriefDto[]>([]);
+  const [shares, setShares] = useState<AppointmentBriefShareDto[]>([]);
+  const [latestShareUrl, setLatestShareUrl] = useState<string>();
   const [question, setQuestion] = useState("");
   const [privateNote, setPrivateNote] = useState(false);
   const [decision, setDecision] = useState("");
@@ -95,6 +100,11 @@ export default function AppointmentDetailScreen() {
       setEvents(artifacts.events);
       setDecisions(artifacts.decisions);
       setBriefs(artifacts.briefs);
+      setShares(
+        artifacts.briefs[0]
+          ? await api.listAppointmentBriefShares(artifacts.briefs[0].id)
+          : [],
+      );
       setIsOffline(false);
     } catch {
       setIsOffline(true);
@@ -245,9 +255,85 @@ export default function AppointmentDetailScreen() {
       });
       const brief = artifact as AppointmentBriefDto;
       setBriefs((current) => [brief, ...current]);
+      setShares([]);
+      setLatestShareUrl(undefined);
       setStatus("Brief créé sans les notes privées");
     } catch {
       setStatus("Le brief nécessite une connexion. Réessaie plus tard.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const createShare = async () => {
+    const brief = briefs[0];
+    if (!brief || isOffline) return;
+    setIsSaving(true);
+    setStatus(undefined);
+    try {
+      const token = (
+        await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          `${Crypto.randomUUID()}:${Crypto.randomUUID()}`,
+          { encoding: Crypto.CryptoEncoding.BASE64 },
+        )
+      )
+        .replaceAll("+", "-")
+        .replaceAll("/", "_")
+        .replace(/=+$/, "");
+      const result = await api.createAppointmentBriefShare(brief.id, {
+        operationId: `operation-${Crypto.randomUUID()}`,
+        shareId: `share-${Crypto.randomUUID()}`,
+        token,
+        expiresInHours: 24,
+      });
+      setShares((current) => [result.share, ...current]);
+      const shareUrl = `${appBaseUrl}/brief#${result.token}`;
+      setLatestShareUrl(shareUrl);
+      try {
+        await Share.share({
+          title: "Brief Mood Day",
+          message: shareUrl,
+          url: shareUrl,
+        });
+        setStatus("Lien créé pour 24 heures. Tu peux le révoquer ici.");
+      } catch {
+        setStatus("Lien créé. Tu peux le sélectionner ci-dessous.");
+      }
+    } catch (error) {
+      setStatus(
+        error instanceof MoodDayApiError &&
+          error.code === "recent_authentication_required"
+          ? "Reconnecte-toi avant de partager ce brief."
+          : "Impossible de créer le lien pour le moment.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const revokeShare = async (shareId: string) => {
+    const brief = briefs[0];
+    if (!brief || isOffline) return;
+    setIsSaving(true);
+    setStatus(undefined);
+    try {
+      await api.revokeAppointmentBriefShare(brief.id, shareId);
+      setShares((current) =>
+        current.map((share) =>
+          share.id === shareId
+            ? { ...share, revokedAt: new Date().toISOString() }
+            : share,
+        ),
+      );
+      setStatus("Lien révoqué immédiatement.");
+    } catch (error) {
+      setStatus(
+        error instanceof MoodDayApiError &&
+          error.code === "recent_authentication_required"
+          ? "Reconnecte-toi avant de révoquer ce lien."
+          : "Impossible de révoquer le lien pour le moment.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -359,6 +445,16 @@ export default function AppointmentDetailScreen() {
               onPress={() => void addSessionEvent("session_ended")}
               secondary
             />
+            {latestShareUrl ? (
+              <View style={styles.latestShare}>
+                <Text style={styles.latestShareLabel}>
+                  Dernier lien créé · sélectionnable
+                </Text>
+                <Text selectable style={styles.latestShareValue}>
+                  {latestShareUrl}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
         <Text style={styles.meta}>
@@ -405,11 +501,45 @@ export default function AppointmentDetailScreen() {
           onPress={() => void createBrief()}
         />
         {briefs[0] ? (
-          <Text style={styles.meta}>
-            Version {briefs[0].version} · {briefs[0].content.questions.length}{" "}
-            question(s) · {briefs[0].content.excludedPrivateQuestionCount}{" "}
-            note(s) privée(s) exclue(s)
-          </Text>
+          <View style={styles.briefActions}>
+            <Text style={styles.meta}>
+              Version {briefs[0].version} · {briefs[0].content.questions.length}{" "}
+              question(s) · {briefs[0].content.excludedPrivateQuestionCount}{" "}
+              note(s) privée(s) exclue(s)
+            </Text>
+            <ActionButton
+              disabled={isSaving || isOffline}
+              label="Partager pendant 24 heures"
+              onPress={() => void createShare()}
+              secondary
+            />
+            {shares.map((share) => {
+              const active =
+                !share.revokedAt && new Date(share.expiresAt) > new Date();
+              return (
+                <View key={share.id} style={styles.shareRow}>
+                  <Text style={styles.shareMeta}>
+                    {active ? "Lien actif" : "Lien inactif"} ·{" "}
+                    {share.accessCount} accès
+                  </Text>
+                  {active ? (
+                    <Pressable
+                      accessibilityLabel="Révoquer ce lien temporaire"
+                      accessibilityRole="button"
+                      disabled={isSaving || isOffline}
+                      onPress={() => void revokeShare(share.id)}
+                      style={({ pressed }) => [
+                        styles.revokeButton,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={styles.revokeLabel}>Révoquer</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
         ) : null}
       </SectionCard>
 
@@ -499,6 +629,34 @@ const styles = StyleSheet.create({
     backgroundColor: color.surfaceStrong,
   },
   multiline: { minHeight: 96, textAlignVertical: "top" },
+  briefActions: { gap: space[3] },
+  shareRow: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space[3],
+    paddingLeft: space[3],
+    borderRadius: radius.medium,
+    backgroundColor: color.canvas,
+  },
+  shareMeta: { flex: 1, color: color.inkMuted, fontSize: 12 },
+  latestShare: {
+    gap: space[2],
+    padding: space[3],
+    borderRadius: radius.medium,
+    backgroundColor: color.canvas,
+  },
+  latestShareLabel: { color: color.inkMuted, fontSize: 12, fontWeight: "700" },
+  latestShareValue: { color: color.primary, fontSize: 12, lineHeight: 18 },
+  revokeButton: {
+    minWidth: 88,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.medium,
+  },
+  revokeLabel: { color: "#8b3f32", fontSize: 13, fontWeight: "700" },
   switchRow: {
     minHeight: 52,
     flexDirection: "row",

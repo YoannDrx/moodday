@@ -4,6 +4,8 @@ import type {
   AppointmentDto,
   AppointmentArtifactsDto,
   AppointmentBriefDto,
+  AppointmentBriefShareDto,
+  AppointmentBriefShareResult,
   AppointmentDecisionDto,
   AppointmentEventDto,
   AppointmentQuestionDto,
@@ -12,6 +14,7 @@ import type {
   CircleRelationshipDto,
   CreateAppointmentInput,
   CreateAppointmentArtifactInput,
+  CreateAppointmentBriefShareInput,
   CreateCheckInInput,
   CreateCircleInvitationInput,
   CreateDoseEventInput,
@@ -25,6 +28,7 @@ import type {
   RoutineDto,
   RoutineOccurrenceDto,
   SupportRequestDto,
+  SharedAppointmentBriefDto,
   SyncPullResult,
   SyncPushInput,
   SyncPushResult,
@@ -167,6 +171,28 @@ export const createApiClient = ({
       >(`/api/v2/appointments/${encodeURIComponent(appointmentId)}/artifacts`, {
         method: "POST",
         body: JSON.stringify(input),
+      }),
+    listAppointmentBriefShares: async (briefId: string) =>
+      request<AppointmentBriefShareDto[]>(
+        `/api/v2/appointment-briefs/${encodeURIComponent(briefId)}/shares`,
+      ),
+    createAppointmentBriefShare: async (
+      briefId: string,
+      input: CreateAppointmentBriefShareInput,
+    ) =>
+      request<AppointmentBriefShareResult>(
+        `/api/v2/appointment-briefs/${encodeURIComponent(briefId)}/shares`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    revokeAppointmentBriefShare: async (briefId: string, shareId: string) =>
+      request<{ revoked: boolean }>(
+        `/api/v2/appointment-briefs/${encodeURIComponent(briefId)}/shares/${encodeURIComponent(shareId)}`,
+        { method: "DELETE" },
+      ),
+    resolveSharedAppointmentBrief: async (token: string) =>
+      request<SharedAppointmentBriefDto>("/api/v2/shared-appointment-brief", {
+        method: "POST",
+        body: JSON.stringify({ token }),
       }),
     listCircleRelationships: async () =>
       request<CircleRelationshipDto[]>("/api/v2/circle"),
