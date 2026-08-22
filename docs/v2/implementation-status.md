@@ -136,11 +136,14 @@ aux événements de prise existants :
 
 Des contraintes SQL protègent les bornes 0–10, la cohérence des fenêtres et de
 la couverture, les check-ins rapides incomplets, les positions de question et
-les périodes de rendez-vous. Les trois migrations V2 additives ont été répétées
-sur une branche isolée puis appliquées en Production le 22 août 2026. La
-sauvegarde fournisseur `codex-v2-predeploy-backup-2026-08-22` est conservée ;
-la vérification post-déploiement compte 27 migrations réussies, 64 tables
-publiques et aucune dérive Prisma.
+les périodes de rendez-vous. Les migrations V2 additives ont été répétées sur
+des branches isolées avant livraison. La migration des prises du 23 août a été
+contrôlée sur `codex-dose-v2-predeploy-2026-08-23` : 29 migrations réussies,
+colonne nullable présente, quatre événements historiques conservés et diff de
+schéma vide avec la Production. La sauvegarde fournisseur
+`codex-v2-predeploy-backup-2026-08-22` reste conservée ; la vérification de
+Production compte également 29 migrations réussies, 64 tables publiques et
+aucune dérive Prisma.
 
 ### Offline mobile
 
