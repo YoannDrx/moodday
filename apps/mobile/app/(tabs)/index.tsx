@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BrandIllustration } from "../../src/components/brand-illustration";
 import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
+import { authClient } from "../../src/lib/auth-client";
 import {
   flushPendingCheckIns,
   getPendingOperationCount,
@@ -43,6 +44,8 @@ const getLocalContext = () => {
 };
 
 export default function TodayScreen() {
+  const { data: session } = authClient.useSession();
+  const ownerId = session?.user.id;
   const context = useMemo(getLocalContext, []);
   const [mode, setMode] = useState<CheckInMode>("idle");
   const [scores, setScores] = useState<Scores>({});
@@ -56,14 +59,16 @@ export default function TodayScreen() {
     scores.irritability !== undefined;
 
   useEffect(() => {
+    if (!ownerId) return;
     const synchronize = async () => {
-      await flushPendingCheckIns();
-      setPendingCount(await getPendingOperationCount());
+      await flushPendingCheckIns(ownerId);
+      setPendingCount(await getPendingOperationCount(ownerId));
     };
     synchronize().catch(() => setStatus("Synchronisation en attente."));
-  }, []);
+  }, [ownerId]);
 
   const save = async (depth: "presence" | "quick") => {
+    if (!ownerId) return;
     setIsSaving(true);
     setStatus(undefined);
     const input: CreateCheckInInput = {
@@ -76,14 +81,14 @@ export default function TodayScreen() {
     };
 
     try {
-      const result = await saveCheckInOfflineFirst(input);
+      const result = await saveCheckInOfflineFirst(ownerId, input);
       setMode("done");
       setStatus(
         result.pending
           ? "Conservé sur cet appareil · synchronisation en attente"
           : "Synchronisé avec Mood Day",
       );
-      setPendingCount(await getPendingOperationCount());
+      setPendingCount(await getPendingOperationCount(ownerId));
     } catch {
       setStatus("Connexion nécessaire pour enregistrer ce point.");
     } finally {

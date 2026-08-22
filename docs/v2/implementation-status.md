@@ -130,8 +130,14 @@ publiques et aucune dérive Prisma.
 ### Offline mobile
 
 - SQLCipher est activé dans la configuration Expo native.
-- Une clé aléatoire de 32 octets est conservée dans SecureStore.
+- Le runtime vérifie `cipher_version` et refuse d'ouvrir une base si SQLCipher
+  n'est pas réellement présent dans le development build.
+- Chaque compte possède une base distincte dont le nom ne contient qu'une
+  empreinte SHA-256 tronquée. Sa clé aléatoire de 32 octets est distincte,
+  conservée dans SecureStore et limitée à l'appareil.
 - Les opérations de check-in sont persistées localement avec leur `operationId`.
+- Toute mutation est écrite dans SQLCipher avant la première tentative réseau ;
+  elle n'est retirée qu'après acceptation ou déduplication serveur.
 - Les opérations partagent maintenant une file générique par lots pour les
   check-ins, routines, rendez-vous, questions, repères de séance et décisions,
   avec identifiant stable d'appareil.
@@ -175,7 +181,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 145 fichiers, 932 tests
+pnpm test:ci                 # 149 fichiers, 954 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -210,8 +216,9 @@ git diff --check
 - RevenueCat, StoreKit et Google Play Billing. La projection commune des droits
   Stripe/mobile est codée, mais aucun webhook store n'est encore activé.
 - Notifications, exports V2, suppression par source et suppression de compte.
-- Maestro, tests fournisseurs, tests de fuseau et heure d'été/hiver, tests de
-  sécurité et matrice d'abonnement multi-source.
+- Exécution des workflows Maestro désormais versionnés sur de vrais builds,
+  tests fournisseurs, tests de fuseau et heure d'été/hiver, tests de sécurité
+  et matrice d'abonnement multi-source.
 
 ## Ordre de reprise recommandé
 

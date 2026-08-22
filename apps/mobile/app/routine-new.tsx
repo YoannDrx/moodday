@@ -3,21 +3,24 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Screen } from "../src/components/screen";
+import { authClient } from "../src/lib/auth-client";
 import { saveRoutineOfflineFirst } from "../src/lib/local-database";
 
 export default function NewRoutineScreen() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const [title, setTitle] = useState("");
   const [weeklyTarget, setWeeklyTarget] = useState("3");
   const [status, setStatus] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
 
   const save = async () => {
+    if (!session?.user.id) return;
     setIsSaving(true);
     setStatus(undefined);
     try {
       const target = Number.parseInt(weeklyTarget, 10);
-      const result = await saveRoutineOfflineFirst({
+      const result = await saveRoutineOfflineFirst(session.user.id, {
         title,
         weeklyTarget: Number.isFinite(target) ? target : null,
         status: "active",

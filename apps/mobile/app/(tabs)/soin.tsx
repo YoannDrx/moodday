@@ -12,6 +12,7 @@ import {
 import { BrandIllustration } from "../../src/components/brand-illustration";
 import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
+import { authClient } from "../../src/lib/auth-client";
 import {
   getCachedAppointments,
   getCachedRoutines,
@@ -30,24 +31,27 @@ const appointmentLabel = (appointment: AppointmentDto) =>
 
 export default function CareScreen() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const ownerId = session?.user.id;
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [routines, setRoutines] = useState<RoutineDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async () => {
+    if (!ownerId) return;
     setIsLoading(true);
     const [cachedAppointments, cachedRoutines] = await Promise.all([
-      getCachedAppointments(),
-      getCachedRoutines(),
+      getCachedAppointments(ownerId),
+      getCachedRoutines(ownerId),
     ]);
     setAppointments(cachedAppointments);
     setRoutines(cachedRoutines);
     try {
-      await synchronizeNow();
+      await synchronizeNow(ownerId);
       const [freshAppointments, freshRoutines] = await Promise.all([
-        getCachedAppointments(),
-        getCachedRoutines(),
+        getCachedAppointments(ownerId),
+        getCachedRoutines(ownerId),
       ]);
       setAppointments(freshAppointments);
       setRoutines(freshRoutines);
@@ -57,7 +61,7 @@ export default function CareScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useFocusEffect(
     useCallback(() => {

@@ -21,6 +21,7 @@ import { BrandIllustration } from "../../src/components/brand-illustration";
 import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
 import { api } from "../../src/lib/api";
+import { authClient } from "../../src/lib/auth-client";
 import {
   getCachedAppointmentDecisions,
   getCachedAppointmentEvents,
@@ -44,6 +45,8 @@ const appointmentLabel = (startsAt: string, timezone: string) =>
 
 export default function AppointmentDetailScreen() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const ownerId = session?.user.id;
   const params = useLocalSearchParams<{ appointmentId: string }>();
   const appointmentId = Array.isArray(params.appointmentId)
     ? params.appointmentId[0]
@@ -63,29 +66,29 @@ export default function AppointmentDetailScreen() {
   const [status, setStatus] = useState<string>();
 
   const readCache = useCallback(async () => {
-    if (!appointmentId) return;
+    if (!appointmentId || !ownerId) return;
     const [appointments, cachedQuestions, cachedEvents, cachedDecisions] =
       await Promise.all([
-        getCachedAppointments(),
-        getCachedAppointmentQuestions(appointmentId),
-        getCachedAppointmentEvents(appointmentId),
-        getCachedAppointmentDecisions(appointmentId),
+        getCachedAppointments(ownerId),
+        getCachedAppointmentQuestions(ownerId, appointmentId),
+        getCachedAppointmentEvents(ownerId, appointmentId),
+        getCachedAppointmentDecisions(ownerId, appointmentId),
       ]);
     setAppointment(appointments.find((item) => item.id === appointmentId));
     setQuestions(cachedQuestions);
     setEvents(cachedEvents);
     setDecisions(cachedDecisions);
-  }, [appointmentId]);
+  }, [appointmentId, ownerId]);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     await readCache();
-    if (!appointmentId) {
+    if (!appointmentId || !ownerId) {
       setIsLoading(false);
       return;
     }
     try {
-      await synchronizeNow();
+      await synchronizeNow(ownerId);
       await readCache();
       const artifacts = await api.listAppointmentArtifacts(appointmentId);
       setQuestions(artifacts.questions);
@@ -98,7 +101,7 @@ export default function AppointmentDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [appointmentId, readCache]);
+  }, [appointmentId, ownerId, readCache]);
 
   useFocusEffect(
     useCallback(() => {
@@ -107,15 +110,19 @@ export default function AppointmentDetailScreen() {
   );
 
   const addQuestion = async () => {
-    if (!appointmentId || !question.trim()) return;
+    if (!appointmentId || !ownerId || !question.trim()) return;
     setIsSaving(true);
     setStatus(undefined);
     try {
       const content = question.trim();
-      const result = await saveAppointmentQuestionOfflineFirst(appointmentId, {
-        content,
-        privateNote,
-      });
+      const result = await saveAppointmentQuestionOfflineFirst(
+        ownerId,
+        appointmentId,
+        {
+          content,
+          privateNote,
+        },
+      );
       setQuestions((current) => [
         ...current,
         {
@@ -143,15 +150,19 @@ export default function AppointmentDetailScreen() {
   };
 
   const addSessionEvent = async (type: "session_started" | "session_ended") => {
-    if (!appointmentId) return;
+    if (!appointmentId || !ownerId) return;
     setIsSaving(true);
     setStatus(undefined);
     const now = new Date().toISOString();
     try {
-      const result = await saveAppointmentEventOfflineFirst(appointmentId, {
-        type,
-        occurredAt: now,
-      });
+      const result = await saveAppointmentEventOfflineFirst(
+        ownerId,
+        appointmentId,
+        {
+          type,
+          occurredAt: now,
+        },
+      );
       setEvents((current) => [
         ...current,
         {
@@ -179,16 +190,20 @@ export default function AppointmentDetailScreen() {
   };
 
   const addDecision = async () => {
-    if (!appointmentId || !decision.trim()) return;
+    if (!appointmentId || !ownerId || !decision.trim()) return;
     setIsSaving(true);
     setStatus(undefined);
     try {
       const summary = decision.trim();
-      const result = await saveAppointmentDecisionOfflineFirst(appointmentId, {
-        summary,
-        status: "open",
-        includeInBrief: true,
-      });
+      const result = await saveAppointmentDecisionOfflineFirst(
+        ownerId,
+        appointmentId,
+        {
+          summary,
+          status: "open",
+          includeInBrief: true,
+        },
+      );
       const now = new Date().toISOString();
       setDecisions((current) => [
         ...current,

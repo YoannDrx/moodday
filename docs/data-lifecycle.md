@@ -66,6 +66,12 @@ ne sont jamais stockés en clair.
 - Les opérations et snapshots chiffrés conservés localement dans le navigateur
   sont purgés après synchronisation, purge explicite ou au plus tard après 30
   jours. Toute entrée sans horodatage de rétention fiable est également purgée.
+- Sur mobile, chaque compte utilise une base SQLCipher séparée et une clé
+  SecureStore propre à l'appareil. Le nom de fichier contient une empreinte
+  SHA-256 tronquée, jamais l'identifiant utilisateur brut. Une mutation est
+  chiffrée localement avant son envoi et supprimée de la file après acquittement
+  serveur. La purge mobile lors de la suppression du compte et le contrôle des
+  opérations en attente avant déconnexion restent une gate de bêta dédiée.
 - Le job technique quotidien applique, sous réserve d'approbation juridique,
   90 jours aux traces de livraison e-mail et push terminées, 12 mois aux accès
   aidant et usages IA sans contenu, 13 mois aux événements webhook Stripe et 30
