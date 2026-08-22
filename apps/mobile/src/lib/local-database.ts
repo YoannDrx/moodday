@@ -4,6 +4,7 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  routineOccurrenceWriteSchema,
   routineWriteSchema,
   type AppointmentDto,
   type AppointmentDecisionDto,
@@ -15,6 +16,8 @@ import {
   type CreateAppointmentQuestionInput,
   type CreateCheckInInput,
   type RoutineDto,
+  type RoutineOccurrenceDto,
+  type RoutineOccurrenceWriteInput,
   type RoutineWriteInput,
   type SyncEntityType,
   type SyncPushOperation,
@@ -113,7 +116,7 @@ const initializeDatabase = async ({
     CREATE TABLE IF NOT EXISTS pending_sync_operation (
       operation_id TEXT PRIMARY KEY NOT NULL,
       entity_id TEXT NOT NULL,
-      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
       mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
       base_version TEXT,
       payload TEXT NOT NULL,
@@ -145,7 +148,7 @@ const initializeDatabase = async ({
         CREATE TABLE pending_sync_operation_v2 (
           operation_id TEXT PRIMARY KEY NOT NULL,
           entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
           mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
           base_version TEXT,
           payload TEXT NOT NULL,
@@ -162,6 +165,32 @@ const initializeDatabase = async ({
         CREATE INDEX pending_sync_operation_state_created_at_idx
           ON pending_sync_operation(state, created_at);
         PRAGMA user_version = 2;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 3) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE pending_sync_operation_v3 (
+          operation_id TEXT PRIMARY KEY NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'conflict', 'rejected')),
+          error_code TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR IGNORE INTO pending_sync_operation_v3
+          (operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at)
+        SELECT operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at
+        FROM pending_sync_operation;
+        DROP TABLE pending_sync_operation;
+        ALTER TABLE pending_sync_operation_v3 RENAME TO pending_sync_operation;
+        CREATE INDEX pending_sync_operation_state_created_at_idx
+          ON pending_sync_operation(state, created_at);
+        PRAGMA user_version = 3;
       `);
     });
   }
@@ -201,20 +230,38 @@ export const purgeOwnerLocalData = async (ownerId: string) => {
 const queueOperation = async (
   ownerId: string,
   operation: SyncPushOperation,
+  optimisticSnapshot?: unknown,
 ) => {
   const database = await getLocalDatabase(ownerId);
-  await database.runAsync(
-    `INSERT OR IGNORE INTO pending_sync_operation
-      (operation_id, entity_id, entity_type, mutation, base_version, payload, state, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
-    operation.operationId,
-    operation.entityId,
-    operation.entityType,
-    operation.mutation,
-    operation.baseVersion ?? null,
-    JSON.stringify(operation.payload),
-    new Date().toISOString(),
-  );
+  const createdAt = new Date().toISOString();
+  await database.withTransactionAsync(async () => {
+    await database.runAsync(
+      `INSERT OR IGNORE INTO pending_sync_operation
+        (operation_id, entity_id, entity_type, mutation, base_version, payload, state, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      operation.operationId,
+      operation.entityId,
+      operation.entityType,
+      operation.mutation,
+      operation.baseVersion ?? null,
+      JSON.stringify(operation.payload),
+      createdAt,
+    );
+    if (optimisticSnapshot !== undefined) {
+      await database.runAsync(
+        `INSERT INTO sync_snapshot (entity_type, entity_id, payload, changed_at, deleted)
+         VALUES (?, ?, ?, ?, 0)
+         ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+           payload = excluded.payload,
+           changed_at = excluded.changed_at,
+           deleted = 0`,
+        operation.entityType,
+        operation.entityId,
+        JSON.stringify(optimisticSnapshot),
+        createdAt,
+      );
+    }
+  });
 };
 
 const pushOperations = async (operations: SyncPushOperation[]) =>
@@ -232,12 +279,45 @@ const removeQueuedOperation = async (ownerId: string, operationId: string) => {
   );
 };
 
+const removeLocalSnapshot = async (
+  ownerId: string,
+  entityType: SyncEntityType,
+  entityId: string,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    "DELETE FROM sync_snapshot WHERE entity_type = ? AND entity_id = ?",
+    entityType,
+    entityId,
+  );
+};
+
 const saveOfflineFirst = async (
   ownerId: string,
   operation: SyncPushOperation,
+  optimisticSnapshot?: unknown,
 ) =>
   persistOperationBeforeSync(operation, {
-    queue: async () => queueOperation(ownerId, operation),
+    discard: async () => {
+      await removeQueuedOperation(ownerId, operation.operationId);
+      if (optimisticSnapshot !== undefined) {
+        await removeLocalSnapshot(
+          ownerId,
+          operation.entityType,
+          operation.entityId,
+        );
+      }
+    },
+    hideRejected: async () => {
+      if (optimisticSnapshot !== undefined) {
+        await removeLocalSnapshot(
+          ownerId,
+          operation.entityType,
+          operation.entityId,
+        );
+      }
+    },
+    queue: async () => queueOperation(ownerId, operation, optimisticSnapshot),
     push: async () => pushOperations([operation]),
     remove: async () => removeQueuedOperation(ownerId, operation.operationId),
     markRejected: async (code) => {
@@ -294,6 +374,37 @@ export const saveRoutineOfflineFirst = async (
     mutation: "create",
     payload,
   });
+};
+
+export const saveRoutineOccurrenceOfflineFirst = async (
+  ownerId: string,
+  input: RoutineOccurrenceWriteInput,
+) => {
+  const payload = routineOccurrenceWriteSchema.parse(input);
+  const operationId = Crypto.randomUUID();
+  const entityId = Crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const occurrence: RoutineOccurrenceDto = {
+    ...payload,
+    id: entityId,
+    operationId,
+    completedAt: payload.completedAt ?? null,
+    note: payload.note ?? null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId,
+      entityType: "routine_occurrence",
+      mutation: "create",
+      payload,
+    },
+    occurrence,
+  );
+  return { ...result, occurrence };
 };
 
 export const saveAppointmentOfflineFirst = async (
@@ -401,12 +512,22 @@ export const flushPendingOperations = async (ownerId: string) => {
         "UPDATE pending_sync_operation SET state = 'rejected', error_code = 'local_payload_invalid' WHERE operation_id = ?",
         row.operation_id,
       );
+      if (row.mutation === "create") {
+        await database.runAsync(
+          "DELETE FROM sync_snapshot WHERE entity_type = ? AND entity_id = ?",
+          row.entity_type,
+          row.entity_id,
+        );
+      }
     }
     return parseAt(index + 1);
   };
   await parseAt(0);
   if (operations.length === 0) return;
 
+  const operationsById = new Map(
+    operations.map((operation) => [operation.operationId, operation]),
+  );
   const response = await pushOperations(operations);
   const reconcileAt = async (index: number): Promise<void> => {
     const result = response.results[index];
@@ -423,6 +544,14 @@ export const flushPendingOperations = async (ownerId: string) => {
         result.code,
         result.operationId,
       );
+      const operation = operationsById.get(result.operationId);
+      if (operation?.mutation === "create") {
+        await database.runAsync(
+          "DELETE FROM sync_snapshot WHERE entity_type = ? AND entity_id = ?",
+          operation.entityType,
+          operation.entityId,
+        );
+      }
     }
     return reconcileAt(index + 1);
   };
@@ -500,6 +629,8 @@ const readSnapshots = async <T>(
 
 export const getCachedRoutines = async (ownerId: string) =>
   readSnapshots<RoutineDto>(ownerId, "routine");
+export const getCachedRoutineOccurrences = async (ownerId: string) =>
+  readSnapshots<RoutineOccurrenceDto>(ownerId, "routine_occurrence");
 export const getCachedAppointments = async (ownerId: string) =>
   readSnapshots<AppointmentDto>(ownerId, "appointment");
 export const getCachedAppointmentQuestions = async (

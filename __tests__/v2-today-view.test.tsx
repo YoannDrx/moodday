@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/features/v2/check-ins/check-in.action", () => ({
   createV2CheckIn: vi.fn(),
 }));
+vi.mock("@/features/v2/routines/routine-occurrence.action", () => ({
+  createV2RoutineOccurrence: vi.fn(),
+}));
 vi.mock("@/hooks/use-offline-status", () => ({
   useOfflineStatus: (ownerId: string) => ({
     isOnline: state.online,
@@ -49,6 +52,7 @@ const props = {
   timezone: "Europe/Paris",
   locale: "fr" as const,
   initialCheckIn: null,
+  routines: [],
   nextAppointment: null,
 };
 
@@ -119,5 +123,36 @@ describe("V2 Today view", () => {
       }),
     );
     expect(mocks.queueAction).not.toHaveBeenCalled();
+  });
+
+  it("queues a routine occurrence with stable civil-day context", async () => {
+    const user = userEvent.setup();
+    render(
+      <TodayView
+        {...props}
+        routines={[{ id: "routine-1", title: "Marcher", completed: false }]}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Marquer comme fait" }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.queueAction).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({
+          type: "v2_routine_occurrence",
+          entityId: expect.any(String),
+          routineId: "routine-1",
+          localDate: "2026-08-22",
+          timezone: "Europe/Paris",
+          status: "completed",
+          completedAt: expect.any(String),
+        }),
+        { timeZone: "Europe/Paris" },
+      ),
+    );
+    expect(screen.getByText("Fait · tu peux t’arrêter là")).toBeVisible();
   });
 });

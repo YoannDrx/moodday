@@ -30,7 +30,7 @@ export default async function DashboardPage() {
     timeZone: timezone,
   }).format(new Date());
 
-  const [initialCheckIn, nextAppointment] = await Promise.all([
+  const [initialCheckIn, nextAppointment, routines] = await Promise.all([
     prisma.checkIn.findFirst({
       where: { userId: user.id, localDate },
       orderBy: { createdAt: "desc" },
@@ -44,6 +44,20 @@ export default async function DashboardPage() {
       },
       orderBy: { startsAt: "asc" },
       select: { title: true, startsAt: true },
+    }),
+    prisma.routine.findMany({
+      where: { userId: user.id, status: "active" },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        occurrences: {
+          where: { localDate },
+          select: { status: true },
+          take: 1,
+        },
+      },
     }),
   ]);
 
@@ -59,6 +73,11 @@ export default async function DashboardPage() {
         timezone={timezone}
         locale={locale === "fr" ? "fr" : "en"}
         initialCheckIn={initialCheckIn}
+        routines={routines.map((routine) => ({
+          id: routine.id,
+          title: routine.title,
+          completed: routine.occurrences[0]?.status === "completed",
+        }))}
         nextAppointment={
           nextAppointment
             ? {

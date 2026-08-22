@@ -15,10 +15,12 @@ import type {
   CreateCheckInInput,
   CreateCircleInvitationInput,
   CreateRoutineInput,
+  CreateRoutineOccurrenceInput,
   CreateSupportRequestInput,
   EntitlementDto,
   RespondSupportRequestInput,
   RoutineDto,
+  RoutineOccurrenceDto,
   SupportRequestDto,
   SyncPullResult,
   SyncPushInput,
@@ -114,6 +116,15 @@ export const createApiClient = ({
     listRoutines: async (cursor?: string) =>
       request<{ items: RoutineDto[]; nextCursor: string | null }>(
         `/api/v2/routines${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+      ),
+    createRoutineOccurrence: async (input: CreateRoutineOccurrenceInput) =>
+      request<RoutineOccurrenceDto>("/api/v2/routine-occurrences", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listRoutineOccurrences: async (localDate: string) =>
+      request<RoutineOccurrenceDto[]>(
+        `/api/v2/routine-occurrences?localDate=${encodeURIComponent(localDate)}`,
       ),
     createAppointment: async (input: CreateAppointmentInput) =>
       request<AppointmentDto>("/api/v2/appointments", {

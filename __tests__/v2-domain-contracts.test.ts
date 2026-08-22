@@ -1,4 +1,7 @@
-import { createCheckInSchema } from "@moodday/contracts";
+import {
+  createCheckInSchema,
+  createRoutineOccurrenceSchema,
+} from "@moodday/contracts";
 import { describe, expect, it } from "vitest";
 import {
   calculateSignedAssociation,
@@ -34,6 +37,25 @@ describe("Mood Day V2 domain", () => {
     if (!result.success) {
       expect(result.error.issues[0]?.path).toEqual(["irritability"]);
     }
+  });
+
+  it("requires an explicit completion time for a completed routine", () => {
+    const valid = createRoutineOccurrenceSchema.parse({
+      operationId: "operation-routine-occurrence-1",
+      entityId: "routine-occurrence-1",
+      routineId: "routine-1",
+      localDate: "2026-08-22",
+      timezone: "Europe/Paris",
+      status: "completed",
+      completedAt: "2026-08-22T18:00:00.000Z",
+    });
+    expect(valid.status).toBe("completed");
+
+    const invalid = createRoutineOccurrenceSchema.safeParse({
+      ...valid,
+      completedAt: null,
+    });
+    expect(invalid.success).toBe(false);
   });
 
   it("recommends a neutral presence after an absence and a complete point near care changes", () => {

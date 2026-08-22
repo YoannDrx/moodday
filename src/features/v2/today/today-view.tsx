@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createV2CheckIn } from "@/features/v2/check-ins/check-in.action";
+import { createV2RoutineOccurrence } from "@/features/v2/routines/routine-occurrence.action";
 import { queueAction } from "@/features/pwa/offline-actions";
 import { getOfflineStorageErrorMessage } from "@/features/pwa/offline-store";
 import { useOfflineStatus } from "@/hooks/use-offline-status";
@@ -23,7 +24,7 @@ import {
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type CoreDimension = "valence" | "activation" | "irritability";
@@ -77,6 +78,12 @@ const copy = {
       "Choisis une demande précise. Aucun signal n’est envoyé automatiquement.",
     ask: "Demander un soutien",
     error: "Le point n’a pas pu être enregistré. Rien n’a été effacé.",
+    routineTitle: "Routines du jour",
+    routineEmpty: "Aucune routine active aujourd’hui.",
+    routineDone: "Fait · tu peux t’arrêter là",
+    routineAction: "Marquer comme fait",
+    routineSavedOffline: "Routine notée hors ligne.",
+    routineError: "La routine n’a pas pu être notée. Rien n’a été effacé.",
   },
   en: {
     hello: "Hello",
@@ -119,6 +126,12 @@ const copy = {
     supportBody: "Choose a specific request. Nothing is sent automatically.",
     ask: "Ask for support",
     error: "The check-in could not be saved. Nothing was erased.",
+    routineTitle: "Today’s routines",
+    routineEmpty: "No active routine today.",
+    routineDone: "Done · you can stop here",
+    routineAction: "Mark as done",
+    routineSavedOffline: "Routine saved offline.",
+    routineError: "The routine could not be saved. Nothing was erased.",
   },
 } as const;
 
@@ -130,6 +143,7 @@ type TodayViewProps = {
   timezone: string;
   locale: "fr" | "en";
   initialCheckIn: { depth: "presence" | "quick" | "complete" } | null;
+  routines: { id: string; title: string; completed: boolean }[];
   nextAppointment: { title: string; dateLabel: string } | null;
 };
 
@@ -141,6 +155,7 @@ export function TodayView({
   timezone,
   locale,
   initialCheckIn,
+  routines,
   nextAppointment,
 }: TodayViewProps) {
   const labels = copy[locale];
@@ -152,15 +167,45 @@ export function TodayView({
   const [scores, setScores] = useState<Scores>({});
   const [note, setNote] = useState("");
   const [isQueueing, setIsQueueing] = useState(false);
+  const [completedRoutineIds, setCompletedRoutineIds] = useState(
+    () =>
+      new Set(
+        routines
+          .filter((routine) => routine.completed)
+          .map((routine) => routine.id),
+      ),
+  );
+  const [savingRoutineId, setSavingRoutineId] = useState<string>();
   const { isOnline, ownerId } = useOfflineStatus(initialOwnerId);
 
-  const { execute, isPending } = useAction(createV2CheckIn, {
+  useEffect(() => {
+    setCompletedRoutineIds((current) => {
+      const next = new Set(current);
+      for (const routine of routines) {
+        if (routine.completed) next.add(routine.id);
+      }
+      return next;
+    });
+  }, [routines]);
+
+  const { execute: executeCheckIn, isPending } = useAction(createV2CheckIn, {
     onSuccess: ({ data }) => {
       setSavedDepth(data.depth);
       setMode("done");
       router.refresh();
     },
     onError: () => toast.error(labels.error),
+  });
+  const { execute: executeRoutine } = useAction(createV2RoutineOccurrence, {
+    onSuccess: ({ data }) => {
+      setCompletedRoutineIds((current) => new Set(current).add(data.routineId));
+      setSavingRoutineId(undefined);
+      router.refresh();
+    },
+    onError: () => {
+      setSavingRoutineId(undefined);
+      toast.error(labels.routineError);
+    },
   });
 
   const coreComplete = useMemo(
@@ -210,7 +255,7 @@ export function TodayView({
       return;
     }
 
-    execute({
+    executeCheckIn({
       operationId: crypto.randomUUID(),
       depth: payload.depth,
       localDate: payload.localDate,
@@ -225,6 +270,45 @@ export function TodayView({
   };
 
   const isSaving = isPending || isQueueing;
+
+  const completeRoutine = async (routineId: string) => {
+    const entityId = crypto.randomUUID();
+    const completedAt = new Date().toISOString();
+    setSavingRoutineId(routineId);
+    if (!isOnline) {
+      try {
+        await queueAction(
+          ownerId ?? initialOwnerId,
+          {
+            type: "v2_routine_occurrence",
+            entityId,
+            routineId,
+            localDate,
+            timezone,
+            status: "completed",
+            completedAt,
+          },
+          { timeZone: timezone },
+        );
+        setCompletedRoutineIds((current) => new Set(current).add(routineId));
+        toast.success(labels.routineSavedOffline);
+      } catch {
+        toast.error(labels.routineError);
+      } finally {
+        setSavingRoutineId(undefined);
+      }
+      return;
+    }
+    executeRoutine({
+      operationId: crypto.randomUUID(),
+      entityId,
+      routineId,
+      localDate,
+      timezone,
+      status: "completed",
+      completedAt,
+    });
+  };
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-5 pb-10 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
@@ -422,6 +506,16 @@ export function TodayView({
       </section>
 
       <aside className="space-y-4 xl:pt-36">
+        <RoutineTodayCard
+          title={labels.routineTitle}
+          emptyLabel={labels.routineEmpty}
+          doneLabel={labels.routineDone}
+          actionLabel={labels.routineAction}
+          routines={routines}
+          completedRoutineIds={completedRoutineIds}
+          savingRoutineId={savingRoutineId}
+          onComplete={(routineId) => void completeRoutine(routineId)}
+        />
         <IntentCard
           eyebrow={labels.next}
           icon={CalendarDays}
@@ -513,6 +607,75 @@ function DimensionScale({
         <span>{highLabel}</span>
       </div>
     </fieldset>
+  );
+}
+
+function RoutineTodayCard({
+  title,
+  emptyLabel,
+  doneLabel,
+  actionLabel,
+  routines,
+  completedRoutineIds,
+  savingRoutineId,
+  onComplete,
+}: {
+  title: string;
+  emptyLabel: string;
+  doneLabel: string;
+  actionLabel: string;
+  routines: { id: string; title: string }[];
+  completedRoutineIds: ReadonlySet<string>;
+  savingRoutineId?: string;
+  onComplete: (routineId: string) => void;
+}) {
+  return (
+    <article className="rounded-[22px] border border-[#dde4df] bg-[#fffdf8] p-5 shadow-[0_10px_30px_rgba(24,49,47,0.045)]">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#e3eee7] text-[#37624d]">
+          <Leaf className="size-5" aria-hidden="true" />
+        </span>
+        <h2 className="font-bold tracking-[-0.01em] text-[#18312f]">{title}</h2>
+      </div>
+      {routines.length === 0 ? (
+        <p className="mt-4 text-sm text-[#61716f]">{emptyLabel}</p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {routines.map((routine) => {
+            const completed = completedRoutineIds.has(routine.id);
+            return (
+              <li
+                key={routine.id}
+                className="flex min-h-12 items-center gap-3 border-t border-[#e4e9e5] pt-2 first:border-0 first:pt-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[#18312f]">
+                    {routine.title}
+                  </p>
+                  {completed ? (
+                    <p className="mt-0.5 text-xs text-[#61716f]">{doneLabel}</p>
+                  ) : null}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={completed ? "outline" : "default"}
+                  className="min-h-11 shrink-0 rounded-xl"
+                  disabled={completed || savingRoutineId === routine.id}
+                  onClick={() => onComplete(routine.id)}
+                >
+                  {completed
+                    ? "✓"
+                    : savingRoutineId === routine.id
+                      ? "…"
+                      : actionLabel}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </article>
   );
 }
 

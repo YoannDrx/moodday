@@ -23,6 +23,8 @@ const operation: SyncPushOperation = {
 };
 
 const createAdapters = () => ({
+  discard: vi.fn(async () => undefined),
+  hideRejected: vi.fn(async () => undefined),
   markRejected: vi.fn(async () => undefined),
   push: vi.fn<() => Promise<SyncPushResult>>(async () => ({
     results: [
@@ -138,6 +140,7 @@ describe("mobile owner-bound local database", () => {
     ).resolves.toEqual({ pending: false, entityId: operation.entityId });
     expect(calls).toEqual(["queue", "push", "remove"]);
     expect(adapters.markRejected).not.toHaveBeenCalled();
+    expect(adapters.discard).not.toHaveBeenCalled();
   });
 
   it("keeps the encrypted operation after a recoverable outage", async () => {
@@ -165,7 +168,8 @@ describe("mobile owner-bound local database", () => {
       authError,
     );
     expect(adapters.queue).toHaveBeenCalledOnce();
-    expect(adapters.remove).toHaveBeenCalledOnce();
+    expect(adapters.discard).toHaveBeenCalledOnce();
+    expect(adapters.remove).not.toHaveBeenCalled();
   });
 
   it("marks an explicit server rejection without retrying it forever", async () => {
@@ -186,6 +190,7 @@ describe("mobile owner-bound local database", () => {
       persistOperationBeforeSync(operation, adapters),
     ).rejects.toThrow("invalid_payload");
     expect(adapters.markRejected).toHaveBeenCalledWith("invalid_payload");
+    expect(adapters.hideRejected).toHaveBeenCalledOnce();
     expect(adapters.remove).not.toHaveBeenCalled();
   });
 });

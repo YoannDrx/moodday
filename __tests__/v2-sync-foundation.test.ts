@@ -152,4 +152,60 @@ describe("V2 synchronization foundation", () => {
       }),
     );
   });
+
+  it("creates one owned routine occurrence from the offline queue", async () => {
+    const updatedAt = new Date("2026-08-22T18:00:00.000Z");
+    vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.routineOccurrence.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    vi.mocked(prisma.routine.findFirst).mockResolvedValue({
+      id: "routine-1",
+    } as never);
+    vi.mocked(prisma.routineOccurrence.create).mockResolvedValue({
+      updatedAt,
+    } as never);
+    vi.mocked(prisma.syncOperation.create).mockResolvedValue({} as never);
+
+    const result = await pushSyncOperations("user-1", {
+      deviceId: "mobile-device-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-routine-occurrence-1",
+          entityId: "routine-occurrence-1",
+          entityType: "routine_occurrence",
+          mutation: "create",
+          payload: {
+            routineId: "routine-1",
+            localDate: "2026-08-22",
+            timezone: "Europe/Paris",
+            status: "completed",
+            completedAt: "2026-08-22T18:00:00.000Z",
+          },
+        },
+      ],
+    });
+
+    expect(result.results[0]).toEqual({
+      operationId: "operation-routine-occurrence-1",
+      entityId: "routine-occurrence-1",
+      status: "applied",
+      code: null,
+      currentVersion: updatedAt.toISOString(),
+    });
+    expect(prisma.routineOccurrence.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          routineId: "routine-1",
+          localDate: "2026-08-22",
+          status: "completed",
+        }),
+      }),
+    );
+  });
 });

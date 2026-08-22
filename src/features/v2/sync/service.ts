@@ -4,6 +4,7 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  routineOccurrenceWriteSchema,
   routineWriteSchema,
   type SyncOperationResult,
   type SyncPullResult,
@@ -27,6 +28,10 @@ import {
 } from "../appointments/service";
 import { checkInSelection, toCheckInDto } from "../check-ins/service";
 import { routineSelection, toRoutineDto } from "../routines/service";
+import {
+  routineOccurrenceSelection,
+  toRoutineOccurrenceDto,
+} from "../routines/occurrence-service";
 import { decodeSyncCursor, encodeSyncCursor } from "./cursor";
 import { createPayloadDigest } from "./digest";
 
@@ -316,6 +321,198 @@ const applyRoutine = async (
     status: "applied",
   });
   return applied(operation, routine.updatedAt);
+};
+
+const applyRoutineOccurrence = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  const current = await transaction.routineOccurrence.findUnique({
+    where: { id: operation.entityId },
+    select: {
+      routineId: true,
+      localDate: true,
+      updatedAt: true,
+      routine: { select: { userId: true } },
+    },
+  });
+  if (current && current.routine.userId !== userId) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+
+  if (operation.mutation === "create") {
+    if (current) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "entity_id_exists", current.updatedAt);
+    }
+    const parsed = routineOccurrenceWriteSchema.safeParse(operation.payload);
+    if (!parsed.success) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "rejected",
+      });
+      return rejected(operation, "invalid_routine_occurrence");
+    }
+    const routine = await transaction.routine.findFirst({
+      where: {
+        id: parsed.data.routineId,
+        userId,
+        status: { not: "archived" },
+      },
+      select: { id: true },
+    });
+    if (!routine) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "rejected",
+      });
+      return rejected(operation, "entity_not_found");
+    }
+    const sameDay = await transaction.routineOccurrence.findUnique({
+      where: {
+        routineId_localDate: {
+          routineId: routine.id,
+          localDate: parsed.data.localDate,
+        },
+      },
+      select: { updatedAt: true },
+    });
+    if (sameDay) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "daily_occurrence_exists", sameDay.updatedAt);
+    }
+    const occurrence = await transaction.routineOccurrence.create({
+      data: {
+        id: operation.entityId,
+        routineId: routine.id,
+        operationId: operation.operationId,
+        localDate: parsed.data.localDate,
+        timezone: parsed.data.timezone,
+        status: parsed.data.status,
+        completedAt: parsed.data.completedAt
+          ? new Date(parsed.data.completedAt)
+          : null,
+        note: parsed.data.note ?? null,
+      },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, occurrence.updatedAt);
+  }
+
+  if (!current) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+  if (!hasCurrentVersion(operation, current.updatedAt)) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "conflict",
+    });
+    return conflict(operation, "version_conflict", current.updatedAt);
+  }
+  if (operation.mutation === "delete") {
+    const occurrence = await transaction.routineOccurrence.update({
+      where: { id: operation.entityId },
+      data: { status: "cancelled", completedAt: null },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, occurrence.updatedAt);
+  }
+
+  const parsed = routineOccurrenceWriteSchema.safeParse(operation.payload);
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_routine_occurrence");
+  }
+  if (
+    parsed.data.routineId !== current.routineId ||
+    parsed.data.localDate !== current.localDate
+  ) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "immutable_occurrence_identity");
+  }
+  const occurrence = await transaction.routineOccurrence.update({
+    where: { id: operation.entityId },
+    data: {
+      timezone: parsed.data.timezone,
+      status: parsed.data.status,
+      completedAt: parsed.data.completedAt
+        ? new Date(parsed.data.completedAt)
+        : null,
+      note: parsed.data.note ?? null,
+    },
+    select: { updatedAt: true },
+  });
+  await recordOperation({
+    transaction,
+    userId,
+    deviceId,
+    operation,
+    status: "applied",
+  });
+  return applied(operation, occurrence.updatedAt);
 };
 
 const applyAppointment = async (
@@ -697,6 +894,9 @@ const applyOperation = async (
     if (operation.entityType === "routine") {
       return applyRoutine(transaction, userId, deviceId, operation);
     }
+    if (operation.entityType === "routine_occurrence") {
+      return applyRoutineOccurrence(transaction, userId, deviceId, operation);
+    }
     if (operation.entityType === "appointment") {
       return applyAppointment(transaction, userId, deviceId, operation);
     }
@@ -756,6 +956,13 @@ const hydrateChange = async (
       select: routineSelection,
     });
     return { data: value ? toRoutineDto(value) : null };
+  }
+  if (operation.entityType === "routine_occurrence") {
+    const value = await prisma.routineOccurrence.findFirst({
+      where: { id: operation.entityId, routine: { userId } },
+      select: routineOccurrenceSelection,
+    });
+    return { data: value ? toRoutineOccurrenceDto(value) : null };
   }
   if (operation.entityType === "appointment") {
     const value = await prisma.appointment.findFirst({
