@@ -1,4 +1,3 @@
-import { MoodDayApiError } from "@moodday/api-client";
 import {
   createAppointmentDecisionSchema,
   createAppointmentEventSchema,
@@ -25,9 +24,12 @@ import * as SecureStore from "expo-secure-store";
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import { api } from "./api";
+import {
+  createOwnerStorageIdentity,
+  normalizeLocalOwnerId,
+  persistOperationBeforeSync,
+} from "./local-database-core";
 
-const DATABASE_NAME = "moodday-v2.db";
-const DATABASE_KEY_REFERENCE = "moodday.database-key.v1";
 const DEVICE_ID_REFERENCE = "moodday.device-id.v1";
 const SYNC_CURSOR_KEY = "server-cursor";
 
@@ -42,9 +44,7 @@ type PendingRow = {
 
 type SnapshotRow = { payload: string };
 
-let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
-
-class SyncRejectedError extends Error {}
+const databasePromises = new Map<string, Promise<SQLite.SQLiteDatabase>>();
 
 const createDatabaseKey = async () => {
   const bytes = await Crypto.getRandomBytesAsync(32);
@@ -53,11 +53,20 @@ const createDatabaseKey = async () => {
   );
 };
 
-const getDatabaseKey = async () => {
-  const existing = await SecureStore.getItemAsync(DATABASE_KEY_REFERENCE);
+const getOwnerStorageIdentity = async (ownerId: string) => {
+  const normalizedOwnerId = normalizeLocalOwnerId(ownerId);
+  const ownerHash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    normalizedOwnerId,
+  );
+  return createOwnerStorageIdentity(ownerHash);
+};
+
+const getDatabaseKey = async (keyReference: string) => {
+  const existing = await SecureStore.getItemAsync(keyReference);
   if (existing) return existing;
   const key = await createDatabaseKey();
-  await SecureStore.setItemAsync(DATABASE_KEY_REFERENCE, key, {
+  await SecureStore.setItemAsync(keyReference, key, {
     keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   });
   return key;
@@ -73,12 +82,25 @@ const getDeviceId = async () => {
   return deviceId;
 };
 
-const initializeDatabase = async () => {
-  const key = await getDatabaseKey();
-  const database = await SQLite.openDatabaseAsync(DATABASE_NAME);
+const initializeDatabase = async ({
+  databaseName,
+  keyReference,
+}: {
+  databaseName: string;
+  keyReference: string;
+}) => {
+  const key = await getDatabaseKey(keyReference);
+  const database = await SQLite.openDatabaseAsync(databaseName);
 
   // The generated key is hexadecimal only and never leaves SecureStore.
   await database.execAsync(`PRAGMA key = "x'${key}'";`);
+  const cipher = await database.getFirstAsync<{ cipher_version: string }>(
+    "PRAGMA cipher_version",
+  );
+  if (!cipher?.cipher_version) {
+    await database.closeAsync();
+    throw new Error("sqlcipher_unavailable");
+  }
   await database.execAsync(`
     PRAGMA cipher_memory_security = ON;
     PRAGMA foreign_keys = ON;
@@ -140,13 +162,24 @@ const initializeDatabase = async () => {
   return database;
 };
 
-export const getLocalDatabase = async () => {
-  databasePromise ??= initializeDatabase();
+export const getLocalDatabase = async (ownerId: string) => {
+  const identity = await getOwnerStorageIdentity(ownerId);
+  const existing = databasePromises.get(identity.databaseName);
+  if (existing) return existing;
+
+  const databasePromise = initializeDatabase(identity).catch((error) => {
+    databasePromises.delete(identity.databaseName);
+    throw error;
+  });
+  databasePromises.set(identity.databaseName, databasePromise);
   return databasePromise;
 };
 
-const queueOperation = async (operation: SyncPushOperation) => {
-  const database = await getLocalDatabase();
+const queueOperation = async (
+  ownerId: string,
+  operation: SyncPushOperation,
+) => {
+  const database = await getLocalDatabase(ownerId);
   await database.runAsync(
     `INSERT OR IGNORE INTO pending_sync_operation
       (operation_id, entity_id, entity_type, mutation, base_version, payload, state, created_at)
@@ -168,41 +201,47 @@ const pushOperations = async (operations: SyncPushOperation[]) =>
     operations,
   });
 
-const saveOfflineFirst = async (operation: SyncPushOperation) => {
-  try {
-    const response = await pushOperations([operation]);
-    const result = response.results[0];
-    if (
-      !result ||
-      (result.status !== "applied" && result.status !== "duplicate")
-    ) {
-      throw new SyncRejectedError(result?.code ?? "sync_operation_rejected");
-    }
-    return { pending: false, entityId: operation.entityId } as const;
-  } catch (error) {
-    if (
-      error instanceof MoodDayApiError &&
-      (error.code === "authentication_required" || !error.recoverable)
-    ) {
-      throw error;
-    }
-    if (error instanceof SyncRejectedError) throw error;
-    await queueOperation(operation);
-    return { pending: true, entityId: operation.entityId } as const;
-  }
+const removeQueuedOperation = async (ownerId: string, operationId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    "DELETE FROM pending_sync_operation WHERE operation_id = ?",
+    operationId,
+  );
 };
 
-export const getPendingOperationCount = async () => {
-  const database = await getLocalDatabase();
+const saveOfflineFirst = async (
+  ownerId: string,
+  operation: SyncPushOperation,
+) =>
+  persistOperationBeforeSync(operation, {
+    queue: async () => queueOperation(ownerId, operation),
+    push: async () => pushOperations([operation]),
+    remove: async () =>
+      removeQueuedOperation(ownerId, operation.operationId),
+    markRejected: async (code) => {
+      const database = await getLocalDatabase(ownerId);
+      await database.runAsync(
+        "UPDATE pending_sync_operation SET state = 'rejected', error_code = ? WHERE operation_id = ?",
+        code,
+        operation.operationId,
+      );
+    },
+  });
+
+export const getPendingOperationCount = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
   const row = await database.getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) AS count FROM pending_sync_operation WHERE state = 'pending'",
   );
   return row?.count ?? 0;
 };
 
-export const saveCheckInOfflineFirst = async (input: CreateCheckInInput) => {
+export const saveCheckInOfflineFirst = async (
+  ownerId: string,
+  input: CreateCheckInInput,
+) => {
   const parsed = createCheckInSchema.parse(input);
-  return saveOfflineFirst({
+  return saveOfflineFirst(ownerId, {
     operationId: parsed.operationId,
     entityId: Crypto.randomUUID(),
     entityType: "check_in",
@@ -211,9 +250,12 @@ export const saveCheckInOfflineFirst = async (input: CreateCheckInInput) => {
   });
 };
 
-export const saveRoutineOfflineFirst = async (input: RoutineWriteInput) => {
+export const saveRoutineOfflineFirst = async (
+  ownerId: string,
+  input: RoutineWriteInput,
+) => {
   const payload = routineWriteSchema.parse(input);
-  return saveOfflineFirst({
+  return saveOfflineFirst(ownerId, {
     operationId: Crypto.randomUUID(),
     entityId: Crypto.randomUUID(),
     entityType: "routine",
@@ -223,10 +265,11 @@ export const saveRoutineOfflineFirst = async (input: RoutineWriteInput) => {
 };
 
 export const saveAppointmentOfflineFirst = async (
+  ownerId: string,
   input: AppointmentWriteInput,
 ) => {
   const payload = appointmentWriteSchema.parse(input);
-  return saveOfflineFirst({
+  return saveOfflineFirst(ownerId, {
     operationId: Crypto.randomUUID(),
     entityId: Crypto.randomUUID(),
     entityType: "appointment",
@@ -236,6 +279,7 @@ export const saveAppointmentOfflineFirst = async (
 };
 
 export const saveAppointmentQuestionOfflineFirst = async (
+  ownerId: string,
   appointmentId: string,
   input: Omit<CreateAppointmentQuestionInput, "operationId" | "questionId">,
 ) => {
@@ -246,7 +290,7 @@ export const saveAppointmentQuestionOfflineFirst = async (
     operationId,
     questionId: entityId,
   });
-  const result = await saveOfflineFirst({
+  const result = await saveOfflineFirst(ownerId, {
     operationId,
     entityId,
     entityType: "appointment_question",
@@ -257,6 +301,7 @@ export const saveAppointmentQuestionOfflineFirst = async (
 };
 
 export const saveAppointmentEventOfflineFirst = async (
+  ownerId: string,
   appointmentId: string,
   input: Omit<CreateAppointmentEventInput, "operationId" | "eventId">,
 ) => {
@@ -267,7 +312,7 @@ export const saveAppointmentEventOfflineFirst = async (
     operationId,
     eventId: entityId,
   });
-  const result = await saveOfflineFirst({
+  const result = await saveOfflineFirst(ownerId, {
     operationId,
     entityId,
     entityType: "appointment_event",
@@ -278,6 +323,7 @@ export const saveAppointmentEventOfflineFirst = async (
 };
 
 export const saveAppointmentDecisionOfflineFirst = async (
+  ownerId: string,
   appointmentId: string,
   input: Omit<CreateAppointmentDecisionInput, "operationId" | "decisionId">,
 ) => {
@@ -288,7 +334,7 @@ export const saveAppointmentDecisionOfflineFirst = async (
     operationId,
     decisionId: entityId,
   });
-  const result = await saveOfflineFirst({
+  const result = await saveOfflineFirst(ownerId, {
     operationId,
     entityId,
     entityType: "appointment_decision",
@@ -298,29 +344,35 @@ export const saveAppointmentDecisionOfflineFirst = async (
   return { ...result, operationId };
 };
 
-export const flushPendingOperations = async () => {
-  const database = await getLocalDatabase();
+export const flushPendingOperations = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
   const rows = await database.getAllAsync<PendingRow>(
     `SELECT operation_id, entity_id, entity_type, mutation, base_version, payload
      FROM pending_sync_operation
      WHERE state = 'pending' ORDER BY created_at ASC LIMIT 50`,
   );
-  const operations = rows.flatMap((row) => {
+  const operations: SyncPushOperation[] = [];
+  const parseAt = async (index: number): Promise<void> => {
+    const row = rows[index];
+    if (!row) return;
     try {
-      return [
-        {
-          operationId: row.operation_id,
-          entityId: row.entity_id,
-          entityType: row.entity_type,
-          mutation: row.mutation,
-          baseVersion: row.base_version,
-          payload: JSON.parse(row.payload) as unknown,
-        } satisfies SyncPushOperation,
-      ];
+      operations.push({
+        operationId: row.operation_id,
+        entityId: row.entity_id,
+        entityType: row.entity_type,
+        mutation: row.mutation,
+        baseVersion: row.base_version,
+        payload: JSON.parse(row.payload) as unknown,
+      });
     } catch {
-      return [];
+      await database.runAsync(
+        "UPDATE pending_sync_operation SET state = 'rejected', error_code = 'local_payload_invalid' WHERE operation_id = ?",
+        row.operation_id,
+      );
     }
-  });
+    return parseAt(index + 1);
+  };
+  await parseAt(0);
   if (operations.length === 0) return;
 
   const response = await pushOperations(operations);
@@ -345,8 +397,8 @@ export const flushPendingOperations = async () => {
   await reconcileAt(0);
 };
 
-const pullChanges = async () => {
-  const database = await getLocalDatabase();
+const pullChanges = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
   const metadata = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM sync_metadata WHERE key = ?",
     SYNC_CURSOR_KEY,
@@ -390,13 +442,16 @@ const pullChanges = async () => {
   await pullPage(metadata?.value);
 };
 
-export const synchronizeNow = async () => {
-  await flushPendingOperations();
-  await pullChanges();
+export const synchronizeNow = async (ownerId: string) => {
+  await flushPendingOperations(ownerId);
+  await pullChanges(ownerId);
 };
 
-const readSnapshots = async <T>(entityType: SyncEntityType): Promise<T[]> => {
-  const database = await getLocalDatabase();
+const readSnapshots = async <T>(
+  ownerId: string,
+  entityType: SyncEntityType,
+): Promise<T[]> => {
+  const database = await getLocalDatabase(ownerId);
   const rows = await database.getAllAsync<SnapshotRow>(
     `SELECT payload FROM sync_snapshot
      WHERE entity_type = ? AND deleted = 0 ORDER BY changed_at DESC`,
@@ -411,26 +466,40 @@ const readSnapshots = async <T>(entityType: SyncEntityType): Promise<T[]> => {
   });
 };
 
-export const getCachedRoutines = async () =>
-  readSnapshots<RoutineDto>("routine");
-export const getCachedAppointments = async () =>
-  readSnapshots<AppointmentDto>("appointment");
-export const getCachedAppointmentQuestions = async (appointmentId?: string) => {
+export const getCachedRoutines = async (ownerId: string) =>
+  readSnapshots<RoutineDto>(ownerId, "routine");
+export const getCachedAppointments = async (ownerId: string) =>
+  readSnapshots<AppointmentDto>(ownerId, "appointment");
+export const getCachedAppointmentQuestions = async (
+  ownerId: string,
+  appointmentId?: string,
+) => {
   const questions = await readSnapshots<AppointmentQuestionDto>(
+    ownerId,
     "appointment_question",
   );
   return appointmentId
     ? questions.filter((question) => question.appointmentId === appointmentId)
     : questions;
 };
-export const getCachedAppointmentEvents = async (appointmentId?: string) => {
-  const events = await readSnapshots<AppointmentEventDto>("appointment_event");
+export const getCachedAppointmentEvents = async (
+  ownerId: string,
+  appointmentId?: string,
+) => {
+  const events = await readSnapshots<AppointmentEventDto>(
+    ownerId,
+    "appointment_event",
+  );
   return appointmentId
     ? events.filter((event) => event.appointmentId === appointmentId)
     : events;
 };
-export const getCachedAppointmentDecisions = async (appointmentId?: string) => {
+export const getCachedAppointmentDecisions = async (
+  ownerId: string,
+  appointmentId?: string,
+) => {
   const decisions = await readSnapshots<AppointmentDecisionDto>(
+    ownerId,
     "appointment_decision",
   );
   return appointmentId

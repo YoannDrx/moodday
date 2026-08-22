@@ -3,12 +3,14 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Screen } from "../src/components/screen";
+import { authClient } from "../src/lib/auth-client";
 import { saveAppointmentOfflineFirst } from "../src/lib/local-database";
 
 const pad = (value: number) => value.toString().padStart(2, "0");
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const tomorrow = useMemo(() => new Date(Date.now() + 86_400_000), []);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(
@@ -20,6 +22,7 @@ export default function NewAppointmentScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const save = async () => {
+    if (!session?.user.id) return;
     setIsSaving(true);
     setStatus(undefined);
     try {
@@ -27,7 +30,7 @@ export default function NewAppointmentScreen() {
       if (Number.isNaN(startsAt.getTime())) throw new Error("invalid_date");
       const timezone =
         Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Paris";
-      const result = await saveAppointmentOfflineFirst({
+      const result = await saveAppointmentOfflineFirst(session.user.id, {
         title,
         startsAt: startsAt.toISOString(),
         timezone,
