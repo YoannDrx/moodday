@@ -9,15 +9,18 @@ import { useSearchParams } from "next/navigation";
 import { ProviderButton } from "./provider-button";
 import { PasskeySignInButton } from "./passkey-sign-in-button";
 import { SignInCredentialsAndMagicLinkForm } from "./sign-in-credentials-and-magic-link-form";
+import type { PublicSignupMode } from "@/lib/auth/signup-access";
 
 const SUPPORTED_PROVIDERS = ["github", "google"] as const;
 
 export const SignInProviders = ({
   providers,
   callbackUrl,
+  signupMode = "public",
 }: {
   providers: string[];
   callbackUrl?: string;
+  signupMode?: PublicSignupMode;
 }) => {
   const searchParams = useSearchParams();
   const callbackUrlParams = searchParams.get("callbackUrl");
@@ -57,16 +60,22 @@ export const SignInProviders = ({
         </div>
       ) : null}
 
-      <Typography variant="muted" className="text-xs">
-        {t("auth.signIn.noAccount")}{" "}
-        <Typography
-          variant="link"
-          as={Link}
-          href={`/auth/signup?callbackUrl=${finalCallbackUrl}`}
-        >
-          {t("auth.signIn.signUp")}
+      {signupMode === "closed" ? (
+        <Typography variant="muted" className="text-xs">
+          {t("auth.signIn.registrationClosed")}
         </Typography>
-      </Typography>
+      ) : (
+        <Typography variant="muted" className="text-xs">
+          {t("auth.signIn.noAccount")}{" "}
+          <Typography
+            variant="link"
+            as={Link}
+            href={`/auth/signup?callbackUrl=${finalCallbackUrl}`}
+          >
+            {t("auth.signIn.signUp")}
+          </Typography>
+        </Typography>
+      )}
     </div>
   );
 };

@@ -5,20 +5,34 @@ const downstreamGet = vi.hoisted(() => vi.fn());
 const downstreamPost = vi.hoisted(() => vi.fn());
 const claimEmailVerificationToken = vi.hoisted(() => vi.fn());
 const isMaintenanceMode = vi.hoisted(() => vi.fn());
+const getSignupAccess = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({ auth }));
 vi.mock("@/lib/auth/email-verification-replay", () => ({
   claimEmailVerificationToken,
 }));
 vi.mock("@/lib/maintenance", () => ({ isMaintenanceMode }));
+vi.mock("@/lib/auth/signup-access", () => ({ getSignupAccess }));
 vi.mock("better-auth/next-js", () => ({
   toNextJsHandler: () => ({ GET: downstreamGet, POST: downstreamPost }),
 }));
 
 import { GET, POST } from "../app/api/auth/[...auth]/route";
 
-const request = (path: string, method: "GET" | "POST" = "POST") =>
-  new Request(`http://localhost${path}`, { method });
+const request = (
+  path: string,
+  method: "GET" | "POST" = "POST",
+  body?: Record<string, unknown>,
+) =>
+  new Request(`http://localhost${path}`, {
+    method,
+    ...(body
+      ? {
+          body: JSON.stringify(body),
+          headers: { "content-type": "application/json" },
+        }
+      : {}),
+  });
 
 describe("Better Auth route security gates", () => {
   beforeEach(() => {
@@ -28,6 +42,7 @@ describe("Better Auth route security gates", () => {
     claimEmailVerificationToken.mockReset();
     isMaintenanceMode.mockReset();
     isMaintenanceMode.mockReturnValue(false);
+    getSignupAccess.mockReturnValue({ allowed: true, mode: "public" });
     downstreamGet.mockResolvedValue(Response.json({ downstream: true }));
     downstreamPost.mockResolvedValue(Response.json({ downstream: true }));
     claimEmailVerificationToken.mockResolvedValue(true);
@@ -92,6 +107,39 @@ describe("Better Auth route security gates", () => {
     );
     expect((await POST(request("/api/auth/sign-in/email"))).status).toBe(200);
     expect(downstreamPost).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks direct account creation when public signup is closed", async () => {
+    getSignupAccess.mockReturnValue({
+      allowed: false,
+      mode: "closed",
+      code: "SIGNUP_CLOSED",
+    });
+
+    const response = await POST(
+      request("/api/auth/sign-up/email", "POST", {
+        email: "new@example.test",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toMatchObject({ code: "SIGNUP_CLOSED" });
+    expect(downstreamPost).not.toHaveBeenCalled();
+  });
+
+  it("allows an invited email to reach Better Auth", async () => {
+    getSignupAccess.mockReturnValue({ allowed: true, mode: "invite" });
+
+    const response = await POST(
+      request("/api/auth/sign-up/email", "POST", {
+        email: "invited@example.test",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(getSignupAccess).toHaveBeenCalledWith("invited@example.test");
+    expect(downstreamPost).toHaveBeenCalledOnce();
   });
 
   it("claims verification links once before forwarding them", async () => {

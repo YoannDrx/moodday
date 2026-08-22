@@ -10,6 +10,8 @@ gate n'est pas validé.
 ## Phase 0 — baseline et garde-fous
 
 - [x] Flags sensibles explicites et désactivés par défaut.
+- [x] Création de compte fermée par défaut dans l'interface et sur l'endpoint
+      Better Auth, avec modes explicites `closed`, `invite` et `public`.
 - [x] Mode maintenance disponible ; mutations safe-action et POST Better Auth
       bloqués, avec seule exception explicite pour la déconnexion.
 - [x] Crons et webhooks Resend/Stripe authentifiés renvoient également 503 avec

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { claimEmailVerificationToken } from "@/lib/auth/email-verification-replay";
 import { hasRecentAuthentication } from "@/lib/auth/recent-auth";
+import { getSignupAccess } from "@/lib/auth/signup-access";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { toNextJsHandler } from "better-auth/next-js";
 
@@ -18,6 +19,32 @@ const recentAuthenticationPaths = new Set([
 ]);
 
 const maintenanceAllowedPostPaths = new Set(["/api/auth/sign-out"]);
+
+const enforceSignupAccess = async (request: Request) => {
+  if (new URL(request.url).pathname !== "/api/auth/sign-up/email") return null;
+
+  const body = (await request
+    .clone()
+    .json()
+    .catch(() => null)) as { email?: unknown } | null;
+  const email = typeof body?.email === "string" ? body.email : undefined;
+  const decision = getSignupAccess(email);
+  if (decision.allowed) return null;
+
+  return Response.json(
+    {
+      code: decision.code,
+      error:
+        decision.code === "SIGNUP_CLOSED"
+          ? "Account creation is currently closed"
+          : "Account creation requires an invitation",
+    },
+    {
+      status: 403,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
+};
 
 const requireRecentAuthentication = async (request: Request) => {
   if (!recentAuthenticationPaths.has(new URL(request.url).pathname)) {
@@ -47,6 +74,8 @@ export async function POST(request: Request) {
       { status: 503, headers: { "retry-after": "300" } },
     );
   }
+  const signupUnavailable = await enforceSignupAccess(request);
+  if (signupUnavailable) return signupUnavailable;
   const unauthorized = await requireRecentAuthentication(request);
   return unauthorized ?? handlers.POST(request);
 }

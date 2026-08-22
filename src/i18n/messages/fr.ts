@@ -1937,6 +1937,8 @@ const fr: typeof en = {
       passwordAction: "Utiliser un mot de passe",
       noAccount: "Pas encore de compte ?",
       signUp: "Créer un compte",
+      registrationClosed:
+        "Les inscriptions sont temporairement fermées pendant la bêta privée.",
       or: "ou",
       lastUsed: "Dernier utilisé",
       provider: "Continuer avec {provider}",
@@ -1946,6 +1948,11 @@ const fr: typeof en = {
       metaDescription: "Commencez à collecter des témoignages dès aujourd'hui.",
       title: "Créer votre compte {app}",
       description: "Commencez en quelques minutes avec un compte gratuit.",
+      closedTitle: "Moodday se prépare en petit comité",
+      closedDescription:
+        "Les nouveaux comptes sont temporairement fermés pendant que nous terminons la bêta privée. Si tu as déjà un compte, tu peux continuer à te connecter.",
+      inviteDescription:
+        "Cette bêta est accessible sur invitation. Utilise l’adresse e-mail avec laquelle tu as été invité·e.",
       namePlaceholder: "Votre nom",
       emailPlaceholder: "vous@exemple.com",
       verifyPassword: "Confirmer le mot de passe",

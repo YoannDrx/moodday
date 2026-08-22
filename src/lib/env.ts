@@ -54,6 +54,10 @@ export const env = createEnv({
       .optional()
       .default("false")
       .transform((value) => value === "true"),
+    PUBLIC_SIGNUP_MODE: z
+      .enum(["closed", "invite", "public"])
+      .default("closed"),
+    PUBLIC_SIGNUP_INVITE_EMAILS: z.string().optional(),
     STRIPE_TAX_ENABLED: z
       .enum(["true", "false"])
       .optional()

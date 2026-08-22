@@ -83,9 +83,9 @@ describe("account management forms", () => {
     expect(
       screen.getByRole("button", { name: "account.password.submit" }),
     ).toHaveClass(
-      "disabled:bg-gray-100",
-      "disabled:text-gray-700",
-      "disabled:opacity-100",
+      "disabled:bg-gray-100!",
+      "disabled:text-gray-700!",
+      "disabled:opacity-100!",
     );
     fireEvent.change(screen.getByLabelText("account.password.currentLabel"), {
       target: { value: "CurrentPassword!" },

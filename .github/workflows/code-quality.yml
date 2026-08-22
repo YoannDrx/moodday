@@ -26,6 +26,7 @@ jobs:
       CAREGIVER_SHARING_ENABLED: "false"
       PUSH_NOTIFICATIONS_ENABLED: "false"
       ACCOUNT_IMPORT_ENABLED: "false"
+      PUBLIC_SIGNUP_MODE: "closed"
       LEGAL_TERMS_VERSION: terms-2026-08
       LEGAL_PRIVACY_VERSION: privacy-2026-08
       AI_CONSENT_VERSION: ai-consent-2026-08

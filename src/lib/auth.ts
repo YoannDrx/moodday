@@ -39,6 +39,7 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
+    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
   };
 }
 
@@ -46,6 +47,7 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   SocialProviders.google = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
+    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
   };
 }
 
@@ -309,6 +311,7 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 10 * 60,
       storeToken: "hashed",
+      disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
       sendMagicLink: async ({ email, url }) => {
         await sendEmail({
           to: email,
