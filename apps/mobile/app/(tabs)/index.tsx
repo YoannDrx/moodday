@@ -1,6 +1,7 @@
 import type { CreateCheckInInput } from "@moodday/contracts";
 import { color, radius, space } from "@moodday/design-tokens";
 import * as Crypto from "expo-crypto";
+import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BrandIllustration } from "../../src/components/brand-illustration";
@@ -44,6 +45,7 @@ const getLocalContext = () => {
 };
 
 export default function TodayScreen() {
+  const router = useRouter();
   const { data: session } = authClient.useSession();
   const ownerId = session?.user.id;
   const context = useMemo(getLocalContext, []);
@@ -110,6 +112,21 @@ export default function TodayScreen() {
         </View>
         <BrandIllustration variant="checkIn" style={styles.checkInVisual} />
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ouvrir les réglages du compte et de cet appareil"
+        onPress={() => router.push("/settings")}
+        style={({ pressed }) => [
+          styles.settingsButton,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={styles.settingsButtonLabel}>Compte et appareil</Text>
+        <Text accessibilityElementsHidden style={styles.settingsButtonGlyph}>
+          →
+        </Text>
+      </Pressable>
 
       <SectionCard
         eyebrow="Ton point du jour"
@@ -289,6 +306,23 @@ const styles = StyleSheet.create({
   },
   headingCopy: { flex: 1, gap: space[2] },
   checkInVisual: { width: 118, height: 118 },
+  settingsButton: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: space[4],
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+  },
+  settingsButtonLabel: {
+    color: color.primaryDeep,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  settingsButtonGlyph: { color: color.primary, fontSize: 20 },
   kicker: {
     color: color.primary,
     fontSize: 12,

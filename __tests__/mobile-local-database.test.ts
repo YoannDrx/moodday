@@ -1,10 +1,9 @@
-import type {
-  SyncPushOperation,
-  SyncPushResult,
-} from "@moodday/contracts";
+import type { SyncPushOperation, SyncPushResult } from "@moodday/contracts";
 import { describe, expect, it, vi } from "vitest";
 import {
+  createLocalOperationSummary,
   createOwnerStorageIdentity,
+  getSessionOwnerTransition,
   normalizeLocalOwnerId,
   persistOperationBeforeSync,
 } from "../apps/mobile/src/lib/local-database-core";
@@ -58,6 +57,56 @@ describe("mobile owner-bound local database", () => {
     expect(() => normalizeLocalOwnerId("   ")).toThrow(
       "local_database_owner_required",
     );
+  });
+
+  it("counts every unresolved local operation before sign-out", () => {
+    expect(
+      createLocalOperationSummary([
+        { state: "pending", count: 2 },
+        { state: "conflict", count: 1 },
+        { state: "rejected", count: 1 },
+      ]),
+    ).toEqual({ pending: 2, conflict: 1, rejected: 1, total: 4 });
+    expect(createLocalOperationSummary([])).toEqual({
+      pending: 0,
+      conflict: 0,
+      rejected: 0,
+      total: 0,
+    });
+    expect(() =>
+      createLocalOperationSummary([{ state: "pending", count: -1 }]),
+    ).toThrow("local_operation_count_invalid");
+  });
+
+  it("locks the previous owner on revocation or account replacement", () => {
+    expect(
+      getSessionOwnerTransition({
+        currentOwnerId: undefined,
+        isPending: false,
+        previousOwnerId: "user-alpha",
+      }),
+    ).toBe("lock");
+    expect(
+      getSessionOwnerTransition({
+        currentOwnerId: "user-beta",
+        isPending: false,
+        previousOwnerId: "user-alpha",
+      }),
+    ).toBe("lock");
+    expect(
+      getSessionOwnerTransition({
+        currentOwnerId: undefined,
+        isPending: true,
+        previousOwnerId: "user-alpha",
+      }),
+    ).toBe("none");
+    expect(
+      getSessionOwnerTransition({
+        currentOwnerId: "user-alpha",
+        isPending: false,
+        previousOwnerId: undefined,
+      }),
+    ).toBe("adopt");
   });
 
   it("persists before sending and removes only after server acceptance", async () => {

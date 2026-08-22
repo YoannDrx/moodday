@@ -30,6 +30,7 @@ type ApiClientOptions = {
   baseUrl: string;
   getHeaders?: () => Promise<Record<string, string>>;
   fetchImplementation?: typeof fetch;
+  onAuthenticationRequired?: () => void;
 };
 
 export class MoodDayApiError extends Error {
@@ -50,6 +51,7 @@ export const createApiClient = ({
   baseUrl,
   getHeaders,
   fetchImplementation = fetch,
+  onAuthenticationRequired,
 }: ApiClientOptions) => {
   const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
     const authenticationHeaders = (await getHeaders?.()) ?? {};
@@ -76,7 +78,15 @@ export const createApiClient = ({
               recoverable: true,
               requestId: response.headers.get("x-request-id") ?? "unknown",
             };
-      throw new MoodDayApiError(error);
+      const apiError = new MoodDayApiError(error);
+      if (apiError.code === "authentication_required") {
+        try {
+          onAuthenticationRequired?.();
+        } catch {
+          // Session invalidation must never replace the structured API error.
+        }
+      }
+      throw apiError;
     }
 
     return body.data;
