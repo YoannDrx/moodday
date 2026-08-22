@@ -35,7 +35,11 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "html"],
       reportsDirectory: "coverage",
-      include: ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
+      // Page shells and route-segment workspaces are exercised by the five
+      // Playwright projects. Keep the unit-coverage gate focused on shared
+      // application code and HTTP handlers instead of counting the same UI a
+      // second time through Next.js' filesystem layout.
+      include: ["src/**/*.{ts,tsx}", "app/api/**/*.{ts,tsx}"],
       exclude: [
         ".next/**",
         "coverage/**",
@@ -51,6 +55,7 @@ export default defineConfig({
         ? {
             statements: 80,
             branches: 70,
+            functions: 80,
             lines: 80,
             "src/features/caregiver/authorization.ts": {
               branches: 90,
