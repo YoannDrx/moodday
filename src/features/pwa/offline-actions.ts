@@ -9,6 +9,7 @@ import {
 } from "@/features/medication/medication.action";
 import { logExerciseCompletion } from "@/features/exercise/exercise.action";
 import { createTherapySession } from "@/features/therapy/therapy.action";
+import { createV2CheckIn } from "@/features/v2/check-ins/check-in.action";
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { notifyOfflineQueueChanged } from "./offline-events";
 import {
@@ -30,7 +31,8 @@ export type OfflineActionType =
   | "med_skip"
   | "med_prn_intake"
   | "exercise_log"
-  | "therapy_create";
+  | "therapy_create"
+  | "v2_check_in";
 
 export type OfflineActionPayload =
   | {
@@ -65,6 +67,18 @@ export type OfflineActionPayload =
       date: string;
       notes: string;
       benefitRating?: number;
+    }
+  | {
+      type: "v2_check_in";
+      depth: "presence" | "quick" | "complete";
+      localDate: string;
+      timezone: string;
+      valence?: number;
+      activation?: number;
+      irritability?: number;
+      anxiety?: number;
+      contexts: readonly string[];
+      note?: string;
     };
 
 export type OfflineActionEntry = {
@@ -98,6 +112,7 @@ const preserveOfflineActionTime = (
     case "exercise_log":
       return { ...payload, completedAt: payload.completedAt ?? instant };
     case "therapy_create":
+    case "v2_check_in":
       return payload;
   }
 };
@@ -214,6 +229,22 @@ const runQueuedActionSync = async (ownerId: string) => {
             date: payload.date,
             notes: payload.notes,
             benefitRating: payload.benefitRating,
+          });
+          if (result.serverError) throw new Error(result.serverError);
+          break;
+        }
+        case "v2_check_in": {
+          const result = await createV2CheckIn({
+            operationId: item.id,
+            depth: payload.depth,
+            localDate: payload.localDate,
+            timezone: payload.timezone,
+            valence: payload.valence,
+            activation: payload.activation,
+            irritability: payload.irritability,
+            anxiety: payload.anxiety,
+            contexts: [...payload.contexts],
+            note: payload.note,
           });
           if (result.serverError) throw new Error(result.serverError);
           break;

@@ -13,7 +13,7 @@ type BrowserOfflineOperation = {
   status: string;
 };
 
-const readMoodOperations = async (page: Page) =>
+const readCheckInOperations = async (page: Page) =>
   page.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("moodday-offline");
@@ -27,13 +27,24 @@ const readMoodOperations = async (page: Page) =>
       request.onsuccess = () =>
         resolve(
           (request.result as BrowserOfflineOperation[]).filter(
-            (operation) => operation.kind === "mood",
+            (operation) => operation.kind === "action",
           ),
         );
       request.onerror = () => reject(request.error);
       transaction.oncomplete = () => database.close();
     });
   });
+
+const fillQuickCheckIn = async (page: Page) => {
+  await page
+    .getByRole("button", { name: /Do a quick check-in|Faire un point rapide/i })
+    .click();
+  await page.getByRole("button", { name: /Mood: 8|Moral: 8/i }).click();
+  await page.getByRole("button", { name: /Energy: 4|Énergie: 4/i }).click();
+  await page
+    .getByRole("button", { name: /Irritability: 6|Irritabilité: 6/i })
+    .click();
+};
 
 test("queues a quick check-in offline and syncs it once online", async ({
   context,
@@ -47,38 +58,35 @@ test("queues a quick check-in offline and syncs it once online", async ({
   await page.waitForURL(/\/dashboard/);
   await context.setOffline(true);
 
-  const energySlider = page.locator("#quick-check-in-energy");
-  await energySlider.focus();
-  await page.keyboard.press("ArrowLeft");
-  await expect(energySlider).toHaveValue("4");
+  await fillQuickCheckIn(page);
   await page
-    .getByRole("button", { name: /Save check-in|Enregistrer/i })
+    .getByRole("button", { name: /Save my check-in|Enregistrer mon point/i })
     .click();
 
   await expect(
-    page.getByText(/Saved offline|Enregistré hors ligne/i),
+    page.getByText(/Saved offline|Enregistré hors ligne/i).first(),
   ).toBeVisible();
 
   await expect
-    .poll(async () => readMoodOperations(page))
+    .poll(async () => readCheckInOperations(page))
     .toEqual([
       expect.objectContaining({
         ownerId: expect.any(String),
         schemaVersion: 2,
-        kind: "mood",
+        kind: "action",
         status: "pending",
         ciphertext: expect.any(String),
         iv: expect.any(String),
       }),
     ]);
-  const [persistedOperation] = await readMoodOperations(page);
+  const [persistedOperation] = await readCheckInOperations(page);
   expect(persistedOperation).not.toHaveProperty("payload");
-  expect(persistedOperation.ciphertext).not.toContain('"value":7');
+  expect(persistedOperation.ciphertext).not.toContain('"valence":8');
 
   await context.setOffline(false);
 
   await expect
-    .poll(async () => (await readMoodOperations(page)).length, {
+    .poll(async () => (await readCheckInOperations(page)).length, {
       timeout: 20_000,
     })
     .toBe(0);
@@ -87,18 +95,18 @@ test("queues a quick check-in offline and syncs it once online", async ({
     where: { email: userData.email },
     select: { id: true },
   });
-  const entry = await prisma.moodEntry.findFirst({
+  const entry = await prisma.checkIn.findFirst({
     where: {
       userId: user.id,
-      clientOperationId: { startsWith: "mood:" },
+      operationId: { startsWith: "action:" },
     },
     orderBy: { createdAt: "desc" },
   });
 
   expect(entry).toMatchObject({
-    value: 7,
-    energy: 4,
-    syncStatus: "synced",
+    valence: 8,
+    activation: 4,
+    irritability: 6,
   });
 });
 
@@ -121,21 +129,32 @@ test("syncs seven persisted daily check-ins after the page is closed", async ({
   });
 
   await context.setOffline(true);
-  const saveButton = page.getByRole("button", {
-    name: /Save check-in|Enregistrer/i,
-  });
   for (let entry = 1; entry <= 7; entry += 1) {
+    if (entry > 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await page
+        .getByRole("button", {
+          name: /Add another check-in|Faire un autre point/i,
+        })
+        .click();
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await fillQuickCheckIn(page);
     // Each click exercises the production encryption/key path before the page
     // is closed, including WebKit's IndexedDB CryptoKey persistence.
     // eslint-disable-next-line no-await-in-loop
-    await saveButton.click();
+    await page
+      .getByRole("button", {
+        name: /Save my check-in|Enregistrer mon point/i,
+      })
+      .click();
     // eslint-disable-next-line no-await-in-loop
     await expect
-      .poll(async () => (await readMoodOperations(page)).length)
+      .poll(async () => (await readCheckInOperations(page)).length)
       .toBe(entry);
   }
   await expect
-    .poll(async () => (await readMoodOperations(page)).length)
+    .poll(async () => (await readCheckInOperations(page)).length)
     .toBe(7);
 
   await page.close();
@@ -159,7 +178,7 @@ test("syncs seven persisted daily check-ins after the page is closed", async ({
   }
 
   await expect
-    .poll(async () => (await readMoodOperations(resumedPage)).length, {
+    .poll(async () => (await readCheckInOperations(resumedPage)).length, {
       timeout: 30_000,
     })
     .toBe(0);
@@ -169,27 +188,34 @@ test("syncs seven persisted daily check-ins after the page is closed", async ({
     select: { id: true },
   });
 
-  const syncedEntries = await prisma.moodEntry.findMany({
+  const syncedEntries = await prisma.checkIn.findMany({
     where: {
       userId: user.id,
-      clientOperationId: { startsWith: "mood:" },
+      operationId: { startsWith: "action:" },
     },
-    orderBy: { clientOperationId: "asc" },
-    select: { clientOperationId: true, value: true, energy: true },
+    orderBy: { operationId: "asc" },
+    select: {
+      operationId: true,
+      valence: true,
+      activation: true,
+      irritability: true,
+    },
   });
 
   expect(syncedEntries).toHaveLength(7);
-  expect(syncedEntries.map((entry) => entry.value)).toEqual([
-    7, 7, 7, 7, 7, 7, 7,
+  expect(syncedEntries.map((entry) => entry.valence)).toEqual([
+    8, 8, 8, 8, 8, 8, 8,
   ]);
+  expect(syncedEntries.every((entry) => entry.activation === 4)).toBe(true);
+  expect(syncedEntries.every((entry) => entry.irritability === 6)).toBe(true);
 
   await resumedPage.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect
     .poll(async () =>
-      prisma.moodEntry.count({
+      prisma.checkIn.count({
         where: {
           userId: user.id,
-          clientOperationId: { startsWith: "mood:" },
+          operationId: { startsWith: "action:" },
         },
       }),
     )

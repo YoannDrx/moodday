@@ -30,7 +30,7 @@ export default async function RouteLayout(props: PropsWithChildren) {
           sizes="(min-width: 1280px) 520px, 40vw"
           className="relative -mx-6 max-h-[54vh] w-[calc(100%+3rem)] object-contain"
         />
-        <p className="relative max-w-sm text-xs leading-5 text-[#fff8ed]/58">
+        <p className="relative max-w-sm text-xs leading-5 text-[#fff8ed]/75">
           {isEnglish
             ? "Private by design · no diagnosis · no guilt-driven streaks"
             : "Confidentiel par conception · sans diagnostic · sans série culpabilisante"}
