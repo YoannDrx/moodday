@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   FileDown,
@@ -74,6 +74,9 @@ export function ExportForm({
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
   const [showPreview, setShowPreview] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => setIsHydrated(true), []);
 
   const isValidRange = useMemo(() => {
     return new Date(startDate) <= new Date(endDate);
@@ -254,7 +257,10 @@ export function ExportForm({
               variant="outline"
               onClick={() => setShowPreview(true)}
               disabled={
-                !isValidRange || previewLoading || !canCreateConsultationReport
+                !isHydrated ||
+                !isValidRange ||
+                previewLoading ||
+                !canCreateConsultationReport
               }
             >
               <Eye className="mr-2 size-4" />
@@ -263,6 +269,7 @@ export function ExportForm({
             <Button
               onClick={() => pdfDownloadMutation.mutate()}
               disabled={
+                !isHydrated ||
                 !isValidRange ||
                 pdfDownloadMutation.isPending ||
                 !canCreateConsultationReport
@@ -278,7 +285,9 @@ export function ExportForm({
             <Button
               variant="secondary"
               onClick={() => csvDownloadMutation.mutate()}
-              disabled={!isValidRange || csvDownloadMutation.isPending}
+              disabled={
+                !isHydrated || !isValidRange || csvDownloadMutation.isPending
+              }
             >
               {csvDownloadMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
