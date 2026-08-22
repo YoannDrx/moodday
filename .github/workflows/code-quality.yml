@@ -68,6 +68,11 @@ jobs:
         run: pnpm lint:ci
       - name: TypeScript
         run: pnpm ts
+      - name: Bundle the iOS application
+        env:
+          APP_VARIANT: preview
+          EXPO_PUBLIC_API_URL: https://moodday.invalid
+        run: pnpm --filter @moodday/mobile exec expo export --platform ios --output-dir /tmp/moodday-expo-export
       - name: Enforce unit tests and release coverage thresholds
         run: pnpm test:coverage:release
       - name: Dead-code analysis

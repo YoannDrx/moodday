@@ -21,6 +21,16 @@ type ExtractZip = (
   options: { dir: string },
 ) => Promise<void>;
 
+type MetroAssets = {
+  getAssetData: (
+    assetPath: string,
+    localPath: string,
+    assetDataPlugins: string[],
+    platform: string | null,
+    publicPath: string,
+  ) => Promise<{ width?: number; height?: number; type: string }>;
+};
+
 const loadPatchedExtractZip = async (): Promise<ExtractZip> => {
   const pnpmStore = path.join(process.cwd(), "node_modules", ".pnpm");
   const packageDirectory = (await readdir(pnpmStore)).find((entry) =>
@@ -37,6 +47,29 @@ const loadPatchedExtractZip = async (): Promise<ExtractZip> => {
   ) as ExtractZip;
 };
 
+const loadPatchedMetroAssets = async (): Promise<MetroAssets> => {
+  const pnpmStore = path.join(process.cwd(), "node_modules", ".pnpm");
+  const packageDirectory = (await readdir(pnpmStore)).find((entry) =>
+    entry.startsWith("metro@0.83.7_patch_hash="),
+  );
+
+  if (!packageDirectory) {
+    throw new Error("patched_metro_not_installed");
+  }
+
+  const require = createRequire(import.meta.url);
+  return require(
+    path.join(
+      pnpmStore,
+      packageDirectory,
+      "node_modules",
+      "metro",
+      "src",
+      "Assets.js",
+    ),
+  ) as MetroAssets;
+};
+
 const loadTransitiveUuid = async (
   packageDirectoryPrefix: string,
   packagePath: string,
@@ -47,7 +80,9 @@ const loadTransitiveUuid = async (
   );
 
   if (!packageDirectory) {
-    throw new Error(`transitive_package_not_installed:${packageDirectoryPrefix}`);
+    throw new Error(
+      `transitive_package_not_installed:${packageDirectoryPrefix}`,
+    );
   }
 
   const require = createRequire(
@@ -111,6 +146,28 @@ describe("supply-chain patches", () => {
       await expect(
         lstat(path.join(destination, "escape")),
       ).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("lets Metro inspect local images through the buffer-only parser", async () => {
+    const workspace = await mkdtemp(
+      path.join(tmpdir(), "moodday-metro-asset-"),
+    );
+    const imagePath = path.join(workspace, "pixel.png");
+    const onePixelPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    );
+
+    try {
+      await writeFile(imagePath, onePixelPng, { mode: 0o600 });
+      const { getAssetData } = await loadPatchedMetroAssets();
+
+      await expect(
+        getAssetData(imagePath, "pixel.png", [], null, "/assets"),
+      ).resolves.toMatchObject({ width: 1, height: 1, type: "png" });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
