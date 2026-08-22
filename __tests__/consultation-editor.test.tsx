@@ -188,6 +188,11 @@ describe("consultation preparation editor", () => {
       status: "archived",
     });
 
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Archiver" })[0],
+      ).toBeEnabled(),
+    );
     mocks.setConsultationPreparationStatus.mockResolvedValue({
       serverError: "Status refused",
     });
