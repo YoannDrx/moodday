@@ -63,7 +63,6 @@
   },
   "dependencies": {
     "@moodday/contracts": "workspace:*",
-    "@moodday/design-tokens": "workspace:*",
     "@moodday/domain": "workspace:*",
     "@better-auth/passkey": "1.6.27",
     "@better-auth/expo": "1.6.27",
