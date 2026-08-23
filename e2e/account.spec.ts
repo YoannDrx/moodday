@@ -297,6 +297,7 @@ test.describe("account", () => {
         identifier: {
           contains: "delete-account",
         },
+        value: user.id,
       },
       orderBy: {
         createdAt: "desc",
@@ -318,17 +319,20 @@ test.describe("account", () => {
     });
 
     // i18n: button text is "Delete account" (EN) / "Supprimer le compte" (FR)
-    const goodbyeNavigation = page.waitForURL(
-      (url) => url.pathname === "/auth/goodbye",
-      {
+    const confirmDeleteButton = page.getByRole("button", {
+      name: /Delete account|Supprimer le compte/i,
+    });
+    // This button stays disabled until the client is hydrated. Waiting for the
+    // actual interactive state avoids WebKit occasionally dispatching the
+    // click while the server-rendered button is being replaced.
+    await expect(confirmDeleteButton).toBeEnabled();
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === "/auth/goodbye", {
         timeout: 30000,
         waitUntil: "commit",
-      },
-    );
-    await page
-      .getByRole("button", { name: /Delete account|Supprimer le compte/i })
-      .click({ noWaitAfter: true });
-    await goodbyeNavigation;
+      }),
+      confirmDeleteButton.click(),
+    ]);
     // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
     await expect(
       page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
