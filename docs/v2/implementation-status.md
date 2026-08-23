@@ -211,6 +211,13 @@ initiale des traitements historiques conservée et diff Prisma nul. La migration
 version, motif, notes, fuseau et idempotence aux corrections sans supprimer une
 prise existante.
 
+Le lot brouillons et préférences synchronisés a ensuite été répété depuis la
+baseline historique sur PostgreSQL 17 jetable : 33 migrations, 68 tables
+publiques, préférences historiques conservées avec des valeurs neutres,
+nouvelle table privée liée au propriétaire par suppression en cascade et diff
+Prisma nul. La migration `20260823170000_v2_synced_drafts_preferences` ne
+supprime ni colonne ni donnée existante.
+
 ### Offline mobile
 
 - SQLCipher est activé dans la configuration Expo native.
@@ -247,15 +254,16 @@ prise existante.
   synchronisation, et sépare la purge destructive derrière une confirmation
   explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
 - Les échantillons Santé bruts, le plan de sécurité et le détail des traitements
-  disposent de tables SQLCipher dédiées. La version de schéma locale 8 met à
+  disposent de tables SQLCipher dédiées. La version de schéma locale 9 met à
   niveau les installations
   existantes sans purger la file de synchronisation.
 
 Cette tranche prouve le moteur delta pour les premiers agrégats, les prises de
-traitement et les artefacts append-only du rendez-vous. Les brouillons et les
-réglages généraux restent à brancher sur le même protocole. Les conflits
-Google/Mood Day disposent désormais de leur registre et d’une résolution
-explicite, indépendante de la file offline générique.
+traitement, les artefacts append-only du rendez-vous, les brouillons privés et
+les préférences générales. Les brouillons mutables disposent d'un état local
+distinct afin de regrouper les changements hors ligne sans fabriquer de
+version serveur ; leur conflit exige un choix explicite. Les conflits
+Google/Mood Day restent indépendants de cette file générique.
 
 ### Google Agenda dédié
 
@@ -309,7 +317,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 166 fichiers, 1 037 tests
+pnpm test:ci                 # 168 fichiers, 1 056 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -333,16 +341,10 @@ git diff --check
 
 - Couverture exhaustive des écrans et états en Figma ; la direction est choisie,
   mais le quota distant empêche encore le handoff complet.
-- Extension du moteur delta aux brouillons et réglages, puis tests réels
-  multi-appareils et concurrence PostgreSQL. Les prises append-only sont
-  raccordées au même protocole et testées localement en mode offline-first.
-- Corrections de prises, historique et régimes avancés. Le plan de sécurité est
-  maintenant raccordé à l'API V2 et disponible hors ligne sur iOS. Les
-  traitements et occurrences
-  quotidiennes de routines sont raccordés à l'API et au moteur offline mobile ;
-  leurs corrections et planifications avancées restent à compléter. Le
-  rendez-vous canonique, son brief, l'export PDF, les liens temporaires et les
-  conflits Google sont raccordés ; les brouillons restent à livrer.
+- Recette réelle multi-appareils des brouillons et préférences, notamment
+  concurrence, reprise après révocation et choix explicite d'une version.
+- Recette iPhone des traitements avancés, du plan de sécurité, des rendez-vous,
+  des briefs temporaires et de leur comportement hors ligne.
 - Recette fournisseur réelle de Google Agenda, calendrier natif et HealthKit.
   Le moteur Google bidirectionnel, l'import calendrier natif et la collecte
   HealthKit sont codés derrière des flags fermés. Health Connect est reporté au

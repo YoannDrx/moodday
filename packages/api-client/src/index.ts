@@ -47,6 +47,7 @@ import type {
   RuntimeCapabilitiesDto,
   SafetyPlanDto,
   SafetyPlanWriteInput,
+  SyncedPreferencesDto,
   SupportRequestDto,
   UpdateCalendarConnectionInput,
   UpdateMedicationInput,
@@ -55,6 +56,8 @@ import type {
   SyncPushInput,
   SyncPushResult,
   TodayDto,
+  UserDraftDto,
+  UserDraftKind,
 } from "@moodday/contracts";
 
 type ApiClientOptions = {
@@ -126,6 +129,12 @@ export const createApiClient = ({
   return {
     getRuntimeCapabilities: async () =>
       request<RuntimeCapabilitiesDto>("/api/v2/capabilities"),
+    getSyncedPreferences: async () =>
+      request<SyncedPreferencesDto | null>("/api/v2/preferences"),
+    getUserDraft: async (kind: UserDraftKind, contextKey: string) =>
+      request<UserDraftDto | null>(
+        `/api/v2/drafts?kind=${encodeURIComponent(kind)}&contextKey=${encodeURIComponent(contextKey)}`,
+      ),
     createCheckIn: async (input: CreateCheckInInput) =>
       request<CheckInDto>("/api/v2/check-ins", {
         method: "POST",

@@ -9,8 +9,8 @@ import { PrismaClient } from "@prisma/client";
 const SNAPSHOT_LAST_MIGRATION =
   "20260810120000_subscription_updated_at_no_default";
 const EXPECTED_SNAPSHOT_MIGRATIONS = 12;
-const EXPECTED_FINAL_MIGRATIONS = 32;
-const EXPECTED_PUBLIC_TABLES = 67;
+const EXPECTED_FINAL_MIGRATIONS = 33;
+const EXPECTED_PUBLIC_TABLES = 68;
 
 const databaseUrl = process.env.DATABASE_URL;
 const directUrl = process.env.DATABASE_URL_UNPOOLED;
@@ -171,6 +171,24 @@ const main = async () => {
       await countRows(
         prisma,
         `SELECT COUNT(*) AS count FROM "user_preferences" WHERE "id" = '${preferenceId}'`,
+      ),
+      1,
+    );
+    assert.equal(
+      await countRows(
+        prisma,
+        `SELECT COUNT(*) AS count FROM "user_preferences"
+         WHERE "id" = '${preferenceId}'
+           AND "reducedMotion" = false
+           AND "preferredTextScale" = 'system'`,
+      ),
+      1,
+    );
+    assert.equal(
+      await countRows(
+        prisma,
+        `SELECT COUNT(*) AS count FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'v2_user_draft'`,
       ),
       1,
     );

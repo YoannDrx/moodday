@@ -41,6 +41,7 @@ export const buildUserDataExport = async (user: { id: string }) =>
       dailyAggregates,
       sourceConnections,
       routines,
+      userDrafts,
       circleRelationships,
       supportRequests,
       caregiverContributions,
@@ -66,6 +67,9 @@ export const buildUserDataExport = async (user: { id: string }) =>
           defaultChartPeriod: true,
           timezone: true,
           theme: true,
+          locale: true,
+          reducedMotion: true,
+          preferredTextScale: true,
           notificationsEnabled: true,
           dailyCheckInReminder: true,
           dailyCheckInTime: true,
@@ -598,6 +602,18 @@ export const buildUserDataExport = async (user: { id: string }) =>
           },
         },
       }),
+      tx.userDraft.findMany({
+        where: { userId: user.id },
+        orderBy: { updatedAt: "asc" },
+        select: {
+          id: true,
+          kind: true,
+          contextKey: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
       tx.circleRelationship.findMany({
         where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
         orderBy: { createdAt: "asc" },
@@ -680,7 +696,7 @@ export const buildUserDataExport = async (user: { id: string }) =>
     return {
       exportMetadata: {
         exportDate: new Date().toISOString(),
-        dataVersion: "2.4",
+        dataVersion: "2.5",
         applicationName: "Moodday",
         userId: user.id,
         timezone: preferences?.timezone ?? null,
@@ -709,6 +725,7 @@ export const buildUserDataExport = async (user: { id: string }) =>
       dailyAggregates,
       sourceConnections,
       routines,
+      drafts: userDrafts,
       circle: {
         relationships: circleRelationships,
         supportRequests,

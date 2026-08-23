@@ -302,6 +302,8 @@ model UserPreferences {
   locale                          String    @default("fr")
   notificationContentMode         String    @default("generic")
   trustedDevice                   Boolean   @default(false)
+  reducedMotion                   Boolean   @default(false)
+  preferredTextScale              String    @default("system")
   caregiverAccessDigestEnabled    Boolean   @default(true)
   caregiverAccessDigestFrequency  String    @default("weekly")
   lastCaregiverAccessDigestSentAt DateTime?

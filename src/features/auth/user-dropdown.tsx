@@ -36,6 +36,7 @@ import { useI18n } from "@/i18n/provider";
 import { UserDropdownLogout } from "./user-dropdown-logout";
 import { UserDropdownStopImpersonating } from "./user-dropdown-stop-impersonating";
 import { useProtectedSignOut } from "./use-protected-sign-out";
+import { updateDisplayPreferences } from "@/features/preferences/preferences.action";
 
 const setLocaleCookie = (locale: Locale) => {
   const maxAge = 60 * 60 * 24 * 365;
@@ -156,6 +157,7 @@ export const UserDropdown = ({
                 <DropdownMenuItem
                   onClick={() => {
                     setLocaleCookie("fr");
+                    void updateDisplayPreferences({ locale: "fr" });
                     router.refresh();
                   }}
                   disabled={locale === "fr"}
@@ -165,6 +167,7 @@ export const UserDropdown = ({
                 <DropdownMenuItem
                   onClick={() => {
                     setLocaleCookie("en");
+                    void updateDisplayPreferences({ locale: "en" });
                     router.refresh();
                   }}
                   disabled={locale === "en"}

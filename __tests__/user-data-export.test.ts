@@ -32,6 +32,7 @@ describe("buildUserDataExport", () => {
     vi.mocked(prisma.dailyAggregate.findMany).mockResolvedValue([]);
     vi.mocked(prisma.sourceConnection.findMany).mockResolvedValue([]);
     vi.mocked(prisma.routine.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.userDraft.findMany).mockResolvedValue([]);
     vi.mocked(prisma.circleRelationship.findMany).mockResolvedValue([]);
     vi.mocked(prisma.supportRequest.findMany).mockResolvedValue([]);
     vi.mocked(prisma.caregiverContribution.findMany).mockResolvedValue([]);
@@ -50,7 +51,7 @@ describe("buildUserDataExport", () => {
 
     expect(result.exportMetadata).toEqual(
       expect.objectContaining({
-        dataVersion: "2.4",
+        dataVersion: "2.5",
         applicationName: "Moodday",
         userId: "user-1",
         timezone: "Europe/Paris",
@@ -207,6 +208,32 @@ describe("buildUserDataExport", () => {
           ],
         },
       }),
+    );
+  });
+
+  it("includes private drafts only in the full account export", async () => {
+    vi.mocked(prisma.caregiverRelationship.findMany)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.userDraft.findMany).mockResolvedValue([
+      {
+        id: "draft-1",
+        kind: "appointment_preparation",
+        contextKey: "appointment-1",
+        content: { question: "Question privée en cours" },
+      },
+    ] as never);
+
+    const result = await buildUserDataExport({ id: "user-1" });
+
+    expect(result.drafts).toEqual([
+      expect.objectContaining({
+        id: "draft-1",
+        kind: "appointment_preparation",
+      }),
+    ]);
+    expect(prisma.userDraft.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1" } }),
     );
   });
 

@@ -275,4 +275,137 @@ describe("V2 synchronization foundation", () => {
       }),
     });
   });
+
+  it("creates one private check-in draft without logging its content", async () => {
+    const updatedAt = new Date("2026-08-23T12:00:00.000Z");
+    vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.userDraft.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    vi.mocked(prisma.userDraft.create).mockResolvedValue({
+      updatedAt,
+    } as never);
+    vi.mocked(prisma.syncOperation.create).mockResolvedValue({} as never);
+
+    const result = await pushSyncOperations("user-1", {
+      deviceId: "mobile-device-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-draft-create-1",
+          entityId: "draft-check-in-1",
+          entityType: "user_draft",
+          mutation: "create",
+          baseVersion: null,
+          payload: {
+            kind: "check_in",
+            contextKey: "2026-08-23",
+            content: { mode: "quick", scores: { valence: 4 } },
+          },
+        },
+      ],
+    });
+
+    expect(result.results[0]).toMatchObject({
+      status: "applied",
+      currentVersion: updatedAt.toISOString(),
+    });
+    expect(prisma.syncOperation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        entityType: "user_draft",
+        payloadDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+    });
+    expect(prisma.syncOperation.create).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ content: expect.anything() }),
+      }),
+    );
+  });
+
+  it("refuses to overwrite synchronized preferences from a stale device", async () => {
+    const currentVersion = new Date("2026-08-23T12:00:00.000Z");
+    vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.userPreferences.findUnique).mockResolvedValue({
+      id: "preferences-1",
+      updatedAt: currentVersion,
+    } as never);
+    vi.mocked(prisma.syncOperation.create).mockResolvedValue({} as never);
+
+    const result = await pushSyncOperations("user-1", {
+      deviceId: "mobile-device-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-preferences-update-1",
+          entityId: "preferences-1",
+          entityType: "user_preferences",
+          mutation: "update",
+          baseVersion: "2026-08-22T12:00:00.000Z",
+          payload: {
+            locale: "fr",
+            timezone: "Europe/Paris",
+            reducedMotion: true,
+            preferredTextScale: "large",
+            notificationsEnabled: false,
+            dailyCheckInReminder: true,
+            dailyCheckInTime: "09:00",
+            medicationReminders: true,
+            medicationReminderTime: "09:00",
+          },
+        },
+      ],
+    });
+
+    expect(result.results[0]).toEqual({
+      operationId: "operation-preferences-update-1",
+      entityId: "preferences-1",
+      status: "conflict",
+      code: "version_conflict",
+      currentVersion: currentVersion.toISOString(),
+    });
+    expect(prisma.userPreferences.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized drafts before writing private content", async () => {
+    vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.userDraft.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.syncOperation.create).mockResolvedValue({} as never);
+
+    const result = await pushSyncOperations("user-1", {
+      deviceId: "mobile-device-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-draft-oversized-1",
+          entityId: "draft-oversized-1",
+          entityType: "user_draft",
+          mutation: "create",
+          payload: {
+            kind: "check_in",
+            contextKey: "2026-08-23",
+            content: { note: "x".repeat(20_001) },
+          },
+        },
+      ],
+    });
+
+    expect(result.results[0]).toMatchObject({
+      status: "rejected",
+      code: "draft_content_too_large",
+    });
+    expect(prisma.userDraft.create).not.toHaveBeenCalled();
+  });
 });

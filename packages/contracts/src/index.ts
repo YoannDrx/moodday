@@ -816,6 +816,62 @@ export const medicationDetailSchema = z.object({
   dosageHistory: z.array(medicationDosageHistorySchema),
 });
 
+const timePreferenceSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+export const preferredTextScaleSchema = z.enum([
+  "system",
+  "large",
+  "extra_large",
+]);
+
+export const syncedPreferencesWriteSchema = z.object({
+  locale: z.enum(["fr", "en"]),
+  timezone: z.string().min(1).max(80).nullable(),
+  reducedMotion: z.boolean(),
+  preferredTextScale: preferredTextScaleSchema,
+  notificationsEnabled: z.boolean(),
+  dailyCheckInReminder: z.boolean(),
+  dailyCheckInTime: timePreferenceSchema,
+  medicationReminders: z.boolean(),
+  medicationReminderTime: timePreferenceSchema,
+});
+
+export const syncedPreferencesSchema = syncedPreferencesWriteSchema.extend({
+  id: z.string(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const updateSyncedPreferencesSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+  baseVersion: z.iso.datetime().nullable(),
+  preferences: syncedPreferencesWriteSchema,
+});
+
+export const userDraftKindSchema = z.enum([
+  "check_in",
+  "appointment_preparation",
+]);
+
+export const userDraftWriteSchema = z.object({
+  kind: userDraftKindSchema,
+  contextKey: z.string().trim().min(1).max(128),
+  content: z.record(z.string().trim().min(1).max(80), z.unknown()),
+});
+
+export const userDraftSchema = userDraftWriteSchema.extend({
+  id: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const saveUserDraftSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+  baseVersion: z.iso.datetime().nullable(),
+  draft: userDraftWriteSchema,
+});
+
 export const syncEntityTypeSchema = z.enum([
   "check_in",
   "medication",
@@ -828,6 +884,8 @@ export const syncEntityTypeSchema = z.enum([
   "appointment_question",
   "appointment_event",
   "appointment_decision",
+  "user_draft",
+  "user_preferences",
 ]);
 
 export const syncMutationSchema = z.enum(["create", "update", "delete"]);
@@ -1140,6 +1198,18 @@ export type MedicationDosageHistoryDto = z.infer<
   typeof medicationDosageHistorySchema
 >;
 export type MedicationDetailDto = z.infer<typeof medicationDetailSchema>;
+export type PreferredTextScale = z.infer<typeof preferredTextScaleSchema>;
+export type SyncedPreferencesWriteInput = z.infer<
+  typeof syncedPreferencesWriteSchema
+>;
+export type SyncedPreferencesDto = z.infer<typeof syncedPreferencesSchema>;
+export type UpdateSyncedPreferencesInput = z.infer<
+  typeof updateSyncedPreferencesSchema
+>;
+export type UserDraftKind = z.infer<typeof userDraftKindSchema>;
+export type UserDraftWriteInput = z.infer<typeof userDraftWriteSchema>;
+export type UserDraftDto = z.infer<typeof userDraftSchema>;
+export type SaveUserDraftInput = z.infer<typeof saveUserDraftSchema>;
 export type CreateAppointmentQuestionInput = z.infer<
   typeof createAppointmentQuestionSchema
 >;

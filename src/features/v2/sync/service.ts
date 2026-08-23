@@ -10,7 +10,9 @@ import {
   createMedicationSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
+  syncedPreferencesWriteSchema,
   updateMedicationSchema,
+  userDraftWriteSchema,
   type SyncOperationResult,
   type SyncPullResult,
   type SyncPushInput,
@@ -49,6 +51,13 @@ import {
   updateMedicationInTransaction,
 } from "../medications/service";
 import { routineSelection, toRoutineDto } from "../routines/service";
+import {
+  assertDraftContentSize,
+  syncedPreferencesSelection,
+  toSyncedPreferencesDto,
+  toUserDraftDto,
+  userDraftSelection,
+} from "../preferences-drafts/service";
 import {
   routineOccurrenceSelection,
   toRoutineOccurrenceDto,
@@ -1170,6 +1179,259 @@ const applyMedicationInventoryEvent = async (
   }
 };
 
+const applyUserDraft = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  const current = await transaction.userDraft.findUnique({
+    where: { id: operation.entityId },
+    select: { userId: true, updatedAt: true },
+  });
+  if (current && current.userId !== userId) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+
+  if (operation.mutation === "delete") {
+    if (!current) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "rejected",
+      });
+      return rejected(operation, "entity_not_found");
+    }
+    if (!hasCurrentVersion(operation, current.updatedAt)) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "version_conflict", current.updatedAt);
+    }
+    await transaction.userDraft.delete({ where: { id: operation.entityId } });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date());
+  }
+
+  const parsed = userDraftWriteSchema.safeParse(operation.payload);
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_user_draft");
+  }
+  try {
+    assertDraftContentSize(parsed.data.content);
+  } catch {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "draft_content_too_large");
+  }
+
+  if (operation.mutation === "create") {
+    const existingContext = await transaction.userDraft.findUnique({
+      where: {
+        userId_kind_contextKey: {
+          userId,
+          kind: parsed.data.kind,
+          contextKey: parsed.data.contextKey,
+        },
+      },
+      select: { id: true, updatedAt: true },
+    });
+    if (current || existingContext) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(
+        operation,
+        "draft_context_exists",
+        current?.updatedAt ?? existingContext?.updatedAt ?? null,
+      );
+    }
+    const created = await transaction.userDraft.create({
+      data: {
+        id: operation.entityId,
+        userId,
+        kind: parsed.data.kind,
+        contextKey: parsed.data.contextKey,
+        content: parsed.data.content as Prisma.InputJsonValue,
+      },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, created.updatedAt);
+  }
+
+  if (!current) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+  if (!hasCurrentVersion(operation, current.updatedAt)) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "conflict",
+    });
+    return conflict(operation, "version_conflict", current.updatedAt);
+  }
+  const updated = await transaction.userDraft.update({
+    where: { id: operation.entityId },
+    data: {
+      kind: parsed.data.kind,
+      contextKey: parsed.data.contextKey,
+      content: parsed.data.content as Prisma.InputJsonValue,
+    },
+    select: { updatedAt: true },
+  });
+  await recordOperation({
+    transaction,
+    userId,
+    deviceId,
+    operation,
+    status: "applied",
+  });
+  return applied(operation, updated.updatedAt);
+};
+
+const applyUserPreferences = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation === "delete") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "preferences_cannot_be_deleted");
+  }
+  const parsed = syncedPreferencesWriteSchema.safeParse(operation.payload);
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_user_preferences");
+  }
+  const current = await transaction.userPreferences.findUnique({
+    where: { userId },
+    select: { id: true, updatedAt: true },
+  });
+  if (operation.mutation === "create") {
+    if (current) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "preferences_exist", current.updatedAt);
+    }
+    const created = await transaction.userPreferences.create({
+      data: { id: operation.entityId, userId, ...parsed.data },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, created.updatedAt);
+  }
+  if (!current || current.id !== operation.entityId) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: current ? "conflict" : "rejected",
+    });
+    return current
+      ? conflict(operation, "preferences_entity_mismatch", current.updatedAt)
+      : rejected(operation, "entity_not_found");
+  }
+  if (!hasCurrentVersion(operation, current.updatedAt)) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "conflict",
+    });
+    return conflict(operation, "version_conflict", current.updatedAt);
+  }
+  const updated = await transaction.userPreferences.update({
+    where: { id: current.id },
+    data: parsed.data,
+    select: { updatedAt: true },
+  });
+  await recordOperation({
+    transaction,
+    userId,
+    deviceId,
+    operation,
+    status: "applied",
+  });
+  return applied(operation, updated.updatedAt);
+};
+
 const applyOperation = async (
   userId: string,
   deviceId: string,
@@ -1212,6 +1474,12 @@ const applyOperation = async (
         deviceId,
         operation,
       );
+    }
+    if (operation.entityType === "user_draft") {
+      return applyUserDraft(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "user_preferences") {
+      return applyUserPreferences(transaction, userId, deviceId, operation);
     }
     if (operation.entityType === "routine") {
       return applyRoutine(transaction, userId, deviceId, operation);
@@ -1336,6 +1604,20 @@ const hydrateChange = async (
           }
         : null,
     };
+  }
+  if (operation.entityType === "user_draft") {
+    const value = await prisma.userDraft.findFirst({
+      where: { id: operation.entityId, userId },
+      select: userDraftSelection,
+    });
+    return { data: value ? toUserDraftDto(value) : null };
+  }
+  if (operation.entityType === "user_preferences") {
+    const value = await prisma.userPreferences.findUnique({
+      where: { userId },
+      select: syncedPreferencesSelection,
+    });
+    return { data: value ? toSyncedPreferencesDto(value) : null };
   }
   if (operation.entityType === "routine") {
     const value = await prisma.routine.findFirst({

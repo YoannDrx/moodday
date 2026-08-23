@@ -47,31 +47,30 @@ complète forment une release ultérieure.
   initiation de la suppression du compte avec confirmation e-mail.
 - Export V2 des check-ins, observations, agrégats Santé, sources, routines,
   rendez-vous et Cercle, sans échantillon Santé brut ni reçu d'opération.
+- Brouillons de check-in et de préparation versionnés, chiffrés sur iOS,
+  synchronisés avec conflit explicite et exclus des briefs de consultation.
+- Préférences de langue, mouvement, taille de texte et rappels synchronisées
+  entre le web et iOS ; aucun conflit ne choisit silencieusement une version.
+- Purge locale refusée tant qu'un brouillon non synchronisé existe.
 
 ### À terminer dans le logiciel
 
 Les points ci-dessous peuvent être développés sans décision commerciale
 supplémentaire, mais exigent chacun tests automatisés et recette iPhone :
 
-1. Brouillons et réglages synchronisés
-   - brouillons versionnés de check-in et de préparation ;
-   - préférences de langue, accessibilité et notifications ;
-   - confirmation en cas de versions concurrentes ;
-   - purge interdite tant qu'un brouillon non synchronisé existe.
-
-2. Notifications iOS
+1. Notifications iOS
    - recetter sur iPhone réel la permission, les reprises, fuseaux et DST ;
    - confirmer le comportement après modification d'un régime et après
      révocation de la permission dans Réglages iOS ;
    - conserver le modèle local sans token tant qu'aucun besoin distant précis
      ne justifie l'ajout d'un service push.
 
-3. Exports et suppression V2
+2. Exports et suppression V2
    - supprimer une source, une période ou le compte et propager aux appareils ;
    - exporter les rendez-vous sans question privée par défaut ;
    - preuve DSAR réelle via Blob privé, expiration et purge.
 
-4. Finition fonctionnelle Carnet vivant
+3. Finition fonctionnelle Carnet vivant
    - états vide, chargement, récupérable, hors ligne, conflit et permission
      révoquée sur chaque écran de la matrice ;
    - FR/EN complet et aucune chaîne métier résiduelle non traduite ;
@@ -164,7 +163,7 @@ de mise en production tant que leur preuve n'existe pas :
 ## Ordre d'exécution sans date arbitraire
 
 1. Fusionner un candidat vert et déployer une Preview isolée.
-2. Terminer brouillons/réglages synchronisés et la finition transversale.
+2. Terminer la finition transversale et la propagation des suppressions.
 3. Configurer Apple/EAS, RevenueCat sandbox, Google OAuth et Stripe test.
 4. Exécuter la matrice iPhone réel et corriger jusqu'à zéro P0/P1.
 5. Fermer HDS/AIPD/DPA/TVA et répéter sauvegarde/restauration.

@@ -2,7 +2,7 @@ export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
     title: "Mood Day V2 API",
-    version: "2.0.0-alpha.4",
+    version: "2.0.0-alpha.5",
     description:
       "Versioned contracts shared by Mood Day web, iOS and Android clients.",
   },
@@ -739,6 +739,45 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/preferences": {
+      get: {
+        operationId: "getSyncedPreferences",
+        description:
+          "Returns the account-owned language, accessibility and generic reminder preferences, or null before initialization.",
+        responses: {
+          "200": { description: "Current synchronized preferences or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
+    "/drafts": {
+      get: {
+        operationId: "getUserDraft",
+        description:
+          "Returns one private, versioned draft for an explicit kind and context. Draft content is never shared automatically.",
+        parameters: [
+          {
+            name: "kind",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              enum: ["check_in", "appointment_preparation"],
+            },
+          },
+          {
+            name: "contextKey",
+            in: "query",
+            required: true,
+            schema: { type: "string", minLength: 1, maxLength: 128 },
+          },
+        ],
+        responses: {
+          "200": { description: "Current private draft or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
     "/sync/push": {
       post: {
         operationId: "pushSyncOperations",
@@ -1149,6 +1188,8 @@ export const moodDayV2OpenApi = {
                     "appointment_question",
                     "appointment_event",
                     "appointment_decision",
+                    "user_draft",
+                    "user_preferences",
                   ],
                 },
                 mutation: {

@@ -46,6 +46,7 @@ model User {
   calendarConnections  CalendarConnection[]
   devices              Device[]
   syncOperations       SyncOperation[]
+  userDrafts           UserDraft[]
   subscriptionSources  SubscriptionSource[]
   entitlementSnapshots EntitlementSnapshot[]
   billingEvents        BillingEvent[]

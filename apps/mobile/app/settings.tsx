@@ -1,5 +1,9 @@
 import { color, radius, space } from "@moodday/design-tokens";
-import type { EntitlementDto } from "@moodday/contracts";
+import type {
+  EntitlementDto,
+  SyncedPreferencesDto,
+  SyncedPreferencesWriteInput,
+} from "@moodday/contracts";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -16,7 +20,11 @@ import {
   closeOwnerLocalDatabase,
   getCachedMedications,
   getLocalOperationSummary,
+  getMutableConflictCount,
   purgeOwnerLocalData,
+  refreshSyncedPreferences,
+  resolveMutableConflicts,
+  saveSyncedPreferencesLocally,
   synchronizeNow,
 } from "../src/lib/local-database";
 import type { LocalOperationSummary } from "../src/lib/local-database-core";
@@ -56,11 +64,15 @@ export default function SettingsScreen() {
     useState<LocalReminderPreferences>(defaultLocalReminderPreferences);
   const [notificationStatus, setNotificationStatus] = useState<string>();
   const [accountDataStatus, setAccountDataStatus] = useState<string>();
+  const [syncedPreferences, setSyncedPreferences] =
+    useState<SyncedPreferencesDto>();
+  const [mutableConflictCount, setMutableConflictCount] = useState(0);
 
   const refreshSummary = useCallback(async () => {
     if (!ownerId) return emptySummary;
     const nextSummary = await getLocalOperationSummary(ownerId);
     setSummary(nextSummary);
+    setMutableConflictCount(await getMutableConflictCount(ownerId));
     return nextSummary;
   }, [ownerId]);
 
@@ -101,6 +113,52 @@ export default function SettingsScreen() {
       );
   }, []);
 
+  useEffect(() => {
+    if (!ownerId) return;
+    void refreshSyncedPreferences(ownerId)
+      .then((preferences) => {
+        if (!preferences) return;
+        setSyncedPreferences(preferences);
+        setNotificationPreferences((current) => ({
+          ...current,
+          enabled: preferences.notificationsEnabled && current.enabled,
+          dailyCheckIn: preferences.dailyCheckInReminder,
+          dailyCheckInTime: preferences.dailyCheckInTime,
+          medicationReminders: preferences.medicationReminders,
+        }));
+      })
+      .catch(() =>
+        setStatus(
+          "Les préférences du compte seront reprises à la prochaine synchronisation.",
+        ),
+      );
+  }, [ownerId]);
+
+  const defaultSyncedPreferences = (): SyncedPreferencesWriteInput => ({
+    locale: "fr",
+    timezone:
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Paris",
+    reducedMotion: false,
+    preferredTextScale: "system",
+    notificationsEnabled: notificationPreferences.enabled,
+    dailyCheckInReminder: notificationPreferences.dailyCheckIn,
+    dailyCheckInTime: notificationPreferences.dailyCheckInTime,
+    medicationReminders: notificationPreferences.medicationReminders,
+    medicationReminderTime: "09:00",
+  });
+
+  const persistSyncedPreferences = async (
+    changes: Partial<SyncedPreferencesWriteInput>,
+  ) => {
+    if (!ownerId) return;
+    const base = syncedPreferences ?? defaultSyncedPreferences();
+    const input: SyncedPreferencesWriteInput = { ...base, ...changes };
+    const result = await saveSyncedPreferencesLocally(ownerId, input);
+    setSyncedPreferences(result.preferences);
+    await refreshSummary();
+    return result;
+  };
+
   const updateNotifications = async (
     preferences: LocalReminderPreferences,
     requestPermission = false,
@@ -120,6 +178,12 @@ export default function SettingsScreen() {
         enabled: preferences.enabled && result.permitted,
       };
       setNotificationPreferences(next);
+      const synchronization = await persistSyncedPreferences({
+        notificationsEnabled: next.enabled,
+        dailyCheckInReminder: next.dailyCheckIn,
+        dailyCheckInTime: next.dailyCheckInTime,
+        medicationReminders: next.medicationReminders,
+      });
       setNotificationStatus(
         preferences.enabled && !result.permitted
           ? "Les notifications restent refusées dans les réglages iOS. Mood Day continue de fonctionner normalement."
@@ -127,6 +191,11 @@ export default function SettingsScreen() {
             ? `${result.scheduled} rappel${result.scheduled > 1 ? "s" : ""} générique${result.scheduled > 1 ? "s" : ""} planifié${result.scheduled > 1 ? "s" : ""} localement.`
             : "Les rappels Mood Day sont désactivés sur cet iPhone.",
       );
+      if (synchronization?.pending) {
+        setNotificationStatus(
+          "Le réglage est appliqué sur cet iPhone et sera synchronisé avec tes autres appareils dès que possible.",
+        );
+      }
     } catch {
       setNotificationStatus(
         "Les rappels n’ont pas pu être modifiés. Les réglages précédents restent prioritaires.",
@@ -244,6 +313,42 @@ export default function SettingsScreen() {
     );
   };
 
+  const requestMutableConflictResolution = (
+    strategy: "keep_local" | "use_server",
+  ) => {
+    if (!ownerId) return;
+    Alert.alert(
+      strategy === "keep_local"
+        ? "Garder la version de cet iPhone ?"
+        : "Utiliser la version déjà synchronisée ?",
+      strategy === "keep_local"
+        ? "Les brouillons et préférences de cet iPhone remplaceront les versions synchronisées après ta confirmation."
+        : "Les versions de cet iPhone seront remplacées par celles qui sont déjà synchronisées. Aucun choix n’est fait silencieusement.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Confirmer",
+          style: strategy === "use_server" ? "destructive" : "default",
+          onPress: () => {
+            setIsPending(true);
+            setStatus("Résolution du conflit…");
+            void resolveMutableConflicts(ownerId, strategy)
+              .then(async () => {
+                await refreshSummary();
+                setStatus("Le choix a été appliqué et synchronisé.");
+              })
+              .catch(() =>
+                setStatus(
+                  "La résolution n’a pas abouti. Les deux versions restent protégées.",
+                ),
+              )
+              .finally(() => setIsPending(false));
+          },
+        },
+      ],
+    );
+  };
+
   const exportAccountData = async () => {
     setIsPending(true);
     setAccountDataStatus("Préparation de ton export complet…");
@@ -348,6 +453,38 @@ export default function SettingsScreen() {
             </Text>
           </Pressable>
         ) : null}
+        {mutableConflictCount > 0 ? (
+          <View style={styles.conflictActions}>
+            <Text style={styles.status}>
+              {mutableConflictCount} brouillon ou préférence a changé sur deux
+              appareils. Choisis explicitement la version à conserver.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isPending}
+              onPress={() => requestMutableConflictResolution("keep_local")}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.secondaryLabel}>Garder cet iPhone</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isPending}
+              onPress={() => requestMutableConflictResolution("use_server")}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.secondaryLabel}>
+                Utiliser la version synchronisée
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
         {status ? (
           <Text accessibilityLiveRegion="polite" style={styles.status}>
             {status}
@@ -403,6 +540,91 @@ export default function SettingsScreen() {
         >
           <Text style={styles.secondaryLabel}>Ouvrir mon plan</Text>
         </Pressable>
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Affichage"
+        title="Langue et accessibilité"
+        description="Ces préférences suivent ton compte. Les réglages système iOS restent toujours prioritaires."
+      >
+        <PreferenceSwitch
+          disabled={isPending}
+          label="Réduire les mouvements"
+          selected={syncedPreferences?.reducedMotion ?? false}
+          onPress={() => {
+            setIsPending(true);
+            void persistSyncedPreferences({
+              reducedMotion: !(syncedPreferences?.reducedMotion ?? false),
+            })
+              .then((result) =>
+                setStatus(
+                  result?.pending
+                    ? "Préférence conservée sur cet iPhone, en attente de synchronisation."
+                    : "Préférence d’animation synchronisée.",
+                ),
+              )
+              .finally(() => setIsPending(false));
+          }}
+        />
+        <PreferenceSwitch
+          disabled={isPending}
+          label="Texte renforcé"
+          selected={
+            syncedPreferences?.preferredTextScale === "large" ||
+            syncedPreferences?.preferredTextScale === "extra_large"
+          }
+          onPress={() => {
+            const enabled =
+              syncedPreferences?.preferredTextScale === "large" ||
+              syncedPreferences?.preferredTextScale === "extra_large";
+            setIsPending(true);
+            void persistSyncedPreferences({
+              preferredTextScale: enabled ? "system" : "large",
+            })
+              .then((result) =>
+                setStatus(
+                  result?.pending
+                    ? "Préférence de texte conservée localement."
+                    : "Préférence de texte synchronisée.",
+                ),
+              )
+              .finally(() => setIsPending(false));
+          }}
+        />
+        <View style={styles.choiceRow} accessibilityRole="radiogroup">
+          {(["fr", "en"] as const).map((locale) => (
+            <Pressable
+              key={locale}
+              accessibilityRole="radio"
+              accessibilityState={{
+                selected: (syncedPreferences?.locale ?? "fr") === locale,
+              }}
+              disabled={isPending}
+              onPress={() => {
+                setIsPending(true);
+                void persistSyncedPreferences({ locale })
+                  .then((result) =>
+                    setStatus(
+                      result?.pending
+                        ? "Langue conservée localement."
+                        : "Langue synchronisée. Le catalogue mobile complet sera appliqué au prochain redémarrage.",
+                    ),
+                  )
+                  .finally(() => setIsPending(false));
+              }}
+              style={({ pressed }) => [
+                styles.choiceButton,
+                (syncedPreferences?.locale ?? "fr") === locale &&
+                  styles.choiceButtonSelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.choiceLabel}>
+                {locale === "fr" ? "Français" : "English"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </SectionCard>
 
       <SectionCard
@@ -725,6 +947,7 @@ const styles = StyleSheet.create({
   },
   dangerLabel: { color: color.danger, fontSize: 16, fontWeight: "700" },
   status: { color: color.inkMuted, fontSize: 13, lineHeight: 19 },
+  conflictActions: { gap: space[2] },
   preferenceRow: {
     minHeight: 50,
     flexDirection: "row",
@@ -754,6 +977,22 @@ const styles = StyleSheet.create({
     backgroundColor: color.surfaceStrong,
   },
   switchThumbSelected: { alignSelf: "flex-end" },
+  choiceRow: { flexDirection: "row", gap: space[2] },
+  choiceButton: {
+    minHeight: 48,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+  },
+  choiceButtonSelected: {
+    borderColor: color.primary,
+    backgroundColor: color.primarySoft,
+  },
+  choiceLabel: { color: color.ink, fontSize: 15, fontWeight: "700" },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.72 },
 });
