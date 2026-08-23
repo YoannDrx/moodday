@@ -10,7 +10,7 @@ export type LocalReminderPreferences = {
 export type PlannedLocalNotification = {
   identifier: string;
   kind: "daily_check_in" | "medication";
-  route: "/(tabs)/today" | "/(tabs)/soin";
+  route: "/" | "/(tabs)/soin";
   date: Date | null;
   hour: number;
   minute: number;
@@ -72,7 +72,7 @@ export const planLocalNotifications = ({
       planned.push({
         identifier: "moodday-reminder-daily-check-in",
         kind: "daily_check_in",
-        route: "/(tabs)/today",
+        route: "/",
         date: null,
         ...time,
       });

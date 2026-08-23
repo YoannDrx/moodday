@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, magicLink, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { expo } from "@better-auth/expo";
+import { importPKCS8, SignJWT } from "jose";
 
 import { sendEmail } from "@/lib/mail/send-email";
 import { SiteConfig } from "@/site-config";
@@ -35,6 +36,33 @@ const isolatedE2ERateLimit =
 
 export const SocialProviders: SocialProvidersType = {};
 
+const generateAppleClientSecret = async ({
+  clientId,
+  teamId,
+  keyId,
+  privateKey,
+}: {
+  clientId: string;
+  teamId: string;
+  keyId: string;
+  privateKey: string;
+}) => {
+  const signingKey = await importPKCS8(
+    privateKey.replace(/\\n/g, "\n"),
+    "ES256",
+  );
+  const now = Math.floor(Date.now() / 1000);
+
+  return new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: keyId })
+    .setIssuer(teamId)
+    .setSubject(clientId)
+    .setAudience("https://appleid.apple.com")
+    .setIssuedAt(now)
+    .setExpirationTime(now + 180 * 24 * 60 * 60)
+    .sign(signingKey);
+};
+
 if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
@@ -53,6 +81,32 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   };
 }
 
+const appleClientId = env.APPLE_CLIENT_ID;
+const appleTeamId = env.APPLE_TEAM_ID;
+const appleKeyId = env.APPLE_KEY_ID;
+const applePrivateKey = env.APPLE_PRIVATE_KEY;
+const appleAppBundleIdentifier = env.APPLE_APP_BUNDLE_IDENTIFIER;
+
+if (
+  appleClientId &&
+  appleTeamId &&
+  appleKeyId &&
+  applePrivateKey &&
+  appleAppBundleIdentifier
+) {
+  SocialProviders.apple = async () => ({
+    clientId: appleClientId,
+    clientSecret: await generateAppleClientSecret({
+      clientId: appleClientId,
+      teamId: appleTeamId,
+      keyId: appleKeyId,
+      privateKey: applePrivateKey,
+    }),
+    appBundleIdentifier: appleAppBundleIdentifier,
+    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+  });
+}
+
 export const auth = betterAuth({
   appName: SiteConfig.title,
   database: prismaAdapter(prisma, {
@@ -69,7 +123,7 @@ export const auth = betterAuth({
       enabled: true,
       disableImplicitLinking: false,
       requireLocalEmailVerified: true,
-      trustedProviders: ["google"],
+      trustedProviders: ["google", "apple"],
       allowDifferentEmails: false,
       allowUnlinkingAll: false,
       updateUserInfoOnLink: false,
@@ -93,7 +147,10 @@ export const auth = betterAuth({
     },
   },
   baseURL: getServerUrl(),
-  trustedOrigins: getTrustedAuthOrigins(),
+  trustedOrigins: [
+    ...getTrustedAuthOrigins(),
+    ...(SocialProviders.apple ? ["https://appleid.apple.com"] : []),
+  ],
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days (NFR-S5)
     updateAge: 60 * 60 * 24, // Update session every 24 hours

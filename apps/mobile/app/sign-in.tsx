@@ -22,9 +22,10 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
+  const [isApplePending, setIsApplePending] = useState(false);
   const [error, setError] = useState<string>();
 
-  const authPending = isPending || isGooglePending;
+  const authPending = isPending || isGooglePending || isApplePending;
 
   const signIn = async () => {
     setIsPending(true);
@@ -71,6 +72,34 @@ export default function SignInScreen() {
     }
   };
 
+  const signInWithApple = async () => {
+    setIsApplePending(true);
+    setError(undefined);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "apple",
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        setError(
+          "Connexion Apple interrompue. Tu peux réessayer ou utiliser ton e-mail.",
+        );
+        return;
+      }
+
+      clearMobileSessionInvalidation();
+      router.replace("/");
+    } catch {
+      setError(
+        "Apple ne répond pas pour le moment. Vérifie ta connexion puis réessaie.",
+      );
+    } finally {
+      setIsApplePending(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -107,6 +136,26 @@ export default function SignInScreen() {
                 {isGooglePending
                   ? "Ouverture de Google…"
                   : "Continuer avec Google"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continuer avec Apple"
+              disabled={authPending}
+              onPress={() => void signInWithApple()}
+              style={({ pressed }) => [
+                styles.appleButton,
+                authPending && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+              testID="sign-in-apple"
+            >
+              <Text accessibilityElementsHidden style={styles.appleMark}>
+                
+              </Text>
+              <Text style={styles.appleButtonLabel}>
+                {isApplePending ? "Ouverture d’Apple…" : "Continuer avec Apple"}
               </Text>
             </Pressable>
 
@@ -248,6 +297,26 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   googleButtonLabel: { color: color.ink, fontSize: 16, fontWeight: "700" },
+  appleButton: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space[3],
+    paddingHorizontal: space[4],
+    borderRadius: radius.medium,
+    backgroundColor: color.ink,
+  },
+  appleMark: {
+    color: color.surfaceStrong,
+    fontSize: 21,
+    lineHeight: 23,
+  },
+  appleButtonLabel: {
+    color: color.surfaceStrong,
+    fontSize: 16,
+    fontWeight: "700",
+  },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",

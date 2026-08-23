@@ -1,7 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 type AuthConfig = {
-  socialProviders: Record<string, { clientId: string; clientSecret: string }>;
+  socialProviders: Record<
+    string,
+    | { clientId: string; clientSecret: string }
+    | (() => Promise<Record<string, unknown>>)
+  >;
   account: {
     encryptOAuthTokens: boolean;
     storeStateStrategy: string;
@@ -101,6 +105,32 @@ vi.mock("@better-auth/passkey", () => ({
 vi.mock("@better-auth/expo", () => ({
   expo: () => ({ kind: "expo" }),
 }));
+vi.mock("jose", () => ({
+  importPKCS8: vi.fn(async () => "apple-signing-key"),
+  SignJWT: class {
+    setProtectedHeader() {
+      return this;
+    }
+    setIssuer() {
+      return this;
+    }
+    setSubject() {
+      return this;
+    }
+    setAudience() {
+      return this;
+    }
+    setIssuedAt() {
+      return this;
+    }
+    setExpirationTime() {
+      return this;
+    }
+    async sign() {
+      return "generated-apple-client-secret";
+    }
+  },
+}));
 vi.mock("@/lib/mail/send-email", () => ({ sendEmail: state.sendEmail }));
 vi.mock("@/lib/auth/auth-config-setup", () => ({
   setupResendCustomer: state.setupResendCustomer,
@@ -137,6 +167,11 @@ const baseEnv = () => ({
   GITHUB_CLIENT_SECRET: "github-secret",
   GOOGLE_CLIENT_ID: "google-client",
   GOOGLE_CLIENT_SECRET: "google-secret",
+  APPLE_CLIENT_ID: "fr.yodev.moodday.web",
+  APPLE_TEAM_ID: "G9WFV7HNV6",
+  APPLE_KEY_ID: "apple-key-id",
+  APPLE_PRIVATE_KEY: "apple-private-key",
+  APPLE_APP_BUNDLE_IDENTIFIER: "fr.yodev.moodday",
   LEGAL_TERMS_VERSION: "terms-2026-08",
   LEGAL_PRIVACY_VERSION: "privacy-2026-08",
   HEALTH_DATA_CONSENT_VERSION: "health-2026-08",
@@ -180,7 +215,7 @@ describe("Better Auth production configuration", () => {
 
   it("enables only fully configured social providers and production rate limits", async () => {
     const config = await loadConfig();
-    expect(config.socialProviders).toEqual({
+    expect(config.socialProviders).toMatchObject({
       github: {
         clientId: "github-client",
         clientSecret: "github-secret",
@@ -193,6 +228,17 @@ describe("Better Auth production configuration", () => {
         accessType: "offline",
         prompt: "select_account consent",
       },
+      apple: expect.any(Function),
+    });
+    const appleProvider = config.socialProviders.apple;
+    expect(typeof appleProvider).toBe("function");
+    await expect(
+      (appleProvider as () => Promise<Record<string, unknown>>)(),
+    ).resolves.toMatchObject({
+      clientId: "fr.yodev.moodday.web",
+      clientSecret: "generated-apple-client-secret",
+      appBundleIdentifier: "fr.yodev.moodday",
+      disableSignUp: true,
     });
     expect(config.rateLimit.max).toBe(60);
     expect(config.rateLimit.customRules["/sign-in/email"].max).toBe(5);
@@ -204,7 +250,7 @@ describe("Better Auth production configuration", () => {
         enabled: true,
         disableImplicitLinking: false,
         requireLocalEmailVerified: true,
-        trustedProviders: ["google"],
+        trustedProviders: ["google", "apple"],
         allowDifferentEmails: false,
         allowUnlinkingAll: false,
         updateUserInfoOnLink: false,
@@ -215,6 +261,7 @@ describe("Better Auth production configuration", () => {
       {
         GITHUB_CLIENT_SECRET: undefined,
         GOOGLE_CLIENT_ID: undefined,
+        APPLE_CLIENT_ID: undefined,
       },
       true,
     );

@@ -53,7 +53,9 @@ describe("mobile delivery configuration", () => {
       environment: "production",
       env: { APP_VARIANT: "production" },
     });
-    expect(easConfig.submit).toEqual({ production: {} });
+    expect(easConfig.submit).toEqual({
+      production: { ios: { ascAppId: "6804466109" } },
+    });
   });
 
   it("keeps the EAS build CLI outside the application dependency graph", () => {
@@ -142,6 +144,8 @@ describe("mobile delivery configuration", () => {
     expect(signInScreen).toContain("authClient.signIn.social");
     expect(signInScreen).toContain('provider: "google"');
     expect(signInScreen).toContain('callbackURL: "/"');
+    expect(signInScreen).toContain('testID="sign-in-apple"');
+    expect(signInScreen).toContain('provider: "apple"');
   });
 
   it.each([
@@ -182,7 +186,7 @@ describe("mobile delivery configuration", () => {
       expect(resolved).toMatchObject({
         name,
         scheme,
-        ios: { bundleIdentifier: identifier },
+        ios: { bundleIdentifier: identifier, usesAppleSignIn: true },
         android: { package: identifier },
         extra: { appVariant: variant, apiUrl: resolvedApiUrl },
       });

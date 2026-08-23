@@ -55,6 +55,9 @@ describe("mobile local notification planner", () => {
     );
     expect(JSON.stringify(planned)).not.toContain("Traitement privé");
     expect(JSON.stringify(planned)).not.toContain("Autre traitement");
+    expect(planned.find((item) => item.kind === "daily_check_in")?.route).toBe(
+      "/",
+    );
   });
 
   it("respects treatment dates, PRN exclusions and weekly scheduling", () => {

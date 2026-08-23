@@ -93,6 +93,31 @@ pnpm mobile:e2e:ios
 pnpm mobile:e2e:android               # non bloquant pour la release iOS
 ```
 
+Le profil d'envoi `production` cible explicitement l'app App Store Connect
+Mood Day (`ascAppId` `6804466109`). Cette valeur est un identifiant public de
+configuration, pas un secret. La clé privée App Store Connect utilisée par EAS
+Submit reste exclusivement dans le coffre EAS.
+
+## Première archive iOS signée
+
+Le 23 août 2026, EAS a produit l'archive Production `0.1.0 (2)` avec le build
+`b9819380-b67f-4022-aab6-7d5312fb45e8`, lié au commit
+`53ead86ffdbae7269bef60450676835bd3628111`. La vérification locale de l'IPA a
+confirmé :
+
+- signature Apple Distribution valide et stricte ;
+- bundle `fr.yodev.moodday`, profil App Store et environnement APNs
+  `production` ;
+- HealthKit présent, `get-task-allow=false` et manifests de confidentialité
+  embarqués ;
+- SHA-256 de l'archive contrôlée :
+  `073197c3e8d078c9aa1ea79088d84f0c67151bfb55f6f26b60427a925e56c92a`.
+
+L'archive contient SQLCipher. `ITSAppUsesNonExemptEncryption` reste donc absent
+plutôt que d'affirmer à tort une exemption : la déclaration française et le
+questionnaire de conformité App Store Connect demeurent une gate juridique
+avant distribution externe.
+
 Les workflows E2E sont uniquement manuels. Ce choix évite une consommation EAS à chaque pull request tant que le budget et le quota n’ont pas été validés. Ils construisent une app installable sans credentials de store, puis exécutent le smoke test Maestro de connexion.
 
 Pour un test local, installer Maestro et un build Preview dans le simulateur/émulateur, puis lancer :

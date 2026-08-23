@@ -91,6 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       bundleIdentifier: `fr.yodev.moodday${suffix}`,
+      usesAppleSignIn: true,
     },
     android: {
       ...config.android,

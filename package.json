@@ -69,11 +69,11 @@
     "seed": "pnpm tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@better-auth/expo": "1.6.27",
+    "@better-auth/passkey": "1.6.27",
+    "@hookform/resolvers": "^5.2.2",
     "@moodday/contracts": "workspace:*",
     "@moodday/domain": "workspace:*",
-    "@better-auth/passkey": "1.6.27",
-    "@better-auth/expo": "1.6.27",
-    "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.19.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -109,6 +109,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "front-matter": "^4.0.2",
+    "jose": "6.2.8",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.12",
     "nanoid": "^5.1.16",

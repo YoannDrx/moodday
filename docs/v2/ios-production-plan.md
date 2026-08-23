@@ -82,14 +82,24 @@ supplémentaire, mais exigent chacun tests automatisés et recette iPhone :
 
 ### Apple et EAS
 
-1. Lier le projet Expo/EAS à l'organisation et enregistrer `owner/projectId`.
-2. Créer les credentials de signature iOS dans le coffre EAS.
+1. [Fait le 23 août 2026] Projet Expo/EAS lié à `@yoanndrx/mood-day`, avec
+   `projectId` `973b3a37-c1d3-4dac-a327-20d4b9bbd18e`.
+2. [Fait le 23 août 2026] Certificat Apple Distribution et profil App Store
+   actifs dans le coffre EAS pour `fr.yodev.moodday`.
 3. Enregistrer les trois bundle IDs déjà prévus : dev, preview, production.
 4. Activer Sign in with Apple et HealthKit pour les bons identifiants.
 5. Déclarer les URL de confidentialité, support et suppression de compte.
-6. Produire un development build puis un build TestFlight fermé.
+6. [Archive prête] Build Production signé `0.1.0 (2)` validé ; enregistrer la
+   clé App Store Connect dans EAS, envoyer le binaire puis ouvrir le groupe
+   TestFlight fermé sans soumission publique automatique.
 7. Vérifier les purpose strings, les privacy manifests et le questionnaire App
    Privacy à partir des flux réellement observés.
+
+L'app App Store Connect Mood Day existe sous l'Apple ID `6804466109`. Le build
+EAS réussi porte l'identifiant `b9819380-b67f-4022-aab6-7d5312fb45e8` et son IPA
+a passé `codesign --verify --deep --strict`. La conformité export reste ouverte
+car SQLCipher constitue du chiffrement standard embarqué : aucune exemption
+mensongère n'est codée dans l'Info.plist.
 
 ### RevenueCat et App Store Connect
 

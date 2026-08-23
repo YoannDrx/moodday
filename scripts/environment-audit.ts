@@ -78,6 +78,23 @@ check(
     : "configuration incomplète",
 );
 check(
+  "Apple OAuth",
+  Boolean(
+    process.env.APPLE_CLIENT_ID &&
+      process.env.APPLE_TEAM_ID &&
+      process.env.APPLE_KEY_ID &&
+      process.env.APPLE_PRIVATE_KEY &&
+      process.env.APPLE_APP_BUNDLE_IDENTIFIER,
+  ),
+  process.env.APPLE_CLIENT_ID &&
+    process.env.APPLE_TEAM_ID &&
+    process.env.APPLE_KEY_ID &&
+    process.env.APPLE_PRIVATE_KEY &&
+    process.env.APPLE_APP_BUNDLE_IDENTIFIER
+    ? "configuration complète"
+    : "configuration incomplète",
+);
+check(
   "OpenAI",
   hasPrefix("OPENAI_API_KEY", ["sk-", "sk-proj-"]),
   process.env.OPENAI_API_KEY ? "clé projet présente" : "non configuré",

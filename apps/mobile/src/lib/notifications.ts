@@ -117,11 +117,11 @@ export const updateLocalNotificationSchedule = async ({
 };
 
 export const addNotificationNavigationListener = (
-  navigate: (route: "/(tabs)/today" | "/(tabs)/soin") => void,
+  navigate: (route: "/" | "/(tabs)/soin") => void,
 ) =>
   Notifications.addNotificationResponseReceivedListener((response) => {
     const route = response.notification.request.content.data?.route;
-    if (route === "/(tabs)/today" || route === "/(tabs)/soin") {
+    if (route === "/" || route === "/(tabs)/soin") {
       navigate(route);
     }
   });
