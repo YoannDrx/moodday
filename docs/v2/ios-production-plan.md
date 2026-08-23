@@ -39,40 +39,39 @@ complète forment une release ultérieure.
 - HealthKit : permissions fines, collecte bornée, SQLCipher brut, agrégats
   journaliers, pause, suppression de période et révocation définitive.
 - Plan de sécurité iOS privé, accessible hors ligne, avec 3114/15/112.
+- Traitements iOS complets : création/modification, régimes, PRN, stock,
+  corrections append-only, historiques et conflits de versions hors ligne.
+- Rappels iOS locaux, facultatifs et génériques, sans nom de traitement sur
+  l'écran verrouillé ni dépendance à un service push distant.
+- Export complet partageable depuis iOS, suppression de la copie temporaire et
+  initiation de la suppression du compte avec confirmation e-mail.
+- Export V2 des check-ins, observations, agrégats Santé, sources, routines,
+  rendez-vous et Cercle, sans échantillon Santé brut ni reçu d'opération.
 
 ### À terminer dans le logiciel
 
 Les points ci-dessous peuvent être développés sans décision commerciale
 supplémentaire, mais exigent chacun tests automatisés et recette iPhone :
 
-1. Traitements avancés
-   - correction append-only d'une prise sans modifier l'événement original ;
-   - historique lisible avec auteur, heure locale, fuseau et motif ;
-   - régimes et changements datés ;
-   - inventaire manuel, ajustement, seuil de stock et PRN ;
-   - conflits multi-appareils et correction hors ligne.
-
-2. Brouillons et réglages synchronisés
+1. Brouillons et réglages synchronisés
    - brouillons versionnés de check-in et de préparation ;
    - préférences de langue, accessibilité et notifications ;
    - confirmation en cas de versions concurrentes ;
    - purge interdite tant qu'un brouillon non synchronisé existe.
 
-3. Notifications iOS
-   - permission opportuniste après démonstration de la valeur ;
-   - contenu générique par défaut ;
-   - détail de traitement seulement avec appareil de confiance et consentement
-     distinct ;
-   - révocation du token à la déconnexion et à la suppression ;
-   - reprises, fuseaux, DST et notification déjà traitée.
+2. Notifications iOS
+   - recetter sur iPhone réel la permission, les reprises, fuseaux et DST ;
+   - confirmer le comportement après modification d'un régime et après
+     révocation de la permission dans Réglages iOS ;
+   - conserver le modèle local sans token tant qu'aucun besoin distant précis
+     ne justifie l'ajout d'un service push.
 
-4. Exports et suppression V2
-   - inclure les agrégats Santé avec source/qualité, jamais les échantillons ;
+3. Exports et suppression V2
    - supprimer une source, une période ou le compte et propager aux appareils ;
    - exporter les rendez-vous sans question privée par défaut ;
    - preuve DSAR réelle via Blob privé, expiration et purge.
 
-5. Finition fonctionnelle Carnet vivant
+4. Finition fonctionnelle Carnet vivant
    - états vide, chargement, récupérable, hors ligne, conflit et permission
      révoquée sur chaque écran de la matrice ;
    - FR/EN complet et aucune chaîne métier résiduelle non traduite ;
@@ -165,7 +164,7 @@ de mise en production tant que leur preuve n'existe pas :
 ## Ordre d'exécution sans date arbitraire
 
 1. Fusionner un candidat vert et déployer une Preview isolée.
-2. Terminer traitements avancés, brouillons/réglages, notifications et exports.
+2. Terminer brouillons/réglages synchronisés et la finition transversale.
 3. Configurer Apple/EAS, RevenueCat sandbox, Google OAuth et Stripe test.
 4. Exécuter la matrice iPhone réel et corriger jusqu'à zéro P0/P1.
 5. Fermer HDS/AIPD/DPA/TVA et répéter sauvegarde/restauration.

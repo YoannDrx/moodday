@@ -27,6 +27,15 @@ describe("buildUserDataExport", () => {
     vi.mocked(prisma.consultationPreparation.findMany).mockResolvedValue([]);
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([]);
     vi.mocked(prisma.calendarConnection.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.observation.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.dailyAggregate.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.sourceConnection.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.routine.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.circleRelationship.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.supportRequest.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.caregiverContribution.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.accessLog.findMany).mockResolvedValue([]);
     vi.mocked(prisma.safetyPlan.findUnique).mockResolvedValue(null);
   });
 
@@ -41,7 +50,7 @@ describe("buildUserDataExport", () => {
 
     expect(result.exportMetadata).toEqual(
       expect.objectContaining({
-        dataVersion: "2.3",
+        dataVersion: "2.4",
         applicationName: "Moodday",
         userId: "user-1",
         timezone: "Europe/Paris",
@@ -141,6 +150,45 @@ describe("buildUserDataExport", () => {
     );
     expect(appointmentSelection).not.toContain("tokenDigest");
     expect(appointmentSelection).not.toContain("operationId");
+  });
+
+  it("exports V2 check-ins, health aggregates and routines without raw health samples", async () => {
+    vi.mocked(prisma.caregiverRelationship.findMany)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      { id: "check-in-1", depth: "quick" },
+    ] as never);
+    vi.mocked(prisma.dailyAggregate.findMany).mockResolvedValue([
+      {
+        id: "aggregate-1",
+        metric: "sleep_duration",
+        provenance: "healthkit",
+        coverage: 0.8,
+        quality: "partial",
+      },
+    ] as never);
+    vi.mocked(prisma.routine.findMany).mockResolvedValue([
+      { id: "routine-1", title: "Marcher" },
+    ] as never);
+
+    const result = await buildUserDataExport({ id: "user-1" });
+
+    expect(result.checkIns).toEqual([
+      expect.objectContaining({ id: "check-in-1" }),
+    ]);
+    expect(result.dailyAggregates).toEqual([
+      expect.objectContaining({
+        provenance: "healthkit",
+        coverage: 0.8,
+        quality: "partial",
+      }),
+    ]);
+    expect(result.routines).toEqual([
+      expect.objectContaining({ id: "routine-1" }),
+    ]);
+    expect(JSON.stringify(result)).not.toContain("health_raw_sample");
+    expect(JSON.stringify(result)).not.toContain("operationId");
   });
 
   it("does not grant caregiver export scope without an active relationship", async () => {

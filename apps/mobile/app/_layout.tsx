@@ -1,8 +1,19 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { color } from "@moodday/design-tokens";
+import { useEffect } from "react";
+import { addNotificationNavigationListener } from "../src/lib/notifications";
 
 export default function RootLayout() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const subscription = addNotificationNavigationListener((route) => {
+      router.push(route);
+    });
+    return () => subscription.remove();
+  }, [router]);
+
   return (
     <>
       <StatusBar style="dark" />
@@ -34,6 +45,15 @@ export default function RootLayout() {
           options={{ presentation: "modal" }}
         />
         <Stack.Screen name="appointment/[appointmentId]" />
+        <Stack.Screen
+          name="medication-new"
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen name="medication/[medicationId]" />
+        <Stack.Screen
+          name="medication/[medicationId]/edit"
+          options={{ presentation: "modal" }}
+        />
       </Stack>
     </>
   );

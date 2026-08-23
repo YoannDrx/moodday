@@ -56,6 +56,31 @@ describe("mobile delivery configuration", () => {
     expect(mobilePackage.devDependencies).not.toHaveProperty("eas-cli");
   });
 
+  it("ships private local reminders and native account-data handoff", () => {
+    const mobilePackage = JSON.parse(
+      fs.readFileSync(path.join(mobileRoot, "package.json"), "utf8"),
+    ) as { dependencies: Record<string, string> };
+    const notifications = fs.readFileSync(
+      path.join(mobileRoot, "src/lib/notifications.ts"),
+      "utf8",
+    );
+    const accountData = fs.readFileSync(
+      path.join(mobileRoot, "src/lib/account-data.ts"),
+      "utf8",
+    );
+
+    expect(mobilePackage.dependencies).toMatchObject({
+      "expo-file-system": "~55.0.25",
+      "expo-notifications": "~55.0.26",
+      "expo-sharing": "~55.0.23",
+    });
+    expect(notifications).toContain("SchedulableTriggerInputTypes.DATE");
+    expect(notifications).toContain("Un rappel de traitement t’attend");
+    expect(notifications).not.toContain("medication.name");
+    expect(accountData).toContain("/api/export/json");
+    expect(accountData).toContain("if (file.exists) file.delete()");
+  });
+
   it("keeps EAS workflows manual and executes the versioned Maestro flow", () => {
     for (const platform of ["ios", "android"]) {
       const workflow = fs.readFileSync(
@@ -135,6 +160,7 @@ describe("mobile delivery configuration", () => {
         android: { package: identifier },
         extra: { appVariant: variant, apiUrl: resolvedApiUrl },
       });
+      expect(JSON.stringify(resolved.plugins)).toContain("expo-notifications");
     },
   );
 

@@ -31,6 +31,10 @@ import {
   saveRoutineOccurrenceOfflineFirst,
   synchronizeNow,
 } from "../../src/lib/local-database";
+import {
+  getLocalReminderPreferences,
+  updateLocalNotificationSchedule,
+} from "../../src/lib/notifications";
 
 type MedicationDoseSlot = {
   key: string;
@@ -161,6 +165,14 @@ export default function CareScreen() {
       setMedications(freshMedications);
       setDoseEvents(freshDoseEvents);
       setIsOffline(false);
+      void getLocalReminderPreferences()
+        .then(async (preferences) => {
+          await updateLocalNotificationSchedule({
+            medications: freshMedications,
+            preferences,
+          });
+        })
+        .catch(() => undefined);
     } catch {
       setIsOffline(true);
     } finally {
@@ -408,15 +420,37 @@ export default function CareScreen() {
             : "Les prises sont enregistrées sans jugement et restent disponibles hors ligne."
         }
       >
+        {activeMedications.map((medication) => (
+          <ActionButton
+            key={medication.id}
+            label={`Historique et stock · ${medication.name}`}
+            onPress={() =>
+              router.push({
+                pathname: "/medication/[medicationId]",
+                params: { medicationId: medication.id },
+              })
+            }
+            secondary
+          />
+        ))}
         {activeMedications.flatMap((medication) =>
           getMedicationDoseSlots(medication, localContext.localDate).map(
             (slot) => {
-              const matchingEvents = doseEvents.filter(
+              const allMatchingEvents = doseEvents.filter(
                 (event) =>
                   event.medicationId === medication.id &&
                   event.localDate === localContext.localDate &&
                   (slot.kind === "prn" || event.doseIndex === slot.doseIndex),
               );
+              const matchingEvents = allMatchingEvents.filter(
+                (event) => event.kind !== "cancelled",
+              );
+              const cancelledEvent =
+                slot.kind === "prn"
+                  ? undefined
+                  : allMatchingEvents.find(
+                      (event) => event.kind === "cancelled",
+                    );
               const event = slot.kind === "prn" ? undefined : matchingEvents[0];
               const resolved = Boolean(event);
               return (
@@ -437,14 +471,23 @@ export default function CareScreen() {
                   <View style={styles.doseActions}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Noter la prise de ${medication.name}`}
+                      accessibilityLabel={
+                        cancelledEvent
+                          ? `Corriger la prise annulée de ${medication.name}`
+                          : `Noter la prise de ${medication.name}`
+                      }
                       disabled={resolved || savingDoseKey === slot.key}
                       onPress={() =>
-                        void recordDose(
-                          medication,
-                          slot,
-                          slot.kind === "prn" ? "prn" : "taken",
-                        )
+                        cancelledEvent
+                          ? router.push({
+                              pathname: "/medication/[medicationId]",
+                              params: { medicationId: medication.id },
+                            })
+                          : void recordDose(
+                              medication,
+                              slot,
+                              slot.kind === "prn" ? "prn" : "taken",
+                            )
                       }
                       style={({ pressed }) => [
                         styles.doseAction,
@@ -455,16 +498,18 @@ export default function CareScreen() {
                       <Text style={styles.doseActionLabel}>
                         {savingDoseKey === slot.key
                           ? "…"
-                          : resolved
-                            ? event?.kind === "skipped"
-                              ? "Passée"
-                              : "✓"
-                            : slot.kind === "prn"
-                              ? "Noter"
-                              : "Prise"}
+                          : cancelledEvent
+                            ? "Corriger"
+                            : resolved
+                              ? event?.kind === "skipped"
+                                ? "Passée"
+                                : "✓"
+                              : slot.kind === "prn"
+                                ? "Noter"
+                                : "Prise"}
                       </Text>
                     </Pressable>
-                    {slot.kind !== "prn" && !resolved ? (
+                    {slot.kind !== "prn" && !resolved && !cancelledEvent ? (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Passer la prise de ${medication.name}`}
@@ -491,11 +536,22 @@ export default function CareScreen() {
             {doseStatus}
           </Text>
         ) : null}
+        <ActionButton
+          label="Ajouter un traitement"
+          onPress={() => router.push("/medication-new")}
+          secondary={activeMedications.length > 0}
+        />
       </SectionCard>
       <SectionCard
         title="Plan de sécurité"
         description="Disponible sur cet appareil, même hors ligne. Les ressources de crise restent toujours prioritaires."
-      />
+      >
+        <ActionButton
+          label="Ouvrir le plan de sécurité"
+          onPress={() => router.push("/safety-plan")}
+          secondary
+        />
+      </SectionCard>
 
       {isLoading ? (
         <View

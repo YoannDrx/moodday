@@ -22,6 +22,9 @@ import type {
   CreateCircleInvitationInput,
   CreateGoogleCalendarConnectionInput,
   CreateDoseEventInput,
+  CreateDoseEventCorrectionInput,
+  CreateMedicationInventoryAdjustmentInput,
+  CreateMedicationInput,
   CreateRoutineInput,
   CreateRoutineOccurrenceInput,
   CreateSupportRequestInput,
@@ -33,7 +36,10 @@ import type {
   ImportHealthAggregatesInput,
   UpdateHealthSourceInput,
   DoseEventDto,
+  DoseEventCorrectionResult,
   MedicationDto,
+  MedicationDetailDto,
+  MedicationInventoryAdjustmentResult,
   RespondSupportRequestInput,
   ResolveCalendarConflictInput,
   RoutineDto,
@@ -43,6 +49,7 @@ import type {
   SafetyPlanWriteInput,
   SupportRequestDto,
   UpdateCalendarConnectionInput,
+  UpdateMedicationInput,
   SharedAppointmentBriefDto,
   SyncPullResult,
   SyncPushInput,
@@ -132,6 +139,16 @@ export const createApiClient = ({
       request<{ items: MedicationDto[]; nextCursor: string | null }>(
         `/api/v2/medications?includeArchived=${includeArchived}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
       ),
+    createMedication: async (input: CreateMedicationInput) =>
+      request<MedicationDto>("/api/v2/medications", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    updateMedication: async (input: UpdateMedicationInput) =>
+      request<MedicationDto>(
+        `/api/v2/medications/${encodeURIComponent(input.medicationId)}`,
+        { method: "PATCH", body: JSON.stringify(input) },
+      ),
     listDoseEvents: async (localDate: string, timezone: string) =>
       request<DoseEventDto[]>(
         `/api/v2/dose-events?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,
@@ -141,6 +158,22 @@ export const createApiClient = ({
         method: "POST",
         body: JSON.stringify(input),
       }),
+    correctDoseEvent: async (input: CreateDoseEventCorrectionInput) =>
+      request<DoseEventCorrectionResult>(
+        `/api/v2/dose-events/${encodeURIComponent(input.doseEventId)}/corrections`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    getMedicationDetail: async (medicationId: string) =>
+      request<MedicationDetailDto>(
+        `/api/v2/medications/${encodeURIComponent(medicationId)}`,
+      ),
+    adjustMedicationInventory: async (
+      input: CreateMedicationInventoryAdjustmentInput,
+    ) =>
+      request<MedicationInventoryAdjustmentResult>(
+        `/api/v2/medications/${encodeURIComponent(input.medicationId)}/inventory-events`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
     getToday: async (localDate: string, timezone: string) =>
       request<TodayDto>(
         `/api/v2/today?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,

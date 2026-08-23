@@ -203,6 +203,14 @@ jetable : 31 migrations réussies, 67 tables publiques, quatre clés étrangère
 et onze index sur les deux nouvelles tables, enums attendus et diff Prisma nul.
 Cette preuve ne contenait aucune donnée ni aucun secret réel.
 
+Le lot traitements avancés a été répété depuis le snapshot historique sur
+PostgreSQL 17 jetable : 32 migrations et 67 tables publiques, préférences
+valides préservées, orphelins nettoyés, aucun consentement fabriqué, révision
+initiale des traitements historiques conservée et diff Prisma nul. La migration
+`20260823160000_v2_dose_corrections` est additive : elle ajoute annulation,
+version, motif, notes, fuseau et idempotence aux corrections sans supprimer une
+prise existante.
+
 ### Offline mobile
 
 - SQLCipher est activé dans la configuration Expo native.
@@ -211,12 +219,14 @@ Cette preuve ne contenait aucune donnée ni aucun secret réel.
 - Chaque compte possède une base distincte dont le nom ne contient qu'une
   empreinte SHA-256 tronquée. Sa clé aléatoire de 32 octets est distincte,
   conservée dans SecureStore et limitée à l'appareil.
-- Les opérations de check-in sont persistées localement avec leur `operationId`.
+- Les opérations de check-in et de traitement sont persistées localement avec
+  leur `operationId`.
 - Toute mutation est écrite dans SQLCipher avant la première tentative réseau ;
   elle n'est retirée qu'après acceptation ou déduplication serveur.
 - Les opérations partagent maintenant une file générique par lots pour les
   check-ins, routines, rendez-vous, questions, repères de séance et décisions,
-  ainsi que les prises de traitement, avec identifiant stable d'appareil.
+  ainsi que les traitements, prises, corrections et mouvements de stock, avec
+  identifiant stable d'appareil.
 - Une synchronisation réussie retire l'opération ; une erreur récupérable la
   conserve sans journaliser son contenu.
 - Les payloads locaux sont revalidés avant envoi.
@@ -236,8 +246,9 @@ Cette preuve ne contenait aucune donnée ni aucun secret réel.
   la déconnexion lorsqu'une donnée locale n'est pas résolue, propose une
   synchronisation, et sépare la purge destructive derrière une confirmation
   explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
-- Les échantillons Santé bruts et le plan de sécurité disposent de tables
-  SQLCipher dédiées. La version de schéma locale 6 met à niveau les installations
+- Les échantillons Santé bruts, le plan de sécurité et le détail des traitements
+  disposent de tables SQLCipher dédiées. La version de schéma locale 8 met à
+  niveau les installations
   existantes sans purger la file de synchronisation.
 
 Cette tranche prouve le moteur delta pour les premiers agrégats, les prises de

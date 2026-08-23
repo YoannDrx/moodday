@@ -4,9 +4,13 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  createDoseEventCorrectionSchema,
   createDoseEventSchema,
+  createMedicationInventoryAdjustmentSchema,
+  createMedicationSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
+  updateMedicationSchema,
   type SyncOperationResult,
   type SyncPullResult,
   type SyncPushInput,
@@ -29,10 +33,20 @@ import {
 } from "../appointments/service";
 import { checkInSelection, toCheckInDto } from "../check-ins/service";
 import {
+  adjustMedicationInventoryInTransaction,
+  correctionSelection,
+  correctDoseEventInTransaction,
   createDoseEventInTransaction,
+  createMedicationInTransaction,
   doseEventSelection,
   DoseEventServiceError,
+  inventoryEventSelection,
+  medicationSelection,
   toDoseEventDto,
+  toDoseEventCorrectionDto,
+  toMedicationDto,
+  toMedicationInventoryEventDto,
+  updateMedicationInTransaction,
 } from "../medications/service";
 import { routineSelection, toRoutineDto } from "../routines/service";
 import {
@@ -936,6 +950,226 @@ const applyDoseEvent = async (
   }
 };
 
+const applyMedication = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation === "delete") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "unsupported_medication_mutation");
+  }
+  try {
+    const payload = getPayloadObject(operation) as Record<string, unknown>;
+    let medication;
+    if (operation.mutation === "create") {
+      const parsed = createMedicationSchema.safeParse({
+        ...payload,
+        operationId: operation.operationId,
+        entityId: operation.entityId,
+      });
+      if (!parsed.success) {
+        await recordOperation({
+          transaction,
+          userId,
+          deviceId,
+          operation,
+          status: "rejected",
+        });
+        return rejected(operation, "invalid_medication");
+      }
+      medication = await createMedicationInTransaction({
+        transaction,
+        userId,
+        input: parsed.data,
+      });
+    } else {
+      const parsed = updateMedicationSchema.safeParse({
+        ...payload,
+        operationId: operation.operationId,
+        medicationId: operation.entityId,
+        baseVersion: operation.baseVersion ?? payload.baseVersion,
+      });
+      if (!parsed.success) {
+        await recordOperation({
+          transaction,
+          userId,
+          deviceId,
+          operation,
+          status: "rejected",
+        });
+        return rejected(operation, "invalid_medication");
+      }
+      medication = await updateMedicationInTransaction({
+        transaction,
+        userId,
+        input: parsed.data,
+      });
+    }
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, medication.updatedAt);
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "medication_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
+const applyDoseEventCorrection = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation !== "create") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "append_only_entity");
+  }
+  const parsed = createDoseEventCorrectionSchema.safeParse({
+    ...getPayloadObject(operation),
+    operationId: operation.operationId,
+    entityId: operation.entityId,
+  });
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_dose_event_correction");
+  }
+  try {
+    const result = await correctDoseEventInTransaction({
+      transaction,
+      userId,
+      input: parsed.data,
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date(result.event.updatedAt));
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "operation_id_conflict",
+      "dose_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
+const applyMedicationInventoryEvent = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation !== "create") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "append_only_entity");
+  }
+  const parsed = createMedicationInventoryAdjustmentSchema.safeParse({
+    ...getPayloadObject(operation),
+    operationId: operation.operationId,
+    entityId: operation.entityId,
+  });
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_inventory_adjustment");
+  }
+  try {
+    const result = await adjustMedicationInventoryInTransaction({
+      transaction,
+      userId,
+      input: parsed.data,
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date(result.medication.updatedAt));
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "operation_id_conflict",
+      "medication_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
 const applyOperation = async (
   userId: string,
   deviceId: string,
@@ -962,8 +1196,22 @@ const applyOperation = async (
     if (operation.entityType === "check_in") {
       return applyCheckIn(transaction, userId, deviceId, operation);
     }
+    if (operation.entityType === "medication") {
+      return applyMedication(transaction, userId, deviceId, operation);
+    }
     if (operation.entityType === "dose_event") {
       return applyDoseEvent(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "dose_event_correction") {
+      return applyDoseEventCorrection(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "medication_inventory_event") {
+      return applyMedicationInventoryEvent(
+        transaction,
+        userId,
+        deviceId,
+        operation,
+      );
     }
     if (operation.entityType === "routine") {
       return applyRoutine(transaction, userId, deviceId, operation);
@@ -1024,6 +1272,13 @@ const hydrateChange = async (
     });
     return { data: value ? toCheckInDto(value) : null };
   }
+  if (operation.entityType === "medication") {
+    const value = await prisma.medication.findFirst({
+      where: { id: operation.entityId, userId },
+      select: medicationSelection,
+    });
+    return { data: value ? toMedicationDto(value) : null };
+  }
   if (operation.entityType === "dose_event") {
     const value = await prisma.medIntake.findFirst({
       where: { id: operation.entityId, medication: { userId } },
@@ -1032,6 +1287,53 @@ const hydrateChange = async (
     return {
       data: value
         ? toDoseEventDto(value, value.timezone ?? "Europe/Paris")
+        : null,
+    };
+  }
+  if (operation.entityType === "dose_event_correction") {
+    const correction = await prisma.medicationIntakeRevision.findFirst({
+      where: { id: operation.entityId, actorId: userId },
+      select: correctionSelection,
+    });
+    if (!correction) return { data: null };
+    const event = await prisma.medIntake.findFirst({
+      where: { id: correction.medIntakeId, medication: { userId } },
+      select: doseEventSelection,
+    });
+    if (!event) return { data: null };
+    const correctionCount = await prisma.medicationIntakeRevision.count({
+      where: { medIntakeId: event.id },
+    });
+    return {
+      data: {
+        event: toDoseEventDto(
+          event,
+          event.timezone ?? "Europe/Paris",
+          undefined,
+          correctionCount,
+        ),
+        correction: toDoseEventCorrectionDto(correction, {
+          isPrn: event.medication.isPRN,
+        }),
+      },
+    };
+  }
+  if (operation.entityType === "medication_inventory_event") {
+    const inventoryEvent = await prisma.medicationInventoryEvent.findFirst({
+      where: { id: operation.entityId, medication: { userId } },
+      select: inventoryEventSelection,
+    });
+    if (!inventoryEvent) return { data: null };
+    const medication = await prisma.medication.findFirst({
+      where: { id: inventoryEvent.medicationId, userId },
+      select: medicationSelection,
+    });
+    return {
+      data: medication
+        ? {
+            medication: toMedicationDto(medication),
+            inventoryEvent: toMedicationInventoryEventDto(inventoryEvent),
+          }
         : null,
     };
   }

@@ -2,7 +2,7 @@ export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
     title: "Mood Day V2 API",
-    version: "2.0.0-alpha.3",
+    version: "2.0.0-alpha.4",
     description:
       "Versioned contracts shared by Mood Day web, iOS and Android clients.",
   },
@@ -570,6 +570,101 @@ export const moodDayV2OpenApi = {
           "401": { $ref: "#/components/responses/AuthenticationRequired" },
         },
       },
+      post: {
+        operationId: "createMedication",
+        description:
+          "Creates an idempotent patient-declared treatment and its initial schedule history.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateMedication" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Treatment created or replayed" },
+          "409": { description: "Operation or entity conflict" },
+          "422": { description: "Invalid schedule or period" },
+        },
+      },
+    },
+    "/medications/{medicationId}": {
+      get: {
+        operationId: "getMedicationDetail",
+        description:
+          "Returns one patient-owned treatment with dose corrections, schedule revisions and inventory history.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": { description: "Treatment detail and append-only history" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "404": { description: "Treatment unavailable" },
+        },
+      },
+      patch: {
+        operationId: "updateMedication",
+        description:
+          "Updates a version-checked treatment and appends dosage, schedule and stock history when applicable.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateMedication" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Treatment updated or replayed" },
+          "404": { description: "Treatment unavailable" },
+          "409": { description: "Stale treatment version" },
+          "422": { description: "Invalid schedule or period" },
+        },
+      },
+    },
+    "/medications/{medicationId}/inventory-events": {
+      post: {
+        operationId: "createMedicationInventoryAdjustment",
+        description:
+          "Applies an idempotent, version-checked inventory adjustment and preserves its reason.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateMedicationInventoryAdjustment",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Inventory adjustment created or replayed" },
+          "404": { description: "Treatment unavailable" },
+          "409": { description: "Stale treatment version or invalid stock" },
+        },
+      },
     },
     "/dose-events": {
       get: {
@@ -611,6 +706,36 @@ export const moodDayV2OpenApi = {
           "201": { description: "Dose event created or replayed" },
           "404": { description: "Treatment or dose kind unavailable" },
           "409": { description: "The scheduled dose already has an event" },
+        },
+      },
+    },
+    "/dose-events/{doseEventId}/corrections": {
+      post: {
+        operationId: "createDoseEventCorrection",
+        description:
+          "Corrects or cancels a dose event without deleting it and appends an auditable revision.",
+        parameters: [
+          {
+            name: "doseEventId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateDoseEventCorrection",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Dose correction created or replayed" },
+          "404": { description: "Dose event unavailable" },
+          "409": { description: "Stale dose version or operation conflict" },
         },
       },
     },
@@ -797,6 +922,150 @@ export const moodDayV2OpenApi = {
           note: { type: ["string", "null"], maxLength: 2000 },
         },
       },
+      CreateMedication: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "localDate",
+          "timezone",
+          "name",
+          "dosage",
+          "frequency",
+          "scheduleTimes",
+          "weeklyDay",
+          "startDate",
+          "endDate",
+          "stockQuantity",
+          "unitsPerDose",
+          "lowStockThreshold",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          dosage: { type: "string", minLength: 1, maxLength: 200 },
+          frequency: {
+            type: "string",
+            enum: ["daily", "twice_daily", "weekly", "prn"],
+          },
+          scheduleTimes: {
+            type: "array",
+            maxItems: 2,
+            items: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" },
+          },
+          weeklyDay: { type: ["integer", "null"], minimum: 0, maximum: 6 },
+          startDate: { type: ["string", "null"], format: "date" },
+          endDate: { type: ["string", "null"], format: "date" },
+          stockQuantity: { type: ["number", "null"], minimum: 0 },
+          unitsPerDose: { type: ["number", "null"], exclusiveMinimum: 0 },
+          lowStockThreshold: { type: ["number", "null"], minimum: 0 },
+        },
+      },
+      UpdateMedication: {
+        type: "object",
+        required: [
+          "operationId",
+          "medicationId",
+          "localDate",
+          "timezone",
+          "name",
+          "dosage",
+          "frequency",
+          "scheduleTimes",
+          "weeklyDay",
+          "startDate",
+          "endDate",
+          "stockQuantity",
+          "unitsPerDose",
+          "lowStockThreshold",
+          "reason",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          medicationId: { type: "string", minLength: 1, maxLength: 128 },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          dosage: { type: "string", minLength: 1, maxLength: 200 },
+          frequency: {
+            type: "string",
+            enum: ["daily", "twice_daily", "weekly", "prn"],
+          },
+          scheduleTimes: {
+            type: "array",
+            maxItems: 2,
+            items: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" },
+          },
+          weeklyDay: { type: ["integer", "null"], minimum: 0, maximum: 6 },
+          startDate: { type: ["string", "null"], format: "date" },
+          endDate: { type: ["string", "null"], format: "date" },
+          stockQuantity: { type: ["number", "null"], minimum: 0 },
+          unitsPerDose: { type: ["number", "null"], exclusiveMinimum: 0 },
+          lowStockThreshold: { type: ["number", "null"], minimum: 0 },
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
+      CreateDoseEventCorrection: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "doseEventId",
+          "targetKind",
+          "occurredAt",
+          "timezone",
+          "reason",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          doseEventId: { type: "string", minLength: 1, maxLength: 128 },
+          targetKind: {
+            type: "string",
+            enum: ["taken", "skipped", "prn", "cancelled"],
+          },
+          occurredAt: { type: "string", format: "date-time" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          note: { type: ["string", "null"], maxLength: 2000 },
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
+      CreateMedicationInventoryAdjustment: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "medicationId",
+          "quantityDelta",
+          "reason",
+          "occurredAt",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          medicationId: { type: "string", minLength: 1, maxLength: 128 },
+          quantityDelta: {
+            type: "number",
+            minimum: -1000000,
+            maximum: 1000000,
+          },
+          reason: {
+            type: "string",
+            enum: ["refill", "correction", "manual"],
+          },
+          occurredAt: { type: "string", format: "date-time" },
+          note: { type: ["string", "null"], maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
       SafetyPlanWrite: {
         type: "object",
         required: [
@@ -870,7 +1139,10 @@ export const moodDayV2OpenApi = {
                   type: "string",
                   enum: [
                     "check_in",
+                    "medication",
                     "dose_event",
+                    "dose_event_correction",
+                    "medication_inventory_event",
                     "routine",
                     "routine_occurrence",
                     "appointment",

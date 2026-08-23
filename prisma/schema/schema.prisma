@@ -114,18 +114,20 @@ model MedicationMutationReceipt {
 }
 
 model MedIntake {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   medicationId      String
-  takenAt           DateTime @default(now())
-  skipped           Boolean  @default(false)
+  takenAt           DateTime  @default(now())
+  skipped           Boolean   @default(false)
   note              String? // Reason for skip or PRN usage
   scheduledForDate  String? // Local YYYY-MM-DD date for scheduled doses
   timezone          String? // IANA timezone captured by V2 clients
   doseIndex         Int? // 0-based slot within the scheduled day
-  doseKey           String?  @unique // medicationId:scheduledForDate:doseIndex
+  doseKey           String?   @unique // medicationId:scheduledForDate:doseIndex
   clientOperationId String?
+  cancelledAt       DateTime?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   medication      Medication                 @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   inventoryEvents MedicationInventoryEvent[]
@@ -179,6 +181,7 @@ model MedicationInventoryEvent {
   medIntakeId   String?
   quantityDelta Decimal              @db.Decimal(12, 3)
   reason        InventoryEventReason
+  note          String?
   occurredAt    DateTime             @default(now())
   createdAt     DateTime             @default(now())
 
@@ -195,6 +198,7 @@ model MedicationIntakeRevision {
   medIntakeId       String
   medicationId      String
   actorId           String
+  operationId       String?
   action            String
   previousSkipped   Boolean?
   nextSkipped       Boolean?
@@ -204,11 +208,16 @@ model MedicationIntakeRevision {
   nextDoseIndex     Int?
   previousDateKey   String?
   nextDateKey       String?
+  previousNote      String?
+  nextNote          String?
+  reason            String?
+  timezone          String?
   createdAt         DateTime  @default(now())
 
   medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   actor      User       @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
+  @@unique([actorId, operationId])
   @@index([medicationId, createdAt])
   @@index([medIntakeId, createdAt])
   @@map("medication_intake_revision")

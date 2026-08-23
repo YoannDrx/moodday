@@ -80,6 +80,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             "Mood Day accède au calendrier uniquement lorsque tu choisis d’ajouter ou d’importer un rendez-vous.",
         },
       ],
+      [
+        "expo-notifications",
+        {
+          enableBackgroundRemoteNotifications: false,
+        },
+      ],
     ],
     ios: {
       ...config.ios,
