@@ -1,6 +1,6 @@
 # Mood Day V2 — plan résiduel iOS production
 
-Dernière mise à jour : 23 août 2026.
+Dernière mise à jour : 24 août 2026.
 
 Ce document remplace Android comme dépendance du premier lancement. La cible
 commerciale immédiate est le web et iOS. Android conserve les mêmes contrats,
@@ -88,34 +88,51 @@ supplémentaire, mais exigent chacun tests automatisés et recette iPhone :
    actifs dans le coffre EAS pour `fr.yodev.moodday`.
 3. Enregistrer les trois bundle IDs déjà prévus : dev, preview, production.
 4. Activer Sign in with Apple et HealthKit pour les bons identifiants.
-5. Déclarer les URL de confidentialité, support et suppression de compte.
-6. [Archive prête] Build Production signé `0.1.0 (2)` validé ; enregistrer la
-   clé App Store Connect dans EAS, envoyer le binaire puis ouvrir le groupe
-   TestFlight fermé sans soumission publique automatique.
+5. [Fait le 24 août 2026] Déclarer et publier les URL de confidentialité,
+   support et choix de confidentialité. Les trois routes répondent en HTTP 200
+   sur `www.moodday.app`.
+6. [Fait le 24 août 2026] Build Production signé `0.1.0 (2)` envoyé dans App
+   Store Connect et traité avec le statut `VALID`, sans soumission publique.
+   Ouvrir ensuite le groupe TestFlight fermé après la déclaration de conformité
+   export.
 7. Vérifier les purpose strings, les privacy manifests et le questionnaire App
    Privacy à partir des flux réellement observés.
+8. Remplacer la clé App Store Connect EAS au rôle `Développeur` par une clé au
+   rôle `App Manager`. La clé actuelle permet l'envoi du binaire, mais Apple
+   refuse en HTTP 403 la modification de la version, des catégories et de la
+   classification d'âge. Le rôle d'une clé Apple existante n'est pas modifiable.
 
 L'app App Store Connect Mood Day existe sous l'Apple ID `6804466109`. Le build
 EAS réussi porte l'identifiant `b9819380-b67f-4022-aab6-7d5312fb45e8` et son IPA
-a passé `codesign --verify --deep --strict`. La conformité export reste ouverte
-car SQLCipher constitue du chiffrement standard embarqué : aucune exemption
-mensongère n'est codée dans l'Info.plist.
+a passé `codesign --verify --deep --strict`. La soumission EAS
+`f77ae4ba-6284-47d0-9f8f-ee0a2f6388dc` est terminée. La conformité export reste
+ouverte car SQLCipher constitue du chiffrement standard embarqué : aucune
+exemption mensongère n'est codée dans l'Info.plist. Les métadonnées FR/EN sont
+versionnées dans `apps/mobile/store.config.json`, validées par EAS et restent à
+pousser avec la clé `App Manager`.
 
 ### RevenueCat et App Store Connect
 
 1. Créer les produits mensuel/annuel définitifs après validation du prix TTC.
-2. Créer l'entitlement `plus`, l'offering courant et relier les deux produits.
-3. Configurer les apps RevenueCat Preview/Sandbox et Production sans mélanger
-   leurs clés.
-4. Installer le webhook avec Authorization, signature HMAC, filtre Sandbox ou
+2. [Partiel au 24 août 2026] L'entitlement `plus` et l'offering `default`
+   existent avec les packages mensuel et annuel, mais ils pointent encore vers
+   les produits Test Store `monthly` et `yearly`.
+3. [Partiel au 24 août 2026] L'app RevenueCat `Mood Day iOS` existe pour
+   `fr.yodev.moodday` et sa clé d'achats intégrés Apple est valide. La clé API
+   publique Production n'est pas encore activée dans EAS et aucune app Preview
+   distincte n'est configurée.
+4. Ajouter dans RevenueCat la nouvelle clé App Store Connect `App Manager` afin
+   d'importer les produits Apple et de suivre leurs prix. Ne pas réutiliser la
+   clé d'achats intégrés, qui répond à un contrat Apple différent.
+5. Installer le webhook avec Authorization, signature HMAC, filtre Sandbox ou
    Production et URL `/api/webhooks/revenuecat`.
-5. Renseigner les allowlists produit/app côté serveur et la clé REST secrète.
-6. Tester achat, restauration, renouvellement, grâce, remboursement, révocation,
+6. Renseigner les allowlists produit/app côté serveur et la clé REST secrète.
+7. Tester achat, restauration, renouvellement, grâce, remboursement, révocation,
    changement mensuel/annuel et transfert.
-7. Vérifier achat iOS visible sur le web et achat Stripe visible sur iOS.
-8. Déclencher le scénario double abonnement sans annulation automatique.
-9. Créer la revue financière à 2 000 USD de MTR et vérifier le tarif RevenueCat
-   avant chaque release commerciale.
+8. Vérifier achat iOS visible sur le web et achat Stripe visible sur iOS.
+9. Déclencher le scénario double abonnement sans annulation automatique.
+10. Créer la revue financière à 2 000 USD de MTR et vérifier le tarif RevenueCat
+    avant chaque release commerciale.
 
 ### Google OAuth et Agenda
 
