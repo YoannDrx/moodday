@@ -57,9 +57,7 @@ export default function CalendarConnectionsScreen() {
         (item) => item.provider === "google" && item.status !== "revoked",
       );
       setConnection(google);
-      setConflicts(
-        google ? await api.listCalendarConflicts(google.id) : [],
-      );
+      setConflicts(google ? await api.listCalendarConflicts(google.id) : []);
     } catch (error) {
       setStatus(friendlyError(error));
     } finally {
@@ -75,7 +73,8 @@ export default function CalendarConnectionsScreen() {
     setIsPending(true);
     setStatus("Création de l’agenda Mood Day…");
     try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const timezone =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
       const next = await api.createGoogleCalendarConnection({
         operationId: Crypto.randomUUID(),
         connectionId: Crypto.randomUUID(),
@@ -117,9 +116,10 @@ export default function CalendarConnectionsScreen() {
     }
   };
 
-  const update = async (
-    input: { status?: "active" | "paused"; detailLevel?: "generic" | "appointment" },
-  ) => {
+  const update = async (input: {
+    status?: "active" | "paused";
+    detailLevel?: "generic" | "appointment";
+  }) => {
     if (!connection) return;
     setIsPending(true);
     try {
@@ -184,11 +184,9 @@ export default function CalendarConnectionsScreen() {
   ) => {
     setIsPending(true);
     try {
-      await api.resolveCalendarConflict(
-        conflict.connectionId,
-        conflict.id,
-        { resolution },
-      );
+      await api.resolveCalendarConflict(conflict.connectionId, conflict.id, {
+        resolution,
+      });
       await load();
       setStatus("Le choix est appliqué.");
     } catch (error) {
@@ -205,7 +203,10 @@ export default function CalendarConnectionsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Fermer les connexions"
           onPress={() => router.back()}
-          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.closeButton,
+            pressed && styles.pressed,
+          ]}
         >
           <Text style={styles.closeLabel}>Fermer</Text>
         </Pressable>
@@ -219,7 +220,9 @@ export default function CalendarConnectionsScreen() {
 
       <SectionCard
         eyebrow="Google Agenda"
-        title={connection ? "Agenda Mood Day connecté" : "Un agenda vraiment dédié"}
+        title={
+          connection ? "Agenda Mood Day connecté" : "Un agenda vraiment dédié"
+        }
         description="Mood Day peut créer et gérer uniquement l’agenda secondaire qu’il crée. Tes autres agendas ne sont ni lus ni analysés."
       >
         {isLoading ? <ActivityIndicator color={color.primary} /> : null}
@@ -253,7 +256,8 @@ export default function CalendarConnectionsScreen() {
               onPress={() => void synchronize()}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (isPending || connection.status !== "active") && styles.disabled,
+                (isPending || connection.status !== "active") &&
+                  styles.disabled,
                 pressed && styles.pressed,
               ]}
             >
@@ -265,7 +269,9 @@ export default function CalendarConnectionsScreen() {
                 <Pressable
                   key={level}
                   accessibilityRole="radio"
-                  accessibilityState={{ checked: connection.detailLevel === level }}
+                  accessibilityState={{
+                    checked: connection.detailLevel === level,
+                  }}
                   disabled={isPending}
                   onPress={() => void update({ detailLevel: level })}
                   style={({ pressed }) => [
@@ -295,17 +301,25 @@ export default function CalendarConnectionsScreen() {
                   status: connection.status === "paused" ? "active" : "paused",
                 })
               }
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.secondaryLabel}>
-                {connection.status === "paused" ? "Reprendre" : "Mettre en pause"}
+                {connection.status === "paused"
+                  ? "Reprendre"
+                  : "Mettre en pause"}
               </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               disabled={isPending}
               onPress={disconnect}
-              style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.dangerButton,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.dangerLabel}>Déconnecter</Text>
             </Pressable>
@@ -316,6 +330,24 @@ export default function CalendarConnectionsScreen() {
             {status}
           </Text>
         ) : null}
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Calendrier iPhone"
+        title="Importer seulement ce que tu choisis"
+        description="Mood Day ouvre une liste ponctuelle après ton autorisation. Aucun calendrier personnel n’est analysé en arrière-plan."
+      >
+        <Pressable
+          accessibilityRole="button"
+          disabled={isPending}
+          onPress={() => router.push("/native-calendar-import")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Choisir un événement</Text>
+        </Pressable>
       </SectionCard>
 
       {conflicts.length > 0 ? (
@@ -330,14 +362,20 @@ export default function CalendarConnectionsScreen() {
                 {conflict.moodDay?.title ?? "Rendez-vous"}
               </Text>
               <Text style={styles.choiceDescription}>
-                Google : {conflict.google?.deletedAt ? "supprimé" : conflict.google?.title ?? "modifié"}
+                Google :{" "}
+                {conflict.google?.deletedAt
+                  ? "supprimé"
+                  : (conflict.google?.title ?? "modifié")}
               </Text>
               <View style={styles.row}>
                 <Pressable
                   accessibilityRole="button"
                   disabled={isPending}
                   onPress={() => void resolve(conflict, "moodday")}
-                  style={({ pressed }) => [styles.smallPrimary, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.smallPrimary,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.primaryLabel}>Garder Mood Day</Text>
                 </Pressable>
@@ -345,7 +383,10 @@ export default function CalendarConnectionsScreen() {
                   accessibilityRole="button"
                   disabled={isPending}
                   onPress={() => void resolve(conflict, "google")}
-                  style={({ pressed }) => [styles.smallSecondary, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.smallSecondary,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.secondaryLabel}>Garder Google</Text>
                 </Pressable>
@@ -360,28 +401,99 @@ export default function CalendarConnectionsScreen() {
 
 const styles = StyleSheet.create({
   header: { alignItems: "center", gap: space[2], paddingBottom: space[2] },
-  closeButton: { minWidth: 48, minHeight: 48, alignSelf: "flex-start", justifyContent: "center" },
+  closeButton: {
+    minWidth: 48,
+    minHeight: 48,
+    alignSelf: "flex-start",
+    justifyContent: "center",
+  },
   closeLabel: { color: color.primaryDeep, fontSize: 15, fontWeight: "700" },
   illustration: { width: 190, height: 122 },
   title: { color: color.ink, fontSize: 34, lineHeight: 40, fontWeight: "700" },
-  subtitle: { maxWidth: 330, color: color.inkMuted, fontSize: 15, lineHeight: 22, textAlign: "center" },
+  subtitle: {
+    maxWidth: 330,
+    color: color.inkMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+  },
   stack: { gap: space[3] },
   row: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   body: { color: color.ink, fontSize: 16, lineHeight: 23, fontWeight: "600" },
   label: { color: color.ink, fontSize: 14, fontWeight: "700" },
-  primaryButton: { minHeight: 50, alignItems: "center", justifyContent: "center", borderRadius: radius.medium, backgroundColor: color.primary, paddingHorizontal: space[4] },
+  primaryButton: {
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.medium,
+    backgroundColor: color.primary,
+    paddingHorizontal: space[4],
+  },
   primaryLabel: { color: color.surfaceStrong, fontSize: 15, fontWeight: "700" },
-  secondaryButton: { minHeight: 50, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: color.border, borderRadius: radius.medium, backgroundColor: color.surface },
+  secondaryButton: {
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+  },
   secondaryLabel: { color: color.primaryDeep, fontSize: 15, fontWeight: "700" },
-  dangerButton: { minHeight: 50, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: color.danger, borderRadius: radius.medium, backgroundColor: color.dangerSoft },
+  dangerButton: {
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: color.danger,
+    borderRadius: radius.medium,
+    backgroundColor: color.dangerSoft,
+  },
   dangerLabel: { color: color.danger, fontSize: 15, fontWeight: "700" },
-  choice: { minHeight: 72, justifyContent: "center", gap: 4, borderWidth: 1, borderColor: color.border, borderRadius: radius.medium, backgroundColor: color.surface, padding: space[3] },
-  choiceSelected: { borderColor: color.primary, backgroundColor: color.primarySoft },
+  choice: {
+    minHeight: 72,
+    justifyContent: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+    padding: space[3],
+  },
+  choiceSelected: {
+    borderColor: color.primary,
+    backgroundColor: color.primarySoft,
+  },
   choiceTitle: { color: color.ink, fontSize: 15, fontWeight: "700" },
   choiceDescription: { color: color.inkMuted, fontSize: 13, lineHeight: 19 },
-  conflict: { gap: space[2], borderWidth: 1, borderColor: color.apricot, borderRadius: radius.medium, backgroundColor: color.surface, padding: space[3] },
-  smallPrimary: { minHeight: 48, flexGrow: 1, alignItems: "center", justifyContent: "center", borderRadius: radius.medium, backgroundColor: color.primary, paddingHorizontal: space[3] },
-  smallSecondary: { minHeight: 48, flexGrow: 1, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: color.border, borderRadius: radius.medium, backgroundColor: color.surface, paddingHorizontal: space[3] },
+  conflict: {
+    gap: space[2],
+    borderWidth: 1,
+    borderColor: color.apricot,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+    padding: space[3],
+  },
+  smallPrimary: {
+    minHeight: 48,
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.medium,
+    backgroundColor: color.primary,
+    paddingHorizontal: space[3],
+  },
+  smallSecondary: {
+    minHeight: 48,
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.medium,
+    backgroundColor: color.surface,
+    paddingHorizontal: space[3],
+  },
   status: { color: color.inkMuted, fontSize: 13, lineHeight: 19 },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.72 },

@@ -426,10 +426,131 @@ export const calendarSyncResultSchema = z.object({
 
 export const runtimeCapabilitiesSchema = z.object({
   googleCalendar: z.boolean(),
+  healthKit: z.boolean(),
   billing: z.boolean(),
   caregiverSharing: z.boolean(),
   pushNotifications: z.boolean(),
 });
+
+export const healthMetricSchema = z.enum([
+  "sleep_duration_minutes",
+  "step_count",
+  "active_energy_kcal",
+  "resting_heart_rate_bpm",
+  "hrv_sdnn_ms",
+  "workout_minutes",
+]);
+
+export const healthSourceStatusSchema = z.enum([
+  "active",
+  "paused",
+  "permission_denied",
+  "revoked",
+  "error",
+]);
+
+export const healthPermissionSchema = healthMetricSchema;
+
+export const connectHealthKitSchema = z.object({
+  permissionScope: z.array(healthPermissionSchema).min(1).max(6),
+});
+
+export const updateHealthSourceSchema = z.object({
+  status: z.enum(["active", "paused", "permission_denied", "error"]),
+  permissionScope: z.array(healthPermissionSchema).min(1).max(6).optional(),
+});
+
+export const healthSourceConnectionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("healthkit"),
+  status: healthSourceStatusSchema,
+  permissionScope: z.array(healthPermissionSchema),
+  pausedAt: z.iso.datetime().nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  lastSyncedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const healthAggregateQualitySchema = z.enum([
+  "complete",
+  "partial",
+  "estimated",
+  "contested",
+]);
+
+export const healthAggregateWriteSchema = z
+  .object({
+    operationId: z.string().min(8).max(128),
+    sourceConnectionId: z.string().min(8).max(128),
+    metric: healthMetricSchema,
+    value: z.number().finite().nonnegative().max(100_000_000),
+    unit: z.string().trim().min(1).max(32),
+    localDate: z.iso.date(),
+    timezone: z.string().min(1).max(80),
+    windowStart: z.iso.datetime(),
+    windowEnd: z.iso.datetime(),
+    coverage: z.number().min(0).max(1).nullable().optional(),
+    quality: healthAggregateQualitySchema.default("complete"),
+    algorithmVersion: z.string().trim().min(1).max(64),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (new Date(value.windowEnd) <= new Date(value.windowStart)) {
+      context.addIssue({
+        code: "custom",
+        path: ["windowEnd"],
+        message: "health_window_end_must_follow_start",
+      });
+    }
+  });
+
+export const importHealthAggregatesSchema = z.object({
+  aggregates: z.array(healthAggregateWriteSchema).min(1).max(186),
+});
+
+export const healthAggregateSchema = healthAggregateWriteSchema.safeExtend({
+  id: z.string(),
+  provenance: z.literal("healthkit"),
+  importedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const healthAggregateImportResultSchema = z.object({
+  accepted: z.number().int().nonnegative(),
+  sourceConnectionId: z.string(),
+  lastSyncedAt: z.iso.datetime(),
+});
+
+export const safetyPlanContactSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    detail: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+const safetyPlanItemSchema = z.string().trim().min(1).max(500);
+
+export const safetyPlanWriteSchema = z
+  .object({
+    warningSigns: z.array(safetyPlanItemSchema).max(20),
+    copingStrategies: z.array(safetyPlanItemSchema).max(20),
+    safePlaces: z.array(safetyPlanItemSchema).max(20),
+    trustedContacts: z.array(safetyPlanContactSchema).max(10),
+    professionalContacts: z.array(safetyPlanContactSchema).max(10),
+    markReviewed: z.boolean().default(false),
+  })
+  .strict();
+
+export const safetyPlanSchema = safetyPlanWriteSchema
+  .omit({ markReviewed: true })
+  .extend({
+    id: z.string(),
+    lastReviewedAt: z.iso.datetime().nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  });
 
 export const medicationFrequencySchema = z.enum([
   "daily",
@@ -752,9 +873,31 @@ export type ResolveCalendarConflictInput = z.infer<
   typeof resolveCalendarConflictSchema
 >;
 export type CalendarSyncResult = z.infer<typeof calendarSyncResultSchema>;
-export type RuntimeCapabilitiesDto = z.infer<
-  typeof runtimeCapabilitiesSchema
+export type RuntimeCapabilitiesDto = z.infer<typeof runtimeCapabilitiesSchema>;
+export type HealthMetric = z.infer<typeof healthMetricSchema>;
+export type HealthPermission = z.infer<typeof healthPermissionSchema>;
+export type HealthSourceStatus = z.infer<typeof healthSourceStatusSchema>;
+export type ConnectHealthKitInput = z.infer<typeof connectHealthKitSchema>;
+export type UpdateHealthSourceInput = z.infer<typeof updateHealthSourceSchema>;
+export type HealthSourceConnectionDto = z.infer<
+  typeof healthSourceConnectionSchema
 >;
+export type HealthAggregateQuality = z.infer<
+  typeof healthAggregateQualitySchema
+>;
+export type HealthAggregateWriteInput = z.infer<
+  typeof healthAggregateWriteSchema
+>;
+export type ImportHealthAggregatesInput = z.infer<
+  typeof importHealthAggregatesSchema
+>;
+export type HealthAggregateDto = z.infer<typeof healthAggregateSchema>;
+export type HealthAggregateImportResult = z.infer<
+  typeof healthAggregateImportResultSchema
+>;
+export type SafetyPlanContact = z.infer<typeof safetyPlanContactSchema>;
+export type SafetyPlanWriteInput = z.infer<typeof safetyPlanWriteSchema>;
+export type SafetyPlanDto = z.infer<typeof safetyPlanSchema>;
 export type MedicationFrequency = z.infer<typeof medicationFrequencySchema>;
 export type MedicationDto = z.infer<typeof medicationSchema>;
 export type DoseEventKind = z.infer<typeof doseEventKindSchema>;

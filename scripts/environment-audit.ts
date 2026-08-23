@@ -138,10 +138,9 @@ if (process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true") {
         process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN &&
         process.env.REVENUECAT_WEBHOOK_SIGNING_SECRET &&
         process.env.REVENUECAT_PLUS_PRODUCT_IDS &&
-        process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY &&
-        process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+        process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
     ),
-    "API serveur, webhook signé, produits et deux clés publiques requis",
+    "API serveur, webhook signé, produits et clé publique iOS requis ; Android est une gate ultérieure",
   );
 }
 

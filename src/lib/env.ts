@@ -39,6 +39,11 @@ export const env = createEnv({
       .optional()
       .default("false")
       .transform((value) => value === "true"),
+    HEALTHKIT_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
     PUSH_NOTIFICATIONS_ENABLED: z
       .enum(["true", "false"])
       .optional()

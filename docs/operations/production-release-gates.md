@@ -1,6 +1,6 @@
 # Moodday — portes de mise en production
 
-Dernière mise à jour : 18 août 2026
+Dernière mise à jour : 23 août 2026
 
 Ce document est la checklist exécutable de la release France 18+. Une case ne
 peut être cochée qu'avec une preuve datée et reproductible. Les flags Billing,
@@ -53,6 +53,11 @@ tant que leur gate n'est pas validé.
 - [x] E2E Alice vers Bob vert.
 - [x] Rétention locale maximale de 30 jours, y compris purge des métadonnées
       corrompues sans horodatage fiable.
+- [x] SQLCipher iOS conserve les échantillons HealthKit bruts et le plan de
+      sécurité personnel ; le serveur n'accepte que des agrégats Santé bornés.
+- [ ] Inspection sur iPhone réel prouvant permissions HealthKit partielles,
+      absence de donnée brute dans le trafic et accès hors ligne au plan après
+      redémarrage.
 
 ## Phase 3 — cercle aidant et exports
 
@@ -133,6 +138,15 @@ tant que leur gate n'est pas validé.
 - [x] Réconciliation Stripe bidirectionnelle : état divergent, abonnement
       distant manquant localement et prix Moodday ambigu produisent une alerte sans
       correction automatique.
+- [x] Webhooks Stripe et RevenueCat revendiqués durablement, dédupliqués,
+      repris par cron et projetés vers un entitlement PostgreSQL commun.
+- [x] Client iOS RevenueCat raccordé à StoreKit avec paywall, restauration,
+      gestion de l'abonnement et App User ID Better Auth.
+- [ ] App Store Connect, offering/produits RevenueCat, achats sandbox, grâce,
+      remboursement, révocation et restauration validés sur un iPhone réel.
+- [ ] Revue financière RevenueCat définie à 2 000 USD de MTR ; tarification Pro
+      revérifiée avant commercialisation (0 USD jusqu'à 2 500 USD de MTR au
+      23 août 2026, puis 1 %, webhooks inclus).
 
 ## Phases 9 et 10 — conformité et qualité
 
@@ -217,3 +231,11 @@ Audit de complétude phase par phase :
 - [ ] Toutes les preuves externes sont datées et reliées au compte Production.
 - [ ] Achat live contrôlé remboursé, IA kill switch testé et alertes reçues.
 - [ ] Validation explicite Product, Engineering, juridique et comptable.
+
+## Périmètre du premier lancement
+
+Le premier lancement commercial est iOS uniquement. Le compte Google Play,
+Health Connect, Play Billing, TalkBack et la recette Android sont reportés à une
+release indépendante et ne bloquent pas l'iOS. En revanche, aucun élément Android
+n'est réputé validé par parité théorique : toute la matrice sera rejouée avant
+une publication Play Store.

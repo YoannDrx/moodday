@@ -42,17 +42,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const revenueCatEnabled =
     process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true";
-  const revenueCatIosApiKey =
+  const iosRevenueCatValue =
     process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim();
-  const revenueCatAndroidApiKey =
+  const androidRevenueCatValue =
     process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim();
-  if (
-    variant !== "development" &&
-    revenueCatEnabled &&
-    (!revenueCatIosApiKey || !revenueCatAndroidApiKey)
-  ) {
+  const revenueCatIosApiKey =
+    iosRevenueCatValue === "" ? undefined : iosRevenueCatValue;
+  const revenueCatAndroidApiKey =
+    androidRevenueCatValue === "" ? undefined : androidRevenueCatValue;
+  if (variant !== "development" && revenueCatEnabled && !revenueCatIosApiKey) {
     throw new Error(
-      "Both RevenueCat public platform API keys are required when mobile billing is enabled.",
+      "The RevenueCat iOS public API key is required when mobile billing is enabled.",
     );
   }
 
@@ -61,6 +61,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: variantNames[variant],
     slug: "mood-day",
     scheme,
+    plugins: [
+      ...(config.plugins ?? []),
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          NSHealthShareUsageDescription:
+            "Mood Day lit uniquement les données Santé que tu choisis afin de créer des repères journaliers sur ton appareil.",
+          NSHealthUpdateUsageDescription:
+            "Mood Day n’écrit aucune donnée dans Santé.",
+          background: false,
+        },
+      ],
+      [
+        "expo-calendar",
+        {
+          calendarPermission:
+            "Mood Day accède au calendrier uniquement lorsque tu choisis d’ajouter ou d’importer un rendez-vous.",
+        },
+      ],
+    ],
     ios: {
       ...config.ios,
       bundleIdentifier: `fr.yodev.moodday${suffix}`,

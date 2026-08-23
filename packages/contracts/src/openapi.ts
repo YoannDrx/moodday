@@ -484,6 +484,74 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/source-connections/healthkit": {
+      get: {
+        operationId: "getHealthKitConnection",
+        description:
+          "Returns only the authenticated user's HealthKit connection metadata, never samples.",
+        responses: {
+          "200": { description: "HealthKit connection or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "connectHealthKit",
+        description:
+          "Registers the exact HealthKit metric scope selected on the device after the native permission prompt.",
+        responses: {
+          "201": { description: "HealthKit connection registered" },
+          "403": { description: "HealthKit feature unavailable" },
+        },
+      },
+    },
+    "/source-connections/healthkit/{connectionId}": {
+      patch: {
+        operationId: "updateHealthKitConnection",
+        description: "Pauses, resumes or records an explicit connection state.",
+        responses: {
+          "200": { description: "HealthKit connection updated" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+      delete: {
+        operationId: "revokeHealthKitConnection",
+        description:
+          "Revokes the server connection and deletes its synchronized aggregates; raw samples remain only in the encrypted device database until local purge.",
+        responses: {
+          "200": { description: "Connection revoked and aggregates deleted" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+    },
+    "/health-aggregates": {
+      get: {
+        operationId: "listHealthAggregates",
+        description:
+          "Lists bounded daily aggregates with provenance, quality and coverage.",
+        responses: {
+          "200": { description: "Daily aggregate page" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "importHealthAggregates",
+        description:
+          "Imports locally calculated HealthKit daily aggregates. Raw HealthKit samples are not accepted by this contract.",
+        responses: {
+          "200": { description: "Idempotent aggregate import result" },
+          "409": { description: "Source is paused or revoked" },
+        },
+      },
+      delete: {
+        operationId: "deleteHealthAggregates",
+        description:
+          "Deletes synchronized HealthKit aggregates for an explicit period or all periods without accessing device samples.",
+        responses: {
+          "200": { description: "Deleted aggregate count" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+    },
     "/medications": {
       get: {
         operationId: "listMedications",
@@ -585,6 +653,32 @@ export const moodDayV2OpenApi = {
           "409": {
             description: "Invalid cursor; client must restart with a full pull",
           },
+        },
+      },
+    },
+    "/safety-plan": {
+      get: {
+        operationId: "getSafetyPlan",
+        description:
+          "Returns the current user's private personal safety plan. It is never included in caregiver sharing.",
+        responses: {
+          "200": { description: "Safety plan or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      put: {
+        operationId: "saveSafetyPlan",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SafetyPlanWrite" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Encrypted-at-rest private safety plan" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
         },
       },
     },
@@ -701,6 +795,53 @@ export const moodDayV2OpenApi = {
           occurredAt: { type: "string", format: "date-time" },
           doseIndex: { type: ["integer", "null"], minimum: 0, maximum: 12 },
           note: { type: ["string", "null"], maxLength: 2000 },
+        },
+      },
+      SafetyPlanWrite: {
+        type: "object",
+        required: [
+          "warningSigns",
+          "copingStrategies",
+          "safePlaces",
+          "trustedContacts",
+          "professionalContacts",
+          "markReviewed",
+        ],
+        properties: {
+          warningSigns: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          copingStrategies: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          safePlaces: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          trustedContacts: {
+            type: "array",
+            maxItems: 10,
+            items: { $ref: "#/components/schemas/SafetyPlanContact" },
+          },
+          professionalContacts: {
+            type: "array",
+            maxItems: 10,
+            items: { $ref: "#/components/schemas/SafetyPlanContact" },
+          },
+          markReviewed: { type: "boolean" },
+        },
+      },
+      SafetyPlanContact: {
+        type: "object",
+        required: ["name", "detail"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 100 },
+          detail: { type: "string", minLength: 1, maxLength: 200 },
         },
       },
       SyncPush: {

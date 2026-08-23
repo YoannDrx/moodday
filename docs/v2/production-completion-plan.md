@@ -12,7 +12,8 @@ preuves de recette doivent aussi être terminés.
 
 Une capacité peut passer en production seulement si :
 
-1. son parcours web, iOS et Android prévu au lancement est complet ;
+1. son parcours web et iOS prévu au lancement est complet ; Android possède sa
+   propre gate de parité avant une publication ultérieure ;
 2. les états vide, chargement, erreur, hors ligne, conflit et permission refusée
    sont traités ;
 3. les règles métier sont partagées et testées, sans duplication dans l'UI ;
@@ -40,7 +41,8 @@ Une capacité peut passer en production seulement si :
 - [x] Ajouter le bouton Google, les erreurs et le retour deep link sur mobile.
 - [ ] Vérifier dans Google Cloud les URI web
       `/api/auth/callback/google` de preview et production.
-- [ ] Vérifier les URI/schémas iOS et Android sur de vrais development builds.
+- [ ] Vérifier les URI/schémas iOS sur de vrais development builds. Android est
+      reporté à son lot de parité.
 - [ ] Tester création, connexion, liaison à un compte e-mail existant, refus,
       annulation, jeton révoqué et révocation d'appareil.
 
@@ -52,7 +54,7 @@ Une capacité peut passer en production seulement si :
 - [x] Mettre les métadonnées attendues sur les prix de test et autoriser le
       changement de prix dans la configuration du portail.
 - [x] Conserver cette configuration dans un script idempotent et fail-closed.
-- [ ] Répondre rapidement au webhook puis traiter les événements dans une file
+- [x] Répondre rapidement au webhook puis traiter les événements dans une file
       durable, avec reprise, quarantaine et alerte.
 - [ ] Couvrir paiement réussi/échoué, essai, renouvellement, grâce, reprise,
       annulation, remboursement, litige et rejeu de webhook.
@@ -66,27 +68,34 @@ Une capacité peut passer en production seulement si :
 - [ ] Réaliser un achat live contrôlé, vérifier le droit sur deux appareils, puis
       rembourser et vérifier la révocation.
 
-**Gate lot 1 :** connexion Google réelle sur web/iOS/Android, catalogue de test
+**Gate lot 1 :** connexion Google réelle sur web/iOS, catalogue de test
 entièrement valide, Test Clocks verts, compte live activé et achat/remboursement
 live contrôlé. Aucun secret ni identifiant test ne doit être partagé avec la
 production.
 
-## Lot 2 — achats mobiles et droits communs
+## Lot 2 — achats iOS et droits communs
 
-- Configurer les identifiants d'apps et les contrats Apple/Google.
-- Créer les produits Plus définitifs après validation du packaging et des prix.
-- Configurer RevenueCat avec projets/applications/environnements séparés.
-- Vérifier les webhooks RevenueCat, les dédupliquer et recalculer les snapshots.
-- Implémenter StoreKit puis Google Play Billing, restauration et gestion depuis
-  la plateforme d'achat.
-- Masquer tout CTA concurrent lorsqu'une source est active ; expliquer sans
-  annulation automatique un double abonnement.
-- Couvrir grâce, remboursement, révocation, changement de produit et transfert.
-- Déclencher une alerte à 2 000 USD de MTR et documenter la décision avant le
-  seuil tarifaire annoncé de 2 500 USD.
+- [ ] Configurer l'app iOS, les contrats bancaires/fiscaux Apple et App Store
+      Connect sur le compte développeur existant.
+- [ ] Créer les produits Plus définitifs après validation du packaging et des
+      prix.
+- [ ] Configurer les apps/environnements RevenueCat et l'offering `plus`.
+- [x] Implémenter le webhook RevenueCat durable, signé, dédupliqué, repris par
+      cron et projeté dans PostgreSQL.
+- [x] Implémenter le SDK StoreKit via RevenueCat, restauration, paywall et
+      ouverture de la gestion depuis la plateforme d'achat.
+- [x] Masquer tout CTA concurrent lorsqu'une source est active ; expliquer sans
+      annulation automatique un double abonnement.
+- [ ] Couvrir en sandbox Apple grâce, remboursement, révocation, changement de
+      produit et transfert sur un iPhone réel.
+- [ ] Ouvrir une revue financière interne à 2 000 USD de MTR et documenter la
+      décision avant le seuil RevenueCat de 2 500 USD. RevenueCat Pro est, au
+      23 août 2026, gratuit jusqu'à ce seuil puis facturé 1 %, webhooks inclus.
+- [ ] Reporter Google Play Billing, le compte Play et la clé RevenueCat Android
+      au lot Android, sans les rendre bloquants pour iOS.
 
-**Gate lot 2 :** matrice Stripe × StoreKit × Play Billing entièrement verte,
-avec un droit identique sur web, iOS et Android.
+**Gate lot 2 :** matrice Stripe × StoreKit entièrement verte, avec un droit
+identique sur web et iOS. La matrice Play Billing sera obligatoire avant Android.
 
 ## Lot 3 — calendriers et rendez-vous
 
@@ -95,7 +104,9 @@ avec un droit identique sur web, iOS et Android.
   invalidation du curseur, webhooks, désactivation et suppression.
 - Ne jamais lire silencieusement les autres agendas ; importer seulement un
   événement explicitement choisi.
-- Implémenter les calendriers natifs iOS/Android avec permissions opportunes.
+- [x] Implémenter le calendrier natif iOS avec permission opportune, création et
+      import volontaire d'un seul événement sans lecture silencieuse.
+- [ ] Rejouer cette capacité avec les conventions Android avant sa release.
 - Dédupliquer les événements liés et demander un choix si Google et Mood Day ont
   tous deux changé.
 - Terminer préparation, mode séance, débrief, décisions, suites et brief sans
@@ -106,11 +117,14 @@ heure d'été/hiver, révocation et resynchronisation complète.
 
 ## Lot 4 — Santé et insights
 
-- Implémenter HealthKit iOS puis Health Connect Android dans les development
-  builds, avec permissions type par type et fonctionnalité intacte après refus.
-- Garder les échantillons bruts dans SQLCipher ; synchroniser uniquement les
-  agrégats, provenance, couverture, qualité et version de calcul.
-- Ajouter pause de source, suppression de période et suppression définitive.
+- [x] Implémenter HealthKit iOS dans les development
+      builds, avec permissions type par type et fonctionnalité intacte après refus.
+- [x] Garder les échantillons bruts dans SQLCipher ; synchroniser uniquement les
+      agrégats, provenance, couverture, qualité et version de calcul.
+- [x] Ajouter pause de source, suppression de période et suppression définitive.
+- [ ] Inspecter sur iPhone réel permissions partielles/révoquées, attribution du
+      sommeil au jour de réveil, base SQLCipher et trafic réseau.
+- [ ] Implémenter Health Connect dans le lot Android.
 - Terminer les baselines intra-individuelles et insights déterministes en
   conservant signe, fenêtre, couverture, taille de l'échantillon et limites.
 - Limiter l'IA à la reformulation des faits affichés, avec traçabilité et arrêt
@@ -140,8 +154,8 @@ multi-appareils ; cinq parcours critiques passent hors ligne puis en reprise.
 - Achever invitations, contrats lisibles, durées, permissions, demandes de
   soutien, contributions, historique et espace aidant.
 - Faire prévaloir immédiatement au serveur révocation et consentement.
-- Rendre le plan de sécurité accessible hors ligne et les ressources de crise
-  françaises immédiatement disponibles.
+- [x] Rendre le plan de sécurité accessible hors ligne sur iOS et les ressources de crise
+      françaises immédiatement disponibles.
 - Garder les notifications génériques par défaut ; détails sensibles seulement
   sur appareil de confiance avec consentement dédié.
 - Terminer IDOR, relecture, limitation de débit, rotation de secrets, suppression,
@@ -158,8 +172,8 @@ révocation ; aucun contenu sensible n'apparaît dans les canaux techniques.
   dynamiques, safe areas, navigation arrière et mouvement réduit.
 - Budgéter performance, poids des illustrations, démarrage mobile, listes longues
   et transitions ; éliminer tout blocage du fil principal.
-- Effectuer une recette sur petits/grands iPhone, téléphones Android ciblés et
-  navigateurs Chromium/Firefox/WebKit.
+- Effectuer une recette sur petits/grands iPhone et navigateurs
+  Chromium/Firefox/WebKit. La recette Android est une gate ultérieure distincte.
 
 **Gate lot 7 :** audit WCAG 2.2 AA web et audit manuel mobile signés, sans P0/P1.
 
@@ -173,7 +187,8 @@ révocation ; aucun contenu sensible n'apparaît dans les canaux techniques.
   runbooks, astreinte, sauvegardes et restauration testée.
 - Fermer les validations Product, Engineering, sécurité, juridique et comptable.
 - Exécuter alpha interne, TestFlight fermé, bêta accompagnée puis revue Apple.
-- Rejouer l'intégralité des gates sur Android avant soumission Play Store.
+- Rejouer ensuite l'intégralité des gates sur Android avant toute soumission
+  Play Store ; ce lot ne bloque pas le lancement iOS.
 
 **Gate lot 8 :** aucune donnée réelle avant les signatures HDS/juridiques ; aucun
 lancement avant l'absence de P0/P1 et les preuves de restauration et suppression.
@@ -187,7 +202,9 @@ lancement avant l'absence de P0/P1 et les preuves de restauration et suppression
 5. Terminer Santé et insights.
 6. Terminer Cercle, sécurité et notifications.
 7. Rejouer toute la matrice UI/accessibilité/performance.
-8. Fermer les gates externes et exécuter les releases iOS puis Android.
+8. Fermer les gates externes iOS et exécuter la release iOS.
+9. Ouvrir ensuite le lot Android : compte Play, Health Connect, Billing,
+   TalkBack, calendrier et matrice de parité complète.
 
 Une gate externe n'est jamais déclarée réussie par inférence. Son approbation,
 son environnement et sa preuve datée doivent être disponibles avant promotion.

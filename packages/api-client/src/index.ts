@@ -26,6 +26,12 @@ import type {
   CreateRoutineOccurrenceInput,
   CreateSupportRequestInput,
   EntitlementDto,
+  ConnectHealthKitInput,
+  HealthAggregateDto,
+  HealthAggregateImportResult,
+  HealthSourceConnectionDto,
+  ImportHealthAggregatesInput,
+  UpdateHealthSourceInput,
   DoseEventDto,
   MedicationDto,
   RespondSupportRequestInput,
@@ -33,6 +39,8 @@ import type {
   RoutineDto,
   RoutineOccurrenceDto,
   RuntimeCapabilitiesDto,
+  SafetyPlanDto,
+  SafetyPlanWriteInput,
   SupportRequestDto,
   UpdateCalendarConnectionInput,
   SharedAppointmentBriefDto,
@@ -280,6 +288,63 @@ export const createApiClient = ({
     refreshMobileEntitlements: async () =>
       request<EntitlementDto>("/api/v2/entitlements/refresh", {
         method: "POST",
+      }),
+    getHealthKitConnection: async () =>
+      request<HealthSourceConnectionDto | null>(
+        "/api/v2/source-connections/healthkit",
+      ),
+    connectHealthKit: async (input: ConnectHealthKitInput) =>
+      request<HealthSourceConnectionDto>(
+        "/api/v2/source-connections/healthkit",
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    updateHealthKitConnection: async (
+      connectionId: string,
+      input: UpdateHealthSourceInput,
+    ) =>
+      request<HealthSourceConnectionDto>(
+        `/api/v2/source-connections/healthkit/${encodeURIComponent(connectionId)}`,
+        { method: "PATCH", body: JSON.stringify(input) },
+      ),
+    revokeHealthKitConnection: async (connectionId: string) =>
+      request<{
+        source: HealthSourceConnectionDto;
+        deletedAggregates: number;
+      }>(
+        `/api/v2/source-connections/healthkit/${encodeURIComponent(connectionId)}`,
+        { method: "DELETE" },
+      ),
+    importHealthAggregates: async (input: ImportHealthAggregatesInput) =>
+      request<HealthAggregateImportResult>("/api/v2/health-aggregates", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listHealthAggregates: async (
+      from: string,
+      to: string,
+      connectionId?: string,
+    ) =>
+      request<HealthAggregateDto[]>(
+        `/api/v2/health-aggregates?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${connectionId ? `&connectionId=${encodeURIComponent(connectionId)}` : ""}`,
+      ),
+    deleteHealthAggregates: async (
+      connectionId: string,
+      period?: { from?: string; to?: string },
+    ) => {
+      const query = new URLSearchParams({ connectionId });
+      if (period?.from) query.set("from", period.from);
+      if (period?.to) query.set("to", period.to);
+      return request<{ deleted: number }>(
+        `/api/v2/health-aggregates?${query.toString()}`,
+        { method: "DELETE" },
+      );
+    },
+    getSafetyPlan: async () =>
+      request<SafetyPlanDto | null>("/api/v2/safety-plan"),
+    saveSafetyPlan: async (input: SafetyPlanWriteInput) =>
+      request<SafetyPlanDto>("/api/v2/safety-plan", {
+        method: "PUT",
+        body: JSON.stringify(input),
       }),
     pushSync: async (input: SyncPushInput) =>
       request<SyncPushResult>("/api/v2/sync/push", {

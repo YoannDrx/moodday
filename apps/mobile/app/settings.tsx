@@ -234,8 +234,8 @@ export default function SettingsScreen() {
 
       <SectionCard
         eyebrow="Connexions"
-        title="Google Agenda"
-        description="Un agenda Mood Day dédié peut garder tes rendez-vous alignés sans lire tes autres agendas."
+        title="Santé et calendriers"
+        description="Chaque source reste facultative, limitée et révocable."
       >
         <Pressable
           accessibilityRole="button"
@@ -248,6 +248,37 @@ export default function SettingsScreen() {
           ]}
         >
           <Text style={styles.secondaryLabel}>Gérer la connexion</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={isPending}
+          onPress={() => router.push("/health-connections")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            isPending && styles.disabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Gérer Santé sur iPhone</Text>
+        </Pressable>
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Toujours accessible"
+        title="Plan de sécurité personnel"
+        description="Une copie privée et chiffrée reste lisible hors ligne sur cet iPhone. Elle n’est jamais partagée automatiquement."
+      >
+        <Pressable
+          accessibilityRole="button"
+          disabled={isPending}
+          onPress={() => router.push("/safety-plan")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            isPending && styles.disabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Ouvrir mon plan</Text>
         </Pressable>
       </SectionCard>
 

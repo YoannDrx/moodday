@@ -23,6 +23,7 @@ import {
   type RoutineOccurrenceDto,
   type RoutineOccurrenceWriteInput,
   type RoutineWriteInput,
+  type SafetyPlanDto,
   type SyncEntityType,
   type SyncPushOperation,
 } from "@moodday/contracts";
@@ -143,6 +144,21 @@ const initializeDatabase = async ({
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS health_raw_sample (
+      sample_type TEXT NOT NULL,
+      sample_id TEXT NOT NULL,
+      local_date TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      PRIMARY KEY (sample_type, sample_id)
+    );
+    CREATE INDEX IF NOT EXISTS health_raw_sample_local_date_idx
+      ON health_raw_sample(local_date, sample_type);
+    CREATE TABLE IF NOT EXISTS safety_plan_snapshot (
+      id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+      payload TEXT NOT NULL,
+      cached_at TEXT NOT NULL
+    );
   `);
   const schemaVersion = await database.getFirstAsync<{ user_version: number }>(
     "PRAGMA user_version",
@@ -222,6 +238,35 @@ const initializeDatabase = async ({
         CREATE INDEX pending_sync_operation_state_created_at_idx
           ON pending_sync_operation(state, created_at);
         PRAGMA user_version = 4;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 5) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS health_raw_sample (
+          sample_type TEXT NOT NULL,
+          sample_id TEXT NOT NULL,
+          local_date TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          observed_at TEXT NOT NULL,
+          PRIMARY KEY (sample_type, sample_id)
+        );
+        CREATE INDEX IF NOT EXISTS health_raw_sample_local_date_idx
+          ON health_raw_sample(local_date, sample_type);
+        PRAGMA user_version = 5;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 6) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS safety_plan_snapshot (
+          id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+          payload TEXT NOT NULL,
+          cached_at TEXT NOT NULL
+        );
+        PRAGMA user_version = 6;
       `);
     });
   }
@@ -666,6 +711,96 @@ const pullChanges = async (ownerId: string) => {
 export const synchronizeNow = async (ownerId: string) => {
   await flushPendingOperations(ownerId);
   await pullChanges(ownerId);
+};
+
+export type HealthRawSampleRecord = {
+  sampleType: string;
+  sampleId: string;
+  localDate: string;
+  observedAt: string;
+  payload: unknown;
+};
+
+export const storeRawHealthSamples = async (
+  ownerId: string,
+  samples: readonly HealthRawSampleRecord[],
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.withTransactionAsync(async () => {
+    const storeAt = async (index: number): Promise<void> => {
+      const sample = samples[index];
+      if (!sample) return;
+      await database.runAsync(
+        `INSERT INTO health_raw_sample
+          (sample_type, sample_id, local_date, payload, observed_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(sample_type, sample_id) DO UPDATE SET
+           local_date = excluded.local_date,
+           payload = excluded.payload,
+           observed_at = excluded.observed_at`,
+        sample.sampleType,
+        sample.sampleId,
+        sample.localDate,
+        JSON.stringify(sample.payload),
+        sample.observedAt,
+      );
+      return storeAt(index + 1);
+    };
+    await storeAt(0);
+  });
+};
+
+export const deleteRawHealthSamples = async (
+  ownerId: string,
+  period?: { from?: string; to?: string },
+) => {
+  const database = await getLocalDatabase(ownerId);
+  if (!period?.from && !period?.to) {
+    const result = await database.runAsync("DELETE FROM health_raw_sample");
+    return result.changes;
+  }
+  const clauses: string[] = [];
+  const values: string[] = [];
+  if (period.from) {
+    clauses.push("local_date >= ?");
+    values.push(period.from);
+  }
+  if (period.to) {
+    clauses.push("local_date <= ?");
+    values.push(period.to);
+  }
+  const result = await database.runAsync(
+    `DELETE FROM health_raw_sample WHERE ${clauses.join(" AND ")}`,
+    ...values,
+  );
+  return result.changes;
+};
+
+export const cacheSafetyPlan = async (ownerId: string, plan: SafetyPlanDto) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `INSERT INTO safety_plan_snapshot (id, payload, cached_at)
+     VALUES (1, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       payload = excluded.payload,
+       cached_at = excluded.cached_at`,
+    JSON.stringify(plan),
+    new Date().toISOString(),
+  );
+};
+
+export const getCachedSafetyPlan = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  const row = await database.getFirstAsync<SnapshotRow>(
+    "SELECT payload FROM safety_plan_snapshot WHERE id = 1",
+  );
+  if (!row) return null;
+  try {
+    return JSON.parse(row.payload) as SafetyPlanDto;
+  } catch {
+    await database.runAsync("DELETE FROM safety_plan_snapshot WHERE id = 1");
+    return null;
+  }
 };
 
 const readSnapshots = async <T>(

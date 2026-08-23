@@ -35,6 +35,7 @@ import {
   saveAppointmentQuestionOfflineFirst,
   synchronizeNow,
 } from "../../src/lib/local-database";
+import { presentNativeCalendarEvent } from "../../src/lib/native-calendar";
 
 const appointmentLabel = (startsAt: string, timezone: string) =>
   new Intl.DateTimeFormat("fr-FR", {
@@ -339,6 +340,24 @@ export default function AppointmentDetailScreen() {
     }
   };
 
+  const addToNativeCalendar = async () => {
+    if (!appointment) return;
+    setIsSaving(true);
+    setStatus(undefined);
+    try {
+      const result = await presentNativeCalendarEvent(appointment);
+      setStatus(
+        result.saved
+          ? "Rendez-vous ajouté au calendrier choisi."
+          : "Ajout au calendrier annulé. Rien n’a été modifié.",
+      );
+    } catch {
+      setStatus("Le calendrier natif est indisponible pour le moment.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!appointment && !isLoading) {
     return (
       <Screen>
@@ -382,6 +401,19 @@ export default function AppointmentDetailScreen() {
           </Text>
         </View>
       ) : null}
+
+      <SectionCard
+        eyebrow="Calendrier iPhone"
+        title="Ajouter volontairement"
+        description="La fiche système te laisse choisir le calendrier et confirmer. Seuls le titre, l’horaire et le lieu sont proposés ; aucune question ni note privée."
+      >
+        <ActionButton
+          disabled={isSaving}
+          label="Ouvrir la fiche calendrier"
+          onPress={() => void addToNativeCalendar()}
+          secondary
+        />
+      </SectionCard>
 
       <SectionCard
         eyebrow="Avant"

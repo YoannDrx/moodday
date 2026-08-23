@@ -154,4 +154,35 @@ describe("mobile delivery configuration", () => {
       } as never),
     ).toThrow("EXPO_PUBLIC_API_URL must use HTTPS for the preview");
   });
+
+  it("allows the iOS-first RevenueCat release without an Android public key", () => {
+    vi.stubEnv("APP_VARIANT", "production");
+    vi.stubEnv("EXPO_PUBLIC_API_URL", "https://www.moodday.app");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ENABLED", "true");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY", "appl_public_test");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY", "");
+
+    const resolved = resolveExpoConfig({
+      config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+    } as never);
+
+    expect(resolved.extra).toMatchObject({
+      revenueCatEnabled: true,
+      revenueCatIosApiKey: "appl_public_test",
+      revenueCatAndroidApiKey: undefined,
+    });
+  });
+
+  it("fails closed when iOS RevenueCat billing has no public iOS key", () => {
+    vi.stubEnv("APP_VARIANT", "production");
+    vi.stubEnv("EXPO_PUBLIC_API_URL", "https://www.moodday.app");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ENABLED", "true");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY", "");
+
+    expect(() =>
+      resolveExpoConfig({
+        config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+      } as never),
+    ).toThrow("RevenueCat iOS public API key is required");
+  });
 });
