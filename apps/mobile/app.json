@@ -3,10 +3,10 @@
     "name": "Mood Day",
     "slug": "mood-day",
     "version": "0.1.0",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "scheme": "moodday",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "fr.yodev.moodday"
@@ -19,11 +19,25 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-sqlite",
         {
           "useSQLCipher": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F6F3EC",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
       ]
     ],
@@ -31,7 +45,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://localhost:3000"
-    }
+      "apiUrl": "http://localhost:3000",
+      "eas": {
+        "projectId": "973b3a37-c1d3-4dac-a327-20d4b9bbd18e"
+      }
+    },
+    "owner": "yoanndrx"
   }
 }

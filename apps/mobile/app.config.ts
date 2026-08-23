@@ -78,6 +78,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           calendarPermission:
             "Mood Day accède au calendrier uniquement lorsque tu choisis d’ajouter ou d’importer un rendez-vous.",
+          remindersPermission: false,
         },
       ],
       [

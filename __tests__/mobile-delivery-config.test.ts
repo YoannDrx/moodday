@@ -4,6 +4,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import resolveExpoConfig from "../apps/mobile/app.config";
 
 const mobileRoot = path.join(process.cwd(), "apps/mobile");
+const appConfig = JSON.parse(
+  fs.readFileSync(path.join(mobileRoot, "app.json"), "utf8"),
+) as {
+  expo: Record<string, unknown> & {
+    extra?: { eas?: { projectId?: string } };
+    plugins?: unknown[];
+  };
+};
 const easConfig = JSON.parse(
   fs.readFileSync(path.join(mobileRoot, "eas.json"), "utf8"),
 ) as {
@@ -54,6 +62,24 @@ describe("mobile delivery configuration", () => {
     ) as { devDependencies?: Record<string, string> };
 
     expect(mobilePackage.devDependencies).not.toHaveProperty("eas-cli");
+  });
+
+  it("links the native app to EAS and ships production-ready brand assets", () => {
+    expect(appConfig.expo).toMatchObject({
+      owner: "yoanndrx",
+      slug: "mood-day",
+      icon: "./assets/app-icon.png",
+      extra: {
+        eas: { projectId: "973b3a37-c1d3-4dac-a327-20d4b9bbd18e" },
+      },
+    });
+    expect(appConfig.expo).not.toHaveProperty("newArchEnabled");
+    expect(JSON.stringify(appConfig.expo.plugins)).toContain(
+      "expo-splash-screen",
+    );
+    expect(JSON.stringify(appConfig.expo.plugins)).toContain(
+      '"faceIDPermission":false',
+    );
   });
 
   it("ships private local reminders and native account-data handoff", () => {
@@ -161,6 +187,9 @@ describe("mobile delivery configuration", () => {
         extra: { appVariant: variant, apiUrl: resolvedApiUrl },
       });
       expect(JSON.stringify(resolved.plugins)).toContain("expo-notifications");
+      expect(JSON.stringify(resolved.plugins)).toContain(
+        '"remindersPermission":false',
+      );
     },
   );
 
