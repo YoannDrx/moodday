@@ -19,6 +19,18 @@ const easConfig = JSON.parse(
   build: Record<string, Record<string, unknown>>;
   submit: Record<string, unknown>;
 };
+const storeConfig = JSON.parse(
+  fs.readFileSync(path.join(mobileRoot, "store.config.json"), "utf8"),
+) as {
+  configVersion: number;
+  apple: {
+    advisory: Record<string, unknown>;
+    categories: string[];
+    info: Record<string, Record<string, unknown>>;
+    release: { automaticRelease: boolean };
+    review?: Record<string, unknown>;
+  };
+};
 
 describe("mobile delivery configuration", () => {
   afterEach(() => {
@@ -54,8 +66,45 @@ describe("mobile delivery configuration", () => {
       env: { APP_VARIANT: "production" },
     });
     expect(easConfig.submit).toEqual({
-      production: { ios: { ascAppId: "6804466109" } },
+      production: {
+        ios: {
+          ascAppId: "6804466109",
+          metadataPath: "./store.config.json",
+        },
+      },
     });
+  });
+
+  it("versions a bilingual, adult and manually released App Store listing", () => {
+    expect(storeConfig).toMatchObject({
+      configVersion: 0,
+      apple: {
+        categories: ["HEALTH_AND_FITNESS", "LIFESTYLE"],
+        release: { automaticRelease: false },
+        advisory: {
+          ageRatingOverride: "SEVENTEEN_PLUS",
+          medicalOrTreatmentInformation: "FREQUENT_OR_INTENSE",
+          healthOrWellnessTopics: true,
+        },
+        info: {
+          "fr-FR": {
+            title: "Mood Day",
+            supportUrl: "https://www.moodday.app/help",
+            privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
+            privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
+          },
+          "en-US": {
+            title: "Mood Day",
+            supportUrl: "https://www.moodday.app/help",
+            privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
+            privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
+          },
+        },
+      },
+    });
+    expect(storeConfig.apple.review).toBeUndefined();
+    expect(JSON.stringify(storeConfig)).toContain("non médical");
+    expect(JSON.stringify(storeConfig)).toContain("non-medical");
   });
 
   it("keeps the EAS build CLI outside the application dependency graph", () => {

@@ -38,6 +38,7 @@ describe("public claims registry", () => {
     expect(subprocessors).toContain("PostHog explicitly absent");
     expect(footer).toContain("/legal/subprocessors");
     expect(sitemap).toContain("/legal/subprocessors");
+    expect(sitemap).toContain("/privacy-choices");
   });
 
   it("states the separate health-data consent and how it can be withdrawn", () => {

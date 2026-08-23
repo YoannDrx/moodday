@@ -47,6 +47,9 @@ import GuidesPage from "@app/(layout)/guides/page";
 import HelpPage, {
   generateMetadata as generateHelpMetadata,
 } from "@app/(layout)/help/page";
+import PrivacyChoicesPage, {
+  generateMetadata as generatePrivacyChoicesMetadata,
+} from "@app/(layout)/privacy-choices/page";
 import CookiesPage, {
   generateMetadata as generateCookiesMetadata,
 } from "@app/(layout)/legal/cookies/page";
@@ -129,6 +132,34 @@ describe("public product pages", () => {
     ).toBeInTheDocument();
     expect((await generateStatusMetadata()).title).toBe(
       "Service status | Moodday",
+    );
+  });
+
+  it("publishes bilingual privacy choices without requiring a session", async () => {
+    render(await PrivacyChoicesPage());
+    expect(
+      screen.getByRole("heading", {
+        name: "Garde le contrôle de tes données",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect((await generatePrivacyChoicesMetadata()).title).toBe(
+      "Tes choix de confidentialité | Moodday",
+    );
+    expect(
+      screen.getByRole("link", { name: "privacy@moodday.app" }),
+    ).toHaveAttribute("href", "mailto:privacy@moodday.app");
+
+    state.locale = "en";
+    render(await PrivacyChoicesPage());
+    expect(
+      screen.getByRole("heading", {
+        name: "Stay in control of your data",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect((await generatePrivacyChoicesMetadata()).title).toBe(
+      "Your privacy choices | Moodday",
     );
   });
 
