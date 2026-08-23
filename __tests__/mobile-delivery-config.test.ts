@@ -81,6 +81,18 @@ describe("mobile delivery configuration", () => {
     expect(flow).toContain("id: sign-in-screen");
   });
 
+  it("exposes Google authentication through the native Better Auth hand-off", () => {
+    const signInScreen = fs.readFileSync(
+      path.join(mobileRoot, "app/sign-in.tsx"),
+      "utf8",
+    );
+
+    expect(signInScreen).toContain('testID="sign-in-google"');
+    expect(signInScreen).toContain("authClient.signIn.social");
+    expect(signInScreen).toContain('provider: "google"');
+    expect(signInScreen).toContain('callbackURL: "/"');
+  });
+
   it.each([
     {
       variant: "development",

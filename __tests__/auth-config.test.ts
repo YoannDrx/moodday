@@ -2,6 +2,19 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 type AuthConfig = {
   socialProviders: Record<string, { clientId: string; clientSecret: string }>;
+  account: {
+    encryptOAuthTokens: boolean;
+    storeStateStrategy: string;
+    accountLinking: {
+      enabled: boolean;
+      disableImplicitLinking: boolean;
+      requireLocalEmailVerified: boolean;
+      trustedProviders: string[];
+      allowDifferentEmails: boolean;
+      allowUnlinkingAll: boolean;
+      updateUserInfoOnLink: boolean;
+    };
+  };
   rateLimit: { max: number; customRules: Record<string, { max: number }> };
   databaseHooks: {
     session: {
@@ -184,6 +197,19 @@ describe("Better Auth production configuration", () => {
     expect(config.rateLimit.max).toBe(60);
     expect(config.rateLimit.customRules["/sign-in/email"].max).toBe(5);
     expect(config.rateLimit.customRules["/request-password-reset"].max).toBe(3);
+    expect(config.account).toEqual({
+      encryptOAuthTokens: true,
+      storeStateStrategy: "database",
+      accountLinking: {
+        enabled: true,
+        disableImplicitLinking: false,
+        requireLocalEmailVerified: true,
+        trustedProviders: ["google"],
+        allowDifferentEmails: false,
+        allowUnlinkingAll: false,
+        updateUserInfoOnLink: false,
+      },
+    });
 
     const isolated = await loadConfig(
       {

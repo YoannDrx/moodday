@@ -60,6 +60,7 @@
     "maintenance:revoke-unverified-sessions": "tsx scripts/revoke-unverified-sessions.ts",
     "notifications:retry-dead": "tsx scripts/retry-dead-notification.ts",
     "dsar:generate": "NODE_ENV=production tsx scripts/generate-regulatory-export.ts",
+    "stripe:configure-catalog": "tsx scripts/configure-stripe-catalog.ts",
     "stripe:validate-catalog": "tsx scripts/validate-stripe-catalog.ts",
     "stripe:verify-test-clocks": "tsx --env-file=.env.local scripts/verify-stripe-test-clocks.ts"
   },

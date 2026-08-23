@@ -58,6 +58,23 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  account: {
+    // OAuth refresh/access tokens are health-adjacent credentials: a database
+    // read must not be enough to reuse them against Google.
+    encryptOAuthTokens: true,
+    // Persist OAuth state server-side so callback validation does not depend on
+    // a long-lived state cookie on the web or in the native browser hand-off.
+    storeStateStrategy: "database",
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: false,
+      requireLocalEmailVerified: true,
+      trustedProviders: ["google"],
+      allowDifferentEmails: false,
+      allowUnlinkingAll: false,
+      updateUserInfoOnLink: false,
+    },
+  },
   rateLimit: {
     enabled: true,
     storage: "database",

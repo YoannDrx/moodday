@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type * as GoogleCalendarApi from "@/features/v2/calendar/google-calendar-api";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({
@@ -53,7 +53,13 @@ const selectedConnection = {
 
 describe("V2 Google Calendar connection", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("creates only a dedicated app-scoped calendar and keeps OAuth tokens in Better Auth", async () => {

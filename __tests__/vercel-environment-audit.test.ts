@@ -95,13 +95,47 @@ describe("Vercel release environment audit", () => {
   it("detects equal sensitive values even when their Vercel entries are separate", () => {
     expect(
       auditVercelSensitiveValueIsolation(
-        { DATABASE_URL: "same-secret", CRON_SECRET: "production-secret" },
-        { DATABASE_URL: "same-secret", CRON_SECRET: "preview-secret" },
+        {
+          DATABASE_URL: "same-secret",
+          CRON_SECRET: "production-secret",
+          GOOGLE_CLIENT_ID: "production-google-client",
+        },
+        {
+          DATABASE_URL: "same-secret",
+          CRON_SECRET: "preview-secret",
+          GOOGLE_CLIENT_ID: "preview-google-client",
+        },
       ),
     ).toEqual([
       {
         code: "same_sensitive_value",
         key: "DATABASE_URL",
+        severity: "error",
+      },
+    ]);
+  });
+
+  it("keeps the Google OAuth application isolated per release environment", () => {
+    expect(
+      auditVercelSensitiveValueIsolation(
+        {
+          GOOGLE_CLIENT_ID: "shared-client",
+          GOOGLE_CLIENT_SECRET: "shared-secret",
+        },
+        {
+          GOOGLE_CLIENT_ID: "shared-client",
+          GOOGLE_CLIENT_SECRET: "shared-secret",
+        },
+      ),
+    ).toEqual([
+      {
+        code: "same_sensitive_value",
+        key: "GOOGLE_CLIENT_ID",
+        severity: "error",
+      },
+      {
+        code: "same_sensitive_value",
+        key: "GOOGLE_CLIENT_SECRET",
         severity: "error",
       },
     ]);

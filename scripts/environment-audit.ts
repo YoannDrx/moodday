@@ -71,6 +71,13 @@ check(
     : "non configuré",
 );
 check(
+  "Google OAuth",
+  Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? "client et secret présents"
+    : "configuration incomplète",
+);
+check(
   "OpenAI",
   hasPrefix("OPENAI_API_KEY", ["sk-", "sk-proj-"]),
   process.env.OPENAI_API_KEY ? "clé projet présente" : "non configuré",
