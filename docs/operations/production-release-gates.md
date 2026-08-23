@@ -4,8 +4,8 @@ Dernière mise à jour : 18 août 2026
 
 Ce document est la checklist exécutable de la release France 18+. Une case ne
 peut être cochée qu'avec une preuve datée et reproductible. Les flags Billing,
-IA, cercle aidant, push, import et administration restent fermés tant que leur
-gate n'est pas validé.
+IA, cercle aidant, Google Agenda, push, import et administration restent fermés
+tant que leur gate n'est pas validé.
 
 ## Phase 0 — baseline et garde-fous
 
@@ -82,6 +82,12 @@ gate n'est pas validé.
 - [x] Catalogues de traduction client nettoyés des offres/témoignages/apps
       fictifs ; onboarding Push/Aidant et upsells Plus soumis indépendamment aux
       flags serveur, avec tests fail-closed.
+- [x] Google Agenda utilise le scope incrémental `calendar.app.created`, un
+      agenda secondaire dédié, un curseur incrémental, un lease et une
+      résolution explicite des conflits ; le flag reste fermé par défaut.
+- [ ] Consent screen Google, callbacks web/mobile par environnement, compte de
+      test, retrait d’autorisation et synchronisation réelle aller-retour
+      validés avant d’ouvrir `GOOGLE_CALENDAR_ENABLED`.
 
 ## Phases 6 à 8 — exploitation, IA et Stripe
 

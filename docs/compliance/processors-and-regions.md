@@ -2,7 +2,7 @@
 
 Statut : **inventaire technique publié, preuves contractuelles absentes donc gate rouge**
 
-Dernière revue : 2026-08-13
+Dernière revue : 2026-08-23
 
 Ne jamais inscrire de secret ou de donnée utilisateur dans ce registre. Les
 valeurs attendues sont des hôtes, régions, identifiants de compte/projet et
@@ -17,6 +17,7 @@ responsables.
 | OpenAI           | Clé dédiée Moodday locale                 | Projet dédié requis               | Projet dédié requis                              | `store=false`; région et transferts à signer          | DPA/SCC non versés                 | Product / vie privée |
 | Resend           | Envois externes coupés en E2E             | Clé et domaine distincts requis   | Configuration finale non prouvée                 | Région, rétention et sous-traitants à prouver         | DPA non versé                      | Engineering          |
 | Web Push/VAPID   | Clés de test uniquement                   | Clés distinctes requises          | Clés dédiées exigées                             | Endpoints propres aux navigateurs                     | Rôles et transferts non documentés | Engineering          |
+| Google Calendar  | Projet OAuth de développement             | Projet/callbacks séparés requis   | Consent screen et callbacks à valider            | Agenda secondaire dédié ; transferts à documenter     | DPA/SCC et rôle à confirmer        | Product / vie privée |
 
 ## Contrôle avant release
 

@@ -9,6 +9,7 @@ export type RuntimeFeature =
   | "aiInsights"
   | "billing"
   | "caregiverSharing"
+  | "googleCalendar"
   | "pushNotifications";
 
 export type FeatureAvailability = {
@@ -65,6 +66,15 @@ export function getFeatureAvailability(
       return hasValues(env.RESEND_API_KEY, env.CRON_SECRET)
         ? available()
         : incompleteConfiguration();
+    case "googleCalendar":
+      if (!env.GOOGLE_CALENDAR_ENABLED) return disabledByFlag();
+      return hasValues(
+        env.GOOGLE_CLIENT_ID,
+        env.GOOGLE_CLIENT_SECRET,
+        env.CRON_SECRET,
+      )
+        ? available()
+        : incompleteConfiguration();
     case "pushNotifications":
       if (!env.PUSH_NOTIFICATIONS_ENABLED) return disabledByFlag();
       return hasValues(
@@ -94,6 +104,7 @@ export function isAiInsightsAvailableForUser(userId: string) {
 export const getClientVisibleFeatures = () => ({
   billing: getFeatureAvailability("billing").enabled,
   caregiverSharing: getFeatureAvailability("caregiverSharing").enabled,
+  googleCalendar: getFeatureAvailability("googleCalendar").enabled,
   pushNotifications: getFeatureAvailability("pushNotifications").enabled,
 });
 

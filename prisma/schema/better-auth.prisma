@@ -43,6 +43,7 @@ model User {
   routines             Routine[]
   clinicians           Clinician[]
   appointments         Appointment[]
+  calendarConnections  CalendarConnection[]
   devices              Device[]
   syncOperations       SyncOperation[]
   subscriptionSources  SubscriptionSource[]

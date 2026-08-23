@@ -168,7 +168,10 @@ Après désactivation de la maintenance, mais avant toute activation sensible :
    l'environnement autorisé, puis rejouer chacun sans second effet ;
 9. déclencher manuellement chaque cron, vérifier verrous, heartbeat et absence
    de double livraison ;
-10. inspecter les événements structurés : aucun e-mail, token, payload, note,
+10. si Google Agenda est candidat à l’activation, synchroniser un rendez-vous
+    synthétique dans les deux sens, provoquer un conflit contrôlé, le résoudre,
+    puis révoquer la connexion et vérifier l’arrêt à la requête suivante ;
+11. inspecter les événements structurés : aucun e-mail, token, payload, note,
     URL Blob ou contenu de santé ne doit apparaître.
 
 Tout smoke critique en échec remet immédiatement la maintenance à `true`.
@@ -183,16 +186,19 @@ Chaque ligne nécessite une décision consignée avant de passer à la suivante 
    de rétablissement ;
 3. ouvrir le cercle aidant, le push et l'import uniquement si leurs recettes
    appareil/fournisseur sont signées ;
-4. effectuer un achat Stripe live contrôlé au montant réel, vérifier droits,
+4. ouvrir Google Agenda uniquement après signature de la gate OAuth, effectuer
+   une synchronisation synthétique et confirmer le heartbeat du cron sans
+   contenu ;
+5. effectuer un achat Stripe live contrôlé au montant réel, vérifier droits,
    facture, portail et webhook, puis rembourser ;
-5. activer Billing uniquement après réussite de l'étape précédente et validation
+6. activer Billing uniquement après réussite de l'étape précédente et validation
    comptable ;
-6. activer l'IA pour les seuls comptes internes, vérifier timeout, fallback,
+7. activer l'IA pour les seuls comptes internes, vérifier timeout, fallback,
    crise et kill switch ;
-7. conserver l'IA désactivée par défaut pour chaque utilisateur ;
-8. passer `AI_ROLLOUT_MODE=public` seulement après la revue live, les signatures
+8. conserver l'IA désactivée par défaut pour chaque utilisateur ;
+9. passer `AI_ROLLOUT_MODE=public` seulement après la revue live, les signatures
    juridique/clinique et une nouvelle décision go/no-go ;
-9. ouvrir progressivement les utilisateurs Plus opt-in.
+10. ouvrir progressivement les utilisateurs Plus opt-in.
 
 Stripe et l'IA ne sont jamais activés simultanément dans une même opération de
 configuration. Une observation stable sépare les deux changements.

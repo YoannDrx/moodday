@@ -96,6 +96,19 @@ const processors = [
     conditionFr: "Uniquement si l’utilisateur choisit ce moyen de connexion",
     conditionEn: "Only when the user selects that sign-in method",
   },
+  {
+    name: "Google Calendar",
+    purposeFr: "Synchronisation facultative d’un agenda Mood Day dédié",
+    purposeEn: "Optional synchronization of a dedicated Mood Day calendar",
+    dataFr:
+      "Date, heure et fuseau ; titre et lieu uniquement en mode détaillé choisi",
+    dataEn:
+      "Date, time, and time zone; title and location only in selected detailed mode",
+    conditionFr:
+      "Opt-in ; accès limité à l’agenda secondaire créé par Mood Day ; les autres agendas ne sont pas lus",
+    conditionEn:
+      "Opt-in; access limited to the secondary calendar created by Mood Day; other calendars are not read",
+  },
 ] as const;
 
 export default async function SubprocessorsPage() {
@@ -121,8 +134,8 @@ export default async function SubprocessorsPage() {
             className="text-muted-foreground mt-2 text-sm"
           >
             {fr
-              ? "Dernière mise à jour : 13 août 2026"
-              : "Last updated: 13 August 2026"}
+              ? "Dernière mise à jour : 23 août 2026"
+              : "Last updated: 23 August 2026"}
           </Typography>
         </div>
 
@@ -175,6 +188,11 @@ export default async function SubprocessorsPage() {
             {fr ? "Historique des changements" : "Change history"}
           </Typography>
           <ul className="text-muted-foreground mt-4 list-disc space-y-2 pl-5 text-sm">
+            <li>
+              {fr
+                ? "23 août 2026 — ajout de Google Agenda, facultatif et limité à l’agenda secondaire créé par Mood Day."
+                : "23 August 2026 — added optional Google Calendar access, limited to the secondary calendar created by Mood Day."}
+            </li>
             <li>
               {fr
                 ? "13 août 2026 — publication initiale ; OpenAI indiqué comme facultatif et PostHog explicitement absent de cette version."

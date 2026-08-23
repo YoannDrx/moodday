@@ -177,6 +177,8 @@ describe("Better Auth production configuration", () => {
         clientId: "google-client",
         clientSecret: "google-secret",
         disableSignUp: true,
+        accessType: "offline",
+        prompt: "select_account consent",
       },
     });
     expect(config.rateLimit.max).toBe(60);

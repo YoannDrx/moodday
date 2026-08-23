@@ -1419,6 +1419,55 @@ const fr: typeof en = {
       ],
       changePlan: "Changer d'offre",
     },
+    connections: {
+      title: "Connexions",
+      subtitle:
+        "Relie les services que tu choisis, avec un périmètre lisible et révocable.",
+      googleTitle: "Google Agenda",
+      googleDescription:
+        "Un agenda Mood Day dédié garde tes rendez-vous alignés sur le web et le mobile.",
+      loading: "Chargement de la connexion calendrier",
+      offline:
+        "La connexion et la synchronisation Google Agenda nécessitent une connexion internet.",
+      scopeNotice:
+        "Mood Day demande uniquement le droit de créer et gérer l’agenda secondaire qu’il crée. Tes autres agendas ne sont ni lus ni analysés.",
+      connect: "Connecter Google Agenda",
+      unavailable: "Google Agenda bientôt disponible",
+      active: "Synchronisation active",
+      paused: "Synchronisation en pause",
+      lastSync: "Dernière synchronisation : {date}",
+      syncNow: "Synchroniser",
+      pause: "Mettre en pause",
+      resume: "Reprendre",
+      disconnect: "Déconnecter",
+      disconnectTitle: "Déconnecter Google Agenda ?",
+      disconnectDescription:
+        "La synchronisation s’arrête immédiatement. L’agenda Mood Day reste dans Google et aucune donnée n’est supprimée silencieusement.",
+      detailLabel: "Détails visibles dans Google Agenda",
+      detailGeneric: "Discret — Rendez-vous Mood Day",
+      detailAppointment: "Détaillé — titre et lieu du rendez-vous",
+      detailGenericHelp:
+        "Seules la date, l’heure et le fuseau sont envoyés avec un titre générique.",
+      detailAppointmentHelp:
+        "Le titre et le lieu sont aussi envoyés. Questions, notes et décisions restent toujours dans Mood Day.",
+      conflictsTitle: "Choix nécessaires",
+      conflictsDescription:
+        "Ces rendez-vous ont changé dans Mood Day et Google Agenda. Rien n’a été écrasé automatiquement.",
+      deletedInGoogle: "Événement supprimé dans Google",
+      keepMoodDay: "Garder Mood Day",
+      keepGoogle: "Garder Google",
+      connectedToast: "Google Agenda est connecté.",
+      syncedToast: "Les rendez-vous sont synchronisés.",
+      revokedToast: "La connexion est révoquée.",
+      errorTitle: "La connexion n’a pas abouti",
+      errorToast: "Google Agenda n’a pas pu être synchronisé.",
+      authorizationError:
+        "Reconnecte-toi à Google pour confirmer l’accès à l’agenda Mood Day dédié.",
+      unavailableError:
+        "Cette connexion reste désactivée tant que sa configuration de production n’est pas validée.",
+      genericError:
+        "Réessaie dans un instant. Aucun rendez-vous n’a été supprimé ni écrasé.",
+    },
     timezones: {
       paris: "Paris",
       london: "Londres",
@@ -1431,6 +1480,7 @@ const fr: typeof en = {
       appearance: "Apparence",
       privacy: "Confidentialité",
       offline: "Synchronisation",
+      connections: "Connexions",
       subscription: "Abonnement",
       security: "Sécurité",
       language: "Langue",

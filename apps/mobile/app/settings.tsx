@@ -189,6 +189,25 @@ export default function SettingsScreen() {
       </SectionCard>
 
       <SectionCard
+        eyebrow="Connexions"
+        title="Google Agenda"
+        description="Un agenda Mood Day dédié peut garder tes rendez-vous alignés sans lire tes autres agendas."
+      >
+        <Pressable
+          accessibilityRole="button"
+          disabled={isPending}
+          onPress={() => router.push("/calendar-connections")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            isPending && styles.disabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Gérer la connexion</Text>
+        </Pressable>
+      </SectionCard>
+
+      <SectionCard
         eyebrow="Session"
         title="Se déconnecter"
         description="Les données locales synchronisées restent chiffrées pour accélérer ta prochaine connexion avec ce même compte."

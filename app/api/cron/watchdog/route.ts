@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     operationalRetention,
     stripeReconciliation,
     caregiverAccessDigests,
+    googleCalendarSync,
     deadDeletionCount,
     overdueDeletionCount,
     deadNotificationCount,
@@ -44,6 +45,9 @@ export async function GET(request: Request) {
     }),
     prisma.operationalHeartbeat.findUnique({
       where: { serviceName: "caregiver-access-digests" },
+    }),
+    prisma.operationalHeartbeat.findUnique({
+      where: { serviceName: "google-calendar-sync" },
     }),
     prisma.externalDeletionJob.count({ where: { status: "dead" } }),
     prisma.externalDeletionJob.count({
@@ -80,6 +84,10 @@ export async function GET(request: Request) {
     (!caregiverAccessDigests?.lastSuccessAt ||
       caregiverAccessDigests.lastSuccessAt <
         new Date(now.getTime() - 26 * 60 * 60 * 1000));
+  const staleGoogleCalendarSync =
+    env.GOOGLE_CALENDAR_ENABLED &&
+    (!googleCalendarSync?.lastSuccessAt ||
+      googleCalendarSync.lastSuccessAt < staleBefore);
   const stripeReconciliationFailed =
     env.BILLING_ENABLED &&
     Boolean(
@@ -95,6 +103,8 @@ export async function GET(request: Request) {
     (operationalRetention?.consecutiveFailures ?? 0) >= 2 ||
     (env.CAREGIVER_SHARING_ENABLED &&
       (caregiverAccessDigests?.consecutiveFailures ?? 0) >= 2) ||
+    (env.GOOGLE_CALENDAR_ENABLED &&
+      (googleCalendarSync?.consecutiveFailures ?? 0) >= 2) ||
     (env.BILLING_ENABLED &&
       (stripeReconciliation?.consecutiveFailures ?? 0) >= 2);
   const unhealthy =
@@ -102,6 +112,7 @@ export async function GET(request: Request) {
     staleDeletions ||
     staleOperationalRetention ||
     staleCaregiverAccessDigests ||
+    staleGoogleCalendarSync ||
     staleStripeReconciliation ||
     stripeReconciliationFailed ||
     repeatedFailure ||

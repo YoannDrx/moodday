@@ -1392,6 +1392,55 @@ const en = {
       ],
       changePlan: "Change plan",
     },
+    connections: {
+      title: "Connections",
+      subtitle:
+        "Connect only the services you choose, with a clear and revocable scope.",
+      googleTitle: "Google Calendar",
+      googleDescription:
+        "A dedicated Mood Day calendar keeps appointments aligned across web and mobile.",
+      loading: "Loading calendar connection",
+      offline:
+        "Connecting and synchronizing Google Calendar requires an internet connection.",
+      scopeNotice:
+        "Mood Day only asks to create and manage the secondary calendar it creates. Your other calendars are never read or analyzed.",
+      connect: "Connect Google Calendar",
+      unavailable: "Google Calendar coming soon",
+      active: "Synchronization active",
+      paused: "Synchronization paused",
+      lastSync: "Last synchronization: {date}",
+      syncNow: "Synchronize",
+      pause: "Pause",
+      resume: "Resume",
+      disconnect: "Disconnect",
+      disconnectTitle: "Disconnect Google Calendar?",
+      disconnectDescription:
+        "Synchronization stops immediately. The Mood Day calendar remains in Google and no data is silently deleted.",
+      detailLabel: "Details visible in Google Calendar",
+      detailGeneric: "Private — Mood Day appointment",
+      detailAppointment: "Detailed — appointment title and location",
+      detailGenericHelp:
+        "Only date, time and time zone are sent with a generic title.",
+      detailAppointmentHelp:
+        "Title and location are also sent. Questions, notes and decisions always remain in Mood Day.",
+      conflictsTitle: "Choices needed",
+      conflictsDescription:
+        "These appointments changed in both Mood Day and Google Calendar. Nothing was overwritten automatically.",
+      deletedInGoogle: "Event deleted in Google",
+      keepMoodDay: "Keep Mood Day",
+      keepGoogle: "Keep Google",
+      connectedToast: "Google Calendar is connected.",
+      syncedToast: "Appointments are synchronized.",
+      revokedToast: "The connection is revoked.",
+      errorTitle: "The connection did not complete",
+      errorToast: "Google Calendar could not be synchronized.",
+      authorizationError:
+        "Reconnect to Google to confirm access to the dedicated Mood Day calendar.",
+      unavailableError:
+        "This connection stays disabled until its production configuration is approved.",
+      genericError:
+        "Try again in a moment. No appointment was deleted or overwritten.",
+    },
     timezones: {
       paris: "Paris",
       london: "London",
@@ -1404,6 +1453,7 @@ const en = {
       appearance: "Appearance",
       privacy: "Privacy",
       offline: "Synchronization",
+      connections: "Connections",
       subscription: "Subscription",
       security: "Security",
       language: "Language",
