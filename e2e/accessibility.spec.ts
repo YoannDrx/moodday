@@ -45,6 +45,7 @@ const publicPages = [
   "/help",
   "/offline",
   "/crisis",
+  "/brief",
 ] as const;
 
 for (const pathname of publicPages) {

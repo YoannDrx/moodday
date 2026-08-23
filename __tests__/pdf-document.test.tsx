@@ -2,6 +2,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { act } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ExportPDFDocument } from "@/features/export/pdf-document";
+import { AppointmentBriefPdfDocument } from "@/features/v2/appointments/brief-pdf-document";
 import type { ConsultationExportData } from "@/features/export/export-types";
 
 const t = (key: string, values?: Record<string, string | number>) =>
@@ -154,5 +155,42 @@ describe("consultation PDF document", () => {
 
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     expect(buffer.byteLength).toBeGreaterThan(1_000);
+  });
+});
+
+describe("appointment brief PDF document", () => {
+  it("renders the allowlisted brief in French and English", async () => {
+    const brief = {
+      id: "brief-1",
+      appointmentId: "appointment-1",
+      operationId: "operation-brief-1",
+      version: 2,
+      content: {
+        appointment: {
+          title: "Suivi",
+          startsAt: "2026-08-27T09:00:00.000Z",
+          timezone: "Europe/Paris",
+          clinician: "Dr Martin",
+        },
+        questions: [{ content: "Comment ajuster mon rythme ?" }],
+        decisions: [],
+        generatedAt: "2026-08-23T08:00:00.000Z",
+        excludedPrivateQuestionCount: 1,
+      },
+      privateNotesExcluded: true as const,
+      periodStart: null,
+      periodEnd: null,
+      createdAt: "2026-08-23T08:00:00.000Z",
+    };
+
+    for (const locale of ["fr", "en"] as const) {
+      // Rendering is intentionally serialized because react-pdf shares font state.
+      // eslint-disable-next-line no-await-in-loop
+      const buffer = await renderPdf(
+        <AppointmentBriefPdfDocument brief={brief} locale={locale} />,
+      );
+      expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+      expect(buffer.byteLength).toBeGreaterThan(1_000);
+    }
   });
 });

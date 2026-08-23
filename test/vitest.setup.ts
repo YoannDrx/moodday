@@ -131,6 +131,7 @@ vi.mock("@/lib/auth-client", () => ({ authClient }));
 vi.mock("@/lib/mail/resend", () => ({ resend }));
 vi.mock("@/lib/env", () => ({ env: {} }));
 vi.mock("@/lib/auth/auth-user", () => ({
+  getSession: vi.fn(),
   getUser: vi.fn(),
   getAuthorizedApiUser: vi.fn(),
   getRequiredUser: vi.fn(),

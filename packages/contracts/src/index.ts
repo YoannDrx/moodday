@@ -269,6 +269,48 @@ export const appointmentBriefSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 
+export const appointmentBriefShareDurationHoursSchema = z.union([
+  z.literal(1),
+  z.literal(24),
+  z.literal(72),
+  z.literal(168),
+]);
+
+export const appointmentBriefShareTokenSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{43}$/);
+
+export const createAppointmentBriefShareSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  shareId: z.string().min(8).max(128),
+  token: appointmentBriefShareTokenSchema,
+  expiresInHours: appointmentBriefShareDurationHoursSchema.default(24),
+});
+
+export const appointmentBriefShareSchema = z.object({
+  id: z.string(),
+  briefId: z.string(),
+  expiresAt: z.iso.datetime(),
+  revokedAt: z.iso.datetime().nullable(),
+  accessCount: z.number().int().nonnegative(),
+  lastAccessedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
+export const appointmentBriefShareResultSchema = z.object({
+  share: appointmentBriefShareSchema,
+  token: appointmentBriefShareTokenSchema,
+});
+
+export const resolveAppointmentBriefShareSchema = z.object({
+  token: appointmentBriefShareTokenSchema,
+});
+
+export const sharedAppointmentBriefSchema = z.object({
+  brief: appointmentBriefSchema,
+  expiresAt: z.iso.datetime(),
+});
+
 export const createAppointmentArtifactSchema = z.discriminatedUnion("kind", [
   createAppointmentQuestionSchema.extend({ kind: z.literal("question") }),
   createAppointmentEventSchema.extend({ kind: z.literal("event") }),
@@ -624,6 +666,24 @@ export type AppointmentBriefContent = z.infer<
   typeof appointmentBriefContentSchema
 >;
 export type AppointmentBriefDto = z.infer<typeof appointmentBriefSchema>;
+export type AppointmentBriefShareDurationHours = z.infer<
+  typeof appointmentBriefShareDurationHoursSchema
+>;
+export type CreateAppointmentBriefShareInput = z.infer<
+  typeof createAppointmentBriefShareSchema
+>;
+export type AppointmentBriefShareDto = z.infer<
+  typeof appointmentBriefShareSchema
+>;
+export type AppointmentBriefShareResult = z.infer<
+  typeof appointmentBriefShareResultSchema
+>;
+export type ResolveAppointmentBriefShareInput = z.infer<
+  typeof resolveAppointmentBriefShareSchema
+>;
+export type SharedAppointmentBriefDto = z.infer<
+  typeof sharedAppointmentBriefSchema
+>;
 export type CreateAppointmentArtifactInput = z.infer<
   typeof createAppointmentArtifactSchema
 >;

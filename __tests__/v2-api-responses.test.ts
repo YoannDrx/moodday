@@ -42,4 +42,28 @@ describe("V2 API response envelope", () => {
       error: { code: "device_revoked", recoverable: false },
     });
   });
+
+  it("exposes a stable recent-authentication error to web and native clients", async () => {
+    const handler = withApiV2Route(async () =>
+      Response.json(
+        { message: "Recent authentication required" },
+        { status: 403 },
+      ),
+    );
+    const response = await handler(
+      new Request("https://mood-day.fr/api/v2/appointment-briefs/brief-1/pdf", {
+        headers: { "x-request-id": "request-recent-auth" },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "recent_authentication_required",
+        message: "Reconnecte-toi avant cette action sensible.",
+        recoverable: true,
+        requestId: "request-recent-auth",
+      },
+    });
+  });
 });

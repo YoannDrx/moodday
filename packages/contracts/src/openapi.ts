@@ -2,7 +2,7 @@ export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
     title: "Mood Day V2 API",
-    version: "2.0.0-alpha.1",
+    version: "2.0.0-alpha.2",
     description:
       "Versioned contracts shared by Mood Day web, iOS and Android clients.",
   },
@@ -210,6 +210,77 @@ export const moodDayV2OpenApi = {
         responses: {
           "201": { description: "Artifact created or replayed" },
           "404": { description: "Appointment unavailable" },
+        },
+      },
+    },
+    "/appointment-briefs/{briefId}/shares": {
+      get: {
+        operationId: "listAppointmentBriefShares",
+        description:
+          "Lists expiring links without ever returning their capability tokens.",
+        responses: {
+          "200": { description: "Brief share metadata" },
+          "404": { description: "Brief unavailable" },
+        },
+      },
+      post: {
+        operationId: "createAppointmentBriefShare",
+        description:
+          "Creates an idempotent, expiring share after recent authentication. Only the token digest is stored.",
+        responses: {
+          "201": { description: "Share created or idempotently replayed" },
+          "403": { description: "Recent authentication required" },
+          "404": { description: "Brief unavailable" },
+        },
+      },
+    },
+    "/appointment-briefs/{briefId}/shares/{shareId}": {
+      delete: {
+        operationId: "revokeAppointmentBriefShare",
+        description:
+          "Revokes a temporary link at the next request after recent authentication.",
+        responses: {
+          "200": { description: "Share revoked" },
+          "403": { description: "Recent authentication required" },
+          "404": { description: "Share unavailable" },
+        },
+      },
+    },
+    "/appointment-briefs/{briefId}/pdf": {
+      get: {
+        operationId: "downloadAppointmentBriefPdf",
+        description:
+          "Downloads a patient-owned, private-note-safe PDF after recent authentication.",
+        responses: {
+          "200": { description: "PDF document" },
+          "403": { description: "Recent authentication required" },
+          "404": { description: "Brief unavailable" },
+        },
+      },
+    },
+    "/shared-appointment-brief": {
+      post: {
+        operationId: "resolveSharedAppointmentBrief",
+        description:
+          "Resolves an unexpired capability sent in the request body. The token is designed for a URL fragment and never a query string.",
+        security: [],
+        responses: {
+          "200": { description: "Private-note-safe shared brief" },
+          "404": { description: "Link expired or revoked" },
+          "429": { description: "Rate limit exceeded" },
+        },
+      },
+    },
+    "/shared-appointment-brief/pdf": {
+      post: {
+        operationId: "downloadSharedAppointmentBriefPdf",
+        description:
+          "Renders the shared brief as a non-cacheable PDF from a capability in the request body.",
+        security: [],
+        responses: {
+          "200": { description: "PDF document" },
+          "404": { description: "Link expired or revoked" },
+          "429": { description: "Rate limit exceeded" },
         },
       },
     },
