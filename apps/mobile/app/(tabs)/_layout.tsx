@@ -10,6 +10,7 @@ import {
   isMobileSessionInvalidated,
   subscribeToMobileSessionInvalidation,
 } from "../../src/lib/session-security";
+import { configureMobilePurchases } from "../../src/lib/purchases";
 
 const messages = getCommonMessages("fr");
 
@@ -47,6 +48,13 @@ export default function TabLayout() {
       }),
     [],
   );
+
+  useEffect(() => {
+    if (!ownerId || sessionInvalidated) return;
+    void configureMobilePurchases(ownerId).catch(() => {
+      // The server remains authoritative and the billing card exposes a retry.
+    });
+  }, [ownerId, sessionInvalidated]);
 
   // Adopt the authenticated owner before child passive effects can open a
   // database, so even an immediate 401 has an owner connection to lock.

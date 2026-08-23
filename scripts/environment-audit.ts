@@ -107,6 +107,43 @@ check(
   ),
   "fréquence attendue : toutes les 5 minutes",
 );
+check(
+  "Cron récupération Stripe",
+  Boolean(
+    vercelConfig.crons?.some(
+      (cron) =>
+        cron.path === "/api/cron/stripe-webhooks" &&
+        cron.schedule === "* * * * *",
+    ),
+  ),
+  "fréquence attendue : toutes les minutes",
+);
+check(
+  "Cron récupération RevenueCat",
+  Boolean(
+    vercelConfig.crons?.some(
+      (cron) =>
+        cron.path === "/api/cron/revenuecat-webhooks" &&
+        cron.schedule === "* * * * *",
+    ),
+  ),
+  "fréquence attendue : toutes les minutes",
+);
+
+if (process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true") {
+  check(
+    "RevenueCat mobile",
+    Boolean(
+      process.env.REVENUECAT_SECRET_API_KEY &&
+        process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN &&
+        process.env.REVENUECAT_WEBHOOK_SIGNING_SECRET &&
+        process.env.REVENUECAT_PLUS_PRODUCT_IDS &&
+        process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY &&
+        process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+    ),
+    "API serveur, webhook signé, produits et deux clés publiques requis",
+  );
+}
 
 if (process.env.BILLING_ENABLED === "true") {
   check(

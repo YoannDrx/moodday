@@ -472,6 +472,18 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/entitlements/refresh": {
+      post: {
+        operationId: "refreshMobileEntitlements",
+        description:
+          "Reconciles the authenticated RevenueCat customer from the provider API after a purchase or restoration, then projects one shared Plus right.",
+        responses: {
+          "200": { description: "Verified shared Plus entitlement" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "503": { description: "RevenueCat reconciliation unavailable" },
+        },
+      },
+    },
     "/medications": {
       get: {
         operationId: "listMedications",

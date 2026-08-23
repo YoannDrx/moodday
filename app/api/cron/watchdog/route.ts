@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     externalDeletions,
     operationalRetention,
     stripeReconciliation,
+    stripeWebhooks,
+    revenueCatWebhooks,
     caregiverAccessDigests,
     googleCalendarSync,
     deadDeletionCount,
@@ -30,6 +32,7 @@ export async function GET(request: Request) {
     deadNotificationCount,
     unresolvedEmailWebhookCount,
     failedStripeWebhookCount,
+    failedRevenueCatWebhookCount,
   ] = await Promise.all([
     prisma.operationalHeartbeat.findUnique({
       where: { serviceName: "notifications" },
@@ -42,6 +45,12 @@ export async function GET(request: Request) {
     }),
     prisma.operationalHeartbeat.findUnique({
       where: { serviceName: "stripe-reconciliation" },
+    }),
+    prisma.operationalHeartbeat.findUnique({
+      where: { serviceName: "stripe-webhooks" },
+    }),
+    prisma.operationalHeartbeat.findUnique({
+      where: { serviceName: "revenuecat-webhooks" },
     }),
     prisma.operationalHeartbeat.findUnique({
       where: { serviceName: "caregiver-access-digests" },
@@ -60,8 +69,20 @@ export async function GET(request: Request) {
     prisma.emailWebhookEvent.count({
       where: { status: { in: ["retry", "failed"] } },
     }),
-    prisma.stripeWebhookEvent.count({ where: { status: "failed" } }),
+    prisma.stripeWebhookEvent.count({
+      where: { status: { in: ["failed", "dead"] } },
+    }),
+    prisma.billingEvent.count({
+      where: {
+        provider: { in: ["app_store", "play_store"] },
+        status: "failed",
+      },
+    }),
   ]);
+
+  const revenueCatEnabled = Boolean(
+    env.REVENUECAT_SECRET_API_KEY && env.REVENUECAT_PLUS_PRODUCT_IDS,
+  );
 
   const staleNotifications =
     env.PUSH_NOTIFICATIONS_ENABLED &&
@@ -75,6 +96,15 @@ export async function GET(request: Request) {
     (!stripeReconciliation?.lastSuccessAt ||
       stripeReconciliation.lastSuccessAt <
         new Date(now.getTime() - 26 * 60 * 60 * 1000));
+  const staleStripeWebhooks =
+    env.BILLING_ENABLED &&
+    (!stripeWebhooks?.lastSuccessAt ||
+      stripeWebhooks.lastSuccessAt < new Date(now.getTime() - 5 * 60 * 1000));
+  const staleRevenueCatWebhooks =
+    revenueCatEnabled &&
+    (!revenueCatWebhooks?.lastSuccessAt ||
+      revenueCatWebhooks.lastSuccessAt <
+        new Date(now.getTime() - 5 * 60 * 1000));
   const staleOperationalRetention =
     !operationalRetention?.lastSuccessAt ||
     operationalRetention.lastSuccessAt <
@@ -106,7 +136,9 @@ export async function GET(request: Request) {
     (env.GOOGLE_CALENDAR_ENABLED &&
       (googleCalendarSync?.consecutiveFailures ?? 0) >= 2) ||
     (env.BILLING_ENABLED &&
-      (stripeReconciliation?.consecutiveFailures ?? 0) >= 2);
+      ((stripeReconciliation?.consecutiveFailures ?? 0) >= 2 ||
+        (stripeWebhooks?.consecutiveFailures ?? 0) >= 2)) ||
+    (revenueCatEnabled && (revenueCatWebhooks?.consecutiveFailures ?? 0) >= 2);
   const unhealthy =
     staleNotifications ||
     staleDeletions ||
@@ -114,13 +146,16 @@ export async function GET(request: Request) {
     staleCaregiverAccessDigests ||
     staleGoogleCalendarSync ||
     staleStripeReconciliation ||
+    staleStripeWebhooks ||
+    staleRevenueCatWebhooks ||
     stripeReconciliationFailed ||
     repeatedFailure ||
     deadDeletionCount > 0 ||
     overdueDeletionCount > 0 ||
     (env.PUSH_NOTIFICATIONS_ENABLED && deadNotificationCount > 0) ||
     unresolvedEmailWebhookCount > 0 ||
-    (env.BILLING_ENABLED && failedStripeWebhookCount > 0);
+    (env.BILLING_ENABLED && failedStripeWebhookCount > 0) ||
+    (revenueCatEnabled && failedRevenueCatWebhookCount > 0);
 
   const alertState = await prisma.operationalHeartbeat.upsert({
     where: { serviceName: ALERT_STATE_SERVICE },

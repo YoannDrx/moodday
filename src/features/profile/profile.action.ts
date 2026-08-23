@@ -2,6 +2,7 @@
 
 import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
+import { getV2PlusEntitlement } from "@/features/v2/entitlements/service";
 import {
   deleteUserAccountAtomically,
   enqueueManagedProfileImageDeletion,
@@ -101,20 +102,24 @@ export const deleteAccount = authAction.action(async ({ ctx: { user } }) => {
 
 export const getSubscriptionSummary = authAction.action(
   async ({ ctx: { user } }) => {
-    const subscription = await prisma.subscription.findUnique({
-      where: { referenceId: user.id },
-    });
+    const [subscription, entitlement] = await Promise.all([
+      prisma.subscription.findUnique({ where: { referenceId: user.id } }),
+      getV2PlusEntitlement(user.id),
+    ]);
 
-    if (!subscription) {
+    if (!subscription && !entitlement.active) {
       return null;
     }
 
     return {
-      plan: subscription.plan,
-      status: subscription.status,
-      periodStart: subscription.periodStart?.toISOString() ?? null,
-      periodEnd: subscription.periodEnd?.toISOString() ?? null,
-      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+      plan: entitlement.active ? "plus" : (subscription?.plan ?? "free"),
+      status: entitlement.active ? "active" : (subscription?.status ?? null),
+      periodStart: subscription?.periodStart?.toISOString() ?? null,
+      periodEnd: entitlement.validUntil,
+      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+      sourceProviders: entitlement.sourceProviders,
+      duplicateSubscription: entitlement.duplicateSubscription,
+      manageWith: entitlement.manageWith,
     };
   },
 );

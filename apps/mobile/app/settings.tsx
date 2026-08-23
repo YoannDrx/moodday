@@ -1,4 +1,5 @@
 import { color, radius, space } from "@moodday/design-tokens";
+import type { EntitlementDto } from "@moodday/contracts";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,6 +7,7 @@ import { BrandIllustration } from "../src/components/brand-illustration";
 import { Screen } from "../src/components/screen";
 import { SectionCard } from "../src/components/section-card";
 import { authClient } from "../src/lib/auth-client";
+import { api } from "../src/lib/api";
 import {
   closeOwnerLocalDatabase,
   getLocalOperationSummary,
@@ -13,6 +15,12 @@ import {
   synchronizeNow,
 } from "../src/lib/local-database";
 import type { LocalOperationSummary } from "../src/lib/local-database-core";
+import {
+  isMobileBillingAvailable,
+  presentPlusPaywall,
+  restorePlusPurchases,
+  showMobileSubscriptionManagement,
+} from "../src/lib/purchases";
 
 const emptySummary: LocalOperationSummary = {
   pending: 0,
@@ -28,6 +36,8 @@ export default function SettingsScreen() {
   const [summary, setSummary] = useState(emptySummary);
   const [isPending, setIsPending] = useState(false);
   const [status, setStatus] = useState<string>();
+  const [entitlement, setEntitlement] = useState<EntitlementDto>();
+  const [billingStatus, setBillingStatus] = useState<string>();
 
   const refreshSummary = useCallback(async () => {
     if (!ownerId) return emptySummary;
@@ -41,6 +51,40 @@ export default function SettingsScreen() {
       setStatus("Impossible de lire l’état local pour le moment."),
     );
   }, [refreshSummary]);
+
+  const refreshEntitlement = useCallback(async () => {
+    if (!ownerId) return;
+    try {
+      setEntitlement(await api.getEntitlements());
+    } catch {
+      setBillingStatus("Le statut Plus est temporairement indisponible.");
+    }
+  }, [ownerId]);
+
+  useEffect(() => {
+    void refreshEntitlement();
+  }, [refreshEntitlement]);
+
+  const runBillingAction = async (
+    action: (userId: string) => Promise<EntitlementDto | undefined>,
+    pendingMessage: string,
+  ) => {
+    if (!ownerId) return;
+    setIsPending(true);
+    setBillingStatus(pendingMessage);
+    try {
+      const result = await action(ownerId);
+      if (result) setEntitlement(result);
+      else await refreshEntitlement();
+      setBillingStatus("Ton statut Plus est à jour sur tous tes appareils.");
+    } catch {
+      setBillingStatus(
+        "L’opération n’a pas abouti. Aucun achat n’a été appliqué deux fois ; tu peux réessayer.",
+      );
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   const finishSignOut = async ({ purge }: { purge: boolean }) => {
     if (!ownerId) return;
@@ -205,6 +249,85 @@ export default function SettingsScreen() {
         >
           <Text style={styles.secondaryLabel}>Gérer la connexion</Text>
         </Pressable>
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Abonnement"
+        title={
+          entitlement?.active ? "Mood Day Plus est actif" : "Mood Day Plus"
+        }
+        description={
+          entitlement?.duplicateSubscription
+            ? "Deux abonnements actifs ont été détectés. Mood Day ne les annule jamais automatiquement. Ouvre la gestion de chaque plateforme pour éviter une double facturation."
+            : entitlement?.active
+              ? `Ton accès est commun au web et au mobile${entitlement.validUntil ? ` jusqu’au ${new Date(entitlement.validUntil).toLocaleDateString("fr-FR")}` : ""}.`
+              : "Débloque les fonctionnalités Plus sur le web, l’iPhone et Android avec un seul droit partagé."
+        }
+      >
+        {entitlement?.active && entitlement.manageWith !== "stripe" ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isPending || !isMobileBillingAvailable()}
+            onPress={() =>
+              void runBillingAction(
+                showMobileSubscriptionManagement,
+                "Ouverture de la gestion de l’abonnement…",
+              )
+            }
+            style={({ pressed }) => [
+              styles.primaryButton,
+              (isPending || !isMobileBillingAvailable()) && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.primaryLabel}>Gérer l’abonnement</Text>
+          </Pressable>
+        ) : !entitlement?.active ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isPending || !isMobileBillingAvailable()}
+            onPress={() =>
+              void runBillingAction(
+                presentPlusPaywall,
+                "Chargement des offres sécurisées…",
+              )
+            }
+            style={({ pressed }) => [
+              styles.primaryButton,
+              (isPending || !isMobileBillingAvailable()) && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.primaryLabel}>Voir les offres Plus</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          disabled={isPending || !isMobileBillingAvailable()}
+          onPress={() =>
+            void runBillingAction(
+              restorePlusPurchases,
+              "Restauration des achats en cours…",
+            )
+          }
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            (isPending || !isMobileBillingAvailable()) && styles.disabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Restaurer mes achats</Text>
+        </Pressable>
+        {!isMobileBillingAvailable() ? (
+          <Text style={styles.status}>
+            Les achats mobiles ne sont pas activés dans cette version de l’app.
+          </Text>
+        ) : null}
+        {billingStatus ? (
+          <Text accessibilityLiveRegion="polite" style={styles.status}>
+            {billingStatus}
+          </Text>
+        ) : null}
       </SectionCard>
 
       <SectionCard

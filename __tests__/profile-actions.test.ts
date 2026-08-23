@@ -124,6 +124,15 @@ describe("profile actions", () => {
   });
 
   it("returns a normalized subscription summary and a null Free state", async () => {
+    vi.mocked(prisma.subscriptionSource.findMany)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          provider: "stripe",
+          status: "active",
+          currentPeriodEndsAt: null,
+        },
+      ] as never);
     vi.mocked(prisma.subscription.findUnique)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
@@ -141,6 +150,9 @@ describe("profile actions", () => {
       periodStart: "2026-08-01T00:00:00.000Z",
       periodEnd: null,
       cancelAtPeriodEnd: false,
+      sourceProviders: ["stripe"],
+      duplicateSubscription: false,
+      manageWith: "stripe",
     });
   });
 });

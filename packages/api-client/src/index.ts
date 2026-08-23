@@ -277,6 +277,10 @@ export const createApiClient = ({
       ),
     getEntitlements: async () =>
       request<EntitlementDto>("/api/v2/entitlements"),
+    refreshMobileEntitlements: async () =>
+      request<EntitlementDto>("/api/v2/entitlements/refresh", {
+        method: "POST",
+      }),
     pushSync: async (input: SyncPushInput) =>
       request<SyncPushResult>("/api/v2/sync/push", {
         method: "POST",

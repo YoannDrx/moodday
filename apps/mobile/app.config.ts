@@ -40,6 +40,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     );
   }
 
+  const revenueCatEnabled =
+    process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true";
+  const revenueCatIosApiKey =
+    process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim();
+  const revenueCatAndroidApiKey =
+    process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim();
+  if (
+    variant !== "development" &&
+    revenueCatEnabled &&
+    (!revenueCatIosApiKey || !revenueCatAndroidApiKey)
+  ) {
+    throw new Error(
+      "Both RevenueCat public platform API keys are required when mobile billing is enabled.",
+    );
+  }
+
   return {
     ...config,
     name: variantNames[variant],
@@ -57,6 +73,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.extra,
       appVariant: variant,
       apiUrl,
+      revenueCatEnabled,
+      revenueCatIosApiKey,
+      revenueCatAndroidApiKey,
     },
   };
 };
