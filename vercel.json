@@ -11,6 +11,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/google-calendar-sync",
+      "schedule": "7,22,37,52 * * * *"
+    },
+    {
       "path": "/api/cron/subscription-reminders",
       "schedule": "0 9 * * *"
     },

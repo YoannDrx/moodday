@@ -334,6 +334,103 @@ export const appointmentSchema = appointmentWriteSchema.safeExtend({
   updatedAt: z.iso.datetime(),
 });
 
+export const calendarProviderSchema = z.enum(["google", "native"]);
+export const calendarDetailLevelSchema = z.enum(["generic", "appointment"]);
+export const calendarConnectionStatusSchema = z.enum([
+  "active",
+  "paused",
+  "permission_denied",
+  "revoked",
+  "error",
+]);
+export const calendarEventSyncStateSchema = z.enum([
+  "aligned",
+  "conflict",
+  "provider_deleted",
+  "moodday_deleted",
+]);
+
+export const createGoogleCalendarConnectionSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  connectionId: z.string().min(8).max(128),
+  sourceConnectionId: z.string().min(8).max(128),
+  timezone: z.string().min(1).max(80),
+  displayName: z.string().trim().min(1).max(120).default("Mood Day"),
+  detailLevel: calendarDetailLevelSchema.default("generic"),
+});
+
+export const updateCalendarConnectionSchema = z.object({
+  status: z.enum(["active", "paused"]).optional(),
+  detailLevel: calendarDetailLevelSchema.optional(),
+});
+
+export const calendarConnectionSchema = z.object({
+  id: z.string(),
+  provider: calendarProviderSchema,
+  status: calendarConnectionStatusSchema,
+  displayName: z.string(),
+  timezone: z.string(),
+  detailLevel: calendarDetailLevelSchema,
+  permissionScope: z.array(z.string()),
+  lastSyncStartedAt: z.iso.datetime().nullable(),
+  lastSyncCompletedAt: z.iso.datetime().nullable(),
+  lastSyncErrorCode: z.string().nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const calendarConflictSchema = z.object({
+  id: z.string(),
+  connectionId: z.string(),
+  appointmentId: z.string().nullable(),
+  externalEventId: z.string(),
+  syncState: calendarEventSyncStateSchema,
+  moodDay: z
+    .object({
+      title: z.string(),
+      startsAt: z.iso.datetime(),
+      endsAt: z.iso.datetime().nullable(),
+      timezone: z.string(),
+      location: z.string().nullable(),
+      updatedAt: z.iso.datetime(),
+    })
+    .nullable(),
+  google: z
+    .object({
+      title: z.string().nullable(),
+      startsAt: z.iso.datetime().nullable(),
+      endsAt: z.iso.datetime().nullable(),
+      timezone: z.string().nullable(),
+      location: z.string().nullable(),
+      updatedAt: z.iso.datetime().nullable(),
+      deletedAt: z.iso.datetime().nullable(),
+    })
+    .nullable(),
+  detectedAt: z.iso.datetime().nullable(),
+});
+
+export const resolveCalendarConflictSchema = z.object({
+  resolution: z.enum(["moodday", "google"]),
+});
+
+export const calendarSyncResultSchema = z.object({
+  connectionId: z.string(),
+  fullSync: z.boolean(),
+  imported: z.number().int().nonnegative(),
+  updatedFromGoogle: z.number().int().nonnegative(),
+  pushedToGoogle: z.number().int().nonnegative(),
+  conflicts: z.number().int().nonnegative(),
+  completedAt: z.iso.datetime(),
+});
+
+export const runtimeCapabilitiesSchema = z.object({
+  googleCalendar: z.boolean(),
+  billing: z.boolean(),
+  caregiverSharing: z.boolean(),
+  pushNotifications: z.boolean(),
+});
+
 export const medicationFrequencySchema = z.enum([
   "daily",
   "twice_daily",
@@ -641,6 +738,23 @@ export type RoutineOccurrenceDto = z.infer<typeof routineOccurrenceSchema>;
 export type AppointmentWriteInput = z.infer<typeof appointmentWriteSchema>;
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type AppointmentDto = z.infer<typeof appointmentSchema>;
+export type CalendarProvider = z.infer<typeof calendarProviderSchema>;
+export type CalendarDetailLevel = z.infer<typeof calendarDetailLevelSchema>;
+export type CreateGoogleCalendarConnectionInput = z.infer<
+  typeof createGoogleCalendarConnectionSchema
+>;
+export type UpdateCalendarConnectionInput = z.infer<
+  typeof updateCalendarConnectionSchema
+>;
+export type CalendarConnectionDto = z.infer<typeof calendarConnectionSchema>;
+export type CalendarConflictDto = z.infer<typeof calendarConflictSchema>;
+export type ResolveCalendarConflictInput = z.infer<
+  typeof resolveCalendarConflictSchema
+>;
+export type CalendarSyncResult = z.infer<typeof calendarSyncResultSchema>;
+export type RuntimeCapabilitiesDto = z.infer<
+  typeof runtimeCapabilitiesSchema
+>;
 export type MedicationFrequency = z.infer<typeof medicationFrequencySchema>;
 export type MedicationDto = z.infer<typeof medicationSchema>;
 export type DoseEventKind = z.infer<typeof doseEventKindSchema>;

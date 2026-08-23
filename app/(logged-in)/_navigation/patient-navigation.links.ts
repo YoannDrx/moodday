@@ -1,6 +1,7 @@
 import type { NavigationGroup } from "@/features/navigation/navigation.type";
 import {
   Bell,
+  CalendarSync,
   Compass,
   CreditCard,
   CloudCog,
@@ -22,6 +23,7 @@ type Translator = (
 export type PatientNavigationFeatures = {
   billing: boolean;
   caregiverSharing: boolean;
+  googleCalendar: boolean;
   pushNotifications: boolean;
 };
 
@@ -93,6 +95,15 @@ export const getPatientNavigation = (
           Icon: CloudCog,
           label: t("settings.sidebar.offline"),
         },
+        ...(features.googleCalendar
+          ? [
+              {
+                href: "/settings/connections",
+                Icon: CalendarSync,
+                label: t("settings.sidebar.connections"),
+              },
+            ]
+          : []),
         ...(features.billing
           ? [
               {

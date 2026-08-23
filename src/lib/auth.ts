@@ -48,6 +48,8 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
     disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    accessType: "offline",
+    prompt: "select_account consent",
   };
 }
 

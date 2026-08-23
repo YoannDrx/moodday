@@ -107,6 +107,12 @@ La première spécification est publiée à `/api/v2/openapi.json` et couvre :
 - `GET|POST /api/v2/routine-occurrences` ;
 - `GET /api/v2/medications` et `GET|POST /api/v2/dose-events` ;
 - `GET|POST /api/v2/appointments` ;
+- `GET /api/v2/capabilities` pour les flags sûrs partagés web/mobile ;
+- `GET|POST /api/v2/calendar-connections`,
+  `PATCH|DELETE /api/v2/calendar-connections/{connectionId}` et
+  `POST /api/v2/calendar-connections/{connectionId}/sync` ;
+- lecture et résolution explicite des conflits sous
+  `/api/v2/calendar-connections/{connectionId}/conflicts` ;
 - `GET|POST /api/v2/appointments/{appointmentId}/artifacts` ;
 - `GET|POST /api/v2/appointment-briefs/{briefId}/shares`,
   `DELETE /api/v2/appointment-briefs/{briefId}/shares/{shareId}` et
@@ -148,6 +154,10 @@ modifier le contenu des briefs :
   d'opération optionnel sur AppointmentQuestion.
 - AppointmentBriefShare, avec empreinte de capacité, échéance, révocation et
   métadonnées d’accès sans contenu.
+- CalendarConnection et ExternalCalendarEvent sont ajoutés par
+  `20260823024500_v2_calendar_connection_foundation`. Les jetons Google restent
+  dans Better Auth ; le miroir ne conserve que les champs de rendez-vous
+  nécessaires à la comparaison et à la résolution d’un conflit.
 
 Des contraintes SQL protègent les bornes 0–10, la cohérence des fenêtres et de
 la couverture, les check-ins rapides incomplets, les positions de question et
@@ -156,8 +166,8 @@ des branches isolées avant livraison. La migration des prises du 23 août a ét
 contrôlée sur `codex-dose-v2-predeploy-2026-08-23` : 29 migrations réussies,
 colonne nullable présente, quatre événements historiques conservés et diff de
 schéma vide avec la Production. La sauvegarde fournisseur
-`codex-v2-predeploy-backup-2026-08-22` reste conservée ; la vérification de
-À la livraison du lot prises, Production comptait également 29 migrations
+`codex-v2-predeploy-backup-2026-08-22` reste conservée. À la livraison du lot
+prises, Production comptait également 29 migrations
 réussies, 64 tables publiques et aucune dérive Prisma.
 
 Le partage de brief a été répété depuis zéro sur PostgreSQL 17 : 30 migrations,
@@ -169,6 +179,11 @@ repris les variables locales au lieu de l’URL du clone et a donc appliqué cet
 migration additive vide en Production avant le code. L’intégrité a été vérifiée
 immédiatement ; aucun rollback destructif n’a été tenté et la sauvegarde
 antérieure reste conservée.
+
+La fondation Google Agenda a ensuite été répétée depuis zéro sur PostgreSQL 17
+jetable : 31 migrations réussies, 67 tables publiques, quatre clés étrangères
+et onze index sur les deux nouvelles tables, enums attendus et diff Prisma nul.
+Cette preuve ne contenait aucune donnée ni aucun secret réel.
 
 ### Offline mobile
 
@@ -205,8 +220,35 @@ antérieure reste conservée.
   explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
 
 Cette tranche prouve le moteur delta pour les premiers agrégats, les prises de
-traitement et les artefacts append-only du rendez-vous. Les brouillons,
-réglages et conflits Google/Mood Day restent à brancher sur le même protocole.
+traitement et les artefacts append-only du rendez-vous. Les brouillons et les
+réglages généraux restent à brancher sur le même protocole. Les conflits
+Google/Mood Day disposent désormais de leur registre et d’une résolution
+explicite, indépendante de la file offline générique.
+
+### Google Agenda dédié
+
+- L’autorisation incrémentale utilise uniquement
+  `calendar.app.created`, le scope Google destiné aux agendas secondaires créés
+  par l’application. Mood Day ne liste et ne lit aucun autre agenda.
+- Une connexion crée un agenda secondaire Mood Day et conserve sa référence,
+  jamais le jeton OAuth. Better Auth renouvelle le jeton côté serveur.
+- Le mode discret envoie date, heure et fuseau avec le titre générique
+  « Rendez-vous Mood Day ». Le mode détaillé ajoute uniquement le titre et le
+  lieu. Questions, décisions, notes et données de traitement sont exclues.
+- La synchronisation initiale puis incrémentale conserve le `syncToken`. Une
+  réponse Google 410 invalide le curseur et déclenche un snapshot complet.
+- Un lease atomique empêche deux synchronisations simultanées. Les écritures
+  concurrentes Mood Day/Google deviennent un conflit ; l’utilisateur choisit
+  la version à garder sur le web ou le mobile.
+- Un cron borné à 20 connexions toutes les quinze minutes reprend les
+  connexions dues sous verrou durable ; le watchdog surveille son heartbeat.
+- Les rendez-vous V2 et métadonnées de connexion/événement sont inclus dans
+  l’export utilisateur sans jeton OAuth, digest de partage ni `operationId`.
+- La révocation arrête immédiatement les lectures/écritures serveur mais ne
+  supprime pas silencieusement l’agenda chez Google.
+- `GOOGLE_CALENDAR_ENABLED` reste fermé par défaut. L’activation exige le
+  consent screen Google vérifié, les callbacks web et deep links des trois
+  variantes mobiles, ainsi qu’un test fournisseur réel en preview.
 
 ## Direction artistique
 
@@ -235,7 +277,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 154 fichiers, 983 tests
+pnpm test:ci                 # 160 fichiers, 1 008 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -266,9 +308,11 @@ git diff --check
   sécurité offline dans les clients V2. Les traitements et occurrences
   quotidiennes de routines sont raccordés à l'API et au moteur offline mobile ;
   leurs corrections et planifications avancées restent à compléter. Le
-  rendez-vous canonique, son brief, l'export PDF et les liens temporaires sont
-  raccordés ; les brouillons et conflits calendrier restent à livrer.
-- Google Agenda bidirectionnel, calendrier natif, HealthKit puis Health Connect.
+  rendez-vous canonique, son brief, l'export PDF, les liens temporaires et les
+  conflits Google sont raccordés ; les brouillons restent à livrer.
+- Recette fournisseur réelle de Google Agenda, calendrier natif, HealthKit puis
+  Health Connect. Le moteur Google bidirectionnel et ses écrans web/mobile sont
+  codés derrière un flag fermé.
 - Notifications d'invitation et tests réels de révocation sur session aidant
   active. Les écrans web/mobile, le contrat et le journal d'accès sont codés.
 - RevenueCat, StoreKit et Google Play Billing. La projection commune des droits
@@ -292,6 +336,6 @@ git diff --check
    historiques, régimes et planifications avancées. Les occurrences, prises
    planifiées et PRN sont déjà raccordées.
 5. Tester Appointment canonique et la révocation d’un brief sur deux appareils,
-   puis connecter Google sur le modèle de conflit documenté.
+   puis exécuter la recette OAuth Google réelle sur le modèle de conflit codé.
 6. Ne brancher Santé et billing qu'après les gates privacy et entitlements
    correspondantes ; tester Cercle sur deux sessions avant activation.

@@ -80,6 +80,7 @@ const authenticatedPages = [
   "/caregiver",
   "/export",
   "/settings/security",
+  "/settings/connections",
   "/settings/privacy",
   "/settings/offline",
   "/settings/import",

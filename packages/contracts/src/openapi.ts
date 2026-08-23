@@ -2,13 +2,24 @@ export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
     title: "Mood Day V2 API",
-    version: "2.0.0-alpha.2",
+    version: "2.0.0-alpha.3",
     description:
       "Versioned contracts shared by Mood Day web, iOS and Android clients.",
   },
   servers: [{ url: "/api/v2" }],
   security: [{ cookieAuth: [] }],
   paths: {
+    "/capabilities": {
+      get: {
+        operationId: "getRuntimeCapabilities",
+        description:
+          "Returns safe feature booleans for shared web and mobile clients, never provider secrets.",
+        responses: {
+          "200": { description: "Runtime capabilities" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
     "/today": {
       get: {
         operationId: "getToday",
@@ -174,6 +185,80 @@ export const moodDayV2OpenApi = {
             description: "Created or idempotently replayed appointment",
           },
           "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
+    "/calendar-connections": {
+      get: {
+        operationId: "listCalendarConnections",
+        description:
+          "Lists patient-owned calendar connections without OAuth credentials or external account identifiers.",
+        responses: {
+          "200": { description: "Calendar connection metadata" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "createGoogleCalendarConnection",
+        description:
+          "Creates a dedicated Mood Day secondary calendar after incremental Google authorization. Requires recent authentication.",
+        responses: {
+          "201": { description: "Dedicated calendar connection created" },
+          "403": { description: "Recent authentication required" },
+          "409": { description: "Google authorization required" },
+        },
+      },
+    },
+    "/calendar-connections/{connectionId}": {
+      patch: {
+        operationId: "updateCalendarConnection",
+        description:
+          "Pauses or resumes synchronization and chooses generic or appointment-level event details.",
+        responses: {
+          "200": { description: "Connection updated" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+      delete: {
+        operationId: "revokeCalendarConnection",
+        description:
+          "Stops synchronization immediately without deleting the user's Google calendar.",
+        responses: {
+          "200": { description: "Connection revoked" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+    },
+    "/calendar-connections/{connectionId}/sync": {
+      post: {
+        operationId: "synchronizeGoogleCalendar",
+        description:
+          "Synchronizes only the dedicated Mood Day calendar, using an incremental syncToken and a full resync after Google returns 410.",
+        responses: {
+          "200": { description: "Synchronization result" },
+          "409": { description: "Connection inactive or sync already running" },
+        },
+      },
+    },
+    "/calendar-connections/{connectionId}/conflicts": {
+      get: {
+        operationId: "listCalendarConflicts",
+        description:
+          "Lists concurrent Mood Day/Google changes without resolving them silently.",
+        responses: {
+          "200": { description: "Calendar conflicts" },
+        },
+      },
+    },
+    "/calendar-connections/{connectionId}/conflicts/{conflictId}": {
+      post: {
+        operationId: "resolveCalendarConflict",
+        description:
+          "Resolves one conflict by explicitly keeping either the Mood Day or Google version.",
+        responses: {
+          "200": { description: "Conflict resolved" },
+          "404": { description: "Conflict unavailable" },
+          "409": { description: "Provider version changed again" },
         },
       },
     },

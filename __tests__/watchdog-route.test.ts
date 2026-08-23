@@ -13,6 +13,7 @@ const mutableEnv = env as unknown as {
   RESEND_API_KEY?: string;
   PUSH_NOTIFICATIONS_ENABLED: boolean;
   CAREGIVER_SHARING_ENABLED: boolean;
+  GOOGLE_CALENDAR_ENABLED: boolean;
   BILLING_ENABLED: boolean;
   NODE_ENV: string;
 };
@@ -34,6 +35,7 @@ const configureHealthyState = () => {
     .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never)
+    .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never);
   vi.mocked(prisma.externalDeletionJob.count).mockResolvedValue(0);
   vi.mocked(prisma.notificationDelivery.count).mockResolvedValue(0);
@@ -48,6 +50,7 @@ describe("operational watchdog", () => {
     mutableEnv.RESEND_API_KEY = "resend-test";
     mutableEnv.PUSH_NOTIFICATIONS_ENABLED = true;
     mutableEnv.CAREGIVER_SHARING_ENABLED = true;
+    mutableEnv.GOOGLE_CALENDAR_ENABLED = true;
     mutableEnv.BILLING_ENABLED = true;
     mutableEnv.NODE_ENV = "test";
     vi.mocked(prisma.operationalHeartbeat.findUnique).mockReset();
@@ -107,6 +110,10 @@ describe("operational watchdog", () => {
   it("sends one generic alert for stale and failed operational state", async () => {
     const stale = new Date(Date.now() - 48 * 60 * 60 * 1000);
     vi.mocked(prisma.operationalHeartbeat.findUnique)
+      .mockResolvedValueOnce({
+        lastSuccessAt: stale,
+        consecutiveFailures: 2,
+      } as never)
       .mockResolvedValueOnce({
         lastSuccessAt: stale,
         consecutiveFailures: 2,

@@ -150,7 +150,7 @@ test("exports complete user data without authentication or notification secrets"
   };
 
   expect(download.suggestedFilename()).toMatch(/^moodday-export-.*\.json$/);
-  expect(exported.exportMetadata).toMatchObject({ dataVersion: "2.2" });
+  expect(exported.exportMetadata).toMatchObject({ dataVersion: "2.3" });
   expect(exported.exportMetadata.excludedSecurityData).toContain(
     "authentication sessions and credentials",
   );

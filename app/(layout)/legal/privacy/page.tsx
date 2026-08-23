@@ -47,6 +47,12 @@ export default async function PrivacyPage() {
             "Consent (Article 6(1)(a)) and explicit consent for health data (Article 9(2)(a))",
         },
         {
+          purpose: "Optional Google Calendar synchronization",
+          data: "Appointment date, time and time zone; title and location only if you select detailed mode",
+          basis:
+            "Consent (Article 6(1)(a)) and explicit consent where appointment data reveals health information (Article 9(2)(a))",
+        },
+        {
           purpose: "Security, abuse prevention and service operations",
           data: "Content-free technical events and pseudonymous references",
           basis:
@@ -77,6 +83,12 @@ export default async function PrivacyPage() {
           data: "Métriques minimisées ; note uniquement après accord séparé",
           basis:
             "Consentement (article 6.1.a) et consentement explicite pour les données de santé (article 9.2.a)",
+        },
+        {
+          purpose: "Synchronisation Google Agenda facultative",
+          data: "Date, heure et fuseau du rendez-vous ; titre et lieu uniquement si vous choisissez le mode détaillé",
+          basis:
+            "Consentement (article 6.1.a) et consentement explicite lorsque le rendez-vous révèle une donnée de santé (article 9.2.a)",
         },
         {
           purpose: "Sécurité, prévention des abus et exploitation",

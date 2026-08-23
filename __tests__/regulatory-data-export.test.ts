@@ -14,7 +14,7 @@ describe("buildRegulatoryDataExport", () => {
       id: "subject-1",
     } as never);
     vi.mocked(buildUserDataExport).mockResolvedValue({
-      exportMetadata: { dataVersion: "2.2" },
+      exportMetadata: { dataVersion: "2.3" },
     } as never);
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
       typeof callback === "function" ? callback(prisma) : Promise.all(callback),

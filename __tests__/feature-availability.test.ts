@@ -41,6 +41,9 @@ describe("runtime feature availability", () => {
       "AI_INSIGHTS_ENABLED",
       "BILLING_ENABLED",
       "CAREGIVER_SHARING_ENABLED",
+      "GOOGLE_CALENDAR_ENABLED",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
       "PUSH_NOTIFICATIONS_ENABLED",
       "OPENAI_API_KEY",
       "AI_SAFETY_HMAC_SECRET",
@@ -154,6 +157,20 @@ describe("runtime feature availability", () => {
     });
   });
 
+  it("requires the calendar flag and Google OAuth configuration together", () => {
+    mutableEnv.GOOGLE_CALENDAR_ENABLED = true;
+    expect(getFeatureAvailability("googleCalendar").reason).toBe(
+      "incomplete_configuration",
+    );
+    mutableEnv.GOOGLE_CLIENT_ID = "google-client";
+    mutableEnv.GOOGLE_CLIENT_SECRET = "google-secret";
+    mutableEnv.CRON_SECRET = "cron";
+    expect(getFeatureAvailability("googleCalendar")).toEqual({
+      enabled: true,
+      reason: "available",
+    });
+  });
+
   it("exposes only safe booleans to the browser and rejects disabled actions", () => {
     mutableEnv.CAREGIVER_SHARING_ENABLED = true;
     mutableEnv.RESEND_API_KEY = "resend";
@@ -162,6 +179,7 @@ describe("runtime feature availability", () => {
     expect(getClientVisibleFeatures()).toEqual({
       billing: false,
       caregiverSharing: true,
+      googleCalendar: false,
       pushNotifications: false,
     });
     expect(() => assertFeatureAvailable("billing")).toThrow(

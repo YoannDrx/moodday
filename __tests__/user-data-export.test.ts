@@ -25,6 +25,8 @@ describe("buildUserDataExport", () => {
     vi.mocked(prisma.userConsent.findMany).mockResolvedValue([]);
     vi.mocked(prisma.moodTagDefinition.findMany).mockResolvedValue([]);
     vi.mocked(prisma.consultationPreparation.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.calendarConnection.findMany).mockResolvedValue([]);
     vi.mocked(prisma.safetyPlan.findUnique).mockResolvedValue(null);
   });
 
@@ -39,7 +41,7 @@ describe("buildUserDataExport", () => {
 
     expect(result.exportMetadata).toEqual(
       expect.objectContaining({
-        dataVersion: "2.2",
+        dataVersion: "2.3",
         applicationName: "Moodday",
         userId: "user-1",
         timezone: "Europe/Paris",
@@ -113,6 +115,32 @@ describe("buildUserDataExport", () => {
     expect(result.exportMetadata.excludedSecurityData).toContain(
       "authentication sessions and credentials",
     );
+  });
+
+  it("exports appointments and calendar metadata without share-token digests", async () => {
+    vi.mocked(prisma.caregiverRelationship.findMany)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { id: "appointment-1", title: "Consultation" },
+    ] as never);
+    vi.mocked(prisma.calendarConnection.findMany).mockResolvedValue([
+      { id: "calendar-1", provider: "google" },
+    ] as never);
+
+    const result = await buildUserDataExport({ id: "user-1" });
+
+    expect(result.appointments).toEqual([
+      expect.objectContaining({ id: "appointment-1" }),
+    ]);
+    expect(result.calendarConnections).toEqual([
+      expect.objectContaining({ id: "calendar-1", provider: "google" }),
+    ]);
+    const appointmentSelection = JSON.stringify(
+      vi.mocked(prisma.appointment.findMany).mock.calls[0]?.[0],
+    );
+    expect(appointmentSelection).not.toContain("tokenDigest");
+    expect(appointmentSelection).not.toContain("operationId");
   });
 
   it("does not grant caregiver export scope without an active relationship", async () => {

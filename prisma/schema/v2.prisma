@@ -94,9 +94,10 @@ model SourceConnection {
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cursors         SyncCursor[]
-  dailyAggregates DailyAggregate[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cursors            SyncCursor[]
+  dailyAggregates    DailyAggregate[]
+  calendarConnection CalendarConnection?
 
   @@index([userId, kind, status])
   @@map("v2_source_connection")
@@ -193,17 +194,80 @@ model Appointment {
   createdAt         DateTime                     @default(now())
   updatedAt         DateTime                     @updatedAt
 
-  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clinician Clinician?            @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
-  questions AppointmentQuestion[]
-  events    AppointmentEvent[]
-  decisions AppointmentDecision[]
-  briefs    AppointmentBrief[]
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinician              Clinician?              @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
+  questions              AppointmentQuestion[]
+  events                 AppointmentEvent[]
+  decisions              AppointmentDecision[]
+  briefs                 AppointmentBrief[]
+  externalCalendarEvents ExternalCalendarEvent[]
 
   @@unique([userId, operationId])
   @@index([userId, startsAt, status])
   @@index([userId, externalEventId])
   @@map("v2_appointment")
+}
+
+model CalendarConnection {
+  id                  String              @id @default(cuid())
+  userId              String
+  sourceConnectionId  String              @unique
+  operationId         String
+  provider            CalendarProvider
+  googleAccountId     String?
+  externalCalendarId  String?
+  displayName         String              @default("Mood Day")
+  timezone            String
+  detailLevel         CalendarDetailLevel @default(generic)
+  syncLeaseUntil      DateTime?
+  lastSyncStartedAt   DateTime?
+  lastSyncCompletedAt DateTime?
+  lastSyncErrorCode   String?
+  revokedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceConnection SourceConnection        @relation(fields: [sourceConnectionId], references: [id], onDelete: Cascade)
+  externalEvents   ExternalCalendarEvent[]
+
+  @@unique([userId, operationId])
+  @@unique([userId, provider])
+  @@unique([provider, externalCalendarId])
+  @@index([userId, revokedAt])
+  @@map("v2_calendar_connection")
+}
+
+model ExternalCalendarEvent {
+  id                   String                 @id @default(cuid())
+  connectionId         String
+  appointmentId        String?
+  externalEventId      String
+  externalVersion      String?
+  externalUpdatedAt    DateTime?
+  externalDigest       String?
+  moodDayDigest        String?
+  moodDayVersionAtSync DateTime?
+  title                String?
+  startsAt             DateTime?
+  endsAt               DateTime?
+  timezone             String?
+  location             String?
+  syncState            CalendarEventSyncState @default(aligned)
+  conflictDetectedAt   DateTime?
+  providerDeletedAt    DateTime?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  connection  CalendarConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  appointment Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, externalEventId])
+  @@unique([connectionId, appointmentId])
+  @@index([connectionId, syncState, updatedAt])
+  @@index([appointmentId])
+  @@map("v2_external_calendar_event")
 }
 
 model AppointmentQuestion {
@@ -577,6 +641,23 @@ enum AppointmentPreparationStatus {
   in_progress
   ready
   reviewed
+}
+
+enum CalendarProvider {
+  google
+  native
+}
+
+enum CalendarDetailLevel {
+  generic
+  appointment
+}
+
+enum CalendarEventSyncState {
+  aligned
+  conflict
+  provider_deleted
+  moodday_deleted
 }
 
 enum AppointmentEventType {

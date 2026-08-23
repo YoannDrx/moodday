@@ -9,6 +9,9 @@ import type {
   AppointmentDecisionDto,
   AppointmentEventDto,
   AppointmentQuestionDto,
+  CalendarConflictDto,
+  CalendarConnectionDto,
+  CalendarSyncResult,
   CheckInDto,
   CircleInvitationResult,
   CircleRelationshipDto,
@@ -17,6 +20,7 @@ import type {
   CreateAppointmentBriefShareInput,
   CreateCheckInInput,
   CreateCircleInvitationInput,
+  CreateGoogleCalendarConnectionInput,
   CreateDoseEventInput,
   CreateRoutineInput,
   CreateRoutineOccurrenceInput,
@@ -25,9 +29,12 @@ import type {
   DoseEventDto,
   MedicationDto,
   RespondSupportRequestInput,
+  ResolveCalendarConflictInput,
   RoutineDto,
   RoutineOccurrenceDto,
+  RuntimeCapabilitiesDto,
   SupportRequestDto,
+  UpdateCalendarConnectionInput,
   SharedAppointmentBriefDto,
   SyncPullResult,
   SyncPushInput,
@@ -102,6 +109,8 @@ export const createApiClient = ({
   };
 
   return {
+    getRuntimeCapabilities: async () =>
+      request<RuntimeCapabilitiesDto>("/api/v2/capabilities"),
     createCheckIn: async (input: CreateCheckInInput) =>
       request<CheckInDto>("/api/v2/check-ins", {
         method: "POST",
@@ -154,6 +163,46 @@ export const createApiClient = ({
     listAppointments: async (cursor?: string) =>
       request<{ items: AppointmentDto[]; nextCursor: string | null }>(
         `/api/v2/appointments${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+      ),
+    listCalendarConnections: async () =>
+      request<CalendarConnectionDto[]>("/api/v2/calendar-connections"),
+    createGoogleCalendarConnection: async (
+      input: CreateGoogleCalendarConnectionInput,
+    ) =>
+      request<CalendarConnectionDto>("/api/v2/calendar-connections", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    updateCalendarConnection: async (
+      connectionId: string,
+      input: UpdateCalendarConnectionInput,
+    ) =>
+      request<CalendarConnectionDto>(
+        `/api/v2/calendar-connections/${encodeURIComponent(connectionId)}`,
+        { method: "PATCH", body: JSON.stringify(input) },
+      ),
+    revokeCalendarConnection: async (connectionId: string) =>
+      request<{ revoked: boolean }>(
+        `/api/v2/calendar-connections/${encodeURIComponent(connectionId)}`,
+        { method: "DELETE" },
+      ),
+    synchronizeGoogleCalendar: async (connectionId: string) =>
+      request<CalendarSyncResult>(
+        `/api/v2/calendar-connections/${encodeURIComponent(connectionId)}/sync`,
+        { method: "POST" },
+      ),
+    listCalendarConflicts: async (connectionId: string) =>
+      request<CalendarConflictDto[]>(
+        `/api/v2/calendar-connections/${encodeURIComponent(connectionId)}/conflicts`,
+      ),
+    resolveCalendarConflict: async (
+      connectionId: string,
+      conflictId: string,
+      input: ResolveCalendarConflictInput,
+    ) =>
+      request<{ conflict: CalendarConflictDto; resolved: boolean }>(
+        `/api/v2/calendar-connections/${encodeURIComponent(connectionId)}/conflicts/${encodeURIComponent(conflictId)}`,
+        { method: "POST", body: JSON.stringify(input) },
       ),
     listAppointmentArtifacts: async (appointmentId: string) =>
       request<AppointmentArtifactsDto>(
