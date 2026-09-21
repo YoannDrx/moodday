@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       notifications.lastSuccessAt < staleBefore);
   const staleDeletions =
     !externalDeletions?.lastSuccessAt ||
-    externalDeletions.lastSuccessAt < staleBefore;
+    externalDeletions.lastSuccessAt < new Date(now.getTime() - 30 * 60 * 1000);
   const staleStripeReconciliation =
     env.BILLING_ENABLED &&
     (!stripeReconciliation?.lastSuccessAt ||
@@ -99,12 +99,12 @@ export async function GET(request: Request) {
   const staleStripeWebhooks =
     env.BILLING_ENABLED &&
     (!stripeWebhooks?.lastSuccessAt ||
-      stripeWebhooks.lastSuccessAt < new Date(now.getTime() - 5 * 60 * 1000));
+      stripeWebhooks.lastSuccessAt < new Date(now.getTime() - 30 * 60 * 1000));
   const staleRevenueCatWebhooks =
     revenueCatEnabled &&
     (!revenueCatWebhooks?.lastSuccessAt ||
       revenueCatWebhooks.lastSuccessAt <
-        new Date(now.getTime() - 5 * 60 * 1000));
+        new Date(now.getTime() - 30 * 60 * 1000));
   const staleOperationalRetention =
     !operationalRetention?.lastSuccessAt ||
     operationalRetention.lastSuccessAt <
@@ -117,7 +117,8 @@ export async function GET(request: Request) {
   const staleGoogleCalendarSync =
     env.GOOGLE_CALENDAR_ENABLED &&
     (!googleCalendarSync?.lastSuccessAt ||
-      googleCalendarSync.lastSuccessAt < staleBefore);
+      googleCalendarSync.lastSuccessAt <
+        new Date(now.getTime() - 30 * 60 * 1000));
   const stripeReconciliationFailed =
     env.BILLING_ENABLED &&
     Boolean(
