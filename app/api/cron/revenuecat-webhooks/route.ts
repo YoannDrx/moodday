@@ -81,7 +81,7 @@ export async function GET(request: Request) {
   }
   const job = await runOperationalJob({
     jobName: "revenuecat-webhooks",
-    intervalMs: 60_000,
+    intervalMs: 15 * 60_000,
     task: async () => recoverRevenueCatEvents({ requestId, startedAt }),
   });
   if (job.skipped) return NextResponse.json({ ok: true, skipped: true });

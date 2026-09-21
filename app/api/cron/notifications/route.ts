@@ -81,9 +81,16 @@ export const GET = route.handler(async (request) => {
   const unauthorizedResponse = validateCronRequest(request);
   if (unauthorizedResponse) return unauthorizedResponse;
 
+  const pushEnabled = getFeatureAvailability("pushNotifications").enabled;
+  // Keep the five-minute reminder cadence when push is enabled. With push off,
+  // batch background maintenance on quarter-hours so Neon can suspend between runs.
+  if (!pushEnabled && new Date().getUTCMinutes() % 15 >= 5) {
+    return { ok: true, disabled: true, skipped: true };
+  }
+
   const externalDeletions = await runOperationalJob({
     jobName: "external-deletions",
-    intervalMs: 5 * 60 * 1000,
+    intervalMs: (pushEnabled ? 5 : 15) * 60 * 1000,
     task: processExternalDeletionJobs,
   });
 
@@ -93,7 +100,7 @@ export const GET = route.handler(async (request) => {
     task: applyOperationalRetention,
   });
 
-  if (!getFeatureAvailability("pushNotifications").enabled) {
+  if (!pushEnabled) {
     return { ok: true, disabled: true, externalDeletions, retention };
   }
 

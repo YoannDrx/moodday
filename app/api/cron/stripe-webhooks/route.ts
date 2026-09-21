@@ -113,7 +113,7 @@ export async function GET(request: Request) {
 
   const job = await runOperationalJob({
     jobName: "stripe-webhooks",
-    intervalMs: 60_000,
+    intervalMs: 15 * 60_000,
     task: async () => recoverStripeWebhookEvents({ requestId, startedAt }),
   });
 

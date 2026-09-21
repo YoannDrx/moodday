@@ -12,15 +12,15 @@
     },
     {
       "path": "/api/cron/stripe-webhooks",
-      "schedule": "* * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/revenuecat-webhooks",
-      "schedule": "* * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/google-calendar-sync",
-      "schedule": "7,22,37,52 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/subscription-reminders",
