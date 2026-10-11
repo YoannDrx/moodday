@@ -58,7 +58,22 @@ describe("test suite policy", () => {
     expect(qualityWorkflow).not.toContain("run: pnpm test:coverage\n");
     expect(vitestConfig).toContain('"src/**/*.{ts,tsx}"');
     expect(vitestConfig).toContain('"app/api/**/*.{ts,tsx}"');
-    expect(vitestConfig).toMatch(/functions:\s*80/);
+    // Vitest 4 floors (first AST-aware measurement); they may only go up.
+    const releaseFloors = {
+      statements: 69,
+      branches: 62,
+      functions: 69,
+      lines: 70,
+    };
+    const releaseThresholds = vitestConfig.slice(
+      vitestConfig.indexOf("enforceReleaseCoverage\n        ?"),
+    );
+    for (const [metric, floor] of Object.entries(releaseFloors)) {
+      const configured = Number(
+        new RegExp(`\\b${metric}:\\s*(\\d+)`).exec(releaseThresholds)?.[1],
+      );
+      expect(configured, metric).toBeGreaterThanOrEqual(floor);
+    }
   });
 
   it("runs PostgreSQL integrity proofs in the release workflow", () => {
