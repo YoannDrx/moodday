@@ -27,7 +27,7 @@
     "start": "next start",
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
     "ts": "tsc --noEmit",
-    "vercel-build": "prisma generate && pnpm db:migration-guard && next build",
+    "vercel-build": "prisma generate && if [ \"$VERCEL_ENV\" = production ]; then pnpm db:migration-guard; fi && next build",
     "test": "vitest",
     "test:e2e": "HEADLESS=0 playwright test --ui",
     "test:ci": "vitest run",

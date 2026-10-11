@@ -7,11 +7,7 @@ import { spawnSync } from "node:child_process";
 // (P2022 on onboarding, medications and the notification cron). Refuse to
 // build a Production deployment while a committed migration is missing from
 // the target database. Migrations stay a deliberate, separate operation.
-if (process.env.VERCEL_ENV !== "production") {
-  console.log("Migration guard skipped outside Vercel Production");
-  process.exit(0);
-}
-
+// `vercel-build` only calls this script for Vercel Production builds.
 const result = spawnSync("pnpm", ["exec", "prisma", "migrate", "status"], {
   encoding: "utf8",
   env: process.env,
