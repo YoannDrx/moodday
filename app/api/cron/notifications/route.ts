@@ -166,7 +166,7 @@ export const GET = route.handler(async (request) => {
                 subscription.locale === "en"
                   ? "A reminder is ready in Moodday."
                   : "Un rappel vous attend dans Moodday.",
-              url: "/mood",
+              url: "/dashboard",
               tag: "daily-checkin",
             });
             const deliveryKey = createEndpointDeliveryKey(

@@ -47,6 +47,8 @@ beforeEach(() => {
   vi.mocked(prisma.userPreferences.findUnique).mockResolvedValue({
     timezone: "Europe/Paris",
   } as never);
+  vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.checkIn.count).mockResolvedValue(0);
   mocks.calculateMedicationAdherence.mockReturnValue({
     percent: 50,
     expectedDoses: 2,
@@ -147,6 +149,57 @@ describe("export actions", () => {
     });
     expect(mocks.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({ identifier: user.id }),
+    );
+  });
+
+  it("includes daily check-ins in the consultation report", async () => {
+    vi.mocked(prisma.subscription.findUnique).mockResolvedValue({
+      plan: "plus",
+      status: "active",
+      periodEnd: new Date("2027-01-01T00:00:00.000Z"),
+      cancelAtPeriodEnd: false,
+      graceEndsAt: null,
+    } as never);
+    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      {
+        id: "check-in-1",
+        localDate: "2026-08-05",
+        valence: 6,
+        activation: 4,
+        anxiety: 3,
+        note: "Synthetic check-in note",
+        createdAt: new Date("2026-08-05T07:30:00.000Z"),
+      },
+    ] as never);
+    vi.mocked(prisma.medication.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.therapySession.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.exerciseLog.findMany).mockResolvedValue([]);
+
+    const result = await invoke<{
+      mood: {
+        entries: { value: number; energy: number | null; date: string }[];
+        stats: { count: number; average: number | null };
+      };
+    }>(getExportData, {
+      parsedInput: {
+        startDate: "2026-08-01",
+        endDate: "2026-08-10",
+        purpose: "consultation-report",
+      },
+      ctx: { user },
+    });
+    expect(result.mood).toMatchObject({
+      entries: [{ value: 6, energy: 4, date: "2026-08-05T07:30:00.000Z" }],
+      stats: { count: 1, average: 6 },
+    });
+    expect(prisma.checkIn.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: user.id,
+          localDate: { gte: "2026-08-01", lte: "2026-08-10" },
+        }),
+      }),
     );
   });
 

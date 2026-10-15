@@ -140,6 +140,8 @@ beforeEach(() => {
   actionClient.use.mockReturnValue(actionClient);
   actionClient.inputSchema.mockReturnValue(actionClient);
   actionClient.action.mockImplementation((handler) => handler);
+  vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.checkIn.count).mockResolvedValue(0);
   vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
     typeof callback === "function"
       ? callback(prisma as never)
