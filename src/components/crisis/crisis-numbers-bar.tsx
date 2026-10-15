@@ -52,23 +52,22 @@ export function CrisisNumbersBar({ locale }: { locale: string }) {
   return (
     <aside
       aria-label={t.aria}
-      className="border-border bg-muted/60 text-muted-foreground border-t px-5 py-3 text-xs leading-5 print:hidden"
+      className="border-border bg-background text-foreground border-t px-5 py-3 text-xs leading-5 print:hidden"
     >
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center">
-        <span className="text-foreground font-semibold">{t.intro}</span>
+      <div className="mx-auto flex max-w-7xl min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center break-words">
+        <span className="font-semibold">{t.intro}</span>
         {t.numbers.map((item) => (
           <a
             key={item.number}
             href={item.href}
-            className="hover:text-foreground whitespace-nowrap underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:underline"
           >
-            <span className="text-foreground font-bold">{item.number}</span>{" "}
-            {item.label}
+            <span className="font-bold">{item.number}</span> {item.label}
           </a>
         ))}
         <Link
           href="/crisis"
-          className="hover:text-foreground font-semibold underline underline-offset-2"
+          className="font-semibold underline underline-offset-2"
         >
           {t.more}
         </Link>

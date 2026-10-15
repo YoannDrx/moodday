@@ -10,11 +10,19 @@ import {
   releaseScopeConfigurationErrors,
 } from "@/lib/operations/release-approval-evidence";
 
-const evidencePath = path.join(
-  process.cwd(),
-  process.env.RELEASE_APPROVAL_EVIDENCE_PATH ??
-    "docs/operations/evidence/release-approvals-2026-08.json",
+const evidenceRoot = path.resolve(process.cwd(), "docs/operations/evidence");
+const evidencePath = path.resolve(
+  evidenceRoot,
+  path.basename(
+    process.env.RELEASE_APPROVAL_EVIDENCE_PATH ??
+      "release-approvals-2026-08.json",
+  ),
 );
+if (!evidencePath.startsWith(`${evidenceRoot}${path.sep}`)) {
+  throw new Error(
+    "Release approval evidence must live in docs/operations/evidence",
+  );
+}
 
 if (!fs.existsSync(evidencePath)) {
   throw new Error("Release approval evidence registry is missing");

@@ -123,7 +123,7 @@ describe("supply-chain patches", () => {
       };
     };
     const keys = generateKeyPairSync("rsa", {
-      modulusLength: 1024,
+      modulusLength: 2048,
       publicExponent: 3,
     });
     const key = forge.pki.publicKeyFromPem(
