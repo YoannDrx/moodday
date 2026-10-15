@@ -708,6 +708,18 @@ const fr: typeof en = {
         description: "Services médicaux d'urgence.",
         availability: "Service d'urgence",
       },
+      europeanEmergency: {
+        name: "112 - Numéro d'urgence européen",
+        description:
+          "Numéro d'urgence gratuit, joignable depuis tout téléphone dans l'Union européenne.",
+        availability: "24h/24, 7j/7",
+      },
+      deafEmergency: {
+        name: "114 - Urgences par SMS",
+        description:
+          "Pour les personnes sourdes, malentendantes ou ne pouvant pas parler : SMS, visio ou tchat.",
+        availability: "24h/24, 7j/7",
+      },
       suicideEcoute: {
         name: "Suicide Ecoute",
         description: "Écoute et soutien en situation de crise.",

@@ -696,6 +696,18 @@ const en = {
         description: "Emergency medical services.",
         availability: "Emergency service",
       },
+      europeanEmergency: {
+        name: "112 - European emergency number",
+        description:
+          "Free emergency number, reachable from any phone in the European Union.",
+        availability: "24/7",
+      },
+      deafEmergency: {
+        name: "114 - Emergency by text",
+        description:
+          "For deaf or hard-of-hearing people, or anyone unable to speak: text, video or chat.",
+        availability: "24/7",
+      },
       suicideEcoute: {
         name: "Suicide Ecoute",
         description: "Listening and support in crisis.",
