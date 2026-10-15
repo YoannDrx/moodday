@@ -5,7 +5,60 @@ import { expect, type Page } from "@playwright/test";
 import { retry } from "./retry";
 
 export const getUserEmail = () =>
-  `playwright-test-${faker.internet.email().toLowerCase()}`;
+  `playwright-test-${faker.string.uuid()}@example.test`;
+
+/** API setup for feature scenarios; dedicated auth specs retain the full UI flow. */
+export async function createTestAccountViaApi({
+  page,
+  baseURL,
+}: {
+  page: Page;
+  baseURL?: string;
+}) {
+  if (!baseURL || process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED !== "true")
+    throw new Error("An isolated Playwright environment is required");
+  const userData = {
+    name: "Synthetic feature scenario",
+    email: `playwright-test-${crypto.randomUUID()}@example.test`,
+    password: `Moodday-fixture-${crypto.randomUUID()}!`,
+  };
+  const headers = { Origin: new URL(baseURL).origin };
+  const created = await page.request.post("/api/auth/sign-up/email", {
+    headers,
+    data: userData,
+  });
+  expect(created.ok()).toBe(true);
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: userData.email },
+  });
+  expect(user.emailVerified).toBe(false);
+  // Same synthetic verification transition as createTestAccount; no email leaves.
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true },
+  });
+  const signedIn = await page.request.post("/api/auth/sign-in/email", {
+    headers,
+    data: { email: userData.email, password: userData.password },
+  });
+  expect(signedIn.ok()).toBe(true);
+  const access = await page.request.get("/api/v2/account-access");
+  expect(access.status()).toBe(200);
+  const { data } = await access.json();
+  const consent = await page.request.post("/api/v2/account-access", {
+    headers,
+    data: {
+      age18Accepted: true,
+      termsAccepted: true,
+      privacyAccepted: true,
+      healthDataConsentAccepted: true,
+      locale: "fr",
+      versions: data.versions,
+    },
+  });
+  expect(consent.status()).toBe(200);
+  return userData;
+}
 
 const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
   const expected = new URL(callbackURL, page.url());
@@ -23,7 +76,10 @@ const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
       url.pathname === canonicalPath,
     { timeout: 30000 },
   );
-  await page.waitForLoadState("networkidle");
+  // Authenticated pages synchronize and prefetch in the background. A global
+  // network-idle condition can time out on a fully usable dashboard. Wait for
+  // the navigation document; each scenario asserts its own visible controls.
+  await page.waitForLoadState("domcontentloaded");
 };
 
 /**
@@ -50,7 +106,9 @@ export async function createTestAccount(options: {
   };
 
   // Navigate to signup page
-  await options.page.goto(`/auth/signup?callbackUrl=${options.callbackURL}`);
+  await options.page.goto(`/auth/signup?callbackUrl=${options.callbackURL}`, {
+    waitUntil: "domcontentloaded",
+  });
 
   // Fill out the form (supports both English and French labels)
   await options.page.getByLabel(/^Name$|^Nom$/i).fill(userData.name);
@@ -158,7 +216,7 @@ export async function signInAccount(options: {
   await page.goto(
     `/auth/signin${callbackURL ? `?callbackUrl=${callbackURL}` : ""}`,
   );
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 
   // Fill out the form (supports both English and French labels)
   await page.getByLabel(/^Email$/i).fill(userData.email);
@@ -185,7 +243,7 @@ export async function signInAccount(options: {
 export async function signOutAccount(options: { page: Page }) {
   const { page } = options;
 
-  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForLoadState("domcontentloaded");
   await page.evaluate(async () => {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(registrations.map(async (item) => item.unregister()));
@@ -193,7 +251,7 @@ export async function signOutAccount(options: { page: Page }) {
   if (new URL(page.url()).pathname !== "/settings/security") {
     await page.goto("/settings/security");
   }
-  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForLoadState("domcontentloaded");
   await page
     .getByRole("button", { name: /^Sign out$|^Log out$|^Se déconnecter$/i })
     .click({ noWaitAfter: true });

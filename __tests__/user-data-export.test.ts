@@ -1,4 +1,7 @@
-import { buildUserDataExport } from "@/features/account/user-data-export";
+import {
+  buildUserDataExport,
+  createUserDataExportStream,
+} from "@/features/account/user-data-export";
 import { prisma } from "@/lib/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -247,5 +250,60 @@ describe("buildUserDataExport", () => {
 
     expect(result.exportMetadata.timezone).toBeNull();
     expect(result.preferences).toBeNull();
+  });
+  it("streams every page inside one snapshot and applies backpressure", async () => {
+    vi.mocked(prisma.caregiverRelationship.findMany).mockResolvedValue([]);
+    const rows = Array.from({ length: 251 }, (_, index) => ({
+      id: `check-${index}`,
+      note: "x".repeat(300),
+    }));
+    vi.mocked(prisma.checkIn.findMany)
+      .mockResolvedValueOnce(rows.slice(0, 250) as never)
+      .mockResolvedValueOnce(rows.slice(250) as never);
+    const response = new Response(createUserDataExportStream({ id: "user-1" }));
+    const result = await response.json();
+    expect(result.checkIns).toEqual(rows);
+    expect(prisma.checkIn.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        take: 250,
+        skip: 1,
+        cursor: { id: "check-249" },
+        orderBy: { id: "asc" },
+        where: { userId: "user-1" },
+      }),
+    );
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ isolationLevel: "RepeatableRead" }),
+    );
+  });
+  it("propagates a failed snapshot to the download instead of returning truncated JSON", async () => {
+    vi.mocked(prisma.$transaction).mockRejectedValueOnce(
+      new Error("snapshot unavailable"),
+    );
+    await expect(
+      new Response(createUserDataExportStream({ id: "user-1" })).text(),
+    ).rejects.toThrow("snapshot unavailable");
+  });
+  it("cancels a slow download and lets the transaction unwind", async () => {
+    vi.mocked(prisma.caregiverRelationship.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValueOnce(
+      Array.from({ length: 250 }, (_, index) => ({
+        id: `check-${index}`,
+        note: "x".repeat(300),
+      })) as never,
+    );
+    let unwound = false;
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback) => {
+      try {
+        return await callback(prisma);
+      } finally {
+        unwound = true;
+      }
+    });
+    const reader = createUserDataExportStream({ id: "user-1" }).getReader();
+    await reader.read();
+    await reader.cancel();
+    await vi.waitFor(() => expect(unwound).toBe(true));
   });
 });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+vi.mock("server-only", () => ({}));
 
 const actionClient = vi.hoisted(() => {
   const client = { inputSchema: vi.fn(), action: vi.fn() };
@@ -82,6 +83,7 @@ const plusSubscription = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
   actionClient.inputSchema.mockReturnValue(actionClient);
   actionClient.action.mockImplementation((handler) => handler);
   vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
@@ -114,6 +116,36 @@ beforeEach(() => {
 });
 
 describe("deterministic product insights", () => {
+  it("includes offline V2 check-ins in web curves without exposing private notes", async () => {
+    vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.medicationHistory.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      {
+        id: "v2",
+        depth: "quick",
+        localDate: "2026-09-06",
+        valence: 0,
+        activation: 4,
+        anxiety: null,
+        irritability: 2,
+        createdAt: new Date(),
+      },
+    ] as never);
+    const result = await invoke<{ moodEntries: unknown[] }>(getMoodChartData, {
+      parsedInput: { days: 30 },
+      ctx: { user },
+    });
+    expect(result.moodEntries).toEqual([
+      expect.objectContaining({
+        value: 0,
+        energy: 4,
+        localDate: "2026-09-06",
+        source: "check-in",
+        note: null,
+      }),
+    ]);
+  });
   it("returns bounded chart data with dosage markers and shared adherence", async () => {
     vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([
@@ -169,7 +201,12 @@ describe("deterministic product insights", () => {
           energy: 6,
         },
       ] as never)
-      .mockResolvedValueOnce([{ value: 2 }] as never);
+      .mockResolvedValueOnce([
+        {
+          value: 2,
+          createdAt: new Date(currentEntryDate.getTime() - 7 * 86_400_000),
+        },
+      ] as never);
     vi.mocked(prisma.medication.count).mockResolvedValue(2);
     vi.mocked(prisma.medIntake.count).mockResolvedValue(1);
     vi.mocked(prisma.therapySession.findFirst).mockResolvedValue({

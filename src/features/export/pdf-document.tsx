@@ -197,12 +197,10 @@ export function ExportPDFDocument({
                 ? "Ma préparation"
                 : "My consultation preparation"}
             </Text>
-            <Text style={styles.preparationItem}>
-              {data.preparation.title}
-            </Text>
+            <Text style={styles.preparationItem}>{data.preparation.title}</Text>
             {data.preparation.scheduledFor ? (
               <Text style={styles.preparationItem}>
-                {locale === "fr" ? "Date prévue" : "Planned date"}: {" "}
+                {locale === "fr" ? "Date prévue" : "Planned date"}:{" "}
                 {formatDate(
                   data.preparation.scheduledFor,
                   dateLocale,
@@ -292,11 +290,22 @@ export function ExportPDFDocument({
               {data.mood.entries.slice(0, 15).map((entry, i) => (
                 <View key={i} style={styles.moodEntry}>
                   <Text style={styles.moodDate}>
-                    {formatDate(entry.date, dateLocale, data.metadata.timezone)}
+                    {entry.localDate
+                      ? formatDateKey(entry.localDate, dateLocale)
+                      : formatDate(
+                          entry.date,
+                          dateLocale,
+                          data.metadata.timezone,
+                        )}
                   </Text>
                   <Text style={styles.moodValue}>{entry.value}/10</Text>
                   <Text style={styles.moodNote}>
                     {[
+                      entry.source
+                        ? entry.source === "check-in"
+                          ? "Check-in"
+                          : "Journal"
+                        : null,
                       entry.energy === null
                         ? null
                         : `${locale === "fr" ? "énergie" : "energy"} ${entry.energy}/10`,
@@ -337,9 +346,9 @@ export function ExportPDFDocument({
             <View style={styles.row}>
               <Text style={styles.label}>{t("export.pdf.adherence")}:</Text>
               <Text style={styles.value}>
-                {data.medications.adherencePercent}% ({data.medications.takenDoses}
-                /{data.medications.expectedDoses}{" "}
-                {locale === "fr" ? "prises prévues" : "scheduled doses"}; PRN{ " "}
+                {data.medications.adherencePercent}% (
+                {data.medications.takenDoses}/{data.medications.expectedDoses}{" "}
+                {locale === "fr" ? "prises prévues" : "scheduled doses"}; PRN{" "}
                 {locale === "fr" ? "exclues" : "excluded"})
               </Text>
             </View>

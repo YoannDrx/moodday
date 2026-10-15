@@ -22,6 +22,44 @@ const selected = {
 describe("V2 check-in service", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("rejects reused identifiers with different content or entity types", async () => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue({
+      entityType: "check_in",
+      mutation: "create",
+      status: "applied",
+    } as never);
+    vi.mocked(prisma.checkIn.upsert).mockResolvedValue(selected as never);
+    await expect(
+      createCheckIn("user-1", { ...selected, valence: 9 }),
+    ).rejects.toMatchObject({ name: "OperationConflictError" });
+    expect(prisma.syncOperation.create).not.toHaveBeenCalled();
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue({
+      entityType: "routine",
+    } as never);
+    await expect(createCheckIn("user-1", selected)).rejects.toMatchObject({
+      name: "OperationConflictError",
+    });
+  });
+
+  it("accepts equivalent retries with explicit nulls without another receipt", async () => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
+    vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue({
+      entityType: "check_in",
+      mutation: "create",
+      status: "applied",
+    } as never);
+    vi.mocked(prisma.checkIn.upsert).mockResolvedValue(selected as never);
+    await expect(createCheckIn("user-1", selected)).resolves.toMatchObject({
+      id: selected.id,
+    });
+    expect(prisma.syncOperation.create).not.toHaveBeenCalled();
+  });
+
   it("uses the user-scoped operation id and preserves zero values", async () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
       callback(prisma),
@@ -88,6 +126,17 @@ describe("V2 check-in service", () => {
         cursor: { id: "previous" },
         skip: 1,
         take: 3,
+      }),
+    );
+  });
+
+  it("filters today's check-ins before pagination so late offline imports cannot hide them", async () => {
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([selected] as never);
+    await listCheckIns({ userId: "user-1", localDate: "2026-08-21", limit: 1 });
+    expect(prisma.checkIn.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1", localDate: "2026-08-21" },
+        take: 2,
       }),
     );
   });

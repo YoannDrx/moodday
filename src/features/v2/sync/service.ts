@@ -63,9 +63,21 @@ import {
   toRoutineOccurrenceDto,
 } from "../routines/occurrence-service";
 import { decodeSyncCursor, encodeSyncCursor } from "./cursor";
-import { createPayloadDigest } from "./digest";
+import {
+  checkInDigest,
+  lockSyncOperation,
+  syncOperationDigest,
+  matchesLegacyOperationDigest,
+} from "./operation-identity";
 
 type Transaction = Prisma.TransactionClient;
+
+export class DeviceLimitError extends Error {
+  constructor() {
+    super("Device limit reached");
+    this.name = "DeviceLimitError";
+  }
+}
 
 export class InvalidSyncCursorError extends Error {
   constructor() {
@@ -101,7 +113,7 @@ const recordOperation = async ({
       entityId: operation.entityId,
       mutation: operation.mutation,
       status,
-      payloadDigest: createPayloadDigest(operation.payload),
+      payloadDigest: syncOperationDigest(operation),
       appliedAt: status === "applied" ? new Date() : null,
     },
   });
@@ -1438,13 +1450,50 @@ const applyOperation = async (
   operation: SyncPushOperation,
 ): Promise<SyncOperationResult> =>
   prisma.$transaction(async (transaction) => {
+    await lockSyncOperation(transaction, userId, operation.operationId);
     const existing = await transaction.syncOperation.findUnique({
       where: {
         userId_operationId: { userId, operationId: operation.operationId },
       },
-      select: { status: true, entityId: true },
+      select: {
+        status: true,
+        entityId: true,
+        entityType: true,
+        mutation: true,
+        payloadDigest: true,
+      },
     });
     if (existing) {
+      let matches =
+        existing.entityType === operation.entityType &&
+        existing.mutation === operation.mutation;
+      if (
+        matches &&
+        operation.entityType === "check_in" &&
+        existing.status === "applied"
+      ) {
+        const parsed = createCheckInSchema.safeParse({
+          ...getPayloadObject(operation),
+          operationId: operation.operationId,
+        });
+        const stored = await transaction.checkIn.findUnique({
+          where: {
+            userId_operationId: { userId, operationId: operation.operationId },
+          },
+          select: checkInSelection,
+        });
+        matches =
+          !!stored &&
+          parsed.success &&
+          checkInDigest(stored) === checkInDigest(parsed.data);
+      } else {
+        matches =
+          matches &&
+          existing.entityId === operation.entityId &&
+          (existing.payloadDigest === syncOperationDigest(operation) ||
+            matchesLegacyOperationDigest(existing.payloadDigest, operation));
+      }
+      if (!matches) return conflict(operation, "operation_id_conflict", null);
       return {
         operationId: operation.operationId,
         entityId: existing.entityId ?? operation.entityId,
@@ -1497,16 +1546,28 @@ export const pushSyncOperations = async (
   userId: string,
   input: SyncPushInput,
 ): Promise<SyncPushResult> => {
-  const device = await prisma.device.upsert({
-    where: { userId_publicId: { userId, publicId: input.deviceId } },
-    update: { lastSeenAt: new Date() },
-    create: {
-      userId,
-      publicId: input.deviceId,
-      platform: input.platform,
-      lastSeenAt: new Date(),
-    },
-    select: { id: true, revokedAt: true },
+  const device = await prisma.$transaction(async (transaction) => {
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${JSON.stringify(["device-admission", userId])}, 0))`;
+    const existing = await transaction.device.findUnique({
+      where: { userId_publicId: { userId, publicId: input.deviceId } },
+      select: { id: true },
+    });
+    if (
+      !existing &&
+      (await transaction.device.count({ where: { userId } })) >= 50
+    )
+      throw new DeviceLimitError();
+    return transaction.device.upsert({
+      where: { userId_publicId: { userId, publicId: input.deviceId } },
+      update: { lastSeenAt: new Date() },
+      create: {
+        userId,
+        publicId: input.deviceId,
+        platform: input.platform,
+        lastSeenAt: new Date(),
+      },
+      select: { id: true, revokedAt: true },
+    });
   });
   if (device.revokedAt) throw new Error("Device access has been revoked");
 

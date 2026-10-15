@@ -34,9 +34,9 @@ export default async function AuthSignInPage() {
   const providers = Object.keys(SocialProviders ?? {});
 
   return (
-    <Card className="mx-auto h-auto w-full max-w-md lg:max-w-lg lg:p-6">
+    <Card className="mx-auto h-auto w-full max-w-md min-w-0 lg:max-w-lg lg:p-6">
       <CardHeader className="flex flex-col items-center justify-center gap-2">
-        <MooddayLogo size="lg" href={undefined} className="mb-2" />
+        <MooddayLogo size="lg" href={undefined} className="mb-2 max-w-full" />
 
         <CardDescription className="text-center">
           {t("auth.signIn.description")}

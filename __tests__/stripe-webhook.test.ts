@@ -135,14 +135,17 @@ describe("Stripe webhook", () => {
     expect(prisma.stripeWebhookEvent.create).not.toHaveBeenCalled();
   });
 
-  it("does not process signed events while billing is disabled", async () => {
+  it("never acknowledges an unrecorded event while billing is disabled", async () => {
     mutableEnv.BILLING_ENABLED = false;
 
     const response = await POST(request());
 
-    expect(await response.json()).toEqual({ ok: true, disabled: true });
+    expect(response.status).toBe(503);
+    expect(response.headers.get("retry-after")).toBe("300");
+    expect(await response.json()).toEqual({ error: "Webhook unavailable" });
     expect(getStripe).not.toHaveBeenCalled();
     expect(prisma.stripeWebhookEvent.create).not.toHaveBeenCalled();
+    expect(afterResponse.callbacks).toHaveLength(0);
   });
 
   it("fails closed when Stripe webhook verification is unavailable", async () => {

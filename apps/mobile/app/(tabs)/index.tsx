@@ -2,8 +2,15 @@ import type { CreateCheckInInput } from "@moodday/contracts";
 import { color, radius, space } from "@moodday/design-tokens";
 import * as Crypto from "expo-crypto";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AppState,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { BrandIllustration } from "../../src/components/brand-illustration";
 import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
@@ -18,7 +25,7 @@ import {
   saveUserDraftLocally,
 } from "../../src/lib/local-database";
 
-type CheckInMode = "idle" | "quick" | "done";
+type CheckInMode = "idle" | "quick" | "complete" | "done";
 type CoreDimension = "valence" | "activation" | "irritability";
 type Scores = Partial<Record<CoreDimension, number>>;
 
@@ -52,12 +59,71 @@ export default function TodayScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const ownerId = session?.user.id;
-  const context = useMemo(getLocalContext, []);
+  const [context, setContext] = useState(getLocalContext);
   const [mode, setMode] = useState<CheckInMode>("idle");
   const [scores, setScores] = useState<Scores>({});
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string>();
   const [pendingCount, setPendingCount] = useState(0);
+  const [anxiety, setAnxiety] = useState<number>();
+  const [note, setNote] = useState("");
+  const [contextNote, setContextNote] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const busy = useRef(false);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const draftWrite = useRef<Promise<void>>(Promise.resolve());
+
+  const refreshIdleDay = useCallback(() => {
+    // A point already being edited retains its declared day and timezone.
+    if (
+      isSaving ||
+      busy.current ||
+      !draftLoaded ||
+      mode === "quick" ||
+      mode === "complete"
+    )
+      return false;
+    const next = getLocalContext();
+    if (
+      next.localDate === context.localDate &&
+      next.timezone === context.timezone
+    )
+      return false;
+    setDraftLoaded(false);
+    setMode("idle");
+    setScores({});
+    setNote("");
+    setContextNote("");
+    setAnxiety(undefined);
+    setStatus(undefined);
+    setContext(next);
+    return true;
+  }, [context.localDate, context.timezone, draftLoaded, mode, isSaving]);
+
+  useEffect(() => {
+    refreshIdleDay();
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshIdleDay();
+    });
+    const timer = setInterval(refreshIdleDay, 60_000);
+    return () => {
+      listener.remove();
+      clearInterval(timer);
+    };
+  }, [refreshIdleDay]);
+
+  const startPoint = () => {
+    if (!draftLoaded || busy.current || refreshIdleDay()) return;
+    setScores({});
+    setNote("");
+    setContextNote("");
+    setAnxiety(undefined);
+    setStatus(undefined);
+    setMode("quick");
+  };
 
   const complete =
     scores.valence !== undefined &&
@@ -66,15 +132,23 @@ export default function TodayScreen() {
 
   useEffect(() => {
     if (!ownerId) return;
+    let active = true;
     const synchronize = async () => {
       await flushPendingCheckIns(ownerId);
-      setPendingCount(await getPendingOperationCount(ownerId));
+      const count = await getPendingOperationCount(ownerId);
+      if (active) setPendingCount(count);
     };
-    synchronize().catch(() => setStatus("Synchronisation en attente."));
+    synchronize().catch(() => {
+      if (active) setStatus("Synchronisation en attente.");
+    });
+    return () => {
+      active = false;
+    };
   }, [ownerId]);
 
   useEffect(() => {
     if (!ownerId) return;
+    let active = true;
     const restore = async () => {
       const cached = await getCachedUserDraft(
         ownerId,
@@ -86,7 +160,12 @@ export default function TodayScreen() {
         (await refreshUserDraft(ownerId, "check_in", context.localDate).catch(
           () => null,
         ));
-      if (!draft || draft.content.mode !== "quick") return;
+      if (
+        !active ||
+        !draft ||
+        !["quick", "complete"].includes(String(draft.content.mode))
+      )
+        return;
       const nextScores = draft.content.scores;
       if (!nextScores || typeof nextScores !== "object") return;
       const restored = Object.fromEntries(
@@ -94,35 +173,99 @@ export default function TodayScreen() {
           ([key, value]) =>
             ["valence", "activation", "irritability"].includes(key) &&
             typeof value === "number" &&
+            Number.isInteger(value) &&
             value >= 0 &&
             value <= 10,
         ),
       ) as Scores;
       setScores(restored);
-      setMode("quick");
+      setMode(draft.content.mode === "complete" ? "complete" : "quick");
+      setNote(
+        typeof draft.content.note === "string"
+          ? draft.content.note.slice(0, 2000)
+          : "",
+      );
+      setContextNote(
+        typeof draft.content.contextNote === "string"
+          ? draft.content.contextNote.slice(0, 48)
+          : "",
+      );
+      const savedAnxiety = draft.content.anxiety;
+      setAnxiety(
+        typeof savedAnxiety === "number" &&
+          Number.isInteger(savedAnxiety) &&
+          savedAnxiety >= 0 &&
+          savedAnxiety <= 10
+          ? savedAnxiety
+          : undefined,
+      );
       setStatus("Ton brouillon est prêt, sans urgence à le terminer.");
     };
-    void restore();
-  }, [context.localDate, ownerId]);
+    void restore()
+      .then(() => {
+        if (active) setDraftLoaded(true);
+      })
+      .catch(() => {
+        if (active)
+          setStatus(
+            "Le brouillon n’a pas pu être chargé. Réessaie avant de le remplacer.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [context.localDate, context.timezone, ownerId, restoreAttempt]);
 
   useEffect(() => {
-    if (!ownerId || mode !== "quick") return;
+    if (!ownerId || !["quick", "complete"].includes(mode) || isSaving) return;
     const timeout = setTimeout(() => {
-      void saveUserDraftLocally(ownerId, {
-        kind: "check_in",
-        contextKey: context.localDate,
-        content: { mode: "quick", scores },
-      }).then((result) => {
-        if (result.pending) {
-          setStatus("Brouillon conservé sur cet appareil.");
-        }
-      });
+      draftWrite.current = draftWrite.current
+        .then(async () => {
+          const result = await saveUserDraftLocally(ownerId, {
+            kind: "check_in",
+            contextKey: context.localDate,
+            content: {
+              mode,
+              scores,
+              anxiety: anxiety ?? null,
+              note,
+              contextNote,
+            },
+          });
+          if (result.pending) {
+            setStatus("Brouillon conservé sur cet appareil.");
+          }
+        })
+        .catch(() =>
+          setStatus(
+            "Le brouillon n’a pas pu être conservé. Garde cet écran ouvert et réessaie.",
+          ),
+        );
     }, 500);
+    draftTimer.current = timeout;
     return () => clearTimeout(timeout);
-  }, [context.localDate, mode, ownerId, scores]);
+  }, [
+    context.localDate,
+    mode,
+    ownerId,
+    scores,
+    anxiety,
+    note,
+    contextNote,
+    isSaving,
+  ]);
 
-  const save = async (depth: "presence" | "quick") => {
-    if (!ownerId) return;
+  const save = async (depth: "presence" | "quick" | "complete") => {
+    if (depth === "presence" && refreshIdleDay()) return;
+    if (
+      !ownerId ||
+      !draftLoaded ||
+      busy.current ||
+      (depth !== "presence" && !complete)
+    )
+      return;
+    busy.current = true;
+    clearTimeout(draftTimer.current);
     setIsSaving(true);
     setStatus(undefined);
     const input: CreateCheckInInput = {
@@ -130,11 +273,14 @@ export default function TodayScreen() {
       depth,
       localDate: context.localDate,
       timezone: context.timezone,
-      contexts: [],
-      ...(depth === "quick" ? scores : {}),
+      contexts:
+        depth === "complete" && contextNote.trim() ? [contextNote.trim()] : [],
+      ...(depth !== "presence" ? scores : {}),
+      ...(depth === "complete" ? { anxiety, note: note.trim() || null } : {}),
     };
 
     try {
+      await draftWrite.current;
       const result = await saveCheckInOfflineFirst(ownerId, input);
       await discardUserDraft(ownerId, "check_in", context.localDate).catch(
         () => undefined,
@@ -145,11 +291,16 @@ export default function TodayScreen() {
           ? "Conservé sur cet appareil · synchronisation en attente"
           : "Synchronisé avec Mood Day",
       );
-      setPendingCount(await getPendingOperationCount(ownerId));
+      setPendingCount(
+        await getPendingOperationCount(ownerId).catch(() => pendingCount),
+      );
     } catch {
-      setStatus("Connexion nécessaire pour enregistrer ce point.");
+      setStatus(
+        "Ce point n’a pas pu être confirmé. Tes réponses restent ici ; tu peux réessayer.",
+      );
     } finally {
       setIsSaving(false);
+      busy.current = false;
     }
   };
 
@@ -196,7 +347,8 @@ export default function TodayScreen() {
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => setMode("quick")}
+              disabled={isSaving || !draftLoaded}
+              onPress={startPoint}
               style={({ pressed }) => [
                 styles.primaryButton,
                 pressed && styles.pressed,
@@ -206,7 +358,7 @@ export default function TodayScreen() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              disabled={isSaving}
+              disabled={isSaving || !draftLoaded}
               onPress={() => void save("presence")}
               style={({ pressed }) => [
                 styles.secondaryButton,
@@ -220,10 +372,34 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
-        {mode === "quick" ? (
+        {mode === "done" ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isSaving || !draftLoaded}
+            onPress={startPoint}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryLabel}>Faire un autre point</Text>
+          </Pressable>
+        ) : null}
+
+        {!draftLoaded ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setRestoreAttempt((value) => value + 1)}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryLabel}>
+              Vérifier le brouillon avant de commencer
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {mode === "quick" || mode === "complete" ? (
           <View style={styles.dimensionList}>
             <DimensionScale
               label="Moral"
+              disabled={isSaving}
               hint="Du très lourd au très léger"
               value={scores.valence}
               onChange={(value) =>
@@ -232,6 +408,7 @@ export default function TodayScreen() {
             />
             <DimensionScale
               label="Énergie"
+              disabled={isSaving}
               hint="Du ralenti à beaucoup d’élan"
               value={scores.activation}
               onChange={(value) =>
@@ -240,6 +417,7 @@ export default function TodayScreen() {
             />
             <DimensionScale
               label="Irritabilité"
+              disabled={isSaving}
               hint="Du calme au très sensible"
               value={scores.irritability}
               onChange={(value) =>
@@ -249,10 +427,65 @@ export default function TodayScreen() {
             <Text style={styles.help}>
               Aucune valeur n’est choisie à ta place.
             </Text>
+            {mode === "quick" ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSaving}
+                onPress={() => setMode("complete")}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryLabel}>
+                  Ajouter du contexte, si tu veux
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.dimensionList}>
+                <DimensionScale
+                  label="Anxiété (facultatif)"
+                  disabled={isSaving}
+                  hint="Tu peux laisser cette question sans réponse."
+                  value={anxiety}
+                  onChange={setAnxiety}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isSaving}
+                  onPress={() => setAnxiety(undefined)}
+                >
+                  <Text style={styles.secondaryLabel}>
+                    Ne pas renseigner l’anxiété
+                  </Text>
+                </Pressable>
+                <TextInput
+                  accessibilityLabel="Contexte (facultatif)"
+                  placeholder="Un repère de contexte, si utile"
+                  value={contextNote}
+                  onChangeText={setContextNote}
+                  maxLength={48}
+                  editable={!isSaving}
+                  style={styles.textInput}
+                />
+                <TextInput
+                  accessibilityLabel="Note privée (facultatif)"
+                  placeholder="Une note pour toi"
+                  value={note}
+                  onChangeText={setNote}
+                  maxLength={2000}
+                  multiline
+                  editable={!isSaving}
+                  style={styles.textInput}
+                />
+                <Text style={styles.help}>
+                  Ta note reste privée. Ces compléments sont facultatifs.
+                </Text>
+              </View>
+            )}
             <Pressable
               accessibilityRole="button"
               disabled={!complete || isSaving}
-              onPress={() => void save("quick")}
+              onPress={() =>
+                void save(mode === "complete" ? "complete" : "quick")
+              }
               style={({ pressed }) => [
                 styles.primaryButton,
                 (!complete || isSaving) && styles.disabled,
@@ -267,16 +500,31 @@ export default function TodayScreen() {
               accessibilityRole="button"
               disabled={isSaving || !ownerId}
               onPress={() => {
-                if (!ownerId) return;
-                void discardUserDraft(
-                  ownerId,
-                  "check_in",
-                  context.localDate,
-                ).finally(() => {
-                  setScores({});
-                  setMode("idle");
-                  setStatus("Brouillon effacé.");
-                });
+                if (!ownerId || busy.current) return;
+                busy.current = true;
+                setIsSaving(true);
+                clearTimeout(draftTimer.current);
+                void draftWrite.current
+                  .then(async () =>
+                    discardUserDraft(ownerId, "check_in", context.localDate),
+                  )
+                  .then(() => {
+                    setScores({});
+                    setNote("");
+                    setContextNote("");
+                    setAnxiety(undefined);
+                    setMode("idle");
+                    setStatus("Brouillon effacé.");
+                  })
+                  .catch(() =>
+                    setStatus(
+                      "Le brouillon n’a pas été effacé. Tes réponses restent ici.",
+                    ),
+                  )
+                  .finally(() => {
+                    busy.current = false;
+                    setIsSaving(false);
+                  });
               }}
               style={({ pressed }) => [
                 styles.secondaryButton,
@@ -300,10 +548,13 @@ export default function TodayScreen() {
         title="Préparer le prochain rendez-vous"
         description="Ajoute tes questions au fil des jours, sans tout reconstruire au dernier moment."
       >
-        <View style={styles.progressTrack}>
-          <View style={styles.progressValue} />
-        </View>
-        <Text style={styles.progressLabel}>Préparation 2 sur 4</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/(tabs)/soin")}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryLabel}>Voir mes rendez-vous</Text>
+        </Pressable>
       </SectionCard>
 
       <SectionCard
@@ -326,11 +577,13 @@ function DimensionScale({
   hint,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   hint: string;
   value?: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
 }) {
   return (
     <View
@@ -348,8 +601,9 @@ function DimensionScale({
             <Pressable
               key={scaleValue}
               accessibilityRole="radio"
+              disabled={disabled}
               accessibilityLabel={`${label}, ${scaleValue} sur 10`}
-              accessibilityState={{ selected }}
+              accessibilityState={{ selected, disabled }}
               onPress={() => onChange(scaleValue)}
               style={({ pressed }) => [
                 styles.scaleButton,
@@ -440,6 +694,15 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.72 },
   disabled: { opacity: 0.45 },
   dimensionList: { gap: space[6] },
+  textInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.small,
+    padding: space[3],
+    color: color.ink,
+    fontSize: 16,
+  },
   dimensionGroup: { gap: space[2] },
   dimensionLabel: { color: color.ink, fontSize: 16, fontWeight: "700" },
   dimensionHint: { color: color.inkMuted, fontSize: 13 },
@@ -471,17 +734,5 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     textAlign: "center",
   },
-  progressTrack: {
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: color.primarySoft,
-  },
-  progressValue: {
-    width: "50%",
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: color.primary,
-  },
-  progressLabel: { color: color.inkMuted, fontSize: 13 },
   pending: { color: color.inkMuted, fontSize: 12, textAlign: "center" },
 });

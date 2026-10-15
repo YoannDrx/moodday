@@ -9,12 +9,14 @@ import { SignInCredentialsAndMagicLinkForm } from "../app/auth/signin/sign-in-cr
 import { SignInProviders } from "../app/auth/signin/sign-in-providers";
 import { setup } from "../test/setup";
 
+const navigation = vi.hoisted(() => ({ query: "" }));
+
 // Mock next/navigation
 vi.mock("next/navigation", async () => {
   const actual = await vi.importActual("next/navigation");
   return {
     ...actual,
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => new URLSearchParams(navigation.query),
   };
 });
 
@@ -75,7 +77,7 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
     expect(html).toContain('type="password"');
     expect(html).toContain('name="password"');
-    expect(html).toContain("<fieldset disabled=\"\"");
+    expect(html).toContain('<fieldset disabled=""');
     expect(html).toContain("disabled:bg-gray-100");
     expect(html).toContain("disabled:text-gray-700");
     expect(html).toContain("disabled:opacity-100");
@@ -183,6 +185,32 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
 // Test social provider buttons
 describe("SignInProvidersContainer", () => {
+  it("shows a recoverable OAuth error and preserves nested callback parameters", async () => {
+    vi.mocked(authClient.signIn.social).mockResolvedValueOnce({
+      data: null,
+      error: { message: "provider rejected" },
+    } as never);
+    const callbackUrl = "/mood/history?query=a&tags=b";
+    const { user } = setup(
+      <SignInProviders providers={["google"]} callbackUrl={callbackUrl} />,
+    );
+    await user.click(screen.getByRole("button", { name: /google/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /sign-in failed/i,
+    );
+    expect(screen.getByRole("button", { name: /google/i })).toBeEnabled();
+    const call = vi.mocked(authClient.signIn.social).mock.calls.at(-1)?.[0];
+    const url = new URL(call?.callbackURL ?? "", "http://localhost:3000");
+    expect(url.searchParams.get("callbackUrl")).toBe(callbackUrl);
+    vi.mocked(authClient.signIn.social).mockResolvedValueOnce({
+      data: {},
+      error: null,
+    } as never);
+    await user.click(screen.getByRole("button", { name: /google/i }));
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+  });
   beforeEach(() => {
     Object.defineProperty(window, "location", {
       value: {
@@ -254,3 +282,18 @@ describe("SignInProvidersContainer", () => {
     expect(screen.getByRole("button", { name: /google/i })).toBeInTheDocument();
   });
 });
+
+it.each(["access_denied", "provider_error"])(
+  "shows an accessible OAuth callback error: %s",
+  (error) => {
+    navigation.query = `error=${error}`;
+    try {
+      setup(<SignInProviders providers={[]} />);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        error === "access_denied" ? /cancelled|annulée/i : /could not|pas pu/i,
+      );
+    } finally {
+      navigation.query = "";
+    }
+  },
+);

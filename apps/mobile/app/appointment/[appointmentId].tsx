@@ -9,7 +9,7 @@ import { MoodDayApiError } from "@moodday/api-client";
 import { color, radius, space } from "@moodday/design-tokens";
 import * as Crypto from "expo-crypto";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -67,6 +67,13 @@ export default function AppointmentDetailScreen() {
   const [briefs, setBriefs] = useState<AppointmentBriefDto[]>([]);
   const [shares, setShares] = useState<AppointmentBriefShareDto[]>([]);
   const [latestShareUrl, setLatestShareUrl] = useState<string>();
+  const [draftOwnerKey, setDraftOwnerKey] = useState<string>();
+  const draftKey = `${ownerId}:${appointmentId}`;
+  const draftReady = draftOwnerKey === draftKey;
+  const pendingDraftSave = useRef<Promise<unknown>>(Promise.resolve());
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const [question, setQuestion] = useState("");
   const [privateNote, setPrivateNote] = useState(false);
   const [decision, setDecision] = useState("");
@@ -126,6 +133,9 @@ export default function AppointmentDetailScreen() {
 
   useEffect(() => {
     if (!appointmentId || !ownerId) return;
+    let cancelled = false;
+    setQuestion("");
+    setPrivateNote(false);
     const restore = async () => {
       const cached = await getCachedUserDraft(
         ownerId,
@@ -139,6 +149,8 @@ export default function AppointmentDetailScreen() {
           "appointment_preparation",
           appointmentId,
         ).catch(() => null));
+      if (cancelled) return;
+      setDraftOwnerKey(draftKey);
       if (!draft) return;
       if (typeof draft.content.question === "string") {
         setQuestion(draft.content.question);
@@ -148,29 +160,48 @@ export default function AppointmentDetailScreen() {
       }
       setStatus("Ta préparation en cours est disponible.");
     };
-    void restore();
-  }, [appointmentId, ownerId]);
+    void restore().catch(() => {
+      if (!cancelled) setDraftOwnerKey(draftKey);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [appointmentId, ownerId, draftKey]);
 
   useEffect(() => {
-    if (!appointmentId || !ownerId || !question.trim()) return;
+    if (
+      !appointmentId ||
+      !ownerId ||
+      !draftReady ||
+      isSaving ||
+      !question.trim()
+    )
+      return;
     const timeout = setTimeout(() => {
-      void saveUserDraftLocally(ownerId, {
+      pendingDraftSave.current = saveUserDraftLocally(ownerId, {
         kind: "appointment_preparation",
         contextKey: appointmentId,
         content: { question, privateNote },
-      }).then((result) => {
-        if (result.pending)
-          setStatus("Préparation conservée sur cet appareil.");
-      });
+      })
+        .then((result) => {
+          if (result.pending)
+            setStatus("Préparation conservée sur cet appareil.");
+        })
+        .catch(() =>
+          setStatus("Préparation non enregistrée. Réessaie avant de quitter."),
+        );
     }, 500);
+    draftTimer.current = timeout;
     return () => clearTimeout(timeout);
-  }, [appointmentId, ownerId, privateNote, question]);
+  }, [appointmentId, ownerId, privateNote, question, draftReady, isSaving]);
 
   const addQuestion = async () => {
     if (!appointmentId || !ownerId || !question.trim()) return;
     setIsSaving(true);
+    clearTimeout(draftTimer.current);
     setStatus(undefined);
     try {
+      await pendingDraftSave.current;
       const content = question.trim();
       const result = await saveAppointmentQuestionOfflineFirst(
         ownerId,
@@ -479,6 +510,7 @@ export default function AppointmentDetailScreen() {
           placeholder="Ce que tu veux aborder…"
           placeholderTextColor={color.inkMuted}
           style={[styles.input, styles.multiline]}
+          editable={draftReady && !isSaving}
           value={question}
         />
         <View style={styles.switchRow}>
@@ -490,11 +522,12 @@ export default function AppointmentDetailScreen() {
             accessibilityLabel="Garder cette question hors du brief"
             onValueChange={setPrivateNote}
             trackColor={{ false: color.border, true: color.sage }}
+            disabled={!draftReady || isSaving}
             value={privateNote}
           />
         </View>
         <ActionButton
-          disabled={!question.trim() || isSaving}
+          disabled={!draftReady || !question.trim() || isSaving}
           label="Ajouter la question"
           onPress={() => void addQuestion()}
         />

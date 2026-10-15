@@ -72,29 +72,17 @@ import {
   type EventType,
 } from "@/lib/design-tokens";
 import {
-  getCaregiverAccessLog,
-  getCaregiverActivity,
-  getCaregiverDigestPreferences,
-  getCaregiverSummary,
-  getMyCaregivers,
-  getMyPatients,
   inviteCaregiver,
   removeCaregiverRelationship,
   updateCaregiverPermissions,
   updateCaregiverDigestPreferences,
 } from "@/features/caregiver/caregiver.action";
+import { readCaregiverDashboard } from "@/features/caregiver/dashboard-query";
 import { useI18n } from "@/i18n/provider";
 import {
   caregiverPermissionValues,
   type CaregiverPermission,
 } from "@/features/caregiver/permissions";
-
-type CaregiverSummary = {
-  observationsThisWeek: number;
-  observationsThisMonth: number;
-  eventsThisMonth: number;
-  concerningEvents: number;
-};
 
 type AccessWindowDays = 7 | 30 | 90;
 
@@ -163,11 +151,8 @@ export function CaregiverContent() {
 
   const { data: patients, isLoading: patientsLoading } = useQuery({
     queryKey: ["my-patients"],
-    queryFn: async () => {
-      const result = await getMyPatients();
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data ?? [];
-    },
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("patients", undefined, signal),
   });
 
   const hasPatients = (patients?.length ?? 0) > 0;
@@ -180,33 +165,22 @@ export function CaregiverContent() {
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ["caregiver-summary", activityScope],
-    queryFn: async () => {
-      const result = await getCaregiverSummary({ scope: activityScope });
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data as CaregiverSummary;
-    },
+    enabled: patients !== undefined,
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("summary", activityScope, signal),
   });
 
   const { data: activity, isLoading: activityLoading } = useQuery({
     queryKey: ["caregiver-activity", activityScope],
-    queryFn: async () => {
-      const result = await getCaregiverActivity({
-        days: 30,
-        limit: 10,
-        scope: activityScope,
-      });
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data;
-    },
+    enabled: patients !== undefined,
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("activity", activityScope, signal),
   });
 
   const { data: caregivers, isLoading: caregiversLoading } = useQuery({
     queryKey: ["my-caregivers"],
-    queryFn: async () => {
-      const result = await getMyCaregivers();
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data;
-    },
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("caregivers", undefined, signal),
   });
 
   const {
@@ -215,20 +189,14 @@ export function CaregiverContent() {
     isError: accessLogError,
   } = useQuery({
     queryKey: ["caregiver-access-log"],
-    queryFn: async () => {
-      const result = await getCaregiverAccessLog({ limit: 8 });
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data ?? [];
-    },
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("access", undefined, signal),
   });
 
   const { data: digestPreferences } = useQuery({
     queryKey: ["caregiver-digest-preferences"],
-    queryFn: async () => {
-      const result = await getCaregiverDigestPreferences();
-      if (result.serverError) throw new Error(result.serverError);
-      return result.data;
-    },
+    queryFn: async ({ signal }) =>
+      readCaregiverDashboard("preferences", undefined, signal),
   });
 
   const inviteMutation = useMutation({
@@ -243,6 +211,8 @@ export function CaregiverContent() {
         accessExpiresAt: endOfUtcDate(inviteAccessExpiresOn),
       });
       if (result.serverError) throw new Error(result.serverError);
+      if (!result.data || result.validationErrors)
+        throw new Error("common.actionFailed");
       return result.data;
     },
     onSuccess: () => {

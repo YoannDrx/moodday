@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 
 type AuthConfig = {
   socialProviders: Record<
@@ -19,7 +20,11 @@ type AuthConfig = {
       updateUserInfoOnLink: boolean;
     };
   };
-  rateLimit: { max: number; customRules: Record<string, { max: number }> };
+  rateLimit: {
+    max: number;
+    customStorage: { consume: unknown };
+    customRules: Record<string, { max: number }>;
+  };
   databaseHooks: {
     session: {
       create: { after: (session: Record<string, unknown>) => Promise<void> };
@@ -163,6 +168,9 @@ vi.mock("@email/auth/verify-email", () => ({ default: vi.fn(() => null) }));
 import { prisma } from "@/lib/prisma";
 
 const baseEnv = () => ({
+  OAUTH_GOOGLE_ENABLED: true,
+  OAUTH_GITHUB_ENABLED: true,
+  OAUTH_APPLE_ENABLED: true,
   GITHUB_CLIENT_ID: "github-client",
   GITHUB_CLIENT_SECRET: "github-secret",
   GOOGLE_CLIENT_ID: "google-client",
@@ -200,6 +208,14 @@ const loadConfig = async (
 };
 
 describe("Better Auth production configuration", () => {
+  it("keeps configured providers disabled until their explicit rollout flag is enabled", async () => {
+    const config = await loadConfig({
+      OAUTH_GOOGLE_ENABLED: false,
+      OAUTH_APPLE_ENABLED: false,
+      OAUTH_GITHUB_ENABLED: false,
+    });
+    expect(config.socialProviders).toEqual({});
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     state.setupResendCustomer.mockResolvedValue(undefined);
@@ -241,6 +257,7 @@ describe("Better Auth production configuration", () => {
       disableSignUp: true,
     });
     expect(config.rateLimit.max).toBe(60);
+    expect(config.rateLimit.customStorage.consume).toBeTypeOf("function");
     expect(config.rateLimit.customRules["/sign-in/email"].max).toBe(5);
     expect(config.rateLimit.customRules["/request-password-reset"].max).toBe(3);
     expect(config.account).toEqual({

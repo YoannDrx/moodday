@@ -18,6 +18,8 @@ type MoodEntry = {
   value: number;
   note: string | null;
   date: string;
+  localDate?: string;
+  source?: "journal" | "check-in";
 };
 
 type DosageChange = {
@@ -43,31 +45,35 @@ export function MoodChart({
   height = 300,
   compact = false,
 }: MoodChartProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const chartData = useMemo(() => {
     // Group entries by date and average if multiple per day
     const byDate = new Map<
       string,
-      { sum: number; count: number; notes: string[] }
+      { sum: number; count: number; notes: string[]; sources: Set<string> }
     >();
 
     for (const entry of moodEntries) {
-      const dateKey = new Date(entry.date).toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "2-digit",
-      });
+      const dateKey = entry.localDate
+        ? `${entry.localDate.slice(8, 10)}/${entry.localDate.slice(5, 7)}`
+        : new Date(entry.date).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+          });
 
       const existing = byDate.get(dateKey);
       if (existing) {
         existing.sum += entry.value;
         existing.count += 1;
         if (entry.note) existing.notes.push(entry.note);
+        if (entry.source) existing.sources.add(entry.source);
       } else {
         byDate.set(dateKey, {
           sum: entry.value,
           count: 1,
           notes: entry.note ? [entry.note] : [],
+          sources: new Set(entry.source ? [entry.source] : []),
         });
       }
     }
@@ -76,6 +82,7 @@ export function MoodChart({
       date,
       value: Math.round((data.sum / data.count) * 10) / 10,
       notes: data.notes,
+      sources: [...data.sources],
     }));
   }, [moodEntries]);
 
@@ -108,7 +115,10 @@ export function MoodChart({
     label,
   }: {
     active?: boolean;
-    payload?: { value: number; payload: { notes: string[] } }[];
+    payload?: {
+      value: number;
+      payload: { notes: string[]; sources?: string[] };
+    }[];
     label?: string;
   }) => {
     if (active && payload?.length) {
@@ -126,6 +136,16 @@ export function MoodChart({
               {entry.payload.notes[0]}
             </p>
           )}
+          {entry.payload.sources?.length ? (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {locale === "fr" ? "Source : " : "Source: "}
+              {entry.payload.sources
+                .map((source) =>
+                  source === "check-in" ? "Check-in" : "Journal",
+                )
+                .join(" · ")}
+            </p>
+          ) : null}
           {dosageMarker && (
             <p className="mt-1 text-sm text-orange-500">{dosageMarker.label}</p>
           )}

@@ -204,7 +204,7 @@ describe("journal search actions", () => {
   });
 
   it("builds bounded server-side text, tag, mood and civil-date filters", async () => {
-    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
       { id: "mood-1", value: 0 },
     ] as never);
     await expect(
@@ -222,34 +222,27 @@ describe("journal search actions", () => {
       entries: [{ id: "mood-1", value: 0 }],
       timezone: "Europe/Paris",
     });
-    expect(prisma.moodEntry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          userId: user.id,
-          note: { contains: "travail", mode: "insensitive" },
-          tags: { hasEvery: ["protective"] },
-          value: { gte: 0, lte: 6 },
-          createdAt: { gte: expect.any(Date), lt: expect.any(Date) },
-        }),
-        skip: 30,
-        take: 30,
-      }),
+    const sql = vi.mocked(prisma.$queryRaw).mock.calls.at(-1)?.[0] as {
+      sql: string;
+      values: unknown[];
+    };
+    expect(sql.sql).toContain("UNION ALL");
+    expect(sql.sql).toContain("LIMIT ? OFFSET ?");
+    expect(sql.values).toEqual(
+      expect.arrayContaining([user.id, "travail", "protective", 0, 6, 30]),
     );
+    expect(sql.sql).not.toContain("travail");
   });
 
   it("supports an unfiltered search and rejects inverted or oversized ranges", async () => {
-    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([]);
     await invoke(searchJournal, {
       query: "",
       tags: [],
       page: 1,
       pageSize: 10,
     });
-    expect(prisma.moodEntry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.not.objectContaining({ note: expect.anything() }),
-      }),
-    );
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
 
     await expect(
       invoke(searchJournal, {

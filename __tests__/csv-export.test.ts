@@ -67,6 +67,26 @@ const data: ConsultationExportData = {
 };
 
 describe("consultation CSV export", () => {
+  it("exports a V2 civil day without inventing an exact occurrence time", () => {
+    const csv = buildConsultationCsv({
+      ...data,
+      mood: {
+        ...data.mood,
+        entries: [
+          {
+            ...data.mood.entries[0],
+            note: null,
+            source: "check-in",
+            timePrecision: "day",
+            localDate: "2026-07-16",
+          },
+        ],
+      },
+    });
+    expect(csv).toContain(
+      "mood,,2026-07-16,daily_check_in,6,4,recorded,,Europe/Paris,check-in",
+    );
+  });
   it("keeps every record, source and time zone in an Excel-friendly CSV", () => {
     const csv = buildConsultationCsv(data);
 

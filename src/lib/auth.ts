@@ -24,6 +24,7 @@ import {
 } from "./server-url";
 import { deleteUserDataOutsideAuthCascade } from "./user/delete-user-data";
 import { notifySignificantNewSession } from "./auth/new-session-alert";
+import { authRateLimitStorage } from "./auth/rate-limit-storage";
 import {
   getOperationalErrorCode,
   getOperationalSubjectReference,
@@ -63,7 +64,11 @@ const generateAppleClientSecret = async ({
     .sign(signingKey);
 };
 
-if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+if (
+  env.OAUTH_GITHUB_ENABLED &&
+  env.GITHUB_CLIENT_ID &&
+  env.GITHUB_CLIENT_SECRET
+) {
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
@@ -71,7 +76,11 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
   };
 }
 
-if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+if (
+  env.OAUTH_GOOGLE_ENABLED &&
+  env.GOOGLE_CLIENT_ID &&
+  env.GOOGLE_CLIENT_SECRET
+) {
   SocialProviders.google = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
@@ -88,6 +97,7 @@ const applePrivateKey = env.APPLE_PRIVATE_KEY;
 const appleAppBundleIdentifier = env.APPLE_APP_BUNDLE_IDENTIFIER;
 
 if (
+  env.OAUTH_APPLE_ENABLED &&
   appleClientId &&
   appleTeamId &&
   appleKeyId &&
@@ -132,6 +142,7 @@ export const auth = betterAuth({
   rateLimit: {
     enabled: true,
     storage: "database",
+    customStorage: authRateLimitStorage,
     modelName: "rateLimit",
     window: 60,
     max: isolatedE2ERateLimit ?? 60,

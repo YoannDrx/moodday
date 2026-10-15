@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { acceptAccountConsentsSchema, accountAccessSchema } from "./index";
+
 export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
@@ -9,6 +12,53 @@ export const moodDayV2OpenApi = {
   servers: [{ url: "/api/v2" }],
   security: [{ cookieAuth: [] }],
   paths: {
+    "/account-access": {
+      get: {
+        operationId: "getAccountAccess",
+        description:
+          "Session-only onboarding gate. Returns verification state and current consent versions; no health data. Does not require prior product consent.",
+        responses: {
+          "200": {
+            description: "Email verification, consent state and versions",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AccountAccessResponse" },
+              },
+            },
+          },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "acceptAccountConsents",
+        description:
+          "Verified session required. Four explicit acceptances, locale and the displayed legal versions are required. Replays are idempotent and cannot restore revoked consent.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AcceptAccountConsents" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Consent accepted",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AccountAccessResponse" },
+              },
+            },
+          },
+          "400": { description: "Missing explicit acceptance" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "403": { description: "Unverified email or revoked consent" },
+          "409": {
+            description: "Displayed consent versions are no longer current",
+          },
+        },
+      },
+    },
     "/capabilities": {
       get: {
         operationId: "getRuntimeCapabilities",
@@ -862,6 +912,15 @@ export const moodDayV2OpenApi = {
       },
     },
     schemas: {
+      AcceptAccountConsents: z.toJSONSchema(acceptAccountConsentsSchema),
+      AccountAccessResponse: {
+        type: "object",
+        required: ["data", "requestId"],
+        properties: {
+          data: z.toJSONSchema(accountAccessSchema),
+          requestId: { type: "string" },
+        },
+      },
       CreateCheckIn: {
         type: "object",
         required: ["operationId", "depth", "localDate", "timezone"],

@@ -69,6 +69,32 @@ import HomePage from "@app/page";
 import { ImmersiveLanding } from "@/features/landing/immersive-landing";
 
 describe("immersive public landing", () => {
+  it.each(["closed", "invite"] as const)(
+    "announces %s access without promising immediate signup",
+    (signupMode) => {
+      render(
+        <ImmersiveLanding
+          signupMode={signupMode}
+          billingEnabled={false}
+          aiInsightsEnabled={false}
+          caregiverSharingEnabled={false}
+        />,
+      );
+      expect(
+        screen.queryByRole("link", { name: "Commencer gratuitement" }),
+      ).not.toBeInTheDocument();
+      const links = screen.getAllByRole("link", {
+        name:
+          signupMode === "closed"
+            ? "Se connecter · accès existant"
+            : "Accès sur invitation",
+      });
+      expect(links[0]).toHaveAttribute(
+        "href",
+        signupMode === "closed" ? "/auth/signin" : "/auth/signup",
+      );
+    },
+  );
   beforeEach(() => {
     vi.clearAllMocks();
     state.locale = "fr";
@@ -77,6 +103,7 @@ describe("immersive public landing", () => {
   it("renders the complete factual French proposition and enabled caregiver surface", () => {
     render(
       <ImmersiveLanding
+        signupMode="public"
         billingEnabled={true}
         aiInsightsEnabled={true}
         caregiverSharingEnabled={true}

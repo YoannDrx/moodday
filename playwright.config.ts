@@ -54,6 +54,7 @@ process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED = "true";
 
 const isolatedServiceEnv = {
   PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true",
+  MOODDAY_TEST_MAIL_TRANSPORT: "isolated",
   // Satisfy fail-closed feature configuration without contacting Resend: all
   // browser-test recipients use the reserved playwright-test-* prefix and are
   // short-circuited by sendEmail.
@@ -149,7 +150,8 @@ const config: PlaywrightTestConfig = {
         webServer: {
           command: `pnpm run build && pnpm run start -H 127.0.0.1 -p ${playwrightPort}`,
           url: serverUrl,
-          timeout: 120 * 1000,
+          // Includes the optimized build; measured cold builds exceed 2 min.
+          timeout: 300 * 1000,
           reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
           env: {
             DATABASE_URL: effectivePlaywrightDatabaseUrl,

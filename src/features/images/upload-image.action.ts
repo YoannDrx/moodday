@@ -8,6 +8,8 @@ import {
 } from "@/lib/files/vercel-blob-adapter";
 import { replaceUserProfileImage } from "@/features/profile/profile-image";
 import { z } from "zod";
+import { normalizeAvatar } from "./normalize-avatar";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const uploadImageAction = authAction
   .inputSchema(
@@ -30,18 +32,16 @@ export const uploadImageAction = authAction
       throw new ActionError("Invalid file (not a file)");
     }
 
-    // If file is not an image throw an error
-    if (!file.type.startsWith("image/")) {
-      throw new ActionError("Invalid file (only images are allowed)");
-    }
-
-    // If file is too large throw an error (max 2mb)
-    if (file.size > 2 * 1024 * 1024) {
-      throw new ActionError("File too large (max 2mb)");
-    }
+    await enforceRateLimit({
+      scope: "avatar-upload",
+      identifier: user.id,
+      max: 10,
+      windowSeconds: 3600,
+    });
+    const normalized = await normalizeAvatar(file);
 
     const response = await vercelBlobAdapter.uploadFile({
-      file,
+      file: normalized,
       path: `profile-images/${user.id}`,
     });
 

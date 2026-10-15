@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { randomBytes } from "node:crypto";
 import { createTestAccount } from "./utils/auth-test";
 
 const identifier = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
@@ -56,7 +57,9 @@ test("shares a private-note-safe brief through a fragment token and revokes it",
   expect(briefResponse.status()).toBe(201);
   const briefBody = (await briefResponse.json()) as { data: { id: string } };
 
-  const token = "E".repeat(43);
+  // Browser projects share the isolated database. Even a revoked share retains
+  // its unique token digest, so each scenario needs its own capability token.
+  const token = randomBytes(32).toString("base64url");
   const shareResponse = await page.request.post(
     `/api/v2/appointment-briefs/${briefBody.data.id}/shares`,
     {

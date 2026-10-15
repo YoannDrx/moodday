@@ -103,13 +103,13 @@ export default async function ConsultationPage() {
           description="Prises du jour, changements, stock et prises si besoin."
         />
         <CareLink
-          href="/therapy"
+          href="#rendez-vous"
           icon={HeartPulse}
           title="Rendez-vous"
           description="Préparation, séance, débrief et décisions."
         />
         <CareLink
-          href="/exercises"
+          href="#routines"
           icon={Sparkles}
           title="Routines"
           description="Des objectifs souples, sans série à préserver."
@@ -122,11 +122,21 @@ export default async function ConsultationPage() {
         />
       </section>
 
+      <nav
+        aria-label="Archives"
+        className="flex flex-wrap gap-4 text-sm underline"
+      >
+        <Link href="/therapy">Archives des séances</Link>
+        <Link href="/exercises">Archives des exercices</Link>
+      </nav>
       <section
         className="grid gap-5 lg:grid-cols-2"
         aria-label="Continuité de soin V2"
       >
-        <article className="rounded-[28px] border border-[#dde4df] bg-[#fffdf8] p-5 shadow-[0_16px_40px_rgba(24,49,47,0.05)] sm:p-6">
+        <article
+          id="rendez-vous"
+          className="rounded-[28px] border border-[#dde4df] bg-[#fffdf8] p-5 shadow-[0_16px_40px_rgba(24,49,47,0.05)] sm:p-6"
+        >
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#dcede8] text-[#1e7775]">
               <CalendarDays className="size-5" aria-hidden="true" />
@@ -202,7 +212,10 @@ export default async function ConsultationPage() {
           )}
         </article>
 
-        <article className="rounded-[28px] border border-[#dde4df] bg-[#fffdf8] p-5 shadow-[0_16px_40px_rgba(24,49,47,0.05)] sm:p-6">
+        <article
+          id="routines"
+          className="rounded-[28px] border border-[#dde4df] bg-[#fffdf8] p-5 shadow-[0_16px_40px_rgba(24,49,47,0.05)] sm:p-6"
+        >
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#f6e4d4] text-[#744c30]">
               <Leaf className="size-5" aria-hidden="true" />

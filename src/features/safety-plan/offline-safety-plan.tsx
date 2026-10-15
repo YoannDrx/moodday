@@ -21,7 +21,10 @@ export function OfflineSafetyPlan() {
   const [plan, setPlan] = useState<OfflineSafetyPlanSnapshot | null>(null);
 
   useEffect(() => {
+    let generation = 0;
     const load = () => {
+      const current = ++generation;
+      setPlan(null);
       const ownerId = getActiveOfflineOwner();
       if (!ownerId) {
         setPlan(null);
@@ -31,13 +34,19 @@ export function OfflineSafetyPlan() {
         ownerId,
         "safety-plan",
       )
-        .then(setPlan)
-        .catch(() => setPlan(null));
+        .then((snapshot) => {
+          if (current === generation) setPlan(snapshot);
+        })
+        .catch(() => {
+          if (current === generation) setPlan(null);
+        });
     };
     load();
     window.addEventListener("moodday:offline-owner-changed", load);
-    return () =>
+    return () => {
+      generation++;
       window.removeEventListener("moodday:offline-owner-changed", load);
+    };
   }, []);
 
   if (!plan) return null;

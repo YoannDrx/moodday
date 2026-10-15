@@ -4,12 +4,11 @@ import { authAction } from "@/lib/actions/safe-actions";
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
 import {
-  addCivilDays,
-  civilMidnightToUtc,
   getCivilDateRangeDayCount,
   getSafeTimeZone,
 } from "@/lib/temporal/civil-date";
 import { z } from "zod";
+import { searchJournalEntries } from "./journal-query";
 
 const tagSchema = z.string().trim().min(1).max(40);
 
@@ -82,41 +81,6 @@ export const searchJournal = authAction
       select: { timezone: true },
     });
     const timezone = getSafeTimeZone(preferences?.timezone);
-    const entries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        ...(parsedInput.query
-          ? { note: { contains: parsedInput.query, mode: "insensitive" } }
-          : {}),
-        ...(parsedInput.tags.length > 0
-          ? { tags: { hasEvery: parsedInput.tags } }
-          : {}),
-        value: {
-          gte: parsedInput.moodMin,
-          lte: parsedInput.moodMax,
-        },
-        createdAt: {
-          gte: parsedInput.start
-            ? civilMidnightToUtc(parsedInput.start, timezone)
-            : undefined,
-          lt: parsedInput.end
-            ? civilMidnightToUtc(addCivilDays(parsedInput.end, 1), timezone)
-            : undefined,
-        },
-      },
-      select: {
-        id: true,
-        value: true,
-        energy: true,
-        anxiety: true,
-        tags: true,
-        note: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      skip: (parsedInput.page - 1) * parsedInput.pageSize,
-      take: parsedInput.pageSize,
-    });
+    const entries = await searchJournalEntries(user.id, timezone, parsedInput);
     return { entries, timezone };
   });

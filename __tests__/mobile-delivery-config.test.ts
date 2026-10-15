@@ -94,7 +94,7 @@ describe("mobile delivery configuration", () => {
             privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
           },
           "en-US": {
-            title: "Mood Day",
+            title: "Moodday: Mood Journal",
             supportUrl: "https://www.moodday.app/help",
             privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
             privacyChoicesUrl: "https://www.moodday.app/privacy-choices",

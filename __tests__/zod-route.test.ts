@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { getAuthorizedApiUser } from "@/lib/auth/auth-user";
 import { ZodRouteError } from "@/lib/errors/zod-route-error";
 import { logger } from "@/lib/logger";
@@ -121,6 +122,7 @@ describe("zod-route", () => {
 
   it("authRoute should add the user inside the context if the user is authenticated", async () => {
     vi.mocked(getAuthorizedApiUser).mockResolvedValue(user);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ count: 1 }]);
 
     const GET = authRoute.handler((_request, { ctx }) => {
       return {

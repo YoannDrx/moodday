@@ -1,6 +1,10 @@
 import type { CheckInDto, CreateCheckInInput } from "@moodday/contracts";
 import { prisma } from "@/lib/prisma";
-import { createPayloadDigest } from "../sync/digest";
+import {
+  checkInDigest,
+  lockSyncOperation,
+  OperationConflictError,
+} from "../sync/operation-identity";
 
 export const checkInSelection = {
   id: true,
@@ -45,12 +49,18 @@ export const createCheckIn = async (
   input: CreateCheckInInput,
 ): Promise<CheckInDto> => {
   return prisma.$transaction(async (transaction) => {
+    await lockSyncOperation(transaction, userId, input.operationId);
     const existingReceipt = await transaction.syncOperation.findUnique({
       where: { userId_operationId: { userId, operationId: input.operationId } },
-      select: { entityType: true },
+      select: { entityType: true, mutation: true, status: true },
     });
-    if (existingReceipt && existingReceipt.entityType !== "check_in") {
-      throw new Error("Operation identifier already belongs to another entity");
+    if (
+      existingReceipt &&
+      (existingReceipt.entityType !== "check_in" ||
+        existingReceipt.mutation !== "create" ||
+        existingReceipt.status !== "applied")
+    ) {
+      throw new OperationConflictError();
     }
 
     const checkIn = await transaction.checkIn.upsert({
@@ -74,6 +84,10 @@ export const createCheckIn = async (
       select: checkInSelection,
     });
 
+    if (checkInDigest(checkIn) !== checkInDigest(input)) {
+      throw new OperationConflictError();
+    }
+
     if (!existingReceipt) {
       await transaction.syncOperation.create({
         data: {
@@ -83,7 +97,7 @@ export const createCheckIn = async (
           entityId: checkIn.id,
           mutation: "create",
           status: "applied",
-          payloadDigest: createPayloadDigest(input),
+          payloadDigest: checkInDigest(input),
           appliedAt: new Date(),
         },
       });
@@ -95,15 +109,17 @@ export const createCheckIn = async (
 
 export const listCheckIns = async ({
   userId,
+  localDate,
   cursor,
   limit = 20,
 }: {
   userId: string;
+  localDate?: string;
   cursor?: string;
   limit?: number;
 }) => {
   const rows = await prisma.checkIn.findMany({
-    where: { userId },
+    where: { userId, ...(localDate ? { localDate } : {}) },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

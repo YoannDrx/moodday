@@ -254,16 +254,29 @@ const copy = {
 } as const;
 
 export function ImmersiveLanding({
+  signupMode = "closed",
   billingEnabled,
   aiInsightsEnabled,
   caregiverSharingEnabled,
 }: {
+  signupMode?: "public" | "invite" | "closed";
   billingEnabled: boolean;
   aiInsightsEnabled: boolean;
   caregiverSharingEnabled: boolean;
 }) {
   const { locale } = useI18n();
   const t = copy[locale === "en" ? "en" : "fr"];
+  const signupHref = signupMode === "closed" ? "/auth/signin" : "/auth/signup";
+  const accessLabel =
+    signupMode === "public"
+      ? null
+      : signupMode === "invite"
+        ? locale === "fr"
+          ? "Accès sur invitation"
+          : "Invited access"
+        : locale === "fr"
+          ? "Se connecter · accès existant"
+          : "Sign in · existing access";
   const [menuOpen, setMenuOpen] = useState(false);
   const claims = getActivePublicClaims("landing").filter(
     (claim) => claim.id !== "caregiver-permissions" || caregiverSharingEnabled,
@@ -307,13 +320,13 @@ export function ImmersiveLanding({
               {t.nav.signin}
             </Link>
             <Link
-              href="/auth/signup"
+              href={signupHref}
               className={cn(
                 buttonVariants(),
                 "rounded-full bg-[#1E7775] px-5 text-white hover:bg-[#175f5d]",
               )}
             >
-              {t.nav.start}
+              {accessLabel ?? t.nav.start}
             </Link>
           </div>
           <button
@@ -343,13 +356,13 @@ export function ImmersiveLanding({
               </Link>
             ))}
             <Link
-              href="/auth/signup"
+              href={signupHref}
               className={cn(
                 buttonVariants(),
                 "mt-2 w-full rounded-full bg-[#1E7775] text-white",
               )}
             >
-              {t.nav.start}
+              {accessLabel ?? t.nav.start}
             </Link>
           </nav>
         )}
@@ -372,13 +385,13 @@ export function ImmersiveLanding({
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/auth/signup"
+                  href={signupHref}
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "group rounded-full bg-[#1E7775] px-7 text-white hover:bg-[#175f5d]",
                   )}
                 >
-                  {t.hero.primary}
+                  {accessLabel ?? t.hero.primary}
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
@@ -606,10 +619,11 @@ export function ImmersiveLanding({
                   {t.caregivers.description}
                 </p>
                 <Link
-                  href="/auth/signup"
+                  href={signupHref}
                   className="mt-8 inline-flex items-center gap-2 font-bold text-[#1E7775]"
                 >
-                  {t.caregivers.action} <ChevronRight className="size-4" />
+                  {accessLabel ?? t.caregivers.action}{" "}
+                  <ChevronRight className="size-4" />
                 </Link>
               </div>
             </div>
@@ -684,13 +698,13 @@ export function ImmersiveLanding({
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
-                href="/auth/signup"
+                href={signupHref}
                 className={cn(
                   buttonVariants({ size: "lg" }),
                   "rounded-full bg-white px-7 text-[#1E7775] hover:bg-[#F7F5F0]",
                 )}
               >
-                {t.cta.primary}
+                {accessLabel ?? t.cta.primary}
               </Link>
               <Link
                 href="#pricing"

@@ -9,6 +9,7 @@ import {
   getSafeTimeZone,
 } from "@/lib/temporal/civil-date";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 const dateKey = z.string().date();
 const preparationSchema = z
@@ -64,18 +65,22 @@ export const saveConsultationPreparation = authAction
       status: parsedInput.status,
     };
     if (!parsedInput.id) {
-      return prisma.consultationPreparation.create({
+      const created = await prisma.consultationPreparation.create({
         data: { ...data, userId: user.id },
       });
+      revalidatePath("/consultation");
+      return created;
     }
     const result = await prisma.consultationPreparation.updateMany({
       where: { id: parsedInput.id, userId: user.id },
       data,
     });
     if (result.count !== 1) throw new ActionError("Preparation not found");
-    return prisma.consultationPreparation.findUniqueOrThrow({
+    const updated = await prisma.consultationPreparation.findUniqueOrThrow({
       where: { id: parsedInput.id },
     });
+    revalidatePath("/consultation");
+    return updated;
   });
 
 export const setConsultationPreparationStatus = authAction
@@ -91,5 +96,6 @@ export const setConsultationPreparationStatus = authAction
       data: { status: parsedInput.status },
     });
     if (result.count !== 1) throw new ActionError("Preparation not found");
+    revalidatePath("/consultation");
     return { id: parsedInput.id, status: parsedInput.status };
   });

@@ -24,7 +24,8 @@ export const SignInProviders = ({
 }) => {
   const searchParams = useSearchParams();
   const callbackUrlParams = searchParams.get("callbackUrl");
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const providerError = searchParams.get("error");
 
   // Default to /dashboard if no callback URL is provided or if it's the landing page
   const rawCallbackUrl = callbackUrl ?? callbackUrlParams;
@@ -38,6 +39,17 @@ export const SignInProviders = ({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
+      {providerError ? (
+        <p role="alert" className="text-destructive text-sm">
+          {providerError === "access_denied"
+            ? locale === "fr"
+              ? "Connexion annulée. Tu peux réessayer ou utiliser ton e-mail."
+              : "Sign-in cancelled. Try again or use your email."
+            : locale === "fr"
+              ? "Le fournisseur n’a pas pu terminer la connexion. Réessaie ou utilise ton e-mail."
+              : "The provider could not complete sign-in. Try again or use your email."}
+        </p>
+      ) : null}
       <SignInCredentialsAndMagicLinkForm callbackUrl={finalCallbackUrl} />
       <Divider>{t("auth.signIn.or")}</Divider>
       <PasskeySignInButton callbackUrl={finalCallbackUrl} />
@@ -45,9 +57,8 @@ export const SignInProviders = ({
       {providerCount > 0 ? (
         <div
           className={cn("grid gap-2 lg:gap-4", {
-            "grid-cols-1": providerCount === 1,
-            "grid-cols-2": providerCount === 2,
-            "grid-cols-3": providerCount >= 3,
+            "grid-cols-1": providerCount !== 2,
+            "grid-cols-1 sm:grid-cols-2": providerCount === 2,
           })}
         >
           {activeProviders.map((providerId) => (
@@ -70,7 +81,7 @@ export const SignInProviders = ({
           <Typography
             variant="link"
             as={Link}
-            href={`/auth/signup?callbackUrl=${finalCallbackUrl}`}
+            href={`/auth/signup?callbackUrl=${encodeURIComponent(finalCallbackUrl)}`}
           >
             {t("auth.signIn.signUp")}
           </Typography>

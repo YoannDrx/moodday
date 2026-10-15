@@ -1,4 +1,6 @@
 import type {
+  AccountAccessDto,
+  AcceptAccountConsentsInput,
   AcceptCircleInvitationInput,
   ApiError,
   AppointmentDto,
@@ -98,20 +100,48 @@ export const createApiClient = ({
         ...init?.headers,
       },
     });
-    const body = (await response.json()) as
-      | { data: T; requestId: string }
-      | ApiError;
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+    const record =
+      body !== null && typeof body === "object"
+        ? (body as Record<string, unknown>)
+        : undefined;
 
-    if (!response.ok || !("data" in body)) {
+    if (!response.ok || !record || !("data" in record)) {
+      const candidate = record?.error;
+      const structured =
+        candidate !== null &&
+        typeof candidate === "object" &&
+        "code" in candidate &&
+        typeof candidate.code === "string" &&
+        "message" in candidate &&
+        typeof candidate.message === "string" &&
+        "recoverable" in candidate &&
+        typeof candidate.recoverable === "boolean" &&
+        "requestId" in candidate &&
+        typeof candidate.requestId === "string";
       const error =
-        "error" in body
-          ? body.error
-          : {
-              code: "unexpected_response",
-              message: "La réponse du serveur est invalide.",
-              recoverable: true,
-              requestId: response.headers.get("x-request-id") ?? "unknown",
-            };
+        response.status === 401
+          ? {
+              code: "authentication_required",
+              message: "Une connexion vérifiée est nécessaire.",
+              recoverable: false,
+              requestId: structured
+                ? (candidate.requestId as string)
+                : (response.headers.get("x-request-id") ?? "unknown"),
+            }
+          : structured
+            ? (candidate as ApiError["error"])
+            : {
+                code: "unexpected_response",
+                message: "La réponse du serveur est invalide.",
+                recoverable: true,
+                requestId: response.headers.get("x-request-id") ?? "unknown",
+              };
       const apiError = new MoodDayApiError(error);
       if (apiError.code === "authentication_required") {
         try {
@@ -123,10 +153,17 @@ export const createApiClient = ({
       throw apiError;
     }
 
-    return body.data;
+    return record.data as T;
   };
 
   return {
+    getAccountAccess: async () =>
+      request<AccountAccessDto>("/api/v2/account-access"),
+    acceptAccountConsents: async (input: AcceptAccountConsentsInput) =>
+      request<AccountAccessDto>("/api/v2/account-access", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
     getRuntimeCapabilities: async () =>
       request<RuntimeCapabilitiesDto>("/api/v2/capabilities"),
     getSyncedPreferences: async () =>

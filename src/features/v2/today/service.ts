@@ -10,7 +10,7 @@ export const getToday = async ({
   localDate: string;
 }): Promise<TodayDto> => {
   const [checkIns, nextAppointment, routines, sources] = await Promise.all([
-    listCheckIns({ userId, limit: 1 }),
+    listCheckIns({ userId, localDate, limit: 1 }),
     prisma.appointment.findFirst({
       where: { userId, status: "scheduled", startsAt: { gte: new Date() } },
       orderBy: { startsAt: "asc" },

@@ -165,4 +165,18 @@ describe("Better Auth route security gates", () => {
     );
     expect(claimEmailVerificationToken).not.toHaveBeenCalled();
   });
+  it("rejects malformed signup bodies and missing verification tokens", async () => {
+    getSignupAccess.mockReturnValue({
+      allowed: false,
+      mode: "invite",
+      code: "INVITATION_REQUIRED",
+    });
+    expect((await POST(request("/api/auth/sign-up/email"))).status).toBe(403);
+    expect(getSignupAccess).toHaveBeenCalledWith(undefined);
+    claimEmailVerificationToken.mockResolvedValue(false);
+    expect((await GET(request("/api/auth/verify-email", "GET"))).status).toBe(
+      400,
+    );
+    expect(claimEmailVerificationToken).toHaveBeenCalledWith("");
+  });
 });

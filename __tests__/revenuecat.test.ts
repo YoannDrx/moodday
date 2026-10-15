@@ -106,6 +106,72 @@ describe("RevenueCat webhook", () => {
     vi.mocked(syncRevenueCatCustomer).mockResolvedValue({} as never);
   });
 
+  it("rejects missing configuration, maintenance and malformed signed payloads", async () => {
+    const request = signedRequest(eventBody());
+    mutableEnv.REVENUECAT_WEBHOOK_SIGNING_SECRET = undefined;
+    expect((await POST(request)).status).toBe(503);
+    mutableEnv.MAINTENANCE_MODE = true;
+    expect((await POST(request)).status).toBe(503);
+    mutableEnv.MAINTENANCE_MODE = false;
+    mutableEnv.REVENUECAT_WEBHOOK_SIGNING_SECRET =
+      "revenuecat-signing-secret-for-tests";
+    expect((await POST(signedRequest("{"))).status).toBe(400);
+    expect((await POST(signedRequest('{"event":{}}'))).status).toBe(400);
+  });
+
+  it.each([
+    { type: "TEST" },
+    {
+      app_user_id: "$RCAnonymousID:x",
+      original_app_user_id: "$RCAnonymousID:y",
+      aliases: [],
+    },
+  ])("ignores events with no actionable customer: %j", async (override) => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    expect((await POST(signedRequest(eventBody(override)))).status).toBe(200);
+    expect(syncRevenueCatCustomer).not.toHaveBeenCalled();
+    expect(prisma.billingEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "ignored" }),
+      }),
+    );
+  });
+
+  it("records reconciliation failures for a Play Store delivery", async () => {
+    vi.mocked(syncRevenueCatCustomer).mockRejectedValue(
+      new Error("private provider error"),
+    );
+    await POST(signedRequest(eventBody({ store: "PLAY_STORE" })));
+    expect(prisma.billingEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ provider: "play_store" }),
+      }),
+    );
+    expect(prisma.billingEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "failed", errorCode: "revenuecat_handler_failed" },
+      }),
+    );
+  });
+
+  it("does not disguise database failures as duplicate events", async () => {
+    vi.mocked(prisma.billingEvent.create).mockRejectedValue(
+      new Error("database unavailable"),
+    );
+    await expect(POST(signedRequest(eventBody()))).rejects.toThrow(
+      "database unavailable",
+    );
+    vi.mocked(prisma.billingEvent.create).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("unavailable", {
+        code: "P1001",
+        clientVersion: "test",
+      }),
+    );
+    await expect(POST(signedRequest(eventBody()))).rejects.toThrow(
+      "unavailable",
+    );
+  });
+
   it("verifies the raw body HMAC and rejects altered content", () => {
     const body = eventBody();
     const timestamp = String(Math.floor(Date.now() / 1000));

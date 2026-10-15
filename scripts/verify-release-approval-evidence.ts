@@ -4,11 +4,16 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { auditReleaseApprovalEvidence } from "@/lib/operations/release-approval-evidence";
+import {
+  auditReleaseApprovalEvidence,
+  releaseApprovalEvidenceSchema,
+  releaseScopeConfigurationErrors,
+} from "@/lib/operations/release-approval-evidence";
 
 const evidencePath = path.join(
   process.cwd(),
-  "docs/operations/evidence/release-approvals-2026-08.json",
+  process.env.RELEASE_APPROVAL_EVIDENCE_PATH ??
+    "docs/operations/evidence/release-approvals-2026-08.json",
 );
 
 if (!fs.existsSync(evidencePath)) {
@@ -17,6 +22,20 @@ if (!fs.existsSync(evidencePath)) {
 
 const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8")) as unknown;
 const preliminaryResult = auditReleaseApprovalEvidence(evidence);
+const parsedEvidence = releaseApprovalEvidenceSchema.safeParse(evidence);
+if (parsedEvidence.success) {
+  const failures = releaseScopeConfigurationErrors(
+    parsedEvidence.data.releaseScope,
+    {
+      billing: process.env.BILLING_ENABLED === "true",
+      ai: process.env.AI_INSIGHTS_ENABLED === "true",
+      native: process.env.NATIVE_RELEASE_ENABLED === "true",
+    },
+  );
+  for (const failure of failures)
+    console.error(`  [ERROR] document: ${failure}`);
+  if (failures.length) process.exitCode = 1;
+}
 let result = preliminaryResult;
 
 if (preliminaryResult.valid) {
@@ -51,6 +70,7 @@ if (preliminaryResult.valid) {
             .filter(Boolean)
         : [];
     const allowedEvidencePaths = new Set([
+      path.relative(process.cwd(), evidencePath),
       "docs/operations/evidence/credential-rotation-2026-08-14.json",
       "docs/operations/evidence/release-approvals-2026-08.json",
     ]);

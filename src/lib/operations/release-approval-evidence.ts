@@ -24,12 +24,57 @@ export const RELEASE_APPROVAL_REQUIREMENTS = [
   "go_no_go",
 ] as const;
 
-const requirementSchema = z.enum(RELEASE_APPROVAL_REQUIREMENTS);
+const requirementSchema = z.enum([
+  ...RELEASE_APPROVAL_REQUIREMENTS,
+  "native_device_validation",
+  "store_review",
+]);
+export const releaseScopeSchema = z.enum([
+  "moodday-fr-18-plus-2026-08",
+  "core-beta",
+  "commercial",
+  "ai",
+  "native",
+]);
+export type ReleaseScope = z.infer<typeof releaseScopeSchema>;
+export function approvalRequirementsFor(
+  scope: ReleaseScope,
+): readonly string[] {
+  const core = RELEASE_APPROVAL_REQUIREMENTS.filter(
+    (requirement) =>
+      !["openai_processing", "tax", "stripe_live"].includes(requirement),
+  );
+  if (scope === "core-beta") return core;
+  if (scope === "commercial") return [...core, "tax", "stripe_live"];
+  if (scope === "ai") return [...core, "openai_processing"];
+  if (scope === "native")
+    return [...core, "native_device_validation", "store_review"];
+  return RELEASE_APPROVAL_REQUIREMENTS;
+}
+
+/** A narrower evidence profile cannot authorize an enabled optional module. */
+export function releaseScopeConfigurationErrors(
+  scope: ReleaseScope,
+  configuration: { billing: boolean; ai: boolean; native: boolean },
+) {
+  const required = new Set(approvalRequirementsFor(scope));
+  return [
+    configuration.billing && !required.has("stripe_live")
+      ? "billing_outside_release_scope"
+      : null,
+    configuration.ai && !required.has("openai_processing")
+      ? "ai_outside_release_scope"
+      : null,
+    configuration.native && !required.has("native_device_validation")
+      ? "native_outside_release_scope"
+      : null,
+  ].filter((value): value is string => value !== null);
+}
 const timestampSchema = z.string().datetime({ offset: true });
 
 export const releaseApprovalEvidenceSchema = z.object({
   schemaVersion: z.literal(1),
-  releaseScope: z.literal("moodday-fr-18-plus-2026-08"),
+  releaseScope: releaseScopeSchema,
   items: z.array(
     z.object({
       requirement: requirementSchema,
@@ -104,7 +149,7 @@ export function auditReleaseApprovalEvidence(
     itemsByRequirement.set(item.requirement, items);
   }
 
-  for (const requirement of RELEASE_APPROVAL_REQUIREMENTS) {
+  for (const requirement of approvalRequirementsFor(parsed.data.releaseScope)) {
     const items = itemsByRequirement.get(requirement) ?? [];
     if (items.length === 0) {
       findings.push({ requirement, code: "missing_requirement" });

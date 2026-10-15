@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { ActionError } from "@/lib/errors/action-error";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +22,7 @@ export async function enforceRateLimit(params: {
   const windowStart = now - params.windowSeconds * 1000;
   const rows = await prisma.$queryRaw<CounterRow[]>`
     INSERT INTO "rateLimit" ("id", "key", "count", "lastRequest")
-    VALUES (${key}, ${key}, 1, ${BigInt(now)})
+    VALUES (${randomUUID()}, ${key}, 1, ${BigInt(now)})
     ON CONFLICT ("key") DO UPDATE SET
       "count" = CASE
         WHEN "rateLimit"."lastRequest" < ${BigInt(windowStart)} THEN 1

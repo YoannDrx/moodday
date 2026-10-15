@@ -15,6 +15,7 @@ import {
   userDraftSchema,
   userDraftWriteSchema,
   type AppointmentDto,
+  type CheckInDto,
   type AppointmentDecisionDto,
   type AppointmentEventDto,
   type AppointmentQuestionDto,
@@ -51,6 +52,11 @@ import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import { api } from "./api";
 import {
+  reconcileMutableSnapshot,
+  replaceUnchangedMutableSnapshot,
+  type MutableSyncSnapshot,
+} from "./mutable-sync-reconciliation";
+import {
   createLocalOperationSummary,
   createOwnerStorageIdentity,
   normalizeLocalOwnerId,
@@ -72,14 +78,7 @@ type PendingRow = {
 type SnapshotRow = { payload: string };
 type SnapshotEntityType = SyncEntityType;
 
-type MutableStateRow = {
-  entity_type: "user_draft" | "user_preferences";
-  entity_id: string;
-  context_key: string;
-  base_version: string | null;
-  payload: string;
-  state: "synced" | "dirty" | "delete_pending" | "conflict";
-};
+type MutableStateRow = MutableSyncSnapshot;
 
 type OperationCountRow = {
   state: "pending" | "conflict" | "rejected";
@@ -1158,10 +1157,7 @@ const flushDraftMutableState = async (
   }
   if (row.state === "delete_pending" && !server) {
     const database = await getLocalDatabase(ownerId);
-    await database.runAsync(
-      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
-      row.context_key,
-    );
+    await reconcileMutableSnapshot(database, row, null);
     return;
   }
   const result = await pushMutableOperation({
@@ -1184,23 +1180,12 @@ const flushDraftMutableState = async (
   }
   const database = await getLocalDatabase(ownerId);
   if (row.state === "delete_pending") {
-    await database.runAsync(
-      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
-      row.context_key,
-    );
+    await reconcileMutableSnapshot(database, row, null);
     return;
   }
   const canonical = await api.getUserDraft(draft.kind, draft.contextKey);
   if (canonical) {
-    await storeMutableState({
-      ownerId,
-      entityType: "user_draft",
-      entityId: canonical.id,
-      contextKey: row.context_key,
-      baseVersion: canonical.updatedAt,
-      payload: canonical,
-      state: "synced",
-    });
+    await reconcileMutableSnapshot(database, row, canonical);
   }
 };
 
@@ -1236,15 +1221,8 @@ const flushPreferencesMutableState = async (
   }
   const canonical = await api.getSyncedPreferences();
   if (canonical) {
-    await storeMutableState({
-      ownerId,
-      entityType: "user_preferences",
-      entityId: canonical.id,
-      contextKey: "account",
-      baseVersion: canonical.updatedAt,
-      payload: canonical,
-      state: "synced",
-    });
+    const database = await getLocalDatabase(ownerId);
+    await reconcileMutableSnapshot(database, row, canonical);
   }
 };
 
@@ -1314,19 +1292,30 @@ export const refreshUserDraft = async (
   const localKey = `${kind}:${contextKey}`;
   const local = await getMutableState(ownerId, "user_draft", localKey);
   if (local && local.state !== "synced")
-    return userDraftSchema.parse(JSON.parse(local.payload));
+    return local.state === "delete_pending"
+      ? null
+      : userDraftSchema.parse(JSON.parse(local.payload));
   const server = await api.getUserDraft(kind, contextKey);
-  if (!server) return null;
-  await storeMutableState({
-    ownerId,
-    entityType: "user_draft",
-    entityId: server.id,
-    contextKey: localKey,
-    baseVersion: server.updatedAt,
-    payload: server,
-    state: "synced",
-  });
-  return server;
+  const database = await getLocalDatabase(ownerId);
+  await replaceUnchangedMutableSnapshot(
+    database,
+    {
+      entity_type: "user_draft",
+      context_key: localKey,
+    },
+    local,
+    server
+      ? {
+          entity_type: "user_draft",
+          context_key: localKey,
+          entity_id: server.id,
+          base_version: server.updatedAt,
+          payload: JSON.stringify(server),
+          state: "synced",
+        }
+      : null,
+  );
+  return getCachedUserDraft(ownerId, kind, contextKey);
 };
 
 export const getCachedUserDraft = async (
@@ -1339,7 +1328,9 @@ export const getCachedUserDraft = async (
     "user_draft",
     `${kind}:${contextKey}`,
   );
-  return row ? userDraftSchema.parse(JSON.parse(row.payload)) : null;
+  return row && row.state !== "delete_pending"
+    ? userDraftSchema.parse(JSON.parse(row.payload))
+    : null;
 };
 
 export const saveUserDraftLocally = async (
@@ -1379,30 +1370,34 @@ export const discardUserDraft = async (
 ) => {
   const localKey = `${kind}:${contextKey}`;
   const current = await getMutableState(ownerId, "user_draft", localKey);
-  const server = await api.getUserDraft(kind, contextKey).catch(() => null);
-  if (!server && current?.base_version == null) {
-    const database = await getLocalDatabase(ownerId);
-    await database.runAsync(
-      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
-      localKey,
-    );
-    return;
-  }
-  let value: UserDraftDto;
-  if (server) value = server;
-  else {
-    if (!current) return;
-    value = userDraftSchema.parse(JSON.parse(current.payload));
-  }
-  await storeMutableState({
-    ownerId,
-    entityType: "user_draft",
-    entityId: value.id,
-    contextKey: localKey,
-    baseVersion: server?.updatedAt ?? current?.base_version ?? null,
-    payload: value,
-    state: "delete_pending",
-  });
+  // An unavailable server is not evidence that the remote draft was deleted.
+  const server = await api
+    .getUserDraft(kind, contextKey)
+    .catch(() => undefined);
+  if (!current && !server) return;
+  const database = await getLocalDatabase(ownerId);
+  const value =
+    server ??
+    (current ? userDraftSchema.parse(JSON.parse(current.payload)) : null);
+  const removeLocalOnly = server === null && current?.base_version == null;
+  await replaceUnchangedMutableSnapshot(
+    database,
+    {
+      entity_type: "user_draft",
+      context_key: localKey,
+    },
+    current,
+    !removeLocalOnly && value
+      ? {
+          entity_type: "user_draft",
+          context_key: localKey,
+          entity_id: value.id,
+          base_version: server?.updatedAt ?? current?.base_version ?? null,
+          payload: JSON.stringify(value),
+          state: "delete_pending",
+        }
+      : null,
+  );
   await flushMutableSyncStates(ownerId);
 };
 
@@ -1412,17 +1407,29 @@ export const refreshSyncedPreferences = async (ownerId: string) => {
     return syncedPreferencesSchema.parse(JSON.parse(current.payload));
   }
   const server = await api.getSyncedPreferences();
-  if (!server) return null;
-  await storeMutableState({
-    ownerId,
-    entityType: "user_preferences",
-    entityId: server.id,
-    contextKey: "account",
-    baseVersion: server.updatedAt,
-    payload: server,
-    state: "synced",
-  });
-  return server;
+  const database = await getLocalDatabase(ownerId);
+  await replaceUnchangedMutableSnapshot(
+    database,
+    {
+      entity_type: "user_preferences",
+      context_key: "account",
+    },
+    current,
+    server
+      ? {
+          entity_type: "user_preferences",
+          context_key: "account",
+          entity_id: server.id,
+          base_version: server.updatedAt,
+          payload: JSON.stringify(server),
+          state: "synced",
+        }
+      : null,
+  );
+  const stored = await getMutableState(ownerId, "user_preferences", "account");
+  return stored
+    ? syncedPreferencesSchema.parse(JSON.parse(stored.payload))
+    : null;
 };
 
 export const saveSyncedPreferencesLocally = async (
@@ -1704,6 +1711,8 @@ export const refreshTreatmentSnapshots = async (
 
 export const getCachedRoutines = async (ownerId: string) =>
   readSnapshots<RoutineDto>(ownerId, "routine");
+export const getCachedCheckIns = async (ownerId: string) =>
+  readSnapshots<CheckInDto>(ownerId, "check_in");
 export const getCachedRoutineOccurrences = async (ownerId: string) =>
   readSnapshots<RoutineOccurrenceDto>(ownerId, "routine_occurrence");
 export const getCachedMedications = async (ownerId: string) => {

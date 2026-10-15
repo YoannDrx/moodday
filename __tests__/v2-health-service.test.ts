@@ -1,3 +1,5 @@
+/* eslint-disable no-await-in-loop -- ordered state transitions in test */
+import { Prisma } from "@prisma/client";
 import { importHealthAggregatesSchema } from "@moodday/contracts";
 import { prisma } from "@/lib/prisma";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -149,4 +151,69 @@ describe("V2 HealthKit server boundary", () => {
       where: { userId: "user-1", sourceConnectionId: source.id },
     });
   });
+});
+
+it("scopes health history and deletion to the owner and chosen interval", async () => {
+  const {
+    listHealthAggregates,
+    deleteHealthAggregates,
+    updateHealthKitConnection,
+  } = await import("@/features/v2/health/service");
+  vi.mocked(prisma.sourceConnection.findFirst).mockResolvedValue(
+    source as never,
+  );
+  vi.mocked(prisma.sourceConnection.update).mockResolvedValue(source as never);
+  for (const status of ["paused", "active"] as const) {
+    await updateHealthKitConnection("user-1", source.id, {
+      status,
+      ...(status === "active" ? { permissionScope: ["step_count"] } : {}),
+    });
+  }
+  vi.mocked(prisma.dailyAggregate.findMany).mockResolvedValue([
+    {
+      ...aggregate,
+      value: new Prisma.Decimal(aggregate.value),
+      id: "aggregate",
+      windowStart: now,
+      windowEnd: now,
+      importedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ] as never);
+  expect(
+    await listHealthAggregates({
+      userId: "user-1",
+      from: "2026-10-01",
+      to: "2026-10-02",
+      connectionId: source.id,
+    }),
+  ).toMatchObject([{ id: "aggregate", windowStart: now.toISOString() }]);
+  await listHealthAggregates({
+    userId: "user-1",
+    from: "2026-10-01",
+    to: "2026-10-02",
+  });
+  vi.mocked(prisma.dailyAggregate.deleteMany).mockResolvedValue({ count: 1 });
+  for (const period of [
+    {},
+    { from: "2026-10-01" },
+    { to: "2026-10-02" },
+    { from: "2026-10-01", to: "2026-10-02" },
+  ]) {
+    expect(
+      await deleteHealthAggregates({
+        userId: "user-1",
+        connectionId: source.id,
+        ...period,
+      }),
+    ).toEqual({ deleted: 1 });
+    expect(prisma.dailyAggregate.deleteMany).toHaveBeenLastCalledWith({
+      where: expect.objectContaining({
+        userId: "user-1",
+        sourceConnectionId: source.id,
+        provenance: "healthkit",
+      }),
+    });
+  }
 });

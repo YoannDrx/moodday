@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-v2/responses";
 import { logger } from "@/lib/logger";
 import { authRoute, readAuthRoute } from "@/lib/zod-route";
+import { OperationConflictError } from "@/features/v2/sync/operation-identity";
 
 const listQuerySchema = z.object({
   cursor: z.string().max(128).optional(),
@@ -36,6 +37,15 @@ const postHandler = authRoute
     try {
       return apiSuccess(await createCheckIn(ctx.user.id, body), requestId, 201);
     } catch (error) {
+      if (error instanceof OperationConflictError) {
+        return apiError({
+          code: "operation_id_conflict",
+          message: error.message,
+          recoverable: false,
+          requestId,
+          status: 409,
+        });
+      }
       logger.info("V2 check-in request failed", {
         eventName: "v2_check_in_failed",
         errorCode: error instanceof Error ? error.name : "unknown_error",
