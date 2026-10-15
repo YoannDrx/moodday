@@ -102,6 +102,9 @@ const config: PlaywrightTestConfig = {
     {
       name: "webkit",
       testIgnore: chromiumOnlyPasskeySpec,
+      // WebKit on CI runners completes the multi-context account and caregiver
+      // journeys in about 60-66s, too close to the shared 70s budget.
+      timeout: 120 * 1000,
       use: { ...devices["Desktop Safari"] },
     },
     {
@@ -112,6 +115,7 @@ const config: PlaywrightTestConfig = {
     {
       name: "mobile-webkit",
       testIgnore: chromiumOnlyPasskeySpec,
+      timeout: 120 * 1000,
       use: { ...devices["iPhone 15"] },
     },
   ],
