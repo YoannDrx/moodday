@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ locale: "fr" as "fr" | "en" }));
 const mocks = vi.hoisted(() => ({
   pricing: vi.fn(),
+  joinWaitlist: vi.fn(),
   getFeatureAvailability: vi.fn((feature: string) => ({
     enabled: feature === "billing",
   })),
@@ -32,6 +33,9 @@ vi.mock("@/features/plans/pricing-section", () => ({
     mocks.pricing(props);
     return <div data-testid="pricing">Pricing</div>;
   },
+}));
+vi.mock("@/features/landing/waitlist.action", () => ({
+  joinWaitlistAction: mocks.joinWaitlist,
 }));
 vi.mock("@/lib/public-claims", () => ({
   getActivePublicClaims: () => [
@@ -170,6 +174,7 @@ describe("immersive public landing", () => {
     state.locale = "en";
     render(
       <ImmersiveLanding
+        signupMode="public"
         billingEnabled={false}
         aiInsightsEnabled={false}
         caregiverSharingEnabled={false}
@@ -211,14 +216,72 @@ describe("immersive public landing", () => {
     expect(mocks.getFeatureAvailability).toHaveBeenCalledWith(
       "caregiverSharing",
     );
-    expect(mocks.pricing).toHaveBeenCalledWith({
-      mode: "landing",
-      billingEnabled: true,
-      aiInsightsEnabled: false,
-      caregiverSharingEnabled: false,
-    });
+    // The test environment leaves PUBLIC_SIGNUP_MODE unset: closed beta.
+    expect(mocks.pricing).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Moodday ouvre progressivement." }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("Partager moins, mais partager juste."),
     ).not.toBeInTheDocument();
+  });
+
+  it.each(["closed", "invite"] as const)(
+    "hides prices and collects a waitlist while signup is %s",
+    async (signupMode) => {
+      mocks.joinWaitlist.mockResolvedValue({ data: { joined: true } });
+      render(
+        <ImmersiveLanding
+          signupMode={signupMode}
+          billingEnabled={true}
+          aiInsightsEnabled={true}
+          caregiverSharingEnabled={false}
+        />,
+      );
+
+      expect(screen.queryByTestId("pricing")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: "Tarifs" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "Liste d’attente" }),
+      ).toHaveAttribute("href", "#waitlist");
+
+      const driver = userEvent.setup();
+      await driver.type(
+        screen.getByLabelText("Adresse e-mail"),
+        "future@example.com",
+      );
+      await driver.click(
+        screen.getByRole("button", { name: "Rejoindre la liste d’attente" }),
+      );
+
+      expect(mocks.joinWaitlist).toHaveBeenCalledWith({
+        email: "future@example.com",
+        locale: "fr",
+      });
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "C’est noté.",
+      );
+    },
+  );
+
+  it("shows an error when joining the waitlist fails", async () => {
+    mocks.joinWaitlist.mockResolvedValue({ serverError: "Too many requests" });
+    render(
+      <ImmersiveLanding
+        billingEnabled={false}
+        aiInsightsEnabled={false}
+        caregiverSharingEnabled={false}
+      />,
+    );
+    const driver = userEvent.setup();
+    await driver.type(screen.getByLabelText("Adresse e-mail"), "a@example.com");
+    await driver.click(
+      screen.getByRole("button", { name: "Rejoindre la liste d’attente" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "L’inscription n’a pas abouti.",
+    );
   });
 });

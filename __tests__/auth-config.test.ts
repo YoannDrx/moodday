@@ -244,13 +244,13 @@ describe("Better Auth production configuration", () => {
     const beforeCreate = config.databaseHooks.user.create.before;
 
     await expect(
-      beforeCreate(
-        { email: "Invited@Example.com" },
-        { path: "/callback/:id" },
-      ),
+      beforeCreate({ email: "Invited@Example.com" }, { path: "/callback/:id" }),
     ).resolves.toBeUndefined();
     await expect(
-      beforeCreate({ email: "stranger@example.com" }, { path: "/callback/:id" }),
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/callback/:id" },
+      ),
     ).rejects.toMatchObject({ message: "signup invite required" });
     await expect(
       beforeCreate(
@@ -261,7 +261,10 @@ describe("Better Auth production configuration", () => {
     // Email sign-up keeps its own route guard; admin and import paths are not
     // provider sign-ups.
     await expect(
-      beforeCreate({ email: "stranger@example.com" }, { path: "/admin/create-user" }),
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/admin/create-user" },
+      ),
     ).resolves.toBeUndefined();
   });
 
