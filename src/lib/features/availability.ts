@@ -10,6 +10,7 @@ export type RuntimeFeature =
   | "billing"
   | "caregiverSharing"
   | "googleCalendar"
+  | "healthKit"
   | "pushNotifications";
 
 export type FeatureAvailability = {
@@ -75,6 +76,8 @@ export function getFeatureAvailability(
       )
         ? available()
         : incompleteConfiguration();
+    case "healthKit":
+      return env.HEALTHKIT_ENABLED ? available() : disabledByFlag();
     case "pushNotifications":
       if (!env.PUSH_NOTIFICATIONS_ENABLED) return disabledByFlag();
       return hasValues(
@@ -105,6 +108,7 @@ export const getClientVisibleFeatures = () => ({
   billing: getFeatureAvailability("billing").enabled,
   caregiverSharing: getFeatureAvailability("caregiverSharing").enabled,
   googleCalendar: getFeatureAvailability("googleCalendar").enabled,
+  healthKit: getFeatureAvailability("healthKit").enabled,
   pushNotifications: getFeatureAvailability("pushNotifications").enabled,
 });
 

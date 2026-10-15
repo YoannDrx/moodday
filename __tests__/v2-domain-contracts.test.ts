@@ -1,6 +1,8 @@
 import {
   createCheckInSchema,
   createRoutineOccurrenceSchema,
+  syncedPreferencesWriteSchema,
+  userDraftWriteSchema,
 } from "@moodday/contracts";
 import { describe, expect, it } from "vitest";
 import {
@@ -132,5 +134,48 @@ describe("Mood Day V2 domain", () => {
     expect(entitlement.active).toBe(false);
     expect(entitlement.sourceProviders).toEqual([]);
     expect(entitlement.manageWith).toBeNull();
+  });
+
+  it("validates bounded synchronized preferences and private draft kinds", () => {
+    expect(
+      syncedPreferencesWriteSchema.safeParse({
+        locale: "en",
+        timezone: "Europe/Paris",
+        reducedMotion: true,
+        preferredTextScale: "large",
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        dailyCheckInTime: "08:30",
+        medicationReminders: false,
+        medicationReminderTime: "09:00",
+      }).success,
+    ).toBe(true);
+    expect(
+      syncedPreferencesWriteSchema.safeParse({
+        locale: "de",
+        timezone: "Europe/Paris",
+        reducedMotion: false,
+        preferredTextScale: "huge",
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        dailyCheckInTime: "25:00",
+        medicationReminders: true,
+        medicationReminderTime: "09:00",
+      }).success,
+    ).toBe(false);
+    expect(
+      userDraftWriteSchema.safeParse({
+        kind: "check_in",
+        contextKey: "2026-08-23",
+        content: { mode: "quick", scores: { valence: 4 } },
+      }).success,
+    ).toBe(true);
+    expect(
+      userDraftWriteSchema.safeParse({
+        kind: "clinical_diagnosis",
+        contextKey: "current",
+        content: {},
+      }).success,
+    ).toBe(false);
   });
 });

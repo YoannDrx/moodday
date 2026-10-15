@@ -42,6 +42,7 @@ import {
 
 export function UserBilling(props: { subscription: UserActiveSubscription }) {
   const subscription = props.subscription;
+  const sourceProviders = subscription.sourceProviders;
   const router = useRouter();
   const { locale, t } = useI18n();
   const dateLocale = locale === "fr" ? fr : enUS;
@@ -86,7 +87,11 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
   });
 
   const statusConfig =
-    STATUS_CONFIG[subscription.status as keyof typeof STATUS_CONFIG];
+    (
+      STATUS_CONFIG as Partial<
+        Record<string, (typeof STATUS_CONFIG)[keyof typeof STATUS_CONFIG]>
+      >
+    )[subscription.status ?? "inactive"] ?? STATUS_CONFIG.inactive;
   const StatusIcon = statusConfig.icon;
 
   // Calculate days remaining in trial if applicable
@@ -107,19 +112,43 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
         <LayoutTitle>{t("account.billing.title")}</LayoutTitle>
       </LayoutHeader>
       <LayoutActions>
-        <LoadingButton
-          variant="outline"
-          className="w-full sm:w-auto"
-          onClick={() => manageSubscriptionMutation.mutate()}
-          loading={manageSubscriptionMutation.isPending}
-        >
-          <ArrowUpCircle className="mr-2 size-4" />
-          {t("account.billing.manage")}
-        </LoadingButton>
+        {sourceProviders.includes("stripe") ? (
+          <LoadingButton
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => manageSubscriptionMutation.mutate()}
+            loading={manageSubscriptionMutation.isPending}
+          >
+            <ArrowUpCircle className="mr-2 size-4" />
+            {t("account.billing.manage")}
+          </LoadingButton>
+        ) : null}
+        {sourceProviders.includes("app_store") ? (
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <a href="https://apps.apple.com/account/subscriptions">
+              <ArrowUpCircle className="mr-2 size-4" />
+              {locale === "fr"
+                ? "Gérer sur l’App Store"
+                : "Manage on the App Store"}
+            </a>
+          </Button>
+        ) : null}
+        {sourceProviders.includes("play_store") ? (
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <a href="https://play.google.com/store/account/subscriptions">
+              <ArrowUpCircle className="mr-2 size-4" />
+              {locale === "fr"
+                ? "Gérer sur Google Play"
+                : "Manage on Google Play"}
+            </a>
+          </Button>
+        ) : null}
 
-        {subscription.status === "trialing" ? (
+        {sourceProviders.includes("stripe") &&
+        subscription.status === "trialing" ? (
           <></>
-        ) : subscription.status === "active" ? (
+        ) : sourceProviders.includes("stripe") &&
+          subscription.status === "active" ? (
           <>
             {!subscription.cancelAtPeriodEnd && (
               <Button
@@ -139,6 +168,15 @@ export function UserBilling(props: { subscription: UserActiveSubscription }) {
         )}
       </LayoutActions>
       <LayoutContent className="flex flex-col gap-4">
+        {subscription.duplicateSubscription ? (
+          <Card className="border-amber-300 bg-amber-50">
+            <CardContent className="pt-6 text-sm text-amber-950">
+              {locale === "fr"
+                ? "Plusieurs abonnements sont actifs. Ton accès reste disponible, mais vérifie chaque plateforme ci-dessus pour éviter une double facturation. Mood Day n’annule rien automatiquement."
+                : "Multiple subscriptions are active. Your access remains available, but review each platform above to avoid duplicate billing. Mood Day never cancels one automatically."}
+            </CardContent>
+          </Card>
+        ) : null}
         {/* Status Information */}
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
@@ -298,6 +336,13 @@ const STATUS_CONFIG = {
     descriptionKey: "account.billing.status.incompleteDescription",
     color: "bg-yellow-500",
     textColor: "text-yellow-500",
+    icon: AlertCircle,
+  },
+  inactive: {
+    labelKey: "account.billing.status.canceled",
+    descriptionKey: "account.billing.status.canceledDescription",
+    color: "bg-gray-500",
+    textColor: "text-gray-500",
     icon: AlertCircle,
   },
 };

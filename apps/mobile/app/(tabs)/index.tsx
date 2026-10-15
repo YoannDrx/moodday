@@ -9,9 +9,13 @@ import { Screen } from "../../src/components/screen";
 import { SectionCard } from "../../src/components/section-card";
 import { authClient } from "../../src/lib/auth-client";
 import {
+  discardUserDraft,
   flushPendingCheckIns,
+  getCachedUserDraft,
   getPendingOperationCount,
+  refreshUserDraft,
   saveCheckInOfflineFirst,
+  saveUserDraftLocally,
 } from "../../src/lib/local-database";
 
 type CheckInMode = "idle" | "quick" | "done";
@@ -69,6 +73,54 @@ export default function TodayScreen() {
     synchronize().catch(() => setStatus("Synchronisation en attente."));
   }, [ownerId]);
 
+  useEffect(() => {
+    if (!ownerId) return;
+    const restore = async () => {
+      const cached = await getCachedUserDraft(
+        ownerId,
+        "check_in",
+        context.localDate,
+      );
+      const draft =
+        cached ??
+        (await refreshUserDraft(ownerId, "check_in", context.localDate).catch(
+          () => null,
+        ));
+      if (!draft || draft.content.mode !== "quick") return;
+      const nextScores = draft.content.scores;
+      if (!nextScores || typeof nextScores !== "object") return;
+      const restored = Object.fromEntries(
+        Object.entries(nextScores).filter(
+          ([key, value]) =>
+            ["valence", "activation", "irritability"].includes(key) &&
+            typeof value === "number" &&
+            value >= 0 &&
+            value <= 10,
+        ),
+      ) as Scores;
+      setScores(restored);
+      setMode("quick");
+      setStatus("Ton brouillon est prêt, sans urgence à le terminer.");
+    };
+    void restore();
+  }, [context.localDate, ownerId]);
+
+  useEffect(() => {
+    if (!ownerId || mode !== "quick") return;
+    const timeout = setTimeout(() => {
+      void saveUserDraftLocally(ownerId, {
+        kind: "check_in",
+        contextKey: context.localDate,
+        content: { mode: "quick", scores },
+      }).then((result) => {
+        if (result.pending) {
+          setStatus("Brouillon conservé sur cet appareil.");
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [context.localDate, mode, ownerId, scores]);
+
   const save = async (depth: "presence" | "quick") => {
     if (!ownerId) return;
     setIsSaving(true);
@@ -84,6 +136,9 @@ export default function TodayScreen() {
 
     try {
       const result = await saveCheckInOfflineFirst(ownerId, input);
+      await discardUserDraft(ownerId, "check_in", context.localDate).catch(
+        () => undefined,
+      );
       setMode("done");
       setStatus(
         result.pending
@@ -207,6 +262,28 @@ export default function TodayScreen() {
               <Text style={styles.primaryLabel}>
                 {isSaving ? "Enregistrement…" : "Enregistrer mon point"}
               </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSaving || !ownerId}
+              onPress={() => {
+                if (!ownerId) return;
+                void discardUserDraft(
+                  ownerId,
+                  "check_in",
+                  context.localDate,
+                ).finally(() => {
+                  setScores({});
+                  setMode("idle");
+                  setStatus("Brouillon effacé.");
+                });
+              }}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.secondaryLabel}>Annuler ce brouillon</Text>
             </Pressable>
           </View>
         ) : null}

@@ -14,10 +14,15 @@ const rootDir = join(__dirname, "..");
 
 const svgPath = join(rootDir, "public/logo.svg");
 const iconsDir = join(rootDir, "public/icons");
+const mobileAssetsDir = join(rootDir, "apps/mobile/assets");
 
 // Ensure icons directory exists
 if (!existsSync(iconsDir)) {
   mkdirSync(iconsDir, { recursive: true });
+}
+
+if (!existsSync(mobileAssetsDir)) {
+  mkdirSync(mobileAssetsDir, { recursive: true });
 }
 
 const svgBuffer = readFileSync(svgPath);
@@ -55,5 +60,28 @@ await sharp(svgBuffer)
   .toFile(join(imagesDir, "icon.png"));
 
 console.log(`✅ Generated images/icon.png (512x512)`);
+
+const mobileIconSource = readFileSync(
+  join(mobileAssetsDir, "app-icon-source.svg"),
+);
+const mobileSplashSource = readFileSync(
+  join(mobileAssetsDir, "splash-icon-source.svg"),
+);
+
+await sharp(mobileIconSource)
+  .resize(1024, 1024)
+  .flatten({ background: "#155C5A" })
+  .removeAlpha()
+  .png()
+  .toFile(join(mobileAssetsDir, "app-icon.png"));
+
+console.log(`✅ Generated mobile app-icon.png (1024x1024, opaque)`);
+
+await sharp(mobileSplashSource)
+  .resize(512, 512)
+  .png()
+  .toFile(join(mobileAssetsDir, "splash-icon.png"));
+
+console.log(`✅ Generated mobile splash-icon.png (512x512)`);
 
 console.log("\n🎉 All icons generated successfully!");

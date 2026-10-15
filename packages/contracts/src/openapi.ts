@@ -2,7 +2,7 @@ export const moodDayV2OpenApi = {
   openapi: "3.1.0",
   info: {
     title: "Mood Day V2 API",
-    version: "2.0.0-alpha.3",
+    version: "2.0.0-alpha.5",
     description:
       "Versioned contracts shared by Mood Day web, iOS and Android clients.",
   },
@@ -472,6 +472,86 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/entitlements/refresh": {
+      post: {
+        operationId: "refreshMobileEntitlements",
+        description:
+          "Reconciles the authenticated RevenueCat customer from the provider API after a purchase or restoration, then projects one shared Plus right.",
+        responses: {
+          "200": { description: "Verified shared Plus entitlement" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "503": { description: "RevenueCat reconciliation unavailable" },
+        },
+      },
+    },
+    "/source-connections/healthkit": {
+      get: {
+        operationId: "getHealthKitConnection",
+        description:
+          "Returns only the authenticated user's HealthKit connection metadata, never samples.",
+        responses: {
+          "200": { description: "HealthKit connection or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "connectHealthKit",
+        description:
+          "Registers the exact HealthKit metric scope selected on the device after the native permission prompt.",
+        responses: {
+          "201": { description: "HealthKit connection registered" },
+          "403": { description: "HealthKit feature unavailable" },
+        },
+      },
+    },
+    "/source-connections/healthkit/{connectionId}": {
+      patch: {
+        operationId: "updateHealthKitConnection",
+        description: "Pauses, resumes or records an explicit connection state.",
+        responses: {
+          "200": { description: "HealthKit connection updated" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+      delete: {
+        operationId: "revokeHealthKitConnection",
+        description:
+          "Revokes the server connection and deletes its synchronized aggregates; raw samples remain only in the encrypted device database until local purge.",
+        responses: {
+          "200": { description: "Connection revoked and aggregates deleted" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+    },
+    "/health-aggregates": {
+      get: {
+        operationId: "listHealthAggregates",
+        description:
+          "Lists bounded daily aggregates with provenance, quality and coverage.",
+        responses: {
+          "200": { description: "Daily aggregate page" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "importHealthAggregates",
+        description:
+          "Imports locally calculated HealthKit daily aggregates. Raw HealthKit samples are not accepted by this contract.",
+        responses: {
+          "200": { description: "Idempotent aggregate import result" },
+          "409": { description: "Source is paused or revoked" },
+        },
+      },
+      delete: {
+        operationId: "deleteHealthAggregates",
+        description:
+          "Deletes synchronized HealthKit aggregates for an explicit period or all periods without accessing device samples.",
+        responses: {
+          "200": { description: "Deleted aggregate count" },
+          "404": { description: "Connection unavailable" },
+        },
+      },
+    },
     "/medications": {
       get: {
         operationId: "listMedications",
@@ -488,6 +568,101 @@ export const moodDayV2OpenApi = {
         responses: {
           "200": { description: "Cursor page of treatments" },
           "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      post: {
+        operationId: "createMedication",
+        description:
+          "Creates an idempotent patient-declared treatment and its initial schedule history.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateMedication" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Treatment created or replayed" },
+          "409": { description: "Operation or entity conflict" },
+          "422": { description: "Invalid schedule or period" },
+        },
+      },
+    },
+    "/medications/{medicationId}": {
+      get: {
+        operationId: "getMedicationDetail",
+        description:
+          "Returns one patient-owned treatment with dose corrections, schedule revisions and inventory history.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": { description: "Treatment detail and append-only history" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "404": { description: "Treatment unavailable" },
+        },
+      },
+      patch: {
+        operationId: "updateMedication",
+        description:
+          "Updates a version-checked treatment and appends dosage, schedule and stock history when applicable.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateMedication" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Treatment updated or replayed" },
+          "404": { description: "Treatment unavailable" },
+          "409": { description: "Stale treatment version" },
+          "422": { description: "Invalid schedule or period" },
+        },
+      },
+    },
+    "/medications/{medicationId}/inventory-events": {
+      post: {
+        operationId: "createMedicationInventoryAdjustment",
+        description:
+          "Applies an idempotent, version-checked inventory adjustment and preserves its reason.",
+        parameters: [
+          {
+            name: "medicationId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateMedicationInventoryAdjustment",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Inventory adjustment created or replayed" },
+          "404": { description: "Treatment unavailable" },
+          "409": { description: "Stale treatment version or invalid stock" },
         },
       },
     },
@@ -534,6 +709,75 @@ export const moodDayV2OpenApi = {
         },
       },
     },
+    "/dose-events/{doseEventId}/corrections": {
+      post: {
+        operationId: "createDoseEventCorrection",
+        description:
+          "Corrects or cancels a dose event without deleting it and appends an auditable revision.",
+        parameters: [
+          {
+            name: "doseEventId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateDoseEventCorrection",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Dose correction created or replayed" },
+          "404": { description: "Dose event unavailable" },
+          "409": { description: "Stale dose version or operation conflict" },
+        },
+      },
+    },
+    "/preferences": {
+      get: {
+        operationId: "getSyncedPreferences",
+        description:
+          "Returns the account-owned language, accessibility and generic reminder preferences, or null before initialization.",
+        responses: {
+          "200": { description: "Current synchronized preferences or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
+    "/drafts": {
+      get: {
+        operationId: "getUserDraft",
+        description:
+          "Returns one private, versioned draft for an explicit kind and context. Draft content is never shared automatically.",
+        parameters: [
+          {
+            name: "kind",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              enum: ["check_in", "appointment_preparation"],
+            },
+          },
+          {
+            name: "contextKey",
+            in: "query",
+            required: true,
+            schema: { type: "string", minLength: 1, maxLength: 128 },
+          },
+        ],
+        responses: {
+          "200": { description: "Current private draft or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+    },
     "/sync/push": {
       post: {
         operationId: "pushSyncOperations",
@@ -573,6 +817,32 @@ export const moodDayV2OpenApi = {
           "409": {
             description: "Invalid cursor; client must restart with a full pull",
           },
+        },
+      },
+    },
+    "/safety-plan": {
+      get: {
+        operationId: "getSafetyPlan",
+        description:
+          "Returns the current user's private personal safety plan. It is never included in caregiver sharing.",
+        responses: {
+          "200": { description: "Safety plan or null" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        },
+      },
+      put: {
+        operationId: "saveSafetyPlan",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SafetyPlanWrite" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Encrypted-at-rest private safety plan" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
         },
       },
     },
@@ -691,6 +961,197 @@ export const moodDayV2OpenApi = {
           note: { type: ["string", "null"], maxLength: 2000 },
         },
       },
+      CreateMedication: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "localDate",
+          "timezone",
+          "name",
+          "dosage",
+          "frequency",
+          "scheduleTimes",
+          "weeklyDay",
+          "startDate",
+          "endDate",
+          "stockQuantity",
+          "unitsPerDose",
+          "lowStockThreshold",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          dosage: { type: "string", minLength: 1, maxLength: 200 },
+          frequency: {
+            type: "string",
+            enum: ["daily", "twice_daily", "weekly", "prn"],
+          },
+          scheduleTimes: {
+            type: "array",
+            maxItems: 2,
+            items: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" },
+          },
+          weeklyDay: { type: ["integer", "null"], minimum: 0, maximum: 6 },
+          startDate: { type: ["string", "null"], format: "date" },
+          endDate: { type: ["string", "null"], format: "date" },
+          stockQuantity: { type: ["number", "null"], minimum: 0 },
+          unitsPerDose: { type: ["number", "null"], exclusiveMinimum: 0 },
+          lowStockThreshold: { type: ["number", "null"], minimum: 0 },
+        },
+      },
+      UpdateMedication: {
+        type: "object",
+        required: [
+          "operationId",
+          "medicationId",
+          "localDate",
+          "timezone",
+          "name",
+          "dosage",
+          "frequency",
+          "scheduleTimes",
+          "weeklyDay",
+          "startDate",
+          "endDate",
+          "stockQuantity",
+          "unitsPerDose",
+          "lowStockThreshold",
+          "reason",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          medicationId: { type: "string", minLength: 1, maxLength: 128 },
+          localDate: { type: "string", format: "date" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          dosage: { type: "string", minLength: 1, maxLength: 200 },
+          frequency: {
+            type: "string",
+            enum: ["daily", "twice_daily", "weekly", "prn"],
+          },
+          scheduleTimes: {
+            type: "array",
+            maxItems: 2,
+            items: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" },
+          },
+          weeklyDay: { type: ["integer", "null"], minimum: 0, maximum: 6 },
+          startDate: { type: ["string", "null"], format: "date" },
+          endDate: { type: ["string", "null"], format: "date" },
+          stockQuantity: { type: ["number", "null"], minimum: 0 },
+          unitsPerDose: { type: ["number", "null"], exclusiveMinimum: 0 },
+          lowStockThreshold: { type: ["number", "null"], minimum: 0 },
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
+      CreateDoseEventCorrection: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "doseEventId",
+          "targetKind",
+          "occurredAt",
+          "timezone",
+          "reason",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          doseEventId: { type: "string", minLength: 1, maxLength: 128 },
+          targetKind: {
+            type: "string",
+            enum: ["taken", "skipped", "prn", "cancelled"],
+          },
+          occurredAt: { type: "string", format: "date-time" },
+          timezone: { type: "string", minLength: 1, maxLength: 80 },
+          note: { type: ["string", "null"], maxLength: 2000 },
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
+      CreateMedicationInventoryAdjustment: {
+        type: "object",
+        required: [
+          "operationId",
+          "entityId",
+          "medicationId",
+          "quantityDelta",
+          "reason",
+          "occurredAt",
+          "baseVersion",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 8, maxLength: 128 },
+          entityId: { type: "string", minLength: 8, maxLength: 128 },
+          medicationId: { type: "string", minLength: 1, maxLength: 128 },
+          quantityDelta: {
+            type: "number",
+            minimum: -1000000,
+            maximum: 1000000,
+          },
+          reason: {
+            type: "string",
+            enum: ["refill", "correction", "manual"],
+          },
+          occurredAt: { type: "string", format: "date-time" },
+          note: { type: ["string", "null"], maxLength: 500 },
+          baseVersion: { type: "string", format: "date-time" },
+        },
+      },
+      SafetyPlanWrite: {
+        type: "object",
+        required: [
+          "warningSigns",
+          "copingStrategies",
+          "safePlaces",
+          "trustedContacts",
+          "professionalContacts",
+          "markReviewed",
+        ],
+        properties: {
+          warningSigns: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          copingStrategies: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          safePlaces: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", minLength: 1, maxLength: 500 },
+          },
+          trustedContacts: {
+            type: "array",
+            maxItems: 10,
+            items: { $ref: "#/components/schemas/SafetyPlanContact" },
+          },
+          professionalContacts: {
+            type: "array",
+            maxItems: 10,
+            items: { $ref: "#/components/schemas/SafetyPlanContact" },
+          },
+          markReviewed: { type: "boolean" },
+        },
+      },
+      SafetyPlanContact: {
+        type: "object",
+        required: ["name", "detail"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 100 },
+          detail: { type: "string", minLength: 1, maxLength: 200 },
+        },
+      },
       SyncPush: {
         type: "object",
         required: ["deviceId", "platform", "operations"],
@@ -717,13 +1178,18 @@ export const moodDayV2OpenApi = {
                   type: "string",
                   enum: [
                     "check_in",
+                    "medication",
                     "dose_event",
+                    "dose_event_correction",
+                    "medication_inventory_event",
                     "routine",
                     "routine_occurrence",
                     "appointment",
                     "appointment_question",
                     "appointment_event",
                     "appointment_decision",
+                    "user_draft",
+                    "user_preferences",
                   ],
                 },
                 mutation: {

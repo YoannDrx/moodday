@@ -8,6 +8,7 @@ import {
 import { ApplicationError } from "../errors/application-error";
 import { logger } from "../logger";
 import { assertWritesAvailable } from "../maintenance";
+import { getOperationalErrorDetails } from "../operations/error-details";
 
 /**
  * Base safe action client with error handling
@@ -121,9 +122,10 @@ function handleServerError(e: Error) {
     return e.message;
   }
 
-  logger.info("Action failed", {
-    errorCode: "action_failed",
-    errorName: e.name,
+  logger.error("Action failed", {
+    eventName: "action_failed",
+    status: "failed",
+    ...getOperationalErrorDetails(e),
   });
 
   return "An unexpected error occurred.";

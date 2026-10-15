@@ -36,6 +36,9 @@ const subscription = {
   plan: "plus",
   status: "active",
   periodEnd: "2026-09-13T00:00:00.000Z",
+  sourceProviders: ["stripe"],
+  duplicateSubscription: false,
+  manageWith: "stripe",
 };
 
 vi.mock("@tanstack/react-query", () => ({

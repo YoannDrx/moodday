@@ -42,6 +42,7 @@ describe("runtime feature availability", () => {
       "BILLING_ENABLED",
       "CAREGIVER_SHARING_ENABLED",
       "GOOGLE_CALENDAR_ENABLED",
+      "HEALTHKIT_ENABLED",
       "GOOGLE_CLIENT_ID",
       "GOOGLE_CLIENT_SECRET",
       "PUSH_NOTIFICATIONS_ENABLED",
@@ -171,6 +172,18 @@ describe("runtime feature availability", () => {
     });
   });
 
+  it("keeps HealthKit behind its independent server gate", () => {
+    expect(getFeatureAvailability("healthKit")).toEqual({
+      enabled: false,
+      reason: "disabled_by_flag",
+    });
+    mutableEnv.HEALTHKIT_ENABLED = true;
+    expect(getFeatureAvailability("healthKit")).toEqual({
+      enabled: true,
+      reason: "available",
+    });
+  });
+
   it("exposes only safe booleans to the browser and rejects disabled actions", () => {
     mutableEnv.CAREGIVER_SHARING_ENABLED = true;
     mutableEnv.RESEND_API_KEY = "resend";
@@ -180,6 +193,7 @@ describe("runtime feature availability", () => {
       billing: false,
       caregiverSharing: true,
       googleCalendar: false,
+      healthKit: false,
       pushNotifications: false,
     });
     expect(() => assertFeatureAvailable("billing")).toThrow(

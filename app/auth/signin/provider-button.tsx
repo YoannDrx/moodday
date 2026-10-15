@@ -18,10 +18,14 @@ const ProviderData: Record<string, { icon: ReactNode; name: string }> = {
     icon: <Logo name="google" size={16} />,
     name: "Google",
   },
+  apple: {
+    icon: <Logo name="apple" size={16} />,
+    name: "Apple",
+  },
 };
 
 type ProviderButtonProps = {
-  providerId: "github" | "google";
+  providerId: "github" | "google" | "apple";
   callbackUrl?: string;
 };
 
@@ -59,7 +63,7 @@ export const ProviderButton = (props: ProviderButtonProps) => {
           "border bg-white text-black hover:bg-white dark:border-neutral-700":
             data.name === "Google",
           "border bg-black text-white hover:bg-gray-950 dark:border-neutral-700":
-            data.name === "Github",
+            data.name === "Github" || data.name === "Apple",
         })}
         size="lg"
         onClick={() => {

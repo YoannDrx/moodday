@@ -6,6 +6,7 @@ import { ApplicationError } from "./errors/application-error";
 import { ZodRouteError } from "./errors/zod-route-error";
 import { logger } from "./logger";
 import { assertWritesAvailable } from "./maintenance";
+import { getOperationalErrorDetails } from "./operations/error-details";
 
 /**
  * Base route handler with automatic error handling and validation
@@ -45,10 +46,10 @@ export const route = createZodRoute({
       return NextResponse.json({ message: e.message }, { status: 400 });
     }
 
-    logger.info("Route failed", {
+    logger.error("Route failed", {
       eventName: "route_failed",
       status: "failed",
-      errorCode: e.name || "unknown_error",
+      ...getOperationalErrorDetails(e),
     });
 
     return NextResponse.json(

@@ -106,6 +106,14 @@ export function SubscriptionContent({
     },
   });
 
+  const sourceProviders = subscription?.sourceProviders ?? [];
+  const openStoreManagement = (provider: "app_store" | "play_store") => {
+    window.location.href =
+      provider === "app_store"
+        ? "https://apps.apple.com/account/subscriptions"
+        : "https://play.google.com/store/account/subscriptions";
+  };
+
   if (!billingEnabled) {
     return (
       <PageLayout
@@ -186,27 +194,60 @@ export function SubscriptionContent({
             </div>
 
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 rounded-xl border-gray-200"
-                onClick={() => portalMutation.mutate()}
-                disabled={!subscription || portalMutation.isPending}
-              >
-                {portalMutation.isPending
-                  ? t("common.redirecting")
-                  : t("settings.subscription.changePlan")}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
-                onClick={() => cancelMutation.mutate()}
-                disabled={!subscription || cancelMutation.isPending}
-              >
-                {cancelMutation.isPending
-                  ? t("common.redirecting")
-                  : t("actions.cancel")}
-              </Button>
+              {sourceProviders.includes("stripe") ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-xl border-gray-200"
+                    onClick={() => portalMutation.mutate()}
+                    disabled={!subscription || portalMutation.isPending}
+                  >
+                    {portalMutation.isPending
+                      ? t("common.redirecting")
+                      : t("settings.subscription.changePlan")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => cancelMutation.mutate()}
+                    disabled={!subscription || cancelMutation.isPending}
+                  >
+                    {cancelMutation.isPending
+                      ? t("common.redirecting")
+                      : t("actions.cancel")}
+                  </Button>
+                </>
+              ) : null}
+              {sourceProviders.includes("app_store") ? (
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl border-gray-200"
+                  onClick={() => openStoreManagement("app_store")}
+                >
+                  {locale === "fr"
+                    ? "Gérer sur l’App Store"
+                    : "Manage on the App Store"}
+                </Button>
+              ) : null}
+              {sourceProviders.includes("play_store") ? (
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl border-gray-200"
+                  onClick={() => openStoreManagement("play_store")}
+                >
+                  {locale === "fr"
+                    ? "Gérer sur Google Play"
+                    : "Manage on Google Play"}
+                </Button>
+              ) : null}
             </div>
+            {subscription?.duplicateSubscription ? (
+              <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+                {locale === "fr"
+                  ? "Plusieurs abonnements sont actifs. Vérifie chaque plateforme pour éviter une double facturation ; Mood Day n’annule rien automatiquement."
+                  : "Multiple subscriptions are active. Review each platform to avoid duplicate billing; Mood Day never cancels one automatically."}
+              </p>
+            ) : null}
           </GlassCardContent>
         </GlassCard>
       )}

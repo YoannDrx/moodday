@@ -11,7 +11,7 @@ import { PasskeySignInButton } from "./passkey-sign-in-button";
 import { SignInCredentialsAndMagicLinkForm } from "./sign-in-credentials-and-magic-link-form";
 import type { PublicSignupMode } from "@/lib/auth/signup-access";
 
-const SUPPORTED_PROVIDERS = ["github", "google"] as const;
+const SUPPORTED_PROVIDERS = ["github", "google", "apple"] as const;
 
 export const SignInProviders = ({
   providers,

@@ -49,6 +49,9 @@ src/generated
 
 .conductor
 
+# Expo local state
+/apps/mobile/.expo/
+
 # BMAD outputs (generated artifacts)
 #_bmad-output/
 .env.test

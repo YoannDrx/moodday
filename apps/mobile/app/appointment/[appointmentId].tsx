@@ -9,7 +9,7 @@ import { MoodDayApiError } from "@moodday/api-client";
 import { color, radius, space } from "@moodday/design-tokens";
 import * as Crypto from "expo-crypto";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -30,11 +30,16 @@ import {
   getCachedAppointmentEvents,
   getCachedAppointmentQuestions,
   getCachedAppointments,
+  getCachedUserDraft,
+  discardUserDraft,
+  refreshUserDraft,
   saveAppointmentDecisionOfflineFirst,
   saveAppointmentEventOfflineFirst,
   saveAppointmentQuestionOfflineFirst,
+  saveUserDraftLocally,
   synchronizeNow,
 } from "../../src/lib/local-database";
+import { presentNativeCalendarEvent } from "../../src/lib/native-calendar";
 
 const appointmentLabel = (startsAt: string, timezone: string) =>
   new Intl.DateTimeFormat("fr-FR", {
@@ -119,6 +124,48 @@ export default function AppointmentDetailScreen() {
     }, [load]),
   );
 
+  useEffect(() => {
+    if (!appointmentId || !ownerId) return;
+    const restore = async () => {
+      const cached = await getCachedUserDraft(
+        ownerId,
+        "appointment_preparation",
+        appointmentId,
+      );
+      const draft =
+        cached ??
+        (await refreshUserDraft(
+          ownerId,
+          "appointment_preparation",
+          appointmentId,
+        ).catch(() => null));
+      if (!draft) return;
+      if (typeof draft.content.question === "string") {
+        setQuestion(draft.content.question);
+      }
+      if (typeof draft.content.privateNote === "boolean") {
+        setPrivateNote(draft.content.privateNote);
+      }
+      setStatus("Ta préparation en cours est disponible.");
+    };
+    void restore();
+  }, [appointmentId, ownerId]);
+
+  useEffect(() => {
+    if (!appointmentId || !ownerId || !question.trim()) return;
+    const timeout = setTimeout(() => {
+      void saveUserDraftLocally(ownerId, {
+        kind: "appointment_preparation",
+        contextKey: appointmentId,
+        content: { question, privateNote },
+      }).then((result) => {
+        if (result.pending)
+          setStatus("Préparation conservée sur cet appareil.");
+      });
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [appointmentId, ownerId, privateNote, question]);
+
   const addQuestion = async () => {
     if (!appointmentId || !ownerId || !question.trim()) return;
     setIsSaving(true);
@@ -147,6 +194,11 @@ export default function AppointmentDetailScreen() {
       ]);
       setQuestion("");
       setPrivateNote(false);
+      await discardUserDraft(
+        ownerId,
+        "appointment_preparation",
+        appointmentId,
+      ).catch(() => undefined);
       setStatus(
         result.pending
           ? "Conservé sur cet appareil · synchronisation en attente"
@@ -339,6 +391,24 @@ export default function AppointmentDetailScreen() {
     }
   };
 
+  const addToNativeCalendar = async () => {
+    if (!appointment) return;
+    setIsSaving(true);
+    setStatus(undefined);
+    try {
+      const result = await presentNativeCalendarEvent(appointment);
+      setStatus(
+        result.saved
+          ? "Rendez-vous ajouté au calendrier choisi."
+          : "Ajout au calendrier annulé. Rien n’a été modifié.",
+      );
+    } catch {
+      setStatus("Le calendrier natif est indisponible pour le moment.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!appointment && !isLoading) {
     return (
       <Screen>
@@ -382,6 +452,19 @@ export default function AppointmentDetailScreen() {
           </Text>
         </View>
       ) : null}
+
+      <SectionCard
+        eyebrow="Calendrier iPhone"
+        title="Ajouter volontairement"
+        description="La fiche système te laisse choisir le calendrier et confirmer. Seuls le titre, l’horaire et le lieu sont proposés ; aucune question ni note privée."
+      >
+        <ActionButton
+          disabled={isSaving}
+          label="Ouvrir la fiche calendrier"
+          onPress={() => void addToNativeCalendar()}
+          secondary
+        />
+      </SectionCard>
 
       <SectionCard
         eyebrow="Avant"

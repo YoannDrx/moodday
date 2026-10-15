@@ -165,6 +165,13 @@ function checkEnvFile(): void {
   const optionalGroups = {
     "GitHub OAuth": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
     "Google OAuth": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    "Apple OAuth": [
+      "APPLE_CLIENT_ID",
+      "APPLE_TEAM_ID",
+      "APPLE_KEY_ID",
+      "APPLE_PRIVATE_KEY",
+      "APPLE_APP_BUNDLE_IDENTIFIER",
+    ],
     Stripe: [
       "STRIPE_SECRET_KEY",
       "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",

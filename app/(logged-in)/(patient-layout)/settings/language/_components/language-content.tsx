@@ -13,6 +13,7 @@ import { PageLayout } from "@/components/nowts/page-layout";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/provider";
 import { localeCookieName } from "@/i18n/config";
+import { updateDisplayPreferences } from "@/features/preferences/preferences.action";
 
 export function LanguageContent() {
   const { locale, t } = useI18n();
@@ -22,6 +23,7 @@ export function LanguageContent() {
     const maxAge = 60 * 60 * 24 * 365;
     document.cookie = `${localeCookieName}=${newLocale}; path=/; max-age=${maxAge}; samesite=lax`;
     document.documentElement.lang = newLocale;
+    void updateDisplayPreferences({ locale: newLocale });
     router.refresh();
   };
 

@@ -66,6 +66,9 @@ export const completeOnboarding = authAction.action(
 const updateDisplayPreferencesSchema = z.object({
   defaultChartPeriod: z.number().optional(),
   theme: z.enum(["light", "dark", "system", "zen"]).optional(),
+  locale: z.enum(["fr", "en"]).optional(),
+  reducedMotion: z.boolean().optional(),
+  preferredTextScale: z.enum(["system", "large", "extra_large"]).optional(),
 });
 
 export const updateDisplayPreferences = authAction

@@ -4,9 +4,16 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  doseEventCorrectionWriteSchema,
   doseEventWriteSchema,
+  medicationInventoryAdjustmentWriteSchema,
+  medicationWriteSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
+  syncedPreferencesSchema,
+  syncedPreferencesWriteSchema,
+  userDraftSchema,
+  userDraftWriteSchema,
   type AppointmentDto,
   type AppointmentDecisionDto,
   type AppointmentEventDto,
@@ -17,14 +24,26 @@ import {
   type CreateAppointmentQuestionInput,
   type CreateCheckInInput,
   type DoseEventDto,
+  type DoseEventCorrectionResult,
+  type DoseEventCorrectionWriteInput,
   type DoseEventWriteInput,
+  type MedicationDetailDto,
   type MedicationDto,
+  type MedicationInventoryAdjustmentResult,
+  type MedicationInventoryAdjustmentWriteInput,
+  type MedicationWriteInput,
   type RoutineDto,
   type RoutineOccurrenceDto,
   type RoutineOccurrenceWriteInput,
   type RoutineWriteInput,
+  type SafetyPlanDto,
+  type SyncedPreferencesDto,
+  type SyncedPreferencesWriteInput,
   type SyncEntityType,
   type SyncPushOperation,
+  type UserDraftDto,
+  type UserDraftKind,
+  type UserDraftWriteInput,
 } from "@moodday/contracts";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
@@ -51,7 +70,16 @@ type PendingRow = {
 };
 
 type SnapshotRow = { payload: string };
-type SnapshotEntityType = SyncEntityType | "medication";
+type SnapshotEntityType = SyncEntityType;
+
+type MutableStateRow = {
+  entity_type: "user_draft" | "user_preferences";
+  entity_id: string;
+  context_key: string;
+  base_version: string | null;
+  payload: string;
+  state: "synced" | "dirty" | "delete_pending" | "conflict";
+};
 
 type OperationCountRow = {
   state: "pending" | "conflict" | "rejected";
@@ -59,6 +87,7 @@ type OperationCountRow = {
 };
 
 const databasePromises = new Map<string, Promise<SQLite.SQLiteDatabase>>();
+const mutableFlushPromises = new Map<string, Promise<void>>();
 
 const createDatabaseKey = async () => {
   const bytes = await Crypto.getRandomBytesAsync(32);
@@ -121,7 +150,7 @@ const initializeDatabase = async ({
     CREATE TABLE IF NOT EXISTS pending_sync_operation (
       operation_id TEXT PRIMARY KEY NOT NULL,
       entity_id TEXT NOT NULL,
-      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+      entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'medication', 'dose_event', 'dose_event_correction', 'medication_inventory_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision', 'user_draft', 'user_preferences')),
       mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
       base_version TEXT,
       payload TEXT NOT NULL,
@@ -142,6 +171,36 @@ const initializeDatabase = async ({
     CREATE TABLE IF NOT EXISTS sync_metadata (
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS health_raw_sample (
+      sample_type TEXT NOT NULL,
+      sample_id TEXT NOT NULL,
+      local_date TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      PRIMARY KEY (sample_type, sample_id)
+    );
+    CREATE INDEX IF NOT EXISTS health_raw_sample_local_date_idx
+      ON health_raw_sample(local_date, sample_type);
+    CREATE TABLE IF NOT EXISTS safety_plan_snapshot (
+      id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+      payload TEXT NOT NULL,
+      cached_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS medication_detail_snapshot (
+      medication_id TEXT PRIMARY KEY NOT NULL,
+      payload TEXT NOT NULL,
+      cached_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS mutable_sync_state (
+      entity_type TEXT NOT NULL CHECK (entity_type IN ('user_draft', 'user_preferences')),
+      entity_id TEXT NOT NULL,
+      context_key TEXT NOT NULL,
+      base_version TEXT,
+      payload TEXT NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('synced', 'dirty', 'delete_pending', 'conflict')),
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (entity_type, context_key)
     );
   `);
   const schemaVersion = await database.getFirstAsync<{ user_version: number }>(
@@ -225,6 +284,128 @@ const initializeDatabase = async ({
       `);
     });
   }
+  if ((schemaVersion?.user_version ?? 0) < 5) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS health_raw_sample (
+          sample_type TEXT NOT NULL,
+          sample_id TEXT NOT NULL,
+          local_date TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          observed_at TEXT NOT NULL,
+          PRIMARY KEY (sample_type, sample_id)
+        );
+        CREATE INDEX IF NOT EXISTS health_raw_sample_local_date_idx
+          ON health_raw_sample(local_date, sample_type);
+        PRAGMA user_version = 5;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 6) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS safety_plan_snapshot (
+          id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+          payload TEXT NOT NULL,
+          cached_at TEXT NOT NULL
+        );
+        PRAGMA user_version = 6;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 7) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE pending_sync_operation_v7 (
+          operation_id TEXT PRIMARY KEY NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'dose_event', 'dose_event_correction', 'medication_inventory_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'conflict', 'rejected')),
+          error_code TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR IGNORE INTO pending_sync_operation_v7
+          (operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at)
+        SELECT operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at
+        FROM pending_sync_operation;
+        DROP TABLE pending_sync_operation;
+        ALTER TABLE pending_sync_operation_v7 RENAME TO pending_sync_operation;
+        CREATE INDEX pending_sync_operation_state_created_at_idx
+          ON pending_sync_operation(state, created_at);
+        CREATE TABLE IF NOT EXISTS medication_detail_snapshot (
+          medication_id TEXT PRIMARY KEY NOT NULL,
+          payload TEXT NOT NULL,
+          cached_at TEXT NOT NULL
+        );
+        PRAGMA user_version = 7;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 8) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE pending_sync_operation_v8 (
+          operation_id TEXT PRIMARY KEY NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'medication', 'dose_event', 'dose_event_correction', 'medication_inventory_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision')),
+          mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'conflict', 'rejected')),
+          error_code TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR IGNORE INTO pending_sync_operation_v8
+          (operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at)
+        SELECT operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at
+        FROM pending_sync_operation;
+        DROP TABLE pending_sync_operation;
+        ALTER TABLE pending_sync_operation_v8 RENAME TO pending_sync_operation;
+        CREATE INDEX pending_sync_operation_state_created_at_idx
+          ON pending_sync_operation(state, created_at);
+        PRAGMA user_version = 8;
+      `);
+    });
+  }
+  if ((schemaVersion?.user_version ?? 0) < 9) {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE pending_sync_operation_v9 (
+          operation_id TEXT PRIMARY KEY NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('check_in', 'medication', 'dose_event', 'dose_event_correction', 'medication_inventory_event', 'routine', 'routine_occurrence', 'appointment', 'appointment_question', 'appointment_event', 'appointment_decision', 'user_draft', 'user_preferences')),
+          mutation TEXT NOT NULL CHECK (mutation IN ('create', 'update', 'delete')),
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'conflict', 'rejected')),
+          error_code TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR IGNORE INTO pending_sync_operation_v9
+          (operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at)
+        SELECT operation_id, entity_id, entity_type, mutation, base_version, payload, state, error_code, created_at
+        FROM pending_sync_operation;
+        DROP TABLE pending_sync_operation;
+        ALTER TABLE pending_sync_operation_v9 RENAME TO pending_sync_operation;
+        CREATE INDEX pending_sync_operation_state_created_at_idx
+          ON pending_sync_operation(state, created_at);
+        CREATE TABLE IF NOT EXISTS mutable_sync_state (
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('user_draft', 'user_preferences')),
+          entity_id TEXT NOT NULL,
+          context_key TEXT NOT NULL,
+          base_version TEXT,
+          payload TEXT NOT NULL,
+          state TEXT NOT NULL CHECK (state IN ('synced', 'dirty', 'delete_pending', 'conflict')),
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (entity_type, context_key)
+        );
+        PRAGMA user_version = 9;
+      `);
+    });
+  }
   return database;
 };
 
@@ -253,6 +434,14 @@ export const closeOwnerLocalDatabase = async (ownerId: string) => {
 
 export const purgeOwnerLocalData = async (ownerId: string) => {
   const identity = await getOwnerStorageIdentity(ownerId);
+  const database = await getLocalDatabase(ownerId);
+  const unsyncedDraft = await database.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM mutable_sync_state
+     WHERE entity_type = 'user_draft' AND state != 'synced'`,
+  );
+  if ((unsyncedDraft?.count ?? 0) > 0) {
+    throw new Error("unsynced_draft_must_be_resolved");
+  }
   await closeOwnerLocalDatabase(ownerId);
   await SQLite.deleteDatabaseAsync(identity.databaseName);
   await SecureStore.deleteItemAsync(identity.keyReference);
@@ -323,29 +512,69 @@ const removeLocalSnapshot = async (
   );
 };
 
+const restoreLocalSnapshot = async (
+  ownerId: string,
+  entityType: SyncEntityType,
+  entityId: string,
+  snapshot: unknown,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `INSERT INTO sync_snapshot (entity_type, entity_id, payload, changed_at, deleted)
+     VALUES (?, ?, ?, ?, 0)
+     ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+       payload = excluded.payload,
+       changed_at = excluded.changed_at,
+       deleted = 0`,
+    entityType,
+    entityId,
+    JSON.stringify(snapshot),
+    new Date().toISOString(),
+  );
+};
+
 const saveOfflineFirst = async (
   ownerId: string,
   operation: SyncPushOperation,
   optimisticSnapshot?: unknown,
+  rollbackSnapshot?: unknown,
 ) =>
   persistOperationBeforeSync(operation, {
     discard: async () => {
       await removeQueuedOperation(ownerId, operation.operationId);
       if (optimisticSnapshot !== undefined) {
-        await removeLocalSnapshot(
-          ownerId,
-          operation.entityType,
-          operation.entityId,
-        );
+        if (rollbackSnapshot === undefined) {
+          await removeLocalSnapshot(
+            ownerId,
+            operation.entityType,
+            operation.entityId,
+          );
+        } else {
+          await restoreLocalSnapshot(
+            ownerId,
+            operation.entityType,
+            operation.entityId,
+            rollbackSnapshot,
+          );
+        }
       }
     },
     hideRejected: async () => {
       if (optimisticSnapshot !== undefined) {
-        await removeLocalSnapshot(
-          ownerId,
-          operation.entityType,
-          operation.entityId,
-        );
+        if (rollbackSnapshot === undefined) {
+          await removeLocalSnapshot(
+            ownerId,
+            operation.entityType,
+            operation.entityId,
+          );
+        } else {
+          await restoreLocalSnapshot(
+            ownerId,
+            operation.entityType,
+            operation.entityId,
+            rollbackSnapshot,
+          );
+        }
       }
     },
     queue: async () => queueOperation(ownerId, operation, optimisticSnapshot),
@@ -366,7 +595,11 @@ export const getPendingOperationCount = async (ownerId: string) => {
   const row = await database.getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) AS count FROM pending_sync_operation WHERE state = 'pending'",
   );
-  return row?.count ?? 0;
+  const mutable = await database.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM mutable_sync_state
+     WHERE state IN ('dirty', 'delete_pending')`,
+  );
+  return (row?.count ?? 0) + (mutable?.count ?? 0);
 };
 
 export const getLocalOperationSummary = async (ownerId: string) => {
@@ -376,7 +609,20 @@ export const getLocalOperationSummary = async (ownerId: string) => {
      FROM pending_sync_operation
      GROUP BY state`,
   );
-  return createLocalOperationSummary(rows);
+  const summary = createLocalOperationSummary(rows);
+  const mutable = await database.getAllAsync<{
+    state: "dirty" | "delete_pending" | "conflict";
+    count: number;
+  }>(
+    `SELECT state, COUNT(*) AS count FROM mutable_sync_state
+     WHERE state != 'synced' GROUP BY state`,
+  );
+  for (const row of mutable) {
+    if (row.state === "conflict") summary.conflict += row.count;
+    else summary.pending += row.count;
+    summary.total += row.count;
+  }
+  return summary;
 };
 
 export const saveCheckInOfflineFirst = async (
@@ -407,6 +653,79 @@ export const saveRoutineOfflineFirst = async (
   });
 };
 
+export const saveMedicationOfflineFirst = async (
+  ownerId: string,
+  input: MedicationWriteInput & { localDate: string; timezone: string },
+) => {
+  const { localDate, timezone, ...writeInput } = input;
+  const payload = medicationWriteSchema.parse(writeInput);
+  const operationId = Crypto.randomUUID();
+  const entityId = Crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const medication: MedicationDto = {
+    ...payload,
+    id: entityId,
+    isPrn: payload.frequency === "prn",
+    isArchived: false,
+    startDate: payload.startDate ?? localDate,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId,
+      entityType: "medication",
+      mutation: "create",
+      payload: { ...payload, localDate, timezone },
+    },
+    medication,
+  );
+  return { ...result, medication };
+};
+
+export const updateMedicationOfflineFirst = async (
+  ownerId: string,
+  current: MedicationDto,
+  input: MedicationWriteInput & {
+    localDate: string;
+    timezone: string;
+    reason: string;
+  },
+) => {
+  const { localDate, timezone, reason, ...writeInput } = input;
+  const payload = medicationWriteSchema.parse(writeInput);
+  const operationId = Crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const medication: MedicationDto = {
+    ...current,
+    ...payload,
+    isPrn: payload.frequency === "prn",
+    updatedAt: timestamp,
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId: current.id,
+      entityType: "medication",
+      mutation: "update",
+      baseVersion: current.updatedAt,
+      payload: {
+        ...payload,
+        localDate,
+        timezone,
+        reason,
+        baseVersion: current.updatedAt,
+      },
+    },
+    medication,
+    current,
+  );
+  return { ...result, medication };
+};
+
 export const saveDoseEventOfflineFirst = async (
   ownerId: string,
   input: DoseEventWriteInput,
@@ -420,7 +739,10 @@ export const saveDoseEventOfflineFirst = async (
     operationId,
     doseIndex: payload.doseIndex ?? null,
     note: payload.note ?? null,
+    cancelledAt: null,
+    correctionCount: 0,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   const result = await saveOfflineFirst(
     ownerId,
@@ -434,6 +756,102 @@ export const saveDoseEventOfflineFirst = async (
     event,
   );
   return { ...result, event };
+};
+
+export const saveDoseEventCorrectionOfflineFirst = async (
+  ownerId: string,
+  event: DoseEventDto,
+  input: DoseEventCorrectionWriteInput,
+) => {
+  const payload = doseEventCorrectionWriteSchema.parse(input);
+  const operationId = Crypto.randomUUID();
+  const entityId = Crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const correctedEvent: DoseEventDto = {
+    ...event,
+    kind: payload.targetKind,
+    occurredAt: payload.occurredAt,
+    timezone: payload.timezone,
+    note: payload.note ?? null,
+    cancelledAt: payload.targetKind === "cancelled" ? timestamp : null,
+    correctionCount: event.correctionCount + 1,
+    updatedAt: timestamp,
+  };
+  const correction: DoseEventCorrectionResult["correction"] = {
+    id: entityId,
+    doseEventId: event.id,
+    medicationId: event.medicationId,
+    operationId,
+    previousKind: event.kind,
+    targetKind: payload.targetKind,
+    previousOccurredAt: event.occurredAt,
+    occurredAt: payload.occurredAt,
+    timezone: payload.timezone,
+    previousNote: event.note,
+    note: payload.note ?? null,
+    reason: payload.reason,
+    createdAt: timestamp,
+  };
+  const optimistic: DoseEventCorrectionResult = {
+    event: correctedEvent,
+    correction,
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId,
+      entityType: "dose_event_correction",
+      mutation: "create",
+      payload,
+    },
+    optimistic,
+  );
+  return { ...result, ...optimistic };
+};
+
+export const saveMedicationInventoryAdjustmentOfflineFirst = async (
+  ownerId: string,
+  medication: MedicationDto,
+  input: MedicationInventoryAdjustmentWriteInput,
+) => {
+  const payload = medicationInventoryAdjustmentWriteSchema.parse(input);
+  const operationId = Crypto.randomUUID();
+  const entityId = Crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const nextMedication: MedicationDto = {
+    ...medication,
+    stockQuantity:
+      Math.round(
+        ((medication.stockQuantity ?? 0) + payload.quantityDelta) * 1_000,
+      ) / 1_000,
+    updatedAt: timestamp,
+  };
+  const optimistic: MedicationInventoryAdjustmentResult = {
+    medication: nextMedication,
+    inventoryEvent: {
+      id: entityId,
+      medicationId: medication.id,
+      doseEventId: null,
+      quantityDelta: payload.quantityDelta,
+      reason: payload.reason,
+      note: payload.note ?? null,
+      occurredAt: payload.occurredAt,
+      createdAt: timestamp,
+    },
+  };
+  const result = await saveOfflineFirst(
+    ownerId,
+    {
+      operationId,
+      entityId,
+      entityType: "medication_inventory_event",
+      mutation: "create",
+      payload,
+    },
+    optimistic,
+  );
+  return { ...result, ...optimistic };
 };
 
 export const saveRoutineOccurrenceOfflineFirst = async (
@@ -663,9 +1081,552 @@ const pullChanges = async (ownerId: string) => {
   await pullPage(metadata?.value);
 };
 
+const storeMutableState = async ({
+  ownerId,
+  entityType,
+  entityId,
+  contextKey,
+  baseVersion,
+  payload,
+  state,
+}: {
+  ownerId: string;
+  entityType: "user_draft" | "user_preferences";
+  entityId: string;
+  contextKey: string;
+  baseVersion: string | null;
+  payload: unknown;
+  state: MutableStateRow["state"];
+}) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `INSERT INTO mutable_sync_state
+      (entity_type, entity_id, context_key, base_version, payload, state, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(entity_type, context_key) DO UPDATE SET
+       entity_id = excluded.entity_id,
+       base_version = excluded.base_version,
+       payload = excluded.payload,
+       state = excluded.state,
+       updated_at = excluded.updated_at`,
+    entityType,
+    entityId,
+    contextKey,
+    baseVersion,
+    JSON.stringify(payload),
+    state,
+    new Date().toISOString(),
+  );
+};
+
+const markMutableConflict = async (
+  ownerId: string,
+  entityType: MutableStateRow["entity_type"],
+  contextKey: string,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `UPDATE mutable_sync_state SET state = 'conflict', updated_at = ?
+     WHERE entity_type = ? AND context_key = ?`,
+    new Date().toISOString(),
+    entityType,
+    contextKey,
+  );
+};
+
+const pushMutableOperation = async (
+  operation: Omit<SyncPushOperation, "operationId">,
+) => {
+  const operationId = Crypto.randomUUID();
+  const response = await pushOperations([{ ...operation, operationId }]);
+  return response.results[0];
+};
+
+const flushDraftMutableState = async (
+  ownerId: string,
+  row: MutableStateRow,
+) => {
+  const draft = userDraftSchema.parse(JSON.parse(row.payload));
+  const server = await api.getUserDraft(draft.kind, draft.contextKey);
+  if (
+    (server &&
+      (server.id !== row.entity_id || server.updatedAt !== row.base_version)) ||
+    (!server && row.base_version !== null)
+  ) {
+    await markMutableConflict(ownerId, "user_draft", row.context_key);
+    return;
+  }
+  if (row.state === "delete_pending" && !server) {
+    const database = await getLocalDatabase(ownerId);
+    await database.runAsync(
+      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
+      row.context_key,
+    );
+    return;
+  }
+  const result = await pushMutableOperation({
+    entityId: row.entity_id,
+    entityType: "user_draft",
+    mutation:
+      row.state === "delete_pending" ? "delete" : server ? "update" : "create",
+    baseVersion: server?.updatedAt ?? null,
+    payload:
+      row.state === "delete_pending" ? null : userDraftWriteSchema.parse(draft),
+  });
+  if (
+    !result ||
+    (result.status !== "applied" && result.status !== "duplicate")
+  ) {
+    if (result?.status === "conflict" || result?.status === "rejected") {
+      await markMutableConflict(ownerId, "user_draft", row.context_key);
+    }
+    return;
+  }
+  const database = await getLocalDatabase(ownerId);
+  if (row.state === "delete_pending") {
+    await database.runAsync(
+      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
+      row.context_key,
+    );
+    return;
+  }
+  const canonical = await api.getUserDraft(draft.kind, draft.contextKey);
+  if (canonical) {
+    await storeMutableState({
+      ownerId,
+      entityType: "user_draft",
+      entityId: canonical.id,
+      contextKey: row.context_key,
+      baseVersion: canonical.updatedAt,
+      payload: canonical,
+      state: "synced",
+    });
+  }
+};
+
+const flushPreferencesMutableState = async (
+  ownerId: string,
+  row: MutableStateRow,
+) => {
+  const preferences = syncedPreferencesSchema.parse(JSON.parse(row.payload));
+  const server = await api.getSyncedPreferences();
+  if (
+    (server &&
+      (server.id !== row.entity_id || server.updatedAt !== row.base_version)) ||
+    (!server && row.base_version !== null)
+  ) {
+    await markMutableConflict(ownerId, "user_preferences", row.context_key);
+    return;
+  }
+  const result = await pushMutableOperation({
+    entityId: row.entity_id,
+    entityType: "user_preferences",
+    mutation: server ? "update" : "create",
+    baseVersion: server?.updatedAt ?? null,
+    payload: syncedPreferencesWriteSchema.parse(preferences),
+  });
+  if (
+    !result ||
+    (result.status !== "applied" && result.status !== "duplicate")
+  ) {
+    if (result?.status === "conflict" || result?.status === "rejected") {
+      await markMutableConflict(ownerId, "user_preferences", row.context_key);
+    }
+    return;
+  }
+  const canonical = await api.getSyncedPreferences();
+  if (canonical) {
+    await storeMutableState({
+      ownerId,
+      entityType: "user_preferences",
+      entityId: canonical.id,
+      contextKey: "account",
+      baseVersion: canonical.updatedAt,
+      payload: canonical,
+      state: "synced",
+    });
+  }
+};
+
+const runMutableSyncFlush = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  const rows = await database.getAllAsync<MutableStateRow>(
+    `SELECT entity_type, entity_id, context_key, base_version, payload, state
+     FROM mutable_sync_state
+     WHERE state IN ('dirty', 'delete_pending') ORDER BY updated_at ASC`,
+  );
+  const flushAt = async (index: number): Promise<void> => {
+    const row = rows[index];
+    if (!row) return;
+    try {
+      if (row.entity_type === "user_draft") {
+        await flushDraftMutableState(ownerId, row);
+      } else {
+        await flushPreferencesMutableState(ownerId, row);
+      }
+    } catch {
+      // Network and provider errors leave the encrypted state dirty for retry.
+    }
+    return flushAt(index + 1);
+  };
+  await flushAt(0);
+};
+
+const flushMutableSyncStates = async (ownerId: string) => {
+  const existing = mutableFlushPromises.get(ownerId);
+  if (existing) {
+    await existing;
+    return flushMutableSyncStates(ownerId);
+  }
+  const promise = runMutableSyncFlush(ownerId).finally(() => {
+    mutableFlushPromises.delete(ownerId);
+  });
+  mutableFlushPromises.set(ownerId, promise);
+  return promise;
+};
+
 export const synchronizeNow = async (ownerId: string) => {
   await flushPendingOperations(ownerId);
   await pullChanges(ownerId);
+  await flushMutableSyncStates(ownerId);
+  await pullChanges(ownerId);
+};
+
+const getMutableState = async (
+  ownerId: string,
+  entityType: MutableStateRow["entity_type"],
+  contextKey: string,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  return database.getFirstAsync<MutableStateRow>(
+    `SELECT entity_type, entity_id, context_key, base_version, payload, state
+     FROM mutable_sync_state WHERE entity_type = ? AND context_key = ?`,
+    entityType,
+    contextKey,
+  );
+};
+
+export const refreshUserDraft = async (
+  ownerId: string,
+  kind: UserDraftKind,
+  contextKey: string,
+) => {
+  const localKey = `${kind}:${contextKey}`;
+  const local = await getMutableState(ownerId, "user_draft", localKey);
+  if (local && local.state !== "synced")
+    return userDraftSchema.parse(JSON.parse(local.payload));
+  const server = await api.getUserDraft(kind, contextKey);
+  if (!server) return null;
+  await storeMutableState({
+    ownerId,
+    entityType: "user_draft",
+    entityId: server.id,
+    contextKey: localKey,
+    baseVersion: server.updatedAt,
+    payload: server,
+    state: "synced",
+  });
+  return server;
+};
+
+export const getCachedUserDraft = async (
+  ownerId: string,
+  kind: UserDraftKind,
+  contextKey: string,
+) => {
+  const row = await getMutableState(
+    ownerId,
+    "user_draft",
+    `${kind}:${contextKey}`,
+  );
+  return row ? userDraftSchema.parse(JSON.parse(row.payload)) : null;
+};
+
+export const saveUserDraftLocally = async (
+  ownerId: string,
+  input: UserDraftWriteInput,
+) => {
+  const draft = userDraftWriteSchema.parse(input);
+  const localKey = `${draft.kind}:${draft.contextKey}`;
+  const current = await getMutableState(ownerId, "user_draft", localKey);
+  const now = new Date().toISOString();
+  const value: UserDraftDto = {
+    id: current?.entity_id ?? Crypto.randomUUID(),
+    ...draft,
+    createdAt: current
+      ? userDraftSchema.parse(JSON.parse(current.payload)).createdAt
+      : now,
+    updatedAt: now,
+  };
+  await storeMutableState({
+    ownerId,
+    entityType: "user_draft",
+    entityId: value.id,
+    contextKey: localKey,
+    baseVersion: current?.base_version ?? null,
+    payload: value,
+    state: "dirty",
+  });
+  await flushMutableSyncStates(ownerId);
+  const stored = await getMutableState(ownerId, "user_draft", localKey);
+  return { draft: value, pending: stored?.state !== "synced" };
+};
+
+export const discardUserDraft = async (
+  ownerId: string,
+  kind: UserDraftKind,
+  contextKey: string,
+) => {
+  const localKey = `${kind}:${contextKey}`;
+  const current = await getMutableState(ownerId, "user_draft", localKey);
+  const server = await api.getUserDraft(kind, contextKey).catch(() => null);
+  if (!server && current?.base_version == null) {
+    const database = await getLocalDatabase(ownerId);
+    await database.runAsync(
+      "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
+      localKey,
+    );
+    return;
+  }
+  let value: UserDraftDto;
+  if (server) value = server;
+  else {
+    if (!current) return;
+    value = userDraftSchema.parse(JSON.parse(current.payload));
+  }
+  await storeMutableState({
+    ownerId,
+    entityType: "user_draft",
+    entityId: value.id,
+    contextKey: localKey,
+    baseVersion: server?.updatedAt ?? current?.base_version ?? null,
+    payload: value,
+    state: "delete_pending",
+  });
+  await flushMutableSyncStates(ownerId);
+};
+
+export const refreshSyncedPreferences = async (ownerId: string) => {
+  const current = await getMutableState(ownerId, "user_preferences", "account");
+  if (current && current.state !== "synced") {
+    return syncedPreferencesSchema.parse(JSON.parse(current.payload));
+  }
+  const server = await api.getSyncedPreferences();
+  if (!server) return null;
+  await storeMutableState({
+    ownerId,
+    entityType: "user_preferences",
+    entityId: server.id,
+    contextKey: "account",
+    baseVersion: server.updatedAt,
+    payload: server,
+    state: "synced",
+  });
+  return server;
+};
+
+export const saveSyncedPreferencesLocally = async (
+  ownerId: string,
+  input: SyncedPreferencesWriteInput,
+) => {
+  const preferences = syncedPreferencesWriteSchema.parse(input);
+  const current = await getMutableState(ownerId, "user_preferences", "account");
+  const value: SyncedPreferencesDto = {
+    id: current?.entity_id ?? Crypto.randomUUID(),
+    ...preferences,
+    updatedAt: new Date().toISOString(),
+  };
+  await storeMutableState({
+    ownerId,
+    entityType: "user_preferences",
+    entityId: value.id,
+    contextKey: "account",
+    baseVersion: current?.base_version ?? null,
+    payload: value,
+    state: "dirty",
+  });
+  await flushMutableSyncStates(ownerId);
+  const stored = await getMutableState(ownerId, "user_preferences", "account");
+  return {
+    preferences: stored
+      ? syncedPreferencesSchema.parse(JSON.parse(stored.payload))
+      : value,
+    pending: stored?.state !== "synced",
+  };
+};
+
+export const getMutableConflictCount = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  const row = await database.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) AS count FROM mutable_sync_state WHERE state = 'conflict'",
+  );
+  return row?.count ?? 0;
+};
+
+export const resolveMutableConflicts = async (
+  ownerId: string,
+  strategy: "keep_local" | "use_server",
+) => {
+  const database = await getLocalDatabase(ownerId);
+  const rows = await database.getAllAsync<MutableStateRow>(
+    `SELECT entity_type, entity_id, context_key, base_version, payload, state
+     FROM mutable_sync_state WHERE state = 'conflict' ORDER BY updated_at ASC`,
+  );
+  const resolveAt = async (index: number): Promise<void> => {
+    const row = rows[index];
+    if (!row) return;
+    if (row.entity_type === "user_draft") {
+      const local = userDraftSchema.parse(JSON.parse(row.payload));
+      const server = await api.getUserDraft(local.kind, local.contextKey);
+      if (strategy === "use_server") {
+        if (server) {
+          await storeMutableState({
+            ownerId,
+            entityType: "user_draft",
+            entityId: server.id,
+            contextKey: row.context_key,
+            baseVersion: server.updatedAt,
+            payload: server,
+            state: "synced",
+          });
+        } else {
+          await database.runAsync(
+            "DELETE FROM mutable_sync_state WHERE entity_type = 'user_draft' AND context_key = ?",
+            row.context_key,
+          );
+        }
+      } else {
+        await storeMutableState({
+          ownerId,
+          entityType: "user_draft",
+          entityId: server?.id ?? local.id,
+          contextKey: row.context_key,
+          baseVersion: server?.updatedAt ?? null,
+          payload: { ...local, id: server?.id ?? local.id },
+          state: "dirty",
+        });
+      }
+    } else {
+      const local = syncedPreferencesSchema.parse(JSON.parse(row.payload));
+      const server = await api.getSyncedPreferences();
+      if (strategy === "use_server") {
+        if (server) {
+          await storeMutableState({
+            ownerId,
+            entityType: "user_preferences",
+            entityId: server.id,
+            contextKey: "account",
+            baseVersion: server.updatedAt,
+            payload: server,
+            state: "synced",
+          });
+        }
+      } else {
+        await storeMutableState({
+          ownerId,
+          entityType: "user_preferences",
+          entityId: server?.id ?? local.id,
+          contextKey: "account",
+          baseVersion: server?.updatedAt ?? null,
+          payload: { ...local, id: server?.id ?? local.id },
+          state: "dirty",
+        });
+      }
+    }
+    return resolveAt(index + 1);
+  };
+  await resolveAt(0);
+  if (strategy === "keep_local") await flushMutableSyncStates(ownerId);
+};
+
+export type HealthRawSampleRecord = {
+  sampleType: string;
+  sampleId: string;
+  localDate: string;
+  observedAt: string;
+  payload: unknown;
+};
+
+export const storeRawHealthSamples = async (
+  ownerId: string,
+  samples: readonly HealthRawSampleRecord[],
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.withTransactionAsync(async () => {
+    const storeAt = async (index: number): Promise<void> => {
+      const sample = samples[index];
+      if (!sample) return;
+      await database.runAsync(
+        `INSERT INTO health_raw_sample
+          (sample_type, sample_id, local_date, payload, observed_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(sample_type, sample_id) DO UPDATE SET
+           local_date = excluded.local_date,
+           payload = excluded.payload,
+           observed_at = excluded.observed_at`,
+        sample.sampleType,
+        sample.sampleId,
+        sample.localDate,
+        JSON.stringify(sample.payload),
+        sample.observedAt,
+      );
+      return storeAt(index + 1);
+    };
+    await storeAt(0);
+  });
+};
+
+export const deleteRawHealthSamples = async (
+  ownerId: string,
+  period?: { from?: string; to?: string },
+) => {
+  const database = await getLocalDatabase(ownerId);
+  if (!period?.from && !period?.to) {
+    const result = await database.runAsync("DELETE FROM health_raw_sample");
+    return result.changes;
+  }
+  const clauses: string[] = [];
+  const values: string[] = [];
+  if (period.from) {
+    clauses.push("local_date >= ?");
+    values.push(period.from);
+  }
+  if (period.to) {
+    clauses.push("local_date <= ?");
+    values.push(period.to);
+  }
+  const result = await database.runAsync(
+    `DELETE FROM health_raw_sample WHERE ${clauses.join(" AND ")}`,
+    ...values,
+  );
+  return result.changes;
+};
+
+export const cacheSafetyPlan = async (ownerId: string, plan: SafetyPlanDto) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `INSERT INTO safety_plan_snapshot (id, payload, cached_at)
+     VALUES (1, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       payload = excluded.payload,
+       cached_at = excluded.cached_at`,
+    JSON.stringify(plan),
+    new Date().toISOString(),
+  );
+};
+
+export const getCachedSafetyPlan = async (ownerId: string) => {
+  const database = await getLocalDatabase(ownerId);
+  const row = await database.getFirstAsync<SnapshotRow>(
+    "SELECT payload FROM safety_plan_snapshot WHERE id = 1",
+  );
+  if (!row) return null;
+  try {
+    return JSON.parse(row.payload) as SafetyPlanDto;
+  } catch {
+    await database.runAsync("DELETE FROM safety_plan_snapshot WHERE id = 1");
+    return null;
+  }
 };
 
 const readSnapshots = async <T>(
@@ -736,7 +1697,7 @@ export const refreshTreatmentSnapshots = async (
       ownerId,
       "dose_event",
       doseEvents,
-      (event) => event.createdAt,
+      (event) => event.updatedAt,
     ),
   ]);
 };
@@ -745,10 +1706,43 @@ export const getCachedRoutines = async (ownerId: string) =>
   readSnapshots<RoutineDto>(ownerId, "routine");
 export const getCachedRoutineOccurrences = async (ownerId: string) =>
   readSnapshots<RoutineOccurrenceDto>(ownerId, "routine_occurrence");
-export const getCachedMedications = async (ownerId: string) =>
-  readSnapshots<MedicationDto>(ownerId, "medication");
-export const getCachedDoseEvents = async (ownerId: string) =>
-  readSnapshots<DoseEventDto>(ownerId, "dose_event");
+export const getCachedMedications = async (ownerId: string) => {
+  const [medications, adjustments] = await Promise.all([
+    readSnapshots<MedicationDto>(ownerId, "medication"),
+    readSnapshots<MedicationInventoryAdjustmentResult>(
+      ownerId,
+      "medication_inventory_event",
+    ),
+  ]);
+  const latest = new Map(
+    adjustments
+      .sort(
+        (left, right) =>
+          new Date(left.medication.updatedAt).getTime() -
+          new Date(right.medication.updatedAt).getTime(),
+      )
+      .map((result) => [result.medication.id, result.medication]),
+  );
+  return medications.map(
+    (medication) => latest.get(medication.id) ?? medication,
+  );
+};
+export const getCachedDoseEvents = async (ownerId: string) => {
+  const [events, corrections] = await Promise.all([
+    readSnapshots<DoseEventDto>(ownerId, "dose_event"),
+    readSnapshots<DoseEventCorrectionResult>(ownerId, "dose_event_correction"),
+  ]);
+  const latest = new Map(
+    corrections
+      .sort(
+        (left, right) =>
+          new Date(left.correction.createdAt).getTime() -
+          new Date(right.correction.createdAt).getTime(),
+      )
+      .map((result) => [result.event.id, result.event]),
+  );
+  return events.map((event) => latest.get(event.id) ?? event);
+};
 export const getCachedAppointments = async (ownerId: string) =>
   readSnapshots<AppointmentDto>(ownerId, "appointment");
 export const getCachedAppointmentQuestions = async (
@@ -786,6 +1780,44 @@ export const getCachedAppointmentDecisions = async (
   return appointmentId
     ? decisions.filter((decision) => decision.appointmentId === appointmentId)
     : decisions;
+};
+
+export const cacheMedicationDetail = async (
+  ownerId: string,
+  detail: MedicationDetailDto,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  await database.runAsync(
+    `INSERT INTO medication_detail_snapshot (medication_id, payload, cached_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(medication_id) DO UPDATE SET
+       payload = excluded.payload,
+       cached_at = excluded.cached_at`,
+    detail.medication.id,
+    JSON.stringify(detail),
+    new Date().toISOString(),
+  );
+};
+
+export const getCachedMedicationDetail = async (
+  ownerId: string,
+  medicationId: string,
+) => {
+  const database = await getLocalDatabase(ownerId);
+  const row = await database.getFirstAsync<SnapshotRow>(
+    "SELECT payload FROM medication_detail_snapshot WHERE medication_id = ?",
+    medicationId,
+  );
+  if (!row) return null;
+  try {
+    return JSON.parse(row.payload) as MedicationDetailDto;
+  } catch {
+    await database.runAsync(
+      "DELETE FROM medication_detail_snapshot WHERE medication_id = ?",
+      medicationId,
+    );
+    return null;
+  }
 };
 
 // Compatibility alias for the first Today prototype.

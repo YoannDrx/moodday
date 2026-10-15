@@ -4,12 +4,32 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import resolveExpoConfig from "../apps/mobile/app.config";
 
 const mobileRoot = path.join(process.cwd(), "apps/mobile");
+const appConfig = JSON.parse(
+  fs.readFileSync(path.join(mobileRoot, "app.json"), "utf8"),
+) as {
+  expo: Record<string, unknown> & {
+    extra?: { eas?: { projectId?: string } };
+    plugins?: unknown[];
+  };
+};
 const easConfig = JSON.parse(
   fs.readFileSync(path.join(mobileRoot, "eas.json"), "utf8"),
 ) as {
   cli: { version: string; appVersionSource: string };
   build: Record<string, Record<string, unknown>>;
   submit: Record<string, unknown>;
+};
+const storeConfig = JSON.parse(
+  fs.readFileSync(path.join(mobileRoot, "store.config.json"), "utf8"),
+) as {
+  configVersion: number;
+  apple: {
+    advisory: Record<string, unknown>;
+    categories: string[];
+    info: Record<string, Record<string, unknown>>;
+    release: { automaticRelease: boolean };
+    review?: Record<string, unknown>;
+  };
 };
 
 describe("mobile delivery configuration", () => {
@@ -45,7 +65,46 @@ describe("mobile delivery configuration", () => {
       environment: "production",
       env: { APP_VARIANT: "production" },
     });
-    expect(easConfig.submit).toEqual({ production: {} });
+    expect(easConfig.submit).toEqual({
+      production: {
+        ios: {
+          ascAppId: "6804466109",
+          metadataPath: "./store.config.json",
+        },
+      },
+    });
+  });
+
+  it("versions a bilingual, adult and manually released App Store listing", () => {
+    expect(storeConfig).toMatchObject({
+      configVersion: 0,
+      apple: {
+        categories: ["HEALTH_AND_FITNESS", "LIFESTYLE"],
+        release: { automaticRelease: false },
+        advisory: {
+          ageRatingOverride: "SEVENTEEN_PLUS",
+          medicalOrTreatmentInformation: "FREQUENT_OR_INTENSE",
+          healthOrWellnessTopics: true,
+        },
+        info: {
+          "fr-FR": {
+            title: "Mood Day",
+            supportUrl: "https://www.moodday.app/help",
+            privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
+            privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
+          },
+          "en-US": {
+            title: "Mood Day",
+            supportUrl: "https://www.moodday.app/help",
+            privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
+            privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
+          },
+        },
+      },
+    });
+    expect(storeConfig.apple.review).toBeUndefined();
+    expect(JSON.stringify(storeConfig)).toContain("non médical");
+    expect(JSON.stringify(storeConfig)).toContain("non-medical");
   });
 
   it("keeps the EAS build CLI outside the application dependency graph", () => {
@@ -54,6 +113,49 @@ describe("mobile delivery configuration", () => {
     ) as { devDependencies?: Record<string, string> };
 
     expect(mobilePackage.devDependencies).not.toHaveProperty("eas-cli");
+  });
+
+  it("links the native app to EAS and ships production-ready brand assets", () => {
+    expect(appConfig.expo).toMatchObject({
+      owner: "yoanndrx",
+      slug: "mood-day",
+      icon: "./assets/app-icon.png",
+      extra: {
+        eas: { projectId: "973b3a37-c1d3-4dac-a327-20d4b9bbd18e" },
+      },
+    });
+    expect(appConfig.expo).not.toHaveProperty("newArchEnabled");
+    expect(JSON.stringify(appConfig.expo.plugins)).toContain(
+      "expo-splash-screen",
+    );
+    expect(JSON.stringify(appConfig.expo.plugins)).toContain(
+      '"faceIDPermission":false',
+    );
+  });
+
+  it("ships private local reminders and native account-data handoff", () => {
+    const mobilePackage = JSON.parse(
+      fs.readFileSync(path.join(mobileRoot, "package.json"), "utf8"),
+    ) as { dependencies: Record<string, string> };
+    const notifications = fs.readFileSync(
+      path.join(mobileRoot, "src/lib/notifications.ts"),
+      "utf8",
+    );
+    const accountData = fs.readFileSync(
+      path.join(mobileRoot, "src/lib/account-data.ts"),
+      "utf8",
+    );
+
+    expect(mobilePackage.dependencies).toMatchObject({
+      "expo-file-system": "~55.0.25",
+      "expo-notifications": "~55.0.26",
+      "expo-sharing": "~55.0.23",
+    });
+    expect(notifications).toContain("SchedulableTriggerInputTypes.DATE");
+    expect(notifications).toContain("Un rappel de traitement t’attend");
+    expect(notifications).not.toContain("medication.name");
+    expect(accountData).toContain("/api/export/json");
+    expect(accountData).toContain("if (file.exists) file.delete()");
   });
 
   it("keeps EAS workflows manual and executes the versioned Maestro flow", () => {
@@ -79,6 +181,20 @@ describe("mobile delivery configuration", () => {
     expect(flow).toContain("appId: fr.yodev.moodday.preview");
     expect(flow).toContain("openLink: moodday-preview://sign-in");
     expect(flow).toContain("id: sign-in-screen");
+  });
+
+  it("exposes Google authentication through the native Better Auth hand-off", () => {
+    const signInScreen = fs.readFileSync(
+      path.join(mobileRoot, "app/sign-in.tsx"),
+      "utf8",
+    );
+
+    expect(signInScreen).toContain('testID="sign-in-google"');
+    expect(signInScreen).toContain("authClient.signIn.social");
+    expect(signInScreen).toContain('provider: "google"');
+    expect(signInScreen).toContain('callbackURL: "/"');
+    expect(signInScreen).toContain('testID="sign-in-apple"');
+    expect(signInScreen).toContain('provider: "apple"');
   });
 
   it.each([
@@ -119,10 +235,14 @@ describe("mobile delivery configuration", () => {
       expect(resolved).toMatchObject({
         name,
         scheme,
-        ios: { bundleIdentifier: identifier },
+        ios: { bundleIdentifier: identifier, usesAppleSignIn: true },
         android: { package: identifier },
         extra: { appVariant: variant, apiUrl: resolvedApiUrl },
       });
+      expect(JSON.stringify(resolved.plugins)).toContain("expo-notifications");
+      expect(JSON.stringify(resolved.plugins)).toContain(
+        '"remindersPermission":false',
+      );
     },
   );
 
@@ -141,5 +261,36 @@ describe("mobile delivery configuration", () => {
         config: { name: "Mood Day", slug: "mood-day" },
       } as never),
     ).toThrow("EXPO_PUBLIC_API_URL must use HTTPS for the preview");
+  });
+
+  it("allows the iOS-first RevenueCat release without an Android public key", () => {
+    vi.stubEnv("APP_VARIANT", "production");
+    vi.stubEnv("EXPO_PUBLIC_API_URL", "https://www.moodday.app");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ENABLED", "true");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY", "appl_public_test");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY", "");
+
+    const resolved = resolveExpoConfig({
+      config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+    } as never);
+
+    expect(resolved.extra).toMatchObject({
+      revenueCatEnabled: true,
+      revenueCatIosApiKey: "appl_public_test",
+      revenueCatAndroidApiKey: undefined,
+    });
+  });
+
+  it("fails closed when iOS RevenueCat billing has no public iOS key", () => {
+    vi.stubEnv("APP_VARIANT", "production");
+    vi.stubEnv("EXPO_PUBLIC_API_URL", "https://www.moodday.app");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ENABLED", "true");
+    vi.stubEnv("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY", "");
+
+    expect(() =>
+      resolveExpoConfig({
+        config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+      } as never),
+    ).toThrow("RevenueCat iOS public API key is required");
   });
 });

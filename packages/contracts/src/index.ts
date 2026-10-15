@@ -99,7 +99,7 @@ export const createRoutineOccurrenceSchema =
 
 export const routineOccurrenceSchema = routineOccurrenceWriteSchema.safeExtend({
   id: z.string(),
-  operationId: z.string(),
+  operationId: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -426,10 +426,131 @@ export const calendarSyncResultSchema = z.object({
 
 export const runtimeCapabilitiesSchema = z.object({
   googleCalendar: z.boolean(),
+  healthKit: z.boolean(),
   billing: z.boolean(),
   caregiverSharing: z.boolean(),
   pushNotifications: z.boolean(),
 });
+
+export const healthMetricSchema = z.enum([
+  "sleep_duration_minutes",
+  "step_count",
+  "active_energy_kcal",
+  "resting_heart_rate_bpm",
+  "hrv_sdnn_ms",
+  "workout_minutes",
+]);
+
+export const healthSourceStatusSchema = z.enum([
+  "active",
+  "paused",
+  "permission_denied",
+  "revoked",
+  "error",
+]);
+
+export const healthPermissionSchema = healthMetricSchema;
+
+export const connectHealthKitSchema = z.object({
+  permissionScope: z.array(healthPermissionSchema).min(1).max(6),
+});
+
+export const updateHealthSourceSchema = z.object({
+  status: z.enum(["active", "paused", "permission_denied", "error"]),
+  permissionScope: z.array(healthPermissionSchema).min(1).max(6).optional(),
+});
+
+export const healthSourceConnectionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("healthkit"),
+  status: healthSourceStatusSchema,
+  permissionScope: z.array(healthPermissionSchema),
+  pausedAt: z.iso.datetime().nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  lastSyncedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const healthAggregateQualitySchema = z.enum([
+  "complete",
+  "partial",
+  "estimated",
+  "contested",
+]);
+
+export const healthAggregateWriteSchema = z
+  .object({
+    operationId: z.string().min(8).max(128),
+    sourceConnectionId: z.string().min(8).max(128),
+    metric: healthMetricSchema,
+    value: z.number().finite().nonnegative().max(100_000_000),
+    unit: z.string().trim().min(1).max(32),
+    localDate: z.iso.date(),
+    timezone: z.string().min(1).max(80),
+    windowStart: z.iso.datetime(),
+    windowEnd: z.iso.datetime(),
+    coverage: z.number().min(0).max(1).nullable().optional(),
+    quality: healthAggregateQualitySchema.default("complete"),
+    algorithmVersion: z.string().trim().min(1).max(64),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (new Date(value.windowEnd) <= new Date(value.windowStart)) {
+      context.addIssue({
+        code: "custom",
+        path: ["windowEnd"],
+        message: "health_window_end_must_follow_start",
+      });
+    }
+  });
+
+export const importHealthAggregatesSchema = z.object({
+  aggregates: z.array(healthAggregateWriteSchema).min(1).max(186),
+});
+
+export const healthAggregateSchema = healthAggregateWriteSchema.safeExtend({
+  id: z.string(),
+  provenance: z.literal("healthkit"),
+  importedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const healthAggregateImportResultSchema = z.object({
+  accepted: z.number().int().nonnegative(),
+  sourceConnectionId: z.string(),
+  lastSyncedAt: z.iso.datetime(),
+});
+
+export const safetyPlanContactSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    detail: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+const safetyPlanItemSchema = z.string().trim().min(1).max(500);
+
+export const safetyPlanWriteSchema = z
+  .object({
+    warningSigns: z.array(safetyPlanItemSchema).max(20),
+    copingStrategies: z.array(safetyPlanItemSchema).max(20),
+    safePlaces: z.array(safetyPlanItemSchema).max(20),
+    trustedContacts: z.array(safetyPlanContactSchema).max(10),
+    professionalContacts: z.array(safetyPlanContactSchema).max(10),
+    markReviewed: z.boolean().default(false),
+  })
+  .strict();
+
+export const safetyPlanSchema = safetyPlanWriteSchema
+  .omit({ markReviewed: true })
+  .extend({
+    id: z.string(),
+    lastReviewedAt: z.iso.datetime().nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  });
 
 export const medicationFrequencySchema = z.enum([
   "daily",
@@ -458,7 +579,71 @@ export const medicationSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
+export const medicationWriteSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    dosage: z.string().trim().min(1).max(200),
+    frequency: medicationFrequencySchema,
+    scheduleTimes: z
+      .array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/))
+      .max(2),
+    weeklyDay: z.number().int().min(0).max(6).nullable(),
+    startDate: z.iso.date().nullable(),
+    endDate: z.iso.date().nullable(),
+    stockQuantity: medicationQuantitySchema.nullable(),
+    unitsPerDose: z.number().positive().max(1_000_000).nullable(),
+    lowStockThreshold: medicationQuantitySchema.nullable(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.startDate && value.endDate && value.endDate < value.startDate) {
+      context.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: "end_date_before_start_date",
+      });
+    }
+    const expectedTimes =
+      value.frequency === "twice_daily" ? 2 : value.frequency === "prn" ? 0 : 1;
+    if (value.scheduleTimes.length !== expectedTimes) {
+      context.addIssue({
+        code: "custom",
+        path: ["scheduleTimes"],
+        message: "invalid_schedule_time_count",
+      });
+    }
+    if (value.frequency === "weekly" && value.weeklyDay === null) {
+      context.addIssue({
+        code: "custom",
+        path: ["weeklyDay"],
+        message: "weekly_day_required",
+      });
+    }
+  });
+
+export const createMedicationSchema = medicationWriteSchema.safeExtend({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+  localDate: z.iso.date(),
+  timezone: z.string().min(1).max(80),
+});
+
+export const updateMedicationSchema = medicationWriteSchema.safeExtend({
+  operationId: z.string().min(8).max(128),
+  medicationId: z.string().min(1).max(128),
+  localDate: z.iso.date(),
+  timezone: z.string().min(1).max(80),
+  reason: z.string().trim().min(1).max(500),
+  baseVersion: z.iso.datetime(),
+});
+
 export const doseEventKindSchema = z.enum(["taken", "skipped", "prn"]);
+export const effectiveDoseEventKindSchema = z.enum([
+  "taken",
+  "skipped",
+  "prn",
+  "cancelled",
+]);
 
 export const doseEventWriteSchema = z
   .object({
@@ -492,23 +677,215 @@ export const createDoseEventSchema = doseEventWriteSchema.safeExtend({
   entityId: z.string().min(8).max(128),
 });
 
-export const doseEventSchema = doseEventWriteSchema.safeExtend({
+export const doseEventSchema = z.object({
   id: z.string(),
   operationId: z.string().nullable(),
+  medicationId: z.string().min(1).max(128),
+  kind: effectiveDoseEventKindSchema,
+  localDate: z.iso.date(),
+  timezone: z.string().min(1).max(80),
+  occurredAt: z.iso.datetime(),
   doseIndex: z.number().int().min(0).max(12).nullable(),
   note: z.string().nullable(),
+  cancelledAt: z.iso.datetime().nullable(),
+  correctionCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const doseEventCorrectionWriteSchema = z
+  .object({
+    doseEventId: z.string().min(1).max(128),
+    targetKind: effectiveDoseEventKindSchema,
+    occurredAt: z.iso.datetime(),
+    timezone: z.string().min(1).max(80),
+    note: z.string().trim().max(2_000).nullable().optional(),
+    reason: z.string().trim().min(1).max(500),
+    baseVersion: z.iso.datetime(),
+  })
+  .strict();
+
+export const createDoseEventCorrectionSchema =
+  doseEventCorrectionWriteSchema.extend({
+    operationId: z.string().min(8).max(128),
+    entityId: z.string().min(8).max(128),
+  });
+
+export const doseEventCorrectionSchema = z.object({
+  id: z.string(),
+  doseEventId: z.string(),
+  medicationId: z.string(),
+  operationId: z.string(),
+  previousKind: effectiveDoseEventKindSchema,
+  targetKind: effectiveDoseEventKindSchema,
+  previousOccurredAt: z.iso.datetime(),
+  occurredAt: z.iso.datetime(),
+  timezone: z.string(),
+  previousNote: z.string().nullable(),
+  note: z.string().nullable(),
+  reason: z.string(),
+  createdAt: z.iso.datetime(),
+});
+
+export const doseEventCorrectionResultSchema = z.object({
+  event: doseEventSchema,
+  correction: doseEventCorrectionSchema,
+});
+
+export const medicationInventoryReasonSchema = z.enum([
+  "refill",
+  "correction",
+  "manual",
+]);
+
+export const medicationInventoryAdjustmentWriteSchema = z
+  .object({
+    medicationId: z.string().min(1).max(128),
+    quantityDelta: z.number().min(-1_000_000).max(1_000_000),
+    reason: medicationInventoryReasonSchema,
+    occurredAt: z.iso.datetime(),
+    note: z.string().trim().max(500).nullable().optional(),
+    baseVersion: z.iso.datetime(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.quantityDelta === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["quantityDelta"],
+        message: "inventory_delta_must_not_be_zero",
+      });
+    }
+    if (value.reason === "refill" && value.quantityDelta < 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["quantityDelta"],
+        message: "refill_must_increase_stock",
+      });
+    }
+  });
+
+export const createMedicationInventoryAdjustmentSchema =
+  medicationInventoryAdjustmentWriteSchema.safeExtend({
+    operationId: z.string().min(8).max(128),
+    entityId: z.string().min(8).max(128),
+  });
+
+export const medicationInventoryEventSchema = z.object({
+  id: z.string(),
+  medicationId: z.string(),
+  doseEventId: z.string().nullable(),
+  quantityDelta: z.number(),
+  reason: z.enum(["refill", "intake", "correction", "manual"]),
+  note: z.string().nullable(),
+  occurredAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
+});
+
+export const medicationInventoryAdjustmentResultSchema = z.object({
+  medication: medicationSchema,
+  inventoryEvent: medicationInventoryEventSchema,
+});
+
+export const medicationScheduleRevisionSchema = z.object({
+  id: z.string(),
+  effectiveDate: z.iso.date(),
+  dosage: z.string(),
+  frequency: medicationFrequencySchema,
+  scheduleTimes: z.array(z.string()),
+  weeklyDay: z.number().int().min(0).max(6).nullable(),
+  unitsPerDose: medicationQuantitySchema.nullable(),
+  reason: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+});
+
+export const medicationDosageHistorySchema = z.object({
+  id: z.string(),
+  dosage: z.string(),
+  previousDosage: z.string().nullable(),
+  reason: z.string().nullable(),
+  changedAt: z.iso.datetime(),
+});
+
+export const medicationDetailSchema = z.object({
+  medication: medicationSchema,
+  doseEvents: z.array(doseEventSchema),
+  corrections: z.array(doseEventCorrectionSchema),
+  inventoryEvents: z.array(medicationInventoryEventSchema),
+  scheduleRevisions: z.array(medicationScheduleRevisionSchema),
+  dosageHistory: z.array(medicationDosageHistorySchema),
+});
+
+const timePreferenceSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+export const preferredTextScaleSchema = z.enum([
+  "system",
+  "large",
+  "extra_large",
+]);
+
+export const syncedPreferencesWriteSchema = z.object({
+  locale: z.enum(["fr", "en"]),
+  timezone: z.string().min(1).max(80).nullable(),
+  reducedMotion: z.boolean(),
+  preferredTextScale: preferredTextScaleSchema,
+  notificationsEnabled: z.boolean(),
+  dailyCheckInReminder: z.boolean(),
+  dailyCheckInTime: timePreferenceSchema,
+  medicationReminders: z.boolean(),
+  medicationReminderTime: timePreferenceSchema,
+});
+
+export const syncedPreferencesSchema = syncedPreferencesWriteSchema.extend({
+  id: z.string(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const updateSyncedPreferencesSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+  baseVersion: z.iso.datetime().nullable(),
+  preferences: syncedPreferencesWriteSchema,
+});
+
+export const userDraftKindSchema = z.enum([
+  "check_in",
+  "appointment_preparation",
+]);
+
+export const userDraftWriteSchema = z.object({
+  kind: userDraftKindSchema,
+  contextKey: z.string().trim().min(1).max(128),
+  content: z.record(z.string().trim().min(1).max(80), z.unknown()),
+});
+
+export const userDraftSchema = userDraftWriteSchema.extend({
+  id: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const saveUserDraftSchema = z.object({
+  operationId: z.string().min(8).max(128),
+  entityId: z.string().min(8).max(128),
+  baseVersion: z.iso.datetime().nullable(),
+  draft: userDraftWriteSchema,
 });
 
 export const syncEntityTypeSchema = z.enum([
   "check_in",
+  "medication",
   "dose_event",
+  "dose_event_correction",
+  "medication_inventory_event",
   "routine",
   "routine_occurrence",
   "appointment",
   "appointment_question",
   "appointment_event",
   "appointment_decision",
+  "user_draft",
+  "user_preferences",
 ]);
 
 export const syncMutationSchema = z.enum(["create", "update", "delete"]);
@@ -752,15 +1129,87 @@ export type ResolveCalendarConflictInput = z.infer<
   typeof resolveCalendarConflictSchema
 >;
 export type CalendarSyncResult = z.infer<typeof calendarSyncResultSchema>;
-export type RuntimeCapabilitiesDto = z.infer<
-  typeof runtimeCapabilitiesSchema
+export type RuntimeCapabilitiesDto = z.infer<typeof runtimeCapabilitiesSchema>;
+export type HealthMetric = z.infer<typeof healthMetricSchema>;
+export type HealthPermission = z.infer<typeof healthPermissionSchema>;
+export type HealthSourceStatus = z.infer<typeof healthSourceStatusSchema>;
+export type ConnectHealthKitInput = z.infer<typeof connectHealthKitSchema>;
+export type UpdateHealthSourceInput = z.infer<typeof updateHealthSourceSchema>;
+export type HealthSourceConnectionDto = z.infer<
+  typeof healthSourceConnectionSchema
 >;
+export type HealthAggregateQuality = z.infer<
+  typeof healthAggregateQualitySchema
+>;
+export type HealthAggregateWriteInput = z.infer<
+  typeof healthAggregateWriteSchema
+>;
+export type ImportHealthAggregatesInput = z.infer<
+  typeof importHealthAggregatesSchema
+>;
+export type HealthAggregateDto = z.infer<typeof healthAggregateSchema>;
+export type HealthAggregateImportResult = z.infer<
+  typeof healthAggregateImportResultSchema
+>;
+export type SafetyPlanContact = z.infer<typeof safetyPlanContactSchema>;
+export type SafetyPlanWriteInput = z.infer<typeof safetyPlanWriteSchema>;
+export type SafetyPlanDto = z.infer<typeof safetyPlanSchema>;
 export type MedicationFrequency = z.infer<typeof medicationFrequencySchema>;
 export type MedicationDto = z.infer<typeof medicationSchema>;
+export type MedicationWriteInput = z.infer<typeof medicationWriteSchema>;
+export type CreateMedicationInput = z.infer<typeof createMedicationSchema>;
+export type UpdateMedicationInput = z.infer<typeof updateMedicationSchema>;
 export type DoseEventKind = z.infer<typeof doseEventKindSchema>;
+export type EffectiveDoseEventKind = z.infer<
+  typeof effectiveDoseEventKindSchema
+>;
 export type DoseEventWriteInput = z.infer<typeof doseEventWriteSchema>;
 export type CreateDoseEventInput = z.infer<typeof createDoseEventSchema>;
 export type DoseEventDto = z.infer<typeof doseEventSchema>;
+export type DoseEventCorrectionWriteInput = z.infer<
+  typeof doseEventCorrectionWriteSchema
+>;
+export type CreateDoseEventCorrectionInput = z.infer<
+  typeof createDoseEventCorrectionSchema
+>;
+export type DoseEventCorrectionDto = z.infer<typeof doseEventCorrectionSchema>;
+export type DoseEventCorrectionResult = z.infer<
+  typeof doseEventCorrectionResultSchema
+>;
+export type MedicationInventoryReason = z.infer<
+  typeof medicationInventoryReasonSchema
+>;
+export type MedicationInventoryAdjustmentWriteInput = z.infer<
+  typeof medicationInventoryAdjustmentWriteSchema
+>;
+export type CreateMedicationInventoryAdjustmentInput = z.infer<
+  typeof createMedicationInventoryAdjustmentSchema
+>;
+export type MedicationInventoryEventDto = z.infer<
+  typeof medicationInventoryEventSchema
+>;
+export type MedicationInventoryAdjustmentResult = z.infer<
+  typeof medicationInventoryAdjustmentResultSchema
+>;
+export type MedicationScheduleRevisionDto = z.infer<
+  typeof medicationScheduleRevisionSchema
+>;
+export type MedicationDosageHistoryDto = z.infer<
+  typeof medicationDosageHistorySchema
+>;
+export type MedicationDetailDto = z.infer<typeof medicationDetailSchema>;
+export type PreferredTextScale = z.infer<typeof preferredTextScaleSchema>;
+export type SyncedPreferencesWriteInput = z.infer<
+  typeof syncedPreferencesWriteSchema
+>;
+export type SyncedPreferencesDto = z.infer<typeof syncedPreferencesSchema>;
+export type UpdateSyncedPreferencesInput = z.infer<
+  typeof updateSyncedPreferencesSchema
+>;
+export type UserDraftKind = z.infer<typeof userDraftKindSchema>;
+export type UserDraftWriteInput = z.infer<typeof userDraftWriteSchema>;
+export type UserDraftDto = z.infer<typeof userDraftSchema>;
+export type SaveUserDraftInput = z.infer<typeof saveUserDraftSchema>;
 export type CreateAppointmentQuestionInput = z.infer<
   typeof createAppointmentQuestionSchema
 >;

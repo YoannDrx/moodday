@@ -5,6 +5,7 @@ import { localeCookieName, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { updateDisplayPreferences } from "@/features/preferences/preferences.action";
 
 const setLocaleCookie = (locale: Locale) => {
   const maxAge = 60 * 60 * 24 * 365;
@@ -19,6 +20,7 @@ export function LanguageToggle() {
   const handleChange = (nextLocale: Locale) => {
     if (nextLocale !== locale) {
       setLocaleCookie(nextLocale);
+      void updateDisplayPreferences({ locale: nextLocale });
       router.refresh();
     }
   };

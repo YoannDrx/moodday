@@ -22,24 +22,42 @@ import type {
   CreateCircleInvitationInput,
   CreateGoogleCalendarConnectionInput,
   CreateDoseEventInput,
+  CreateDoseEventCorrectionInput,
+  CreateMedicationInventoryAdjustmentInput,
+  CreateMedicationInput,
   CreateRoutineInput,
   CreateRoutineOccurrenceInput,
   CreateSupportRequestInput,
   EntitlementDto,
+  ConnectHealthKitInput,
+  HealthAggregateDto,
+  HealthAggregateImportResult,
+  HealthSourceConnectionDto,
+  ImportHealthAggregatesInput,
+  UpdateHealthSourceInput,
   DoseEventDto,
+  DoseEventCorrectionResult,
   MedicationDto,
+  MedicationDetailDto,
+  MedicationInventoryAdjustmentResult,
   RespondSupportRequestInput,
   ResolveCalendarConflictInput,
   RoutineDto,
   RoutineOccurrenceDto,
   RuntimeCapabilitiesDto,
+  SafetyPlanDto,
+  SafetyPlanWriteInput,
+  SyncedPreferencesDto,
   SupportRequestDto,
   UpdateCalendarConnectionInput,
+  UpdateMedicationInput,
   SharedAppointmentBriefDto,
   SyncPullResult,
   SyncPushInput,
   SyncPushResult,
   TodayDto,
+  UserDraftDto,
+  UserDraftKind,
 } from "@moodday/contracts";
 
 type ApiClientOptions = {
@@ -111,6 +129,12 @@ export const createApiClient = ({
   return {
     getRuntimeCapabilities: async () =>
       request<RuntimeCapabilitiesDto>("/api/v2/capabilities"),
+    getSyncedPreferences: async () =>
+      request<SyncedPreferencesDto | null>("/api/v2/preferences"),
+    getUserDraft: async (kind: UserDraftKind, contextKey: string) =>
+      request<UserDraftDto | null>(
+        `/api/v2/drafts?kind=${encodeURIComponent(kind)}&contextKey=${encodeURIComponent(contextKey)}`,
+      ),
     createCheckIn: async (input: CreateCheckInInput) =>
       request<CheckInDto>("/api/v2/check-ins", {
         method: "POST",
@@ -124,6 +148,16 @@ export const createApiClient = ({
       request<{ items: MedicationDto[]; nextCursor: string | null }>(
         `/api/v2/medications?includeArchived=${includeArchived}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
       ),
+    createMedication: async (input: CreateMedicationInput) =>
+      request<MedicationDto>("/api/v2/medications", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    updateMedication: async (input: UpdateMedicationInput) =>
+      request<MedicationDto>(
+        `/api/v2/medications/${encodeURIComponent(input.medicationId)}`,
+        { method: "PATCH", body: JSON.stringify(input) },
+      ),
     listDoseEvents: async (localDate: string, timezone: string) =>
       request<DoseEventDto[]>(
         `/api/v2/dose-events?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,
@@ -133,6 +167,22 @@ export const createApiClient = ({
         method: "POST",
         body: JSON.stringify(input),
       }),
+    correctDoseEvent: async (input: CreateDoseEventCorrectionInput) =>
+      request<DoseEventCorrectionResult>(
+        `/api/v2/dose-events/${encodeURIComponent(input.doseEventId)}/corrections`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    getMedicationDetail: async (medicationId: string) =>
+      request<MedicationDetailDto>(
+        `/api/v2/medications/${encodeURIComponent(medicationId)}`,
+      ),
+    adjustMedicationInventory: async (
+      input: CreateMedicationInventoryAdjustmentInput,
+    ) =>
+      request<MedicationInventoryAdjustmentResult>(
+        `/api/v2/medications/${encodeURIComponent(input.medicationId)}/inventory-events`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
     getToday: async (localDate: string, timezone: string) =>
       request<TodayDto>(
         `/api/v2/today?localDate=${encodeURIComponent(localDate)}&timezone=${encodeURIComponent(timezone)}`,
@@ -277,6 +327,67 @@ export const createApiClient = ({
       ),
     getEntitlements: async () =>
       request<EntitlementDto>("/api/v2/entitlements"),
+    refreshMobileEntitlements: async () =>
+      request<EntitlementDto>("/api/v2/entitlements/refresh", {
+        method: "POST",
+      }),
+    getHealthKitConnection: async () =>
+      request<HealthSourceConnectionDto | null>(
+        "/api/v2/source-connections/healthkit",
+      ),
+    connectHealthKit: async (input: ConnectHealthKitInput) =>
+      request<HealthSourceConnectionDto>(
+        "/api/v2/source-connections/healthkit",
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    updateHealthKitConnection: async (
+      connectionId: string,
+      input: UpdateHealthSourceInput,
+    ) =>
+      request<HealthSourceConnectionDto>(
+        `/api/v2/source-connections/healthkit/${encodeURIComponent(connectionId)}`,
+        { method: "PATCH", body: JSON.stringify(input) },
+      ),
+    revokeHealthKitConnection: async (connectionId: string) =>
+      request<{
+        source: HealthSourceConnectionDto;
+        deletedAggregates: number;
+      }>(
+        `/api/v2/source-connections/healthkit/${encodeURIComponent(connectionId)}`,
+        { method: "DELETE" },
+      ),
+    importHealthAggregates: async (input: ImportHealthAggregatesInput) =>
+      request<HealthAggregateImportResult>("/api/v2/health-aggregates", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listHealthAggregates: async (
+      from: string,
+      to: string,
+      connectionId?: string,
+    ) =>
+      request<HealthAggregateDto[]>(
+        `/api/v2/health-aggregates?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${connectionId ? `&connectionId=${encodeURIComponent(connectionId)}` : ""}`,
+      ),
+    deleteHealthAggregates: async (
+      connectionId: string,
+      period?: { from?: string; to?: string },
+    ) => {
+      const query = new URLSearchParams({ connectionId });
+      if (period?.from) query.set("from", period.from);
+      if (period?.to) query.set("to", period.to);
+      return request<{ deleted: number }>(
+        `/api/v2/health-aggregates?${query.toString()}`,
+        { method: "DELETE" },
+      );
+    },
+    getSafetyPlan: async () =>
+      request<SafetyPlanDto | null>("/api/v2/safety-plan"),
+    saveSafetyPlan: async (input: SafetyPlanWriteInput) =>
+      request<SafetyPlanDto>("/api/v2/safety-plan", {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
     pushSync: async (input: SyncPushInput) =>
       request<SyncPushResult>("/api/v2/sync/push", {
         method: "POST",

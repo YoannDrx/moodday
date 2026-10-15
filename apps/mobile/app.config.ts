@@ -40,14 +40,58 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     );
   }
 
+  const revenueCatEnabled =
+    process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true";
+  const iosRevenueCatValue =
+    process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim();
+  const androidRevenueCatValue =
+    process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim();
+  const revenueCatIosApiKey =
+    iosRevenueCatValue === "" ? undefined : iosRevenueCatValue;
+  const revenueCatAndroidApiKey =
+    androidRevenueCatValue === "" ? undefined : androidRevenueCatValue;
+  if (variant !== "development" && revenueCatEnabled && !revenueCatIosApiKey) {
+    throw new Error(
+      "The RevenueCat iOS public API key is required when mobile billing is enabled.",
+    );
+  }
+
   return {
     ...config,
     name: variantNames[variant],
     slug: "mood-day",
     scheme,
+    plugins: [
+      ...(config.plugins ?? []),
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          NSHealthShareUsageDescription:
+            "Mood Day lit uniquement les données Santé que tu choisis afin de créer des repères journaliers sur ton appareil.",
+          NSHealthUpdateUsageDescription:
+            "Mood Day n’écrit aucune donnée dans Santé.",
+          background: false,
+        },
+      ],
+      [
+        "expo-calendar",
+        {
+          calendarPermission:
+            "Mood Day accède au calendrier uniquement lorsque tu choisis d’ajouter ou d’importer un rendez-vous.",
+          remindersPermission: false,
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          enableBackgroundRemoteNotifications: false,
+        },
+      ],
+    ],
     ios: {
       ...config.ios,
       bundleIdentifier: `fr.yodev.moodday${suffix}`,
+      usesAppleSignIn: true,
     },
     android: {
       ...config.android,
@@ -57,6 +101,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.extra,
       appVariant: variant,
       apiUrl,
+      revenueCatEnabled,
+      revenueCatIosApiKey,
+      revenueCatAndroidApiKey,
     },
   };
 };

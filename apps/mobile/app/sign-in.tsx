@@ -21,7 +21,11 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [isGooglePending, setIsGooglePending] = useState(false);
+  const [isApplePending, setIsApplePending] = useState(false);
   const [error, setError] = useState<string>();
+
+  const authPending = isPending || isGooglePending || isApplePending;
 
   const signIn = async () => {
     setIsPending(true);
@@ -38,6 +42,62 @@ export default function SignInScreen() {
     }
     clearMobileSessionInvalidation();
     router.replace("/");
+  };
+
+  const signInWithGoogle = async () => {
+    setIsGooglePending(true);
+    setError(undefined);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        setError(
+          "Connexion Google interrompue. Tu peux réessayer ou utiliser ton e-mail.",
+        );
+        return;
+      }
+
+      clearMobileSessionInvalidation();
+      router.replace("/");
+    } catch {
+      setError(
+        "Google ne répond pas pour le moment. Vérifie ta connexion puis réessaie.",
+      );
+    } finally {
+      setIsGooglePending(false);
+    }
+  };
+
+  const signInWithApple = async () => {
+    setIsApplePending(true);
+    setError(undefined);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "apple",
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        setError(
+          "Connexion Apple interrompue. Tu peux réessayer ou utiliser ton e-mail.",
+        );
+        return;
+      }
+
+      clearMobileSessionInvalidation();
+      router.replace("/");
+    } catch {
+      setError(
+        "Apple ne répond pas pour le moment. Vérifie ta connexion puis réessaie.",
+      );
+    } finally {
+      setIsApplePending(false);
+    }
   };
 
   return (
@@ -57,6 +117,54 @@ export default function SignInScreen() {
           </Text>
 
           <View style={styles.form}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continuer avec Google"
+              disabled={authPending}
+              onPress={() => void signInWithGoogle()}
+              style={({ pressed }) => [
+                styles.googleButton,
+                authPending && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+              testID="sign-in-google"
+            >
+              <Text accessibilityElementsHidden style={styles.googleMark}>
+                G
+              </Text>
+              <Text style={styles.googleButtonLabel}>
+                {isGooglePending
+                  ? "Ouverture de Google…"
+                  : "Continuer avec Google"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continuer avec Apple"
+              disabled={authPending}
+              onPress={() => void signInWithApple()}
+              style={({ pressed }) => [
+                styles.appleButton,
+                authPending && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+              testID="sign-in-apple"
+            >
+              <Text accessibilityElementsHidden style={styles.appleMark}>
+                
+              </Text>
+              <Text style={styles.appleButtonLabel}>
+                {isApplePending ? "Ouverture d’Apple…" : "Continuer avec Apple"}
+              </Text>
+            </Pressable>
+
+            <View accessibilityElementsHidden style={styles.dividerRow}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerLabel}>ou avec ton e-mail</Text>
+              <View style={styles.divider} />
+            </View>
+
             <View style={styles.field}>
               <Text style={styles.label}>Adresse e-mail</Text>
               <TextInput
@@ -93,11 +201,11 @@ export default function SignInScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Se connecter"
-              disabled={!email.trim() || !password || isPending}
+              disabled={!email.trim() || !password || authPending}
               onPress={() => void signIn()}
               style={({ pressed }) => [
                 styles.button,
-                (!email.trim() || !password || isPending) && styles.disabled,
+                (!email.trim() || !password || authPending) && styles.disabled,
                 pressed && styles.pressed,
               ]}
               testID="sign-in-submit"
@@ -109,8 +217,9 @@ export default function SignInScreen() {
           </View>
 
           <Text style={styles.help}>
-            La création de compte et la récupération restent disponibles sur le
-            web pendant cette première development build.
+            En continuant, tu ouvres le même compte sécurisé que sur le web. La
+            création par e-mail et la récupération restent disponibles sur le
+            web.
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -170,6 +279,51 @@ const styles = StyleSheet.create({
     backgroundColor: color.primary,
   },
   buttonLabel: { color: color.surfaceStrong, fontSize: 16, fontWeight: "700" },
+  googleButton: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space[3],
+    paddingHorizontal: space[4],
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    borderColor: color.border,
+    backgroundColor: color.canvas,
+  },
+  googleMark: {
+    color: color.primary,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  googleButtonLabel: { color: color.ink, fontSize: 16, fontWeight: "700" },
+  appleButton: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space[3],
+    paddingHorizontal: space[4],
+    borderRadius: radius.medium,
+    backgroundColor: color.ink,
+  },
+  appleMark: {
+    color: color.surfaceStrong,
+    fontSize: 21,
+    lineHeight: 23,
+  },
+  appleButtonLabel: {
+    color: color.surfaceStrong,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[3],
+  },
+  divider: { flex: 1, height: 1, backgroundColor: color.border },
+  dividerLabel: { color: color.inkMuted, fontSize: 12 },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.72 },
   error: { color: color.danger, fontSize: 14, lineHeight: 20 },

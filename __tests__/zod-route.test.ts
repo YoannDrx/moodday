@@ -1,5 +1,6 @@
 import { getAuthorizedApiUser } from "@/lib/auth/auth-user";
 import { ZodRouteError } from "@/lib/errors/zod-route-error";
+import { logger } from "@/lib/logger";
 import { authRoute, route } from "@/lib/zod-route";
 import { describe, expect, it, vi } from "vitest";
 
@@ -41,6 +42,52 @@ describe("zod-route", () => {
     expect(response.status).toBe(500);
     const data = await response.json();
     expect(data).toEqual({ message: "Internal server error" });
+  });
+
+  it("logs unexpected failures at error level with the Prisma code only", async () => {
+    const errorLog = vi
+      .spyOn(logger, "error")
+      .mockImplementation(() => undefined);
+    const GET = route.handler(() => {
+      throw Object.assign(
+        new Error("The column `Patient.secret` does not exist"),
+        { name: "PrismaClientKnownRequestError", code: "P2022" },
+      );
+    });
+
+    const response = await GET(new Request("http://localhost/"), {
+      params: Promise.resolve({}),
+    });
+
+    expect(response.status).toBe(500);
+    expect(errorLog).toHaveBeenCalledWith("Route failed", {
+      eventName: "route_failed",
+      status: "failed",
+      errorCode: "PrismaClientKnownRequestError",
+      prismaCode: "P2022",
+    });
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("secret");
+    errorLog.mockRestore();
+  });
+
+  it("does not report non-Prisma error codes as Prisma codes", async () => {
+    const errorLog = vi
+      .spyOn(logger, "error")
+      .mockImplementation(() => undefined);
+    const GET = route.handler(() => {
+      throw Object.assign(new Error("network"), { code: "ECONNRESET" });
+    });
+
+    await GET(new Request("http://localhost/"), {
+      params: Promise.resolve({}),
+    });
+
+    expect(errorLog).toHaveBeenCalledWith("Route failed", {
+      eventName: "route_failed",
+      status: "failed",
+      errorCode: "Error",
+    });
+    errorLog.mockRestore();
   });
 
   it("authRoute should return 401 if user is not authenticated", async () => {

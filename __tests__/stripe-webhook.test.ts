@@ -9,7 +9,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/stripe", () => ({ getStripe: vi.fn() }));
 
-import { POST } from "../app/api/webhooks/stripe/route";
+const afterResponse = vi.hoisted(() => ({
+  callbacks: [] as (() => void | Promise<void>)[],
+}));
+
+vi.mock("@/lib/operations/after-response", () => ({
+  scheduleAfterResponse: (callback: () => void | Promise<void>) => {
+    afterResponse.callbacks.push(callback);
+  },
+}));
+
+import { POST as routePost } from "../app/api/webhooks/stripe/route";
+
+const POST = async (webhookRequest: NextRequest) => {
+  const response = await routePost(webhookRequest);
+  const callbacks = afterResponse.callbacks.splice(0);
+  await Promise.all(callbacks.map(async (callback) => callback()));
+  return response;
+};
 
 const mutableEnv = env as unknown as {
   MAINTENANCE_MODE?: boolean;
@@ -75,6 +92,7 @@ describe("Stripe webhook", () => {
     vi.mocked(getStripe).mockReturnValue(stripe as unknown as Stripe);
     stripe.webhooks.constructEvent.mockReset();
     stripe.subscriptions.retrieve.mockReset();
+    afterResponse.callbacks.length = 0;
     vi.mocked(prisma.stripeWebhookEvent.create).mockResolvedValue({
       id: "claim-1",
     } as never);
@@ -93,6 +111,16 @@ describe("Stripe webhook", () => {
     vi.mocked(prisma.user.update).mockResolvedValue({} as never);
     vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.subscription.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.subscriptionSource.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.subscriptionSource.findMany).mockResolvedValue([
+      {
+        provider: "stripe",
+        status: "active",
+        currentPeriodEndsAt: new Date("2026-09-22T00:00:00.000Z"),
+      },
+    ] as never);
+    vi.mocked(prisma.entitlementSnapshot.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([] as never);
   });
 
   it("defers signed events without writing during maintenance", async () => {
@@ -208,6 +236,27 @@ describe("Stripe webhook", () => {
     await expect(POST(request())).rejects.toThrow("database unavailable");
   });
 
+  it("acknowledges a durable claim before subscription processing starts", async () => {
+    stripe.webhooks.constructEvent.mockReturnValue(
+      event("customer.subscription.updated", {
+        object: "subscription",
+        id: "sub_1",
+      }),
+    );
+    stripe.subscriptions.retrieve.mockResolvedValue(subscription());
+
+    const response = await routePost(request());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, queued: true });
+    expect(stripe.subscriptions.retrieve).not.toHaveBeenCalled();
+    expect(afterResponse.callbacks).toHaveLength(1);
+
+    const callback = afterResponse.callbacks.shift();
+    await callback?.();
+    expect(stripe.subscriptions.retrieve).toHaveBeenCalledWith("sub_1");
+  });
+
   it("syncs an approved active subscription from Stripe's current state", async () => {
     stripe.webhooks.constructEvent.mockReturnValue(
       event("customer.subscription.updated", {
@@ -295,7 +344,7 @@ describe("Stripe webhook", () => {
       subscription({ status: "past_due" }),
     );
     expect((await POST(request())).status).toBe(200);
-    expect(prisma.subscription.upsert).toHaveBeenLastCalledWith(
+    expect(prisma.subscription.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({ graceEndsAt: expect.any(Date) }),
       }),
@@ -311,7 +360,7 @@ describe("Stripe webhook", () => {
       subscription({ id: "sub_trial", status: "trialing" }),
     );
     expect((await POST(request())).status).toBe(200);
-    expect(prisma.subscription.upsert).toHaveBeenLastCalledWith(
+    expect(prisma.subscription.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({ trialUsedAt: expect.any(Date) }),
       }),
@@ -335,7 +384,7 @@ describe("Stripe webhook", () => {
       }),
     );
     const failed = await POST(request());
-    expect(failed.status).toBe(500);
+    expect(failed.status).toBe(200);
     expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
       where: { id: "claim-1" },
       data: {
@@ -372,7 +421,7 @@ describe("Stripe webhook", () => {
     );
     stripe.subscriptions.retrieve.mockResolvedValue(current);
 
-    expect((await POST(request())).status).toBe(500);
+    expect((await POST(request())).status).toBe(200);
     expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
       where: { id: "claim-1" },
       data: { status: "failed", lastErrorCode: code },
@@ -397,7 +446,7 @@ describe("Stripe webhook", () => {
         subscription({ metadata: metadata ?? {} }),
       );
 
-      expect((await POST(request())).status).toBe(500);
+      expect((await POST(request())).status).toBe(200);
       expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
         where: { id: "claim-1" },
         data: { status: "failed", lastErrorCode: code },
@@ -418,7 +467,7 @@ describe("Stripe webhook", () => {
       }),
     );
     stripe.subscriptions.retrieve.mockResolvedValue(subscription());
-    expect((await POST(request())).status).toBe(500);
+    expect((await POST(request())).status).toBe(200);
     expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
       where: { id: "claim-1" },
       data: { status: "failed", lastErrorCode: "customer_account_mismatch" },
@@ -443,14 +492,14 @@ describe("Stripe webhook", () => {
       }),
     );
     stripe.subscriptions.retrieve.mockRejectedValueOnce(new Error("secret"));
-    expect((await POST(request())).status).toBe(500);
+    expect((await POST(request())).status).toBe(200);
     expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
       where: { id: "claim-1" },
       data: { status: "failed", lastErrorCode: "stripe_handler_failed" },
     });
 
     stripe.subscriptions.retrieve.mockRejectedValueOnce("non-error");
-    expect((await POST(request())).status).toBe(500);
+    expect((await POST(request())).status).toBe(200);
     expect(prisma.stripeWebhookEvent.update).toHaveBeenLastCalledWith({
       where: { id: "claim-1" },
       data: { status: "failed", lastErrorCode: "unknown_error" },

@@ -71,6 +71,30 @@ check(
     : "non configuré",
 );
 check(
+  "Google OAuth",
+  Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? "client et secret présents"
+    : "configuration incomplète",
+);
+check(
+  "Apple OAuth",
+  Boolean(
+    process.env.APPLE_CLIENT_ID &&
+      process.env.APPLE_TEAM_ID &&
+      process.env.APPLE_KEY_ID &&
+      process.env.APPLE_PRIVATE_KEY &&
+      process.env.APPLE_APP_BUNDLE_IDENTIFIER,
+  ),
+  process.env.APPLE_CLIENT_ID &&
+    process.env.APPLE_TEAM_ID &&
+    process.env.APPLE_KEY_ID &&
+    process.env.APPLE_PRIVATE_KEY &&
+    process.env.APPLE_APP_BUNDLE_IDENTIFIER
+    ? "configuration complète"
+    : "configuration incomplète",
+);
+check(
   "OpenAI",
   hasPrefix("OPENAI_API_KEY", ["sk-", "sk-proj-"]),
   process.env.OPENAI_API_KEY ? "clé projet présente" : "non configuré",
@@ -100,6 +124,42 @@ check(
   ),
   "fréquence attendue : toutes les 5 minutes",
 );
+check(
+  "Cron récupération Stripe",
+  Boolean(
+    vercelConfig.crons?.some(
+      (cron) =>
+        cron.path === "/api/cron/stripe-webhooks" &&
+        cron.schedule === "* * * * *",
+    ),
+  ),
+  "fréquence attendue : toutes les minutes",
+);
+check(
+  "Cron récupération RevenueCat",
+  Boolean(
+    vercelConfig.crons?.some(
+      (cron) =>
+        cron.path === "/api/cron/revenuecat-webhooks" &&
+        cron.schedule === "* * * * *",
+    ),
+  ),
+  "fréquence attendue : toutes les minutes",
+);
+
+if (process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === "true") {
+  check(
+    "RevenueCat mobile",
+    Boolean(
+      process.env.REVENUECAT_SECRET_API_KEY &&
+        process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN &&
+        process.env.REVENUECAT_WEBHOOK_SIGNING_SECRET &&
+        process.env.REVENUECAT_PLUS_PRODUCT_IDS &&
+        process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+    ),
+    "API serveur, webhook signé, produits et clé publique iOS requis ; Android est une gate ultérieure",
+  );
+}
 
 if (process.env.BILLING_ENABLED === "true") {
   check(

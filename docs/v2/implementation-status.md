@@ -57,6 +57,20 @@ relocalisation mécanique avec la nouvelle logique métier.
 - Le brief est construit côté serveur depuis une liste de champs autorisés. Il
   exclut structurellement les questions privées et ne lit jamais les notes du
   journal.
+- HealthKit est raccordé à iOS derrière un flag fermé. Les permissions sont
+  choisies métrique par métrique ; sommeil, pas, énergie active, fréquence
+  cardiaque au repos, VFC et entraînements sont agrégés sur l'iPhone. Les
+  échantillons bruts restent dans SQLCipher et le contrat serveur rejette tout
+  champ brut supplémentaire.
+- La source Santé peut être mise en pause ou révoquée ; les agrégats d'une
+  période ou de toute la source peuvent être supprimés sans interpréter une
+  absence de mesure comme zéro.
+- Le calendrier natif iOS est volontaire : aucun scan en arrière-plan. Une
+  action explicite permet soit d'ajouter un rendez-vous Mood Day au calendrier,
+  soit de choisir un événement horaire précis à importer.
+- Le plan de sécurité V2 est disponible sur iOS avec une copie SQLCipher hors
+  ligne, les numéros 3114, 15 et 112 immédiatement accessibles et une exclusion
+  explicite de Cercle et des briefs.
 - Il peut être téléchargé en PDF FR/EN ou partagé par un lien temporaire de
   1 heure à 7 jours. Le secret reste dans le fragment `#` de l’URL et seule son
   empreinte est conservée. Chaque lien expose son échéance et son compteur
@@ -125,6 +139,10 @@ La première spécification est publiée à `/api/v2/openapi.json` et couvre :
 - `GET|POST /api/v2/support-requests` et
   `PATCH /api/v2/support-requests/{supportRequestId}` ;
 - `GET /api/v2/entitlements` ;
+- `GET|POST /api/v2/source-connections/healthkit`,
+  `PATCH|DELETE /api/v2/source-connections/healthkit/{connectionId}` et
+  `GET|POST|DELETE /api/v2/health-aggregates` ;
+- `GET|PUT /api/v2/safety-plan` ;
 - `POST /api/v2/sync/push` et `GET /api/v2/sync/pull`.
 
 Les routes et l'action serveur web appellent le même service métier. Les
@@ -185,6 +203,21 @@ jetable : 31 migrations réussies, 67 tables publiques, quatre clés étrangère
 et onze index sur les deux nouvelles tables, enums attendus et diff Prisma nul.
 Cette preuve ne contenait aucune donnée ni aucun secret réel.
 
+Le lot traitements avancés a été répété depuis le snapshot historique sur
+PostgreSQL 17 jetable : 32 migrations et 67 tables publiques, préférences
+valides préservées, orphelins nettoyés, aucun consentement fabriqué, révision
+initiale des traitements historiques conservée et diff Prisma nul. La migration
+`20260823160000_v2_dose_corrections` est additive : elle ajoute annulation,
+version, motif, notes, fuseau et idempotence aux corrections sans supprimer une
+prise existante.
+
+Le lot brouillons et préférences synchronisés a ensuite été répété depuis la
+baseline historique sur PostgreSQL 17 jetable : 33 migrations, 68 tables
+publiques, préférences historiques conservées avec des valeurs neutres,
+nouvelle table privée liée au propriétaire par suppression en cascade et diff
+Prisma nul. La migration `20260823170000_v2_synced_drafts_preferences` ne
+supprime ni colonne ni donnée existante.
+
 ### Offline mobile
 
 - SQLCipher est activé dans la configuration Expo native.
@@ -193,12 +226,14 @@ Cette preuve ne contenait aucune donnée ni aucun secret réel.
 - Chaque compte possède une base distincte dont le nom ne contient qu'une
   empreinte SHA-256 tronquée. Sa clé aléatoire de 32 octets est distincte,
   conservée dans SecureStore et limitée à l'appareil.
-- Les opérations de check-in sont persistées localement avec leur `operationId`.
+- Les opérations de check-in et de traitement sont persistées localement avec
+  leur `operationId`.
 - Toute mutation est écrite dans SQLCipher avant la première tentative réseau ;
   elle n'est retirée qu'après acceptation ou déduplication serveur.
 - Les opérations partagent maintenant une file générique par lots pour les
   check-ins, routines, rendez-vous, questions, repères de séance et décisions,
-  ainsi que les prises de traitement, avec identifiant stable d'appareil.
+  ainsi que les traitements, prises, corrections et mouvements de stock, avec
+  identifiant stable d'appareil.
 - Une synchronisation réussie retire l'opération ; une erreur récupérable la
   conserve sans journaliser son contenu.
 - Les payloads locaux sont revalidés avant envoi.
@@ -218,12 +253,17 @@ Cette preuve ne contenait aucune donnée ni aucun secret réel.
   la déconnexion lorsqu'une donnée locale n'est pas résolue, propose une
   synchronisation, et sépare la purge destructive derrière une confirmation
   explicite. La purge supprime le fichier SQLCipher et sa clé SecureStore.
+- Les échantillons Santé bruts, le plan de sécurité et le détail des traitements
+  disposent de tables SQLCipher dédiées. La version de schéma locale 9 met à
+  niveau les installations
+  existantes sans purger la file de synchronisation.
 
 Cette tranche prouve le moteur delta pour les premiers agrégats, les prises de
-traitement et les artefacts append-only du rendez-vous. Les brouillons et les
-réglages généraux restent à brancher sur le même protocole. Les conflits
-Google/Mood Day disposent désormais de leur registre et d’une résolution
-explicite, indépendante de la file offline générique.
+traitement, les artefacts append-only du rendez-vous, les brouillons privés et
+les préférences générales. Les brouillons mutables disposent d'un état local
+distinct afin de regrouper les changements hors ligne sans fabriquer de
+version serveur ; leur conflit exige un choix explicite. Les conflits
+Google/Mood Day restent indépendants de cette file générique.
 
 ### Google Agenda dédié
 
@@ -277,7 +317,7 @@ Les commandes suivantes passent sur l'état livré :
 pnpm lint:ci
 pnpm ts
 pnpm typecheck:mobile
-pnpm test:ci                 # 160 fichiers, 1 008 tests
+pnpm test:ci                 # 168 fichiers, 1 056 tests
 pnpm prisma validate
 pnpm build
 pnpm --filter @moodday/mobile exec expo install --check
@@ -301,22 +341,20 @@ git diff --check
 
 - Couverture exhaustive des écrans et états en Figma ; la direction est choisie,
   mais le quota distant empêche encore le handoff complet.
-- Extension du moteur delta aux brouillons et réglages, puis tests réels
-  multi-appareils et concurrence PostgreSQL. Les prises append-only sont
-  raccordées au même protocole et testées localement en mode offline-first.
-- Corrections de prises, historique et régimes avancés, ainsi que plan de
-  sécurité offline dans les clients V2. Les traitements et occurrences
-  quotidiennes de routines sont raccordés à l'API et au moteur offline mobile ;
-  leurs corrections et planifications avancées restent à compléter. Le
-  rendez-vous canonique, son brief, l'export PDF, les liens temporaires et les
-  conflits Google sont raccordés ; les brouillons restent à livrer.
-- Recette fournisseur réelle de Google Agenda, calendrier natif, HealthKit puis
-  Health Connect. Le moteur Google bidirectionnel et ses écrans web/mobile sont
-  codés derrière un flag fermé.
+- Recette réelle multi-appareils des brouillons et préférences, notamment
+  concurrence, reprise après révocation et choix explicite d'une version.
+- Recette iPhone des traitements avancés, du plan de sécurité, des rendez-vous,
+  des briefs temporaires et de leur comportement hors ligne.
+- Recette fournisseur réelle de Google Agenda, calendrier natif et HealthKit.
+  Le moteur Google bidirectionnel, l'import calendrier natif et la collecte
+  HealthKit sont codés derrière des flags fermés. Health Connect est reporté au
+  lot Android.
 - Notifications d'invitation et tests réels de révocation sur session aidant
   active. Les écrans web/mobile, le contrat et le journal d'accès sont codés.
-- RevenueCat, StoreKit et Google Play Billing. La projection commune des droits
-  Stripe/mobile est codée, mais aucun webhook store n'est encore activé.
+- Configuration réelle App Store Connect/RevenueCat et recette StoreKit. Le SDK,
+  la restauration, la gestion de l'abonnement, le webhook durable et la
+  projection commune Stripe/App Store sont codés. Google Play Billing est
+  reporté au lot Android.
 - Notifications, exports V2, suppression par source et propagation de la
   suppression de compte vers tous les appareils. Le verrouillage de session et
   la purge volontaire de l'appareil courant sont codés.
@@ -337,5 +375,18 @@ git diff --check
    planifiées et PRN sont déjà raccordées.
 5. Tester Appointment canonique et la révocation d’un brief sur deux appareils,
    puis exécuter la recette OAuth Google réelle sur le modèle de conflit codé.
-6. Ne brancher Santé et billing qu'après les gates privacy et entitlements
-   correspondantes ; tester Cercle sur deux sessions avant activation.
+6. Activer HealthKit et RevenueCat seulement après les recettes iPhone réel,
+   App Store sandbox, privacy et entitlements ; tester Cercle sur deux sessions
+   avant activation.
+
+## Décision de livraison iOS-first
+
+La première mise sur le marché vise uniquement iOS. Les contrats communs gardent
+la parité future, mais Google Play, Health Connect, TalkBack et la recette
+Android ne bloquent plus la release iOS. Ils forment un lot séparé qui devra
+rejouer toutes les gates avant publication Android.
+
+RevenueCat est conservé. Au 23 août 2026, son offre Pro démarre gratuitement
+jusqu'à 2 500 USD de Monthly Tracked Revenue puis passe à 1 %, avec les webhooks
+dans les intégrations Pro. Une revue financière Mood Day reste fixée à 2 000 USD
+de MTR ; la tarification doit être revérifiée avant ouverture commerciale.

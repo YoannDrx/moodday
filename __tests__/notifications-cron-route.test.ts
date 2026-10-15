@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 
 const mocks = vi.hoisted(() => ({
@@ -59,6 +59,8 @@ import { GET } from "@app/api/cron/notifications/route";
 const request = new Request("http://localhost/api/cron/notifications");
 
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-21T08:00:00Z"));
   vi.clearAllMocks();
   mocks.validateCronRequest.mockReturnValue(null);
   mocks.getFeatureAvailability.mockReturnValue({ enabled: true });
@@ -81,7 +83,32 @@ beforeEach(() => {
   mocks.isReminderDue.mockReturnValue(true);
 });
 
+afterEach(() => vi.useRealTimers());
+
 describe("notification cron route", () => {
+  it("does not wake the database between maintenance slots when push is disabled", async () => {
+    vi.setSystemTime(new Date("2026-09-21T08:05:00Z"));
+    mocks.getFeatureAvailability.mockReturnValue({ enabled: false });
+    const response = await GET(request, {} as never);
+    expect(await response.json()).toEqual({
+      ok: true,
+      disabled: true,
+      skipped: true,
+    });
+    expect(mocks.runOperationalJob).not.toHaveBeenCalled();
+  });
+
+  it("still processes reminders between maintenance slots when push is enabled", async () => {
+    vi.setSystemTime(new Date("2026-09-21T08:05:00Z"));
+    vi.mocked(prisma.userPreferences.findMany).mockResolvedValue([]);
+    await GET(request, {} as never);
+    expect(mocks.runOperationalJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobName: "notifications",
+        intervalMs: 5 * 60 * 1000,
+      }),
+    );
+  });
   it("runs deletion and retention jobs while push remains disabled", async () => {
     mocks.getFeatureAvailability.mockReturnValue({
       enabled: false,

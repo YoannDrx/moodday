@@ -14,6 +14,11 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    APPLE_CLIENT_ID: z.string().optional(),
+    APPLE_TEAM_ID: z.string().optional(),
+    APPLE_KEY_ID: z.string().optional(),
+    APPLE_PRIVATE_KEY: z.string().optional(),
+    APPLE_APP_BUNDLE_IDENTIFIER: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     RESEND_AUDIENCE_ID: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().min(16).optional(),
@@ -35,6 +40,11 @@ export const env = createEnv({
       .default("false")
       .transform((value) => value === "true"),
     GOOGLE_CALENDAR_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
+    HEALTHKIT_ENABLED: z
       .enum(["true", "false"])
       .optional()
       .default("false")
@@ -101,6 +111,13 @@ export const env = createEnv({
     MINIMUM_AGE: z.coerce.number().int().min(18).max(18).default(18),
     NODE_ENV: z.enum(["development", "production", "test"]),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    REVENUECAT_SECRET_API_KEY: z.string().min(16).optional(),
+    REVENUECAT_WEBHOOK_AUTH_TOKEN: z.string().min(32).optional(),
+    REVENUECAT_WEBHOOK_SIGNING_SECRET: z.string().min(32).optional(),
+    REVENUECAT_ENTITLEMENT_ID: z.string().min(1).default("plus"),
+    REVENUECAT_PLUS_PRODUCT_IDS: z.string().optional(),
+    REVENUECAT_ALLOWED_APP_IDS: z.string().optional(),
+    REVENUECAT_WEBHOOK_ENVIRONMENTS: z.string().default("PRODUCTION"),
   },
   /**
    * If you add `client` environment variables, you need to add them to

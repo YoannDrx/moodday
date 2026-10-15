@@ -4,9 +4,15 @@ import {
   createAppointmentQuestionSchema,
   appointmentWriteSchema,
   createCheckInSchema,
+  createDoseEventCorrectionSchema,
   createDoseEventSchema,
+  createMedicationInventoryAdjustmentSchema,
+  createMedicationSchema,
   routineOccurrenceWriteSchema,
   routineWriteSchema,
+  syncedPreferencesWriteSchema,
+  updateMedicationSchema,
+  userDraftWriteSchema,
   type SyncOperationResult,
   type SyncPullResult,
   type SyncPushInput,
@@ -29,12 +35,29 @@ import {
 } from "../appointments/service";
 import { checkInSelection, toCheckInDto } from "../check-ins/service";
 import {
+  adjustMedicationInventoryInTransaction,
+  correctionSelection,
+  correctDoseEventInTransaction,
   createDoseEventInTransaction,
+  createMedicationInTransaction,
   doseEventSelection,
   DoseEventServiceError,
+  inventoryEventSelection,
+  medicationSelection,
   toDoseEventDto,
+  toDoseEventCorrectionDto,
+  toMedicationDto,
+  toMedicationInventoryEventDto,
+  updateMedicationInTransaction,
 } from "../medications/service";
 import { routineSelection, toRoutineDto } from "../routines/service";
+import {
+  assertDraftContentSize,
+  syncedPreferencesSelection,
+  toSyncedPreferencesDto,
+  toUserDraftDto,
+  userDraftSelection,
+} from "../preferences-drafts/service";
 import {
   routineOccurrenceSelection,
   toRoutineOccurrenceDto,
@@ -936,6 +959,479 @@ const applyDoseEvent = async (
   }
 };
 
+const applyMedication = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation === "delete") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "unsupported_medication_mutation");
+  }
+  try {
+    const payload = getPayloadObject(operation) as Record<string, unknown>;
+    let medication;
+    if (operation.mutation === "create") {
+      const parsed = createMedicationSchema.safeParse({
+        ...payload,
+        operationId: operation.operationId,
+        entityId: operation.entityId,
+      });
+      if (!parsed.success) {
+        await recordOperation({
+          transaction,
+          userId,
+          deviceId,
+          operation,
+          status: "rejected",
+        });
+        return rejected(operation, "invalid_medication");
+      }
+      medication = await createMedicationInTransaction({
+        transaction,
+        userId,
+        input: parsed.data,
+      });
+    } else {
+      const parsed = updateMedicationSchema.safeParse({
+        ...payload,
+        operationId: operation.operationId,
+        medicationId: operation.entityId,
+        baseVersion: operation.baseVersion ?? payload.baseVersion,
+      });
+      if (!parsed.success) {
+        await recordOperation({
+          transaction,
+          userId,
+          deviceId,
+          operation,
+          status: "rejected",
+        });
+        return rejected(operation, "invalid_medication");
+      }
+      medication = await updateMedicationInTransaction({
+        transaction,
+        userId,
+        input: parsed.data,
+      });
+    }
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, medication.updatedAt);
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "medication_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
+const applyDoseEventCorrection = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation !== "create") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "append_only_entity");
+  }
+  const parsed = createDoseEventCorrectionSchema.safeParse({
+    ...getPayloadObject(operation),
+    operationId: operation.operationId,
+    entityId: operation.entityId,
+  });
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_dose_event_correction");
+  }
+  try {
+    const result = await correctDoseEventInTransaction({
+      transaction,
+      userId,
+      input: parsed.data,
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date(result.event.updatedAt));
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "operation_id_conflict",
+      "dose_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
+const applyMedicationInventoryEvent = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation !== "create") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "append_only_entity");
+  }
+  const parsed = createMedicationInventoryAdjustmentSchema.safeParse({
+    ...getPayloadObject(operation),
+    operationId: operation.operationId,
+    entityId: operation.entityId,
+  });
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_inventory_adjustment");
+  }
+  try {
+    const result = await adjustMedicationInventoryInTransaction({
+      transaction,
+      userId,
+      input: parsed.data,
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date(result.medication.updatedAt));
+  } catch (error) {
+    if (!(error instanceof DoseEventServiceError)) throw error;
+    const isConflict = [
+      "entity_id_exists",
+      "operation_id_conflict",
+      "medication_version_conflict",
+    ].includes(error.code);
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: isConflict ? "conflict" : "rejected",
+    });
+    return isConflict
+      ? conflict(operation, error.code, error.currentVersion)
+      : rejected(operation, error.code);
+  }
+};
+
+const applyUserDraft = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  const current = await transaction.userDraft.findUnique({
+    where: { id: operation.entityId },
+    select: { userId: true, updatedAt: true },
+  });
+  if (current && current.userId !== userId) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+
+  if (operation.mutation === "delete") {
+    if (!current) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "rejected",
+      });
+      return rejected(operation, "entity_not_found");
+    }
+    if (!hasCurrentVersion(operation, current.updatedAt)) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "version_conflict", current.updatedAt);
+    }
+    await transaction.userDraft.delete({ where: { id: operation.entityId } });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, new Date());
+  }
+
+  const parsed = userDraftWriteSchema.safeParse(operation.payload);
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_user_draft");
+  }
+  try {
+    assertDraftContentSize(parsed.data.content);
+  } catch {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "draft_content_too_large");
+  }
+
+  if (operation.mutation === "create") {
+    const existingContext = await transaction.userDraft.findUnique({
+      where: {
+        userId_kind_contextKey: {
+          userId,
+          kind: parsed.data.kind,
+          contextKey: parsed.data.contextKey,
+        },
+      },
+      select: { id: true, updatedAt: true },
+    });
+    if (current || existingContext) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(
+        operation,
+        "draft_context_exists",
+        current?.updatedAt ?? existingContext?.updatedAt ?? null,
+      );
+    }
+    const created = await transaction.userDraft.create({
+      data: {
+        id: operation.entityId,
+        userId,
+        kind: parsed.data.kind,
+        contextKey: parsed.data.contextKey,
+        content: parsed.data.content as Prisma.InputJsonValue,
+      },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, created.updatedAt);
+  }
+
+  if (!current) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "entity_not_found");
+  }
+  if (!hasCurrentVersion(operation, current.updatedAt)) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "conflict",
+    });
+    return conflict(operation, "version_conflict", current.updatedAt);
+  }
+  const updated = await transaction.userDraft.update({
+    where: { id: operation.entityId },
+    data: {
+      kind: parsed.data.kind,
+      contextKey: parsed.data.contextKey,
+      content: parsed.data.content as Prisma.InputJsonValue,
+    },
+    select: { updatedAt: true },
+  });
+  await recordOperation({
+    transaction,
+    userId,
+    deviceId,
+    operation,
+    status: "applied",
+  });
+  return applied(operation, updated.updatedAt);
+};
+
+const applyUserPreferences = async (
+  transaction: Transaction,
+  userId: string,
+  deviceId: string,
+  operation: SyncPushOperation,
+): Promise<SyncOperationResult> => {
+  if (operation.mutation === "delete") {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "preferences_cannot_be_deleted");
+  }
+  const parsed = syncedPreferencesWriteSchema.safeParse(operation.payload);
+  if (!parsed.success) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "rejected",
+    });
+    return rejected(operation, "invalid_user_preferences");
+  }
+  const current = await transaction.userPreferences.findUnique({
+    where: { userId },
+    select: { id: true, updatedAt: true },
+  });
+  if (operation.mutation === "create") {
+    if (current) {
+      await recordOperation({
+        transaction,
+        userId,
+        deviceId,
+        operation,
+        status: "conflict",
+      });
+      return conflict(operation, "preferences_exist", current.updatedAt);
+    }
+    const created = await transaction.userPreferences.create({
+      data: { id: operation.entityId, userId, ...parsed.data },
+      select: { updatedAt: true },
+    });
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "applied",
+    });
+    return applied(operation, created.updatedAt);
+  }
+  if (!current || current.id !== operation.entityId) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: current ? "conflict" : "rejected",
+    });
+    return current
+      ? conflict(operation, "preferences_entity_mismatch", current.updatedAt)
+      : rejected(operation, "entity_not_found");
+  }
+  if (!hasCurrentVersion(operation, current.updatedAt)) {
+    await recordOperation({
+      transaction,
+      userId,
+      deviceId,
+      operation,
+      status: "conflict",
+    });
+    return conflict(operation, "version_conflict", current.updatedAt);
+  }
+  const updated = await transaction.userPreferences.update({
+    where: { id: current.id },
+    data: parsed.data,
+    select: { updatedAt: true },
+  });
+  await recordOperation({
+    transaction,
+    userId,
+    deviceId,
+    operation,
+    status: "applied",
+  });
+  return applied(operation, updated.updatedAt);
+};
+
 const applyOperation = async (
   userId: string,
   deviceId: string,
@@ -962,8 +1458,28 @@ const applyOperation = async (
     if (operation.entityType === "check_in") {
       return applyCheckIn(transaction, userId, deviceId, operation);
     }
+    if (operation.entityType === "medication") {
+      return applyMedication(transaction, userId, deviceId, operation);
+    }
     if (operation.entityType === "dose_event") {
       return applyDoseEvent(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "dose_event_correction") {
+      return applyDoseEventCorrection(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "medication_inventory_event") {
+      return applyMedicationInventoryEvent(
+        transaction,
+        userId,
+        deviceId,
+        operation,
+      );
+    }
+    if (operation.entityType === "user_draft") {
+      return applyUserDraft(transaction, userId, deviceId, operation);
+    }
+    if (operation.entityType === "user_preferences") {
+      return applyUserPreferences(transaction, userId, deviceId, operation);
     }
     if (operation.entityType === "routine") {
       return applyRoutine(transaction, userId, deviceId, operation);
@@ -1024,6 +1540,13 @@ const hydrateChange = async (
     });
     return { data: value ? toCheckInDto(value) : null };
   }
+  if (operation.entityType === "medication") {
+    const value = await prisma.medication.findFirst({
+      where: { id: operation.entityId, userId },
+      select: medicationSelection,
+    });
+    return { data: value ? toMedicationDto(value) : null };
+  }
   if (operation.entityType === "dose_event") {
     const value = await prisma.medIntake.findFirst({
       where: { id: operation.entityId, medication: { userId } },
@@ -1034,6 +1557,67 @@ const hydrateChange = async (
         ? toDoseEventDto(value, value.timezone ?? "Europe/Paris")
         : null,
     };
+  }
+  if (operation.entityType === "dose_event_correction") {
+    const correction = await prisma.medicationIntakeRevision.findFirst({
+      where: { id: operation.entityId, actorId: userId },
+      select: correctionSelection,
+    });
+    if (!correction) return { data: null };
+    const event = await prisma.medIntake.findFirst({
+      where: { id: correction.medIntakeId, medication: { userId } },
+      select: doseEventSelection,
+    });
+    if (!event) return { data: null };
+    const correctionCount = await prisma.medicationIntakeRevision.count({
+      where: { medIntakeId: event.id },
+    });
+    return {
+      data: {
+        event: toDoseEventDto(
+          event,
+          event.timezone ?? "Europe/Paris",
+          undefined,
+          correctionCount,
+        ),
+        correction: toDoseEventCorrectionDto(correction, {
+          isPrn: event.medication.isPRN,
+        }),
+      },
+    };
+  }
+  if (operation.entityType === "medication_inventory_event") {
+    const inventoryEvent = await prisma.medicationInventoryEvent.findFirst({
+      where: { id: operation.entityId, medication: { userId } },
+      select: inventoryEventSelection,
+    });
+    if (!inventoryEvent) return { data: null };
+    const medication = await prisma.medication.findFirst({
+      where: { id: inventoryEvent.medicationId, userId },
+      select: medicationSelection,
+    });
+    return {
+      data: medication
+        ? {
+            medication: toMedicationDto(medication),
+            inventoryEvent: toMedicationInventoryEventDto(inventoryEvent),
+          }
+        : null,
+    };
+  }
+  if (operation.entityType === "user_draft") {
+    const value = await prisma.userDraft.findFirst({
+      where: { id: operation.entityId, userId },
+      select: userDraftSelection,
+    });
+    return { data: value ? toUserDraftDto(value) : null };
+  }
+  if (operation.entityType === "user_preferences") {
+    const value = await prisma.userPreferences.findUnique({
+      where: { userId },
+      select: syncedPreferencesSelection,
+    });
+    return { data: value ? toSyncedPreferencesDto(value) : null };
   }
   if (operation.entityType === "routine") {
     const value = await prisma.routine.findFirst({

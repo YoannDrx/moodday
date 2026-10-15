@@ -15,6 +15,8 @@ const mutableEnv = env as unknown as {
   CAREGIVER_SHARING_ENABLED: boolean;
   GOOGLE_CALENDAR_ENABLED: boolean;
   BILLING_ENABLED: boolean;
+  REVENUECAT_SECRET_API_KEY?: string;
+  REVENUECAT_PLUS_PRODUCT_IDS?: string;
   NODE_ENV: string;
 };
 
@@ -36,11 +38,14 @@ const configureHealthyState = () => {
     .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never)
+    .mockResolvedValueOnce(healthyHeartbeat() as never)
+    .mockResolvedValueOnce(healthyHeartbeat() as never)
     .mockResolvedValueOnce(healthyHeartbeat() as never);
   vi.mocked(prisma.externalDeletionJob.count).mockResolvedValue(0);
   vi.mocked(prisma.notificationDelivery.count).mockResolvedValue(0);
   vi.mocked(prisma.emailWebhookEvent.count).mockResolvedValue(0);
   vi.mocked(prisma.stripeWebhookEvent.count).mockResolvedValue(0);
+  vi.mocked(prisma.billingEvent.count).mockResolvedValue(0);
 };
 
 describe("operational watchdog", () => {
@@ -52,6 +57,8 @@ describe("operational watchdog", () => {
     mutableEnv.CAREGIVER_SHARING_ENABLED = true;
     mutableEnv.GOOGLE_CALENDAR_ENABLED = true;
     mutableEnv.BILLING_ENABLED = true;
+    mutableEnv.REVENUECAT_SECRET_API_KEY = undefined;
+    mutableEnv.REVENUECAT_PLUS_PRODUCT_IDS = undefined;
     mutableEnv.NODE_ENV = "test";
     vi.mocked(prisma.operationalHeartbeat.findUnique).mockReset();
     vi.mocked(prisma.operationalHeartbeat.upsert).mockReset();
@@ -60,6 +67,7 @@ describe("operational watchdog", () => {
     vi.mocked(prisma.notificationDelivery.count).mockReset();
     vi.mocked(prisma.emailWebhookEvent.count).mockReset();
     vi.mocked(prisma.stripeWebhookEvent.count).mockReset();
+    vi.mocked(prisma.billingEvent.count).mockReset();
     vi.mocked(sendEmail).mockReset();
     vi.mocked(prisma.operationalHeartbeat.upsert).mockResolvedValue({
       alertState: "healthy",
@@ -105,11 +113,22 @@ describe("operational watchdog", () => {
     expect(prisma.emailWebhookEvent.count).toHaveBeenCalledWith({
       where: { status: { in: ["retry", "failed"] } },
     });
+    expect(prisma.stripeWebhookEvent.count).toHaveBeenCalledWith({
+      where: { status: { in: ["failed", "dead"] } },
+    });
   });
 
   it("sends one generic alert for stale and failed operational state", async () => {
     const stale = new Date(Date.now() - 48 * 60 * 60 * 1000);
     vi.mocked(prisma.operationalHeartbeat.findUnique)
+      .mockResolvedValueOnce({
+        lastSuccessAt: stale,
+        consecutiveFailures: 2,
+      } as never)
+      .mockResolvedValueOnce({
+        lastSuccessAt: stale,
+        consecutiveFailures: 2,
+      } as never)
       .mockResolvedValueOnce({
         lastSuccessAt: stale,
         consecutiveFailures: 2,

@@ -39,6 +39,26 @@ PostgreSQL CI) et `BACKUP_RESTORE_ACK=local-disposable` est obligatoire. Cette
 preuve mesure un RTO et un RPO locaux ; elle ne démontre pas les engagements du
 fournisseur Production.
 
+## Sauvegarde quotidienne chiffrée
+
+Le plan gratuit Neon ne conserve que quelques heures d'historique. Le workflow
+`.github/workflows/database-backup.yml` produit chaque jour à 03 h 40 UTC un
+dump logique au format custom, vérifie sa table des matières sans lire de
+contenu, le chiffre avec `age` puis le conserve 30 jours comme artefact GitHub.
+Il reste inactif tant que les deux secrets GitHub suivants n'existent pas :
+
+- `PRODUCTION_BACKUP_DATABASE_URL` : URL directe (non poolée) d'un rôle Neon en
+  lecture seule sur la base Production ;
+- `BACKUP_AGE_RECIPIENT` : clé publique `age1…`. La clé privée est générée hors
+  ligne avec `age-keygen` et n'entre jamais dans GitHub.
+
+Restauration vers une base jetable :
+
+```bash
+age --decrypt --identity moodday-backup.key moodday-<date>.dump.age > moodday.dump
+pg_restore --no-owner --no-privileges --dbname "$DESTINATION_URL" moodday.dump
+```
+
 ## Préparation
 
 - Identifier explicitement l'ID de branche/base source et l'ID de destination.

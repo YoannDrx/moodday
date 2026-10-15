@@ -141,7 +141,10 @@ déploiement sûr et abandonner la migration.
 6. Contrôler les 27 migrations, les 64 tables, les contraintes, les index, les
    volumes agrégés et les relations orphelines attendues à zéro.
 7. Exécuter `prisma migrate diff` contre le schéma du candidat.
-8. Déployer le candidat avec tous les flags sensibles encore fermés.
+8. Déployer le candidat avec tous les flags sensibles encore fermés. Le build
+   Vercel Production exécute `pnpm db:migration-guard` et échoue si une
+   migration versionnée manque dans la base cible ; il n'applique jamais de
+   migration lui-même.
 9. Contrôler `/api/health`, les logs de démarrage et l'absence de contenu
    sensible avant de quitter la maintenance.
 

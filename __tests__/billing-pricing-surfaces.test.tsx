@@ -130,6 +130,9 @@ const subscription = (overrides: Record<string, unknown> = {}) =>
     periodStart: new Date("2026-08-01T00:00:00Z"),
     periodEnd: new Date("2026-09-01T00:00:00Z"),
     cancelAtPeriodEnd: false,
+    sourceProviders: ["stripe"],
+    duplicateSubscription: false,
+    manageWith: "stripe",
     ...overrides,
   }) as never;
 
