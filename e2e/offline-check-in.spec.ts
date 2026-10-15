@@ -114,6 +114,9 @@ test("syncs seven persisted daily check-ins after the page is closed", async ({
   context,
   page,
 }) => {
+  // An operation that fails right after reconnecting is retried after its
+  // 30 second backoff.
+  test.setTimeout(150_000);
   const userData = await createTestAccount({
     page,
     callbackURL: "/dashboard",
@@ -179,7 +182,7 @@ test("syncs seven persisted daily check-ins after the page is closed", async ({
 
   await expect
     .poll(async () => (await readCheckInOperations(resumedPage)).length, {
-      timeout: 30_000,
+      timeout: 75_000,
     })
     .toBe(0);
 

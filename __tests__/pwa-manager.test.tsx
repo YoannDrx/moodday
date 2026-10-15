@@ -57,8 +57,12 @@ describe("PWA manager", () => {
     mocks.preferences = { notificationsEnabled: true, locale: "fr" };
     mocks.getContentMode.mockReturnValue("generic");
     mocks.compact.mockResolvedValue(undefined);
-    mocks.syncMood.mockResolvedValue(undefined);
-    mocks.syncActions.mockResolvedValue(undefined);
+    mocks.syncMood.mockResolvedValue({ synced: 0, remaining: 0, conflicts: 0 });
+    mocks.syncActions.mockResolvedValue({
+      synced: 0,
+      remaining: 0,
+      conflicts: 0,
+    });
     mocks.unsubscribe.mockResolvedValue(undefined);
     mocks.update.mockResolvedValue(undefined);
     mocks.register.mockResolvedValue({ update: mocks.update });
@@ -173,6 +177,54 @@ describe("PWA manager", () => {
       window.dispatchEvent(new Event("online"));
     });
     expect(mocks.getContentMode).toHaveBeenCalledWith("user-alice");
+  });
+
+  it("retries queued operations once their backoff is due", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.syncActions.mockResolvedValueOnce({
+        synced: 3,
+        remaining: 4,
+        conflicts: 0,
+      });
+      const view = render(<PwaManager pushNotificationsEnabled={false} />);
+      await vi.waitFor(() =>
+        expect(mocks.syncActions).toHaveBeenCalledTimes(1),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000);
+      });
+      expect(mocks.syncActions).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mocks.syncActions).toHaveBeenCalledTimes(2);
+      view.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not keep retrying operations that need a decision", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.syncActions.mockResolvedValue({
+        synced: 0,
+        remaining: 2,
+        conflicts: 2,
+      });
+      const view = render(<PwaManager pushNotificationsEnabled={false} />);
+      await vi.waitFor(() =>
+        expect(mocks.syncActions).toHaveBeenCalledTimes(1),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mocks.syncActions).toHaveBeenCalledTimes(1);
+      view.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps generic state when signed out and does not subscribe behind a kill switch", async () => {

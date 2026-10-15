@@ -14,6 +14,9 @@ import {
 import { unsubscribeCurrentPush } from "./push-client";
 import { getPushContentMode, type PushContentMode } from "./push-content-mode";
 
+// Matches the first offline retry backoff (getOfflineRetryDelay(1)).
+const OFFLINE_RETRY_CHECK_MS = 30_000;
+
 const urlBase64ToUint8Array = (base64String: string) => {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -162,13 +165,26 @@ export function PwaManager({
     const ownerId = session?.user.id;
     if (!ownerId) return;
 
+    let retryTimer: number | undefined;
+    let disposed = false;
+
     const handleOnline = async () => {
-      if (navigator.onLine) {
-        await compactOfflineOperations(ownerId);
-        await Promise.all([
-          syncQueuedMoodEntries(ownerId),
-          syncQueuedActions(ownerId),
-        ]);
+      window.clearTimeout(retryTimer);
+      if (!navigator.onLine) return;
+      await compactOfflineOperations(ownerId);
+      const results = await Promise.all([
+        syncQueuedMoodEntries(ownerId),
+        syncQueuedActions(ownerId),
+      ]);
+      // A failed operation waits for its backoff; nothing else wakes the
+      // queue while the page stays open, so check again once it is due.
+      const retriable = results.some(
+        (result) => result.remaining > result.conflicts,
+      );
+      if (retriable && !disposed) {
+        retryTimer = window.setTimeout(() => {
+          void handleOnline().catch(() => undefined);
+        }, OFFLINE_RETRY_CHECK_MS);
       }
     };
 
@@ -176,6 +192,8 @@ export function PwaManager({
     void handleOnline().catch(() => undefined);
 
     return () => {
+      disposed = true;
+      window.clearTimeout(retryTimer);
       window.removeEventListener("online", handleOnline);
     };
   }, [session?.user.id]);
