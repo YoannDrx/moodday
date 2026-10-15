@@ -325,14 +325,25 @@ test.describe("account", () => {
     // This button stays disabled until the client is hydrated. Waiting for the
     // actual interactive state avoids WebKit occasionally dispatching the
     // click while the server-rendered button is being replaced.
-    await expect(confirmDeleteButton).toBeEnabled();
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === "/auth/goodbye", {
-        timeout: 30000,
+    // WebKit can still swap the confirmation page right after it loads and
+    // drop the first click (CI video: page blanks, re-renders, button stays
+    // idle). Only retry while no deletion request has left the browser, so a
+    // consumed token is never replayed.
+    let deletionRequested = false;
+    page.on("request", (request) => {
+      if (request.url().includes("/api/auth/delete-user"))
+        deletionRequested = true;
+    });
+    await expect(async () => {
+      if (!deletionRequested) {
+        await expect(confirmDeleteButton).toBeEnabled({ timeout: 5000 });
+        await confirmDeleteButton.click({ timeout: 5000 });
+      }
+      await page.waitForURL((url) => url.pathname === "/auth/goodbye", {
+        timeout: 8000,
         waitUntil: "commit",
-      }),
-      confirmDeleteButton.click(),
-    ]);
+      });
+    }).toPass({ timeout: 45000 });
     // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
     await expect(
       page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
@@ -445,13 +456,9 @@ test.describe("account", () => {
       length: 12,
       memorable: true,
     });
-    const currentPasswordInput = page.locator(
-      'input[name="currentPassword"]',
-    );
+    const currentPasswordInput = page.locator('input[name="currentPassword"]');
     const newPasswordInput = page.locator('input[name="newPassword"]');
-    const confirmPasswordInput = page.locator(
-      'input[name="confirmPassword"]',
-    );
+    const confirmPasswordInput = page.locator('input[name="confirmPassword"]');
     await expect(currentPasswordInput).toBeVisible();
     await currentPasswordInput.fill(userData.password);
     await newPasswordInput.fill(newPassword);
