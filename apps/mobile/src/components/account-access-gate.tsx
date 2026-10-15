@@ -48,6 +48,7 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
   const [attempt, setAttempt] = useState(0);
   const [accepted, setAccepted] = useState([false, false, false, false]);
   const [pending, setPending] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState<string>();
   const publicRoute = ["/sign-in", "/two-factor", "/forgot-password"].includes(
     pathname,
   );
@@ -136,6 +137,28 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
     }
   };
 
+  const resendVerification = async () => {
+    const email = session.user.email;
+    if (!email || pending) return;
+    setPending(true);
+    setVerificationNotice(undefined);
+    try {
+      const result = await authClient.sendVerificationEmail({ email });
+      if (result.error) throw new Error("verification_email_failed");
+      setVerificationNotice(
+        "Un nouveau lien vient de partir. Il expire dans une heure.",
+      );
+    } catch {
+      setState((current) => ({
+        ...current,
+        error:
+          "L’e-mail n’a pas pu être envoyé. Réessaie dans quelques minutes ou contacte le support.",
+      }));
+    } finally {
+      setPending(false);
+    }
+  };
+
   const link = (path: string) => {
     void Linking.openURL(`${appBaseUrl}${path}`).catch(() =>
       setState((current) => ({
@@ -183,10 +206,27 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
         ) : (
           <>
             {state.access?.emailVerified === false ? (
-              <Text style={styles.text}>
-                Vérifie ton adresse e-mail avant d’accéder à ton suivi. Ouvre le
-                message Mood Day, puis reviens ici.
-              </Text>
+              <>
+                <Text style={styles.text}>
+                  Vérifie ton adresse e-mail avant d’accéder à ton suivi. Ouvre
+                  le message Mood Day, puis reviens ici.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={pending}
+                  onPress={() => void resendVerification()}
+                  style={[styles.button, pending && styles.disabled]}
+                >
+                  <Text style={styles.buttonText}>
+                    {pending ? "Envoi…" : "Renvoyer le lien"}
+                  </Text>
+                </Pressable>
+                {verificationNotice ? (
+                  <Text accessibilityLiveRegion="polite" style={styles.text}>
+                    {verificationNotice}
+                  </Text>
+                ) : null}
+              </>
             ) : state.access ? (
               <>
                 <Text style={styles.text}>

@@ -165,6 +165,10 @@ export const auth = betterAuth({
       },
       "/change-password": { window: 300, max: isolatedE2ERateLimit ?? 5 },
       "/magic-link/send": { window: 300, max: isolatedE2ERateLimit ?? 3 },
+      "/send-verification-email": {
+        window: 300,
+        max: isolatedE2ERateLimit ?? 3,
+      },
     },
   },
   baseURL: getServerUrl(),
@@ -396,7 +400,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendEmail({
+      const delivery = await sendEmail({
         to: user.email,
         subject: `Vérifiez votre email ${SiteConfig.title} / Verify your email`,
         html: VerifyEmail({
@@ -408,6 +412,10 @@ export const auth = betterAuth({
           userId: user.id,
         },
       });
+      // Better Auth only logs this failure during sign-up, but turns it into
+      // an error response on /send-verification-email so the resend UI can
+      // tell the user the link did not leave.
+      if (delivery.error) throw new Error("verification_email_delivery_failed");
     },
   },
   socialProviders: SocialProviders,

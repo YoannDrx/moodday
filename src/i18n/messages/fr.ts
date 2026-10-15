@@ -2106,6 +2106,13 @@ const fr: typeof en = {
         "Cliquez sur le lien dans l'email pour vérifier votre adresse.",
       spamHelp: "Si vous ne le voyez pas, vérifiez les spams.",
       support: "Besoin d'aide ? Contactez le support.",
+      resendLabel: "E-mail utilisé à l'inscription",
+      resendSubmit: "Renvoyer le lien",
+      resendCooldown: "Nouvel envoi possible dans {seconds} s",
+      resendSent:
+        "Si un compte non vérifié utilise cette adresse, un nouveau lien est en route. Il expire dans une heure.",
+      resendFailed:
+        "L'e-mail n'a pas pu être envoyé. Réessayez dans quelques minutes ou contactez le support.",
     },
     error: {
       message: "Une erreur est survenue",

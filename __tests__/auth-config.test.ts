@@ -224,7 +224,7 @@ describe("Better Auth production configuration", () => {
     vi.clearAllMocks();
     state.setupResendCustomer.mockResolvedValue(undefined);
     state.notifySignificantNewSession.mockResolvedValue(undefined);
-    state.sendEmail.mockResolvedValue(undefined);
+    state.sendEmail.mockResolvedValue({ error: null, data: { id: "email" } });
     state.deleteUserDataOutsideAuthCascade.mockResolvedValue(undefined);
     vi.mocked(prisma.userConsent.createMany).mockResolvedValue({ count: 4 });
   });
@@ -465,5 +465,23 @@ describe("Better Auth production configuration", () => {
 
     expect(state.sendEmail).toHaveBeenCalledTimes(7);
     expect(state.deleteUserDataOutsideAuthCascade).toHaveBeenCalledWith(user);
+  });
+
+  it("reports a verification email that could not be delivered", async () => {
+    const config = await loadConfig();
+    state.sendEmail.mockResolvedValueOnce({
+      error: new Error("provider down"),
+      data: null,
+    });
+
+    await expect(
+      config.emailVerification.sendVerificationEmail({
+        user: { id: "user-1", email: "user@example.com", name: "User" },
+        url: "https://moodday.app/verify",
+      }),
+    ).rejects.toThrow("verification_email_delivery_failed");
+    expect(config.rateLimit.customRules["/send-verification-email"].max).toBe(
+      3,
+    );
   });
 });

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   setItem: vi.fn(),
   deleteItem: vi.fn(),
   signOut: vi.fn(),
+  sendVerificationEmail: vi.fn(),
   summary: vi.fn(),
   closeDatabase: vi.fn(),
   pathname: "/",
@@ -43,9 +44,13 @@ vi.mock("../apps/mobile/src/lib/api", () => ({
 vi.mock("../apps/mobile/src/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({
-      data: { user: { id: mocks.userId }, session: { id: mocks.sessionId } },
+      data: {
+        user: { id: mocks.userId, email: "owner@example.com" },
+        session: { id: mocks.sessionId },
+      },
     }),
     signOut: mocks.signOut,
+    sendVerificationEmail: mocks.sendVerificationEmail,
   },
 }));
 vi.mock("../apps/mobile/node_modules/react-native", () => {
@@ -193,6 +198,23 @@ describe("native consent boundary", () => {
     renderGate();
     await screen.findByText(/Vérifie ton adresse e-mail/);
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByText("private-product")).not.toBeInTheDocument();
+  });
+  it("resends the verification link and reports a delivery failure", async () => {
+    mocks.getAccess.mockResolvedValue({ ...initial, emailVerified: false });
+    mocks.sendVerificationEmail
+      .mockResolvedValueOnce({ data: { status: true }, error: null })
+      .mockResolvedValueOnce({ data: null, error: { status: 500 } });
+    renderGate();
+
+    fireEvent.click(await screen.findByText("Renvoyer le lien"));
+    await screen.findByText(/Un nouveau lien vient de partir/);
+    expect(mocks.sendVerificationEmail).toHaveBeenCalledWith({
+      email: "owner@example.com",
+    });
+
+    fireEvent.click(screen.getByText("Renvoyer le lien"));
+    await screen.findByText(/n’a pas pu être envoyé/);
     expect(screen.queryByText("private-product")).not.toBeInTheDocument();
   });
   it("blocks sign-out when local operations have not synchronized", async () => {

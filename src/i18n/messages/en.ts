@@ -2067,6 +2067,13 @@ const en = {
       instructions: "Click the link in the email to verify your address.",
       spamHelp: "If you don't see it, check your spam folder.",
       support: "Need help? Contact support.",
+      resendLabel: "Email used to sign up",
+      resendSubmit: "Resend the link",
+      resendCooldown: "Resend available in {seconds}s",
+      resendSent:
+        "If an unverified account uses this address, a new link is on its way. It expires in one hour.",
+      resendFailed:
+        "The email could not be sent. Try again in a few minutes or contact support.",
     },
     error: {
       message: "Something went wrong",
