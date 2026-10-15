@@ -40,6 +40,11 @@ export const ProviderButton = (props: ProviderButtonProps) => {
         callbackURL: getCallbackUrl(
           `/auth/last-used-provider?provider=${props.providerId}&callbackUrl=${props.callbackUrl ?? "/dashboard"}`,
         ),
+        // Without this, Better Auth sends failures (closed sign-up, missing
+        // invite, cancelled consent) to its bare API error page.
+        errorCallbackURL: `/auth/signin?callbackUrl=${encodeURIComponent(
+          props.callbackUrl ?? "/dashboard",
+        )}`,
       });
     },
   });

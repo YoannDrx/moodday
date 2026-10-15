@@ -1,6 +1,7 @@
 "use client";
 
 import { Divider } from "@/components/nowts/divider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Typography } from "@/components/nowts/typography";
 import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { useSearchParams } from "next/navigation";
 import { ProviderButton } from "./provider-button";
 import { PasskeySignInButton } from "./passkey-sign-in-button";
 import { SignInCredentialsAndMagicLinkForm } from "./sign-in-credentials-and-magic-link-form";
+import { getSignInErrorMessageKey } from "./sign-in-error";
 import type { PublicSignupMode } from "@/lib/auth/signup-access";
 
 const SUPPORTED_PROVIDERS = ["github", "google", "apple"] as const;
@@ -24,6 +26,7 @@ export const SignInProviders = ({
 }) => {
   const searchParams = useSearchParams();
   const callbackUrlParams = searchParams.get("callbackUrl");
+  const errorMessageKey = getSignInErrorMessageKey(searchParams.get("error"));
   const { t } = useI18n();
 
   // Default to /dashboard if no callback URL is provided or if it's the landing page
@@ -38,6 +41,11 @@ export const SignInProviders = ({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
+      {errorMessageKey ? (
+        <Alert variant="destructive">
+          <AlertDescription>{t(errorMessageKey)}</AlertDescription>
+        </Alert>
+      ) : null}
       <SignInCredentialsAndMagicLinkForm callbackUrl={finalCallbackUrl} />
       <Divider>{t("auth.signIn.or")}</Divider>
       <PasskeySignInButton callbackUrl={finalCallbackUrl} />

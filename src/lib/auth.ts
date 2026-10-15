@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { admin, magicLink, twoFactor } from "better-auth/plugins";
@@ -14,6 +15,7 @@ import MagicLinkEmail from "@email/auth/magic-link";
 import ResetPasswordEmail from "@email/auth/reset-password";
 import VerifyEmail from "@email/auth/verify-email";
 import { setupResendCustomer } from "./auth/auth-config-setup";
+import { getSignupAccess } from "./auth/signup-access";
 import { env } from "./env";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
@@ -35,6 +37,14 @@ const isolatedE2ERateLimit =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true" ? 1000 : null;
 
 export const SocialProviders: SocialProvidersType = {};
+
+// Social sign-up stays open in invite mode so invited people can use Google or
+// Apple; the user-create hook below then enforces the invite list. Closed mode
+// lets Better Auth refuse the sign-up itself (error=signup_disabled).
+const socialSignUpDisabled = env.PUBLIC_SIGNUP_MODE === "closed";
+
+const isSocialSignUpPath = (path: string | undefined) =>
+  path?.startsWith("/callback") === true || path === "/sign-in/social";
 
 const generateAppleClientSecret = async ({
   clientId,
@@ -67,7 +77,7 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignUpDisabled,
   };
 }
 
@@ -75,7 +85,7 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   SocialProviders.google = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignUpDisabled,
     accessType: "offline",
     prompt: "select_account consent",
   };
@@ -103,7 +113,7 @@ if (
       privateKey: applePrivateKey,
     }),
     appBundleIdentifier: appleAppBundleIdentifier,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignUpDisabled,
   });
 }
 
@@ -186,6 +196,17 @@ export const auth = betterAuth({
     },
     user: {
       create: {
+        before: async (user, context) => {
+          if (!isSocialSignUpPath(context?.path)) return;
+          const decision = getSignupAccess(user.email);
+          if (decision.allowed) return;
+          // The OAuth callback forwards this message as the `error` query
+          // parameter of the sign-in page.
+          throw new APIError("FORBIDDEN", {
+            code: decision.code,
+            message: decision.code.toLowerCase(),
+          });
+        },
         after: async (user, _req) => {
           try {
             await setupResendCustomer(user);

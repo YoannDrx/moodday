@@ -26,6 +26,10 @@ type AuthConfig = {
     };
     user: {
       create: {
+        before: (
+          user: { email: string },
+          context?: { path?: string } | null,
+        ) => Promise<void>;
         after: (
           user: Record<string, unknown>,
           request?: unknown,
@@ -270,6 +274,67 @@ describe("Better Auth production configuration", () => {
     expect(isolated.rateLimit.customRules["/request-password-reset"].max).toBe(
       1000,
     );
+  });
+
+  it("lets invited people sign up with a social provider in invite mode", async () => {
+    const config = await loadConfig({
+      PUBLIC_SIGNUP_MODE: "invite",
+      PUBLIC_SIGNUP_INVITE_EMAILS: "Invited@Example.com",
+    });
+    expect(config.socialProviders).toMatchObject({
+      github: { disableSignUp: false },
+      google: { disableSignUp: false },
+    });
+    await expect(
+      (
+        config.socialProviders.apple as () => Promise<Record<string, unknown>>
+      )(),
+    ).resolves.toMatchObject({ disableSignUp: false });
+
+    const beforeCreate = config.databaseHooks.user.create.before;
+    await expect(
+      beforeCreate({ email: "invited@example.com" }, { path: "/callback/:id" }),
+    ).resolves.toBeUndefined();
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/callback/:id" },
+      ),
+    ).rejects.toMatchObject({ message: "signup_invite_required" });
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/sign-in/social" },
+      ),
+    ).rejects.toMatchObject({ message: "signup_invite_required" });
+    // Email sign-up is gated by the auth route; admin creation stays allowed.
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/admin/create-user" },
+      ),
+    ).resolves.toBeUndefined();
+    await expect(
+      beforeCreate({ email: "stranger@example.com" }, null),
+    ).resolves.toBeUndefined();
+  });
+
+  it("opens social sign-up in public mode and refuses it when closed", async () => {
+    const publicConfig = await loadConfig({ PUBLIC_SIGNUP_MODE: "public" });
+    expect(publicConfig.socialProviders).toMatchObject({
+      google: { disableSignUp: false },
+    });
+    await expect(
+      publicConfig.databaseHooks.user.create.before(
+        { email: "anyone@example.com" },
+        { path: "/callback/:id" },
+      ),
+    ).resolves.toBeUndefined();
+
+    const closedConfig = await loadConfig({ PUBLIC_SIGNUP_MODE: "closed" });
+    expect(closedConfig.socialProviders).toMatchObject({
+      google: { disableSignUp: true },
+    });
   });
 
   it("records signup consents only when every submitted version is current", async () => {

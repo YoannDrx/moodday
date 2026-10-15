@@ -1992,6 +1992,17 @@ const fr: typeof en = {
       or: "ou",
       lastUsed: "Dernier utilisé",
       provider: "Continuer avec {provider}",
+      errors: {
+        signupClosed:
+          "Aucun compte Moodday n’utilise encore cette adresse, et les nouveaux comptes sont fermés pendant la bêta privée. Connectez-vous avec l’adresse de votre compte existant.",
+        inviteRequired:
+          "Cette adresse n’a pas été invitée à la bêta. Utilisez l’adresse à laquelle votre invitation a été envoyée.",
+        accountNotLinked:
+          "Un compte existe déjà avec cette adresse. Connectez-vous d’abord avec votre e-mail, puis associez ce fournisseur depuis vos paramètres.",
+        cancelled: "La connexion a été annulée. Vous pouvez réessayer.",
+        generic:
+          "La connexion avec ce fournisseur a échoué. Réessayez ou utilisez votre adresse e-mail.",
+      },
     },
     signUp: {
       metaTitle: "Créer votre compte {app}",
