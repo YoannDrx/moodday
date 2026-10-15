@@ -297,3 +297,23 @@ it.each(["access_denied", "provider_error"])(
     }
   },
 );
+
+it.each([
+  ["signup_disabled", /registration is closed|inscriptions sont fermées/i],
+  ["signup_invite_required", /not been invited|pas encore invitée/i],
+])(
+  "explains why a provider account could not be created: %s",
+  (error, message) => {
+    navigation.query = `error=${error}`;
+    try {
+      setup(<SignInProviders providers={["google"]} signupMode="invite" />);
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent(message);
+      expect(
+        screen.getByRole("link", { name: /waitlist|liste d’attente/i }),
+      ).toHaveAttribute("href", "/#waitlist");
+    } finally {
+      navigation.query = "";
+    }
+  },
+);

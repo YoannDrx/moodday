@@ -31,6 +31,10 @@ type AuthConfig = {
     };
     user: {
       create: {
+        before: (
+          user: { email: string },
+          context?: { path?: string },
+        ) => Promise<void>;
         after: (
           user: Record<string, unknown>,
           request?: unknown,
@@ -227,6 +231,38 @@ describe("Better Auth production configuration", () => {
 
   afterAll(() => {
     delete process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED;
+  });
+
+  it("lets invited emails create an account through a provider in invite mode", async () => {
+    const config = await loadConfig({
+      PUBLIC_SIGNUP_MODE: "invite",
+      PUBLIC_SIGNUP_INVITE_EMAILS: "invited@example.com",
+    });
+    expect(config.socialProviders.google).toMatchObject({
+      disableSignUp: false,
+    });
+    const beforeCreate = config.databaseHooks.user.create.before;
+
+    await expect(
+      beforeCreate(
+        { email: "Invited@Example.com" },
+        { path: "/callback/:id" },
+      ),
+    ).resolves.toBeUndefined();
+    await expect(
+      beforeCreate({ email: "stranger@example.com" }, { path: "/callback/:id" }),
+    ).rejects.toMatchObject({ message: "signup invite required" });
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/sign-in/social" },
+      ),
+    ).rejects.toMatchObject({ message: "signup invite required" });
+    // Email sign-up keeps its own route guard; admin and import paths are not
+    // provider sign-ups.
+    await expect(
+      beforeCreate({ email: "stranger@example.com" }, { path: "/admin/create-user" }),
+    ).resolves.toBeUndefined();
   });
 
   it("enables only fully configured social providers and production rate limits", async () => {

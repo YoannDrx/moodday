@@ -13,6 +13,15 @@ import type { PublicSignupMode } from "@/lib/auth/signup-access";
 
 const SUPPORTED_PROVIDERS = ["github", "google", "apple"] as const;
 
+const PROVIDER_ERROR_KEYS: Record<string, string> = {
+  access_denied: "accessDenied",
+  signup_disabled: "signupClosed",
+  signup_invite_required: "signupInviteRequired",
+};
+
+export const getProviderErrorKey = (error: string | null) =>
+  error ? (PROVIDER_ERROR_KEYS[error] ?? "generic") : null;
+
 export const SignInProviders = ({
   providers,
   callbackUrl,
@@ -24,8 +33,8 @@ export const SignInProviders = ({
 }) => {
   const searchParams = useSearchParams();
   const callbackUrlParams = searchParams.get("callbackUrl");
-  const { t, locale } = useI18n();
-  const providerError = searchParams.get("error");
+  const { t } = useI18n();
+  const providerErrorKey = getProviderErrorKey(searchParams.get("error"));
 
   // Default to /dashboard if no callback URL is provided or if it's the landing page
   const rawCallbackUrl = callbackUrl ?? callbackUrlParams;
@@ -39,16 +48,21 @@ export const SignInProviders = ({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
-      {providerError ? (
-        <p role="alert" className="text-destructive text-sm">
-          {providerError === "access_denied"
-            ? locale === "fr"
-              ? "Connexion annulée. Tu peux réessayer ou utiliser ton e-mail."
-              : "Sign-in cancelled. Try again or use your email."
-            : locale === "fr"
-              ? "Le fournisseur n’a pas pu terminer la connexion. Réessaie ou utilise ton e-mail."
-              : "The provider could not complete sign-in. Try again or use your email."}
-        </p>
+      {providerErrorKey ? (
+        <div role="alert" className="text-destructive text-sm">
+          <p>{t(`auth.signIn.providerErrors.${providerErrorKey}`)}</p>
+          {providerErrorKey === "signupClosed" ||
+          providerErrorKey === "signupInviteRequired" ? (
+            <Typography
+              variant="link"
+              as={Link}
+              href="/#waitlist"
+              className="mt-1 inline-block text-sm"
+            >
+              {t("auth.signIn.providerErrors.joinWaitlist")}
+            </Typography>
+          ) : null}
+        </div>
       ) : null}
       <SignInCredentialsAndMagicLinkForm callbackUrl={finalCallbackUrl} />
       <Divider>{t("auth.signIn.or")}</Divider>

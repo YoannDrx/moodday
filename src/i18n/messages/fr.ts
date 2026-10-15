@@ -1992,6 +1992,17 @@ const fr: typeof en = {
       or: "ou",
       lastUsed: "Dernier utilisé",
       provider: "Continuer avec {provider}",
+      providerErrors: {
+        accessDenied:
+          "Connexion annulée. Tu peux réessayer ou utiliser ton e-mail.",
+        signupClosed:
+          "Aucun compte Moodday n’est associé à cette adresse. Les inscriptions sont fermées pendant la bêta privée : rejoins la liste d’attente pour être prévenu·e de l’ouverture.",
+        signupInviteRequired:
+          "Cette adresse n’est pas encore invitée à la bêta privée. Utilise l’adresse qui a reçu l’invitation, ou rejoins la liste d’attente.",
+        generic:
+          "Le fournisseur n’a pas pu terminer la connexion. Réessaie ou utilise ton e-mail.",
+        joinWaitlist: "Rejoindre la liste d’attente",
+      },
     },
     signUp: {
       metaTitle: "Créer votre compte {app}",

@@ -1958,6 +1958,16 @@ const en = {
       or: "or",
       lastUsed: "Last used",
       provider: "Continue with {provider}",
+      providerErrors: {
+        accessDenied: "Sign-in cancelled. Try again or use your email.",
+        signupClosed:
+          "No Moodday account is linked to this address. Registration is closed during the private beta: join the waitlist to hear when it opens.",
+        signupInviteRequired:
+          "This address has not been invited to the private beta yet. Use the invited address, or join the waitlist.",
+        generic:
+          "The provider could not complete sign-in. Try again or use your email.",
+        joinWaitlist: "Join the waitlist",
+      },
     },
     signUp: {
       metaTitle: "Create your {app} account",

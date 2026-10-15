@@ -37,6 +37,20 @@ export const evaluateSignupAccess = ({
   return { allowed: false, mode, code: "SIGNUP_INVITE_REQUIRED" };
 };
 
+/**
+ * Better Auth turns the message of an error thrown while creating an OAuth
+ * user into the `?error=` code of the redirect (spaces become underscores).
+ */
+export const PROVIDER_SIGNUP_ERRORS = {
+  SIGNUP_CLOSED: "signup disabled",
+  SIGNUP_INVITE_REQUIRED: "signup invite required",
+} as const;
+
+const PROVIDER_SIGNUP_PATH = /^\/(callback\/|oauth2\/callback|sign-in\/social)/;
+
+export const isProviderSignupPath = (path: string | undefined) =>
+  path !== undefined && PROVIDER_SIGNUP_PATH.test(path);
+
 export const getSignupAccess = (email?: string) =>
   evaluateSignupAccess({
     mode: env.PUBLIC_SIGNUP_MODE,

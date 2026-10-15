@@ -13,7 +13,13 @@ import EmailChangedEmail from "@email/auth/email-changed";
 import MagicLinkEmail from "@email/auth/magic-link";
 import ResetPasswordEmail from "@email/auth/reset-password";
 import VerifyEmail from "@email/auth/verify-email";
+import { APIError } from "better-auth/api";
 import { setupResendCustomer } from "./auth/auth-config-setup";
+import {
+  getSignupAccess,
+  isProviderSignupPath,
+  PROVIDER_SIGNUP_ERRORS,
+} from "./auth/signup-access";
 import { env } from "./env";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
@@ -36,6 +42,10 @@ const isolatedE2ERateLimit =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true" ? 1000 : null;
 
 export const SocialProviders: SocialProvidersType = {};
+
+// Invite mode lets invited emails create an account through a provider; the
+// user create hook below rejects everyone else with an explicit error code.
+const socialSignupDisabled = env.PUBLIC_SIGNUP_MODE === "closed";
 
 const generateAppleClientSecret = async ({
   clientId,
@@ -72,7 +82,7 @@ if (
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
   };
 }
 
@@ -84,7 +94,7 @@ if (
   SocialProviders.google = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
     accessType: "offline",
     prompt: "select_account consent",
   };
@@ -113,7 +123,7 @@ if (
       privateKey: applePrivateKey,
     }),
     appBundleIdentifier: appleAppBundleIdentifier,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
   });
 }
 
@@ -197,6 +207,14 @@ export const auth = betterAuth({
     },
     user: {
       create: {
+        before: async (user, ctx) => {
+          if (!isProviderSignupPath(ctx?.path)) return;
+          const decision = getSignupAccess(user.email);
+          if (decision.allowed) return;
+          throw new APIError("FORBIDDEN", {
+            message: PROVIDER_SIGNUP_ERRORS[decision.code],
+          });
+        },
         after: async (user, _req) => {
           try {
             await setupResendCustomer(user);
