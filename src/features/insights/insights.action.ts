@@ -13,6 +13,7 @@ import {
   getSafeTimeZone,
 } from "@/lib/temporal/civil-date";
 import { getExportDateRange } from "@/features/export/date-range";
+import { listJournalActivityDates, listMoodTimeline } from "./mood-timeline";
 import { calculateMoodStreak } from "./streak";
 
 const getUserTimeContext = async (userId: string, days: number) => {
@@ -51,21 +52,9 @@ export const getMoodChartData = authAction
     const timeContext = await getUserTimeContext(user.id, effectiveDays);
     const since = timeContext.start;
 
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: since, lt: timeContext.endExclusive },
-      },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        value: true,
-        note: true,
-        energy: true,
-        sleepHours: true,
-        anxiety: true,
-        createdAt: true,
-      },
+    const moodEntries = await listMoodTimeline({
+      userId: user.id,
+      ...timeContext,
     });
 
     // Get dosage changes for markers
@@ -99,7 +88,7 @@ export const getMoodChartData = authAction
         energy: entry.energy,
         sleepHours: entry.sleepHours,
         anxiety: entry.anxiety,
-        date: entry.createdAt.toISOString(),
+        date: entry.date.toISOString(),
       })),
       dosageChanges: dosageChanges.map((change) => ({
         id: change.id,
@@ -121,9 +110,10 @@ export const getDashboardSummary = authAction.action(
     const monthContext = await getUserTimeContext(user.id, 30);
     const weekContext = await getUserTimeContext(user.id, 7);
     const previousWeekStartDate = addCivilDays(weekContext.startDate, -7);
+    const previousWeekEndDate = addCivilDays(weekContext.startDate, -1);
     const previousWeekRange = getExportDateRange({
       startDate: previousWeekStartDate,
-      endDate: addCivilDays(weekContext.startDate, -1),
+      endDate: previousWeekEndDate,
       timezone: monthContext.timezone,
     });
     const todayRange = getExportDateRange({
@@ -134,31 +124,21 @@ export const getDashboardSummary = authAction.action(
     const startOfDay = todayRange.start;
     const startOfWeek = weekContext.start;
     const startOfMonth = monthContext.start;
-    const startOfPrevWeek = previousWeekRange.start;
 
     // Mood data (last 7 days for mini chart) - with sleep data
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfWeek, lt: weekContext.endExclusive },
-      },
-      orderBy: { createdAt: "asc" },
-      select: {
-        value: true,
-        createdAt: true,
-        sleepHours: true,
-        sleepQuality: true,
-        energy: true,
-      },
+    const moodEntries = await listMoodTimeline({
+      userId: user.id,
+      ...weekContext,
     });
 
     // Previous week mood entries for trend
-    const prevWeekMoodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfPrevWeek, lt: startOfWeek },
-      },
-      select: { value: true },
+    const prevWeekMoodEntries = await listMoodTimeline({
+      userId: user.id,
+      startDate: previousWeekStartDate,
+      endDate: previousWeekEndDate,
+      start: previousWeekRange.start,
+      endExclusive: previousWeekRange.endExclusive,
+      timezone: monthContext.timezone,
     });
 
     const weeklyMoodAvg =
@@ -269,12 +249,12 @@ export const getDashboardSummary = authAction.action(
         trendPercent,
         entries: moodEntries.map((e) => ({
           value: e.value,
-          date: e.createdAt.toISOString(),
+          date: e.date.toISOString(),
         })),
         hasEntryToday: moodEntries.some(
           (entry) =>
-            entry.createdAt.getTime() >= startOfDay.getTime() &&
-            entry.createdAt.getTime() < todayRange.endExclusive.getTime(),
+            entry.date.getTime() >= startOfDay.getTime() &&
+            entry.date.getTime() < todayRange.endExclusive.getTime(),
         ),
       },
       sleep: {
@@ -320,12 +300,9 @@ export const getPatternInsights = authAction.action(
     });
 
     // Mood insights
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfMonth, lt: monthContext.endExclusive },
-      },
-      select: { value: true, createdAt: true },
+    const moodEntries = await listMoodTimeline({
+      userId: user.id,
+      ...monthContext,
     });
 
     const insights: {
@@ -370,13 +347,13 @@ export const getPatternInsights = authAction.action(
       // Weekend vs weekday analysis
       const weekendMoods = moodEntries.filter((e) => {
         const day = getCivilWeekday(
-          getDateKeyForTimeZone(e.createdAt, monthContext.timezone),
+          getDateKeyForTimeZone(e.date, monthContext.timezone),
         );
         return day === 0 || day === 6;
       });
       const weekdayMoods = moodEntries.filter((e) => {
         const day = getCivilWeekday(
-          getDateKeyForTimeZone(e.createdAt, monthContext.timezone),
+          getDateKeyForTimeZone(e.date, monthContext.timezone),
         );
         return day !== 0 && day !== 6;
       });
@@ -512,21 +489,14 @@ export const getStreakData = authAction.action(async ({ ctx: { user } }) => {
   const { t } = await getI18n();
   const timeContext = await getUserTimeContext(user.id, 90);
 
-  const moodEntries = await prisma.moodEntry.findMany({
-    where: {
-      userId: user.id,
-      createdAt: {
-        gte: timeContext.start,
-        lt: timeContext.endExclusive,
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
+  const entryDates = await listJournalActivityDates({
+    userId: user.id,
+    ...timeContext,
   });
 
   const todayStr = timeContext.endDate;
   const { streakDays, weekProgress, hasEntryToday } = calculateMoodStreak({
-    entryDates: moodEntries.map((entry) => entry.createdAt),
+    entryDates,
     todayDate: todayStr,
     timeZone: timeContext.timezone,
   });

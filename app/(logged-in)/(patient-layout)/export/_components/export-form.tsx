@@ -49,7 +49,8 @@ const downloadBlob = (blob: Blob, filename: string) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Firefox can drop a download whose blob URL is revoked synchronously.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 };
 
 export function ExportForm({

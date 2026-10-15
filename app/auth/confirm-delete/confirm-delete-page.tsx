@@ -50,7 +50,12 @@ export function ConfirmDeletePage({
       );
       void unsubscribeCurrentPush().catch(() => undefined);
       if (session?.user.id) {
-        await purgeOfflineDataForOwner(session.user.id).catch(() => undefined);
+        // The account is already deleted on the server. A stalled IndexedDB
+        // (seen in WebKit) must not keep the person on this page.
+        await Promise.race([
+          purgeOfflineDataForOwner(session.user.id).catch(() => undefined),
+          new Promise<void>((resolve) => setTimeout(resolve, 2_000)),
+        ]);
       }
       await purgeAuthenticatedBrowserCaches().catch(() => undefined);
       return result;

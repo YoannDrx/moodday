@@ -9,12 +9,14 @@ import { SignInCredentialsAndMagicLinkForm } from "../app/auth/signin/sign-in-cr
 import { SignInProviders } from "../app/auth/signin/sign-in-providers";
 import { setup } from "../test/setup";
 
+const searchParamsState = vi.hoisted(() => ({ query: "" }));
+
 // Mock next/navigation
 vi.mock("next/navigation", async () => {
   const actual = await vi.importActual("next/navigation");
   return {
     ...actual,
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => new URLSearchParams(searchParamsState.query),
   };
 });
 
@@ -75,7 +77,7 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
     expect(html).toContain('type="password"');
     expect(html).toContain('name="password"');
-    expect(html).toContain("<fieldset disabled=\"\"");
+    expect(html).toContain('<fieldset disabled=""');
     expect(html).toContain("disabled:bg-gray-100");
     expect(html).toContain("disabled:text-gray-700");
     expect(html).toContain("disabled:opacity-100");
@@ -245,6 +247,51 @@ describe("SignInProvidersContainer", () => {
     expect(
       screen.queryByRole("button", { name: /github/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("sends Google failures back to the sign-in page", async () => {
+    vi.mocked(authClient.signIn.social).mockResolvedValue({
+      data: null,
+      error: null,
+    } as never);
+    const { user } = setup(
+      <SignInProviders providers={["google"]} callbackUrl="/today" />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /google/i }));
+
+    await waitFor(() =>
+      expect(authClient.signIn.social).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: "google",
+          errorCallbackURL: "/auth/signin?callbackUrl=%2Ftoday",
+        }),
+      ),
+    );
+  });
+
+  it.each([
+    ["signup_disabled", /new accounts are closed/i],
+    ["signup_invite_required", /has not been invited/i],
+    ["account_not_linked", /account already exists/i],
+    ["access_denied", /sign-in was cancelled/i],
+    ["<script>unexpected</script>", /sign-in with this provider failed/i],
+  ])("explains the %s social sign-in error", (code, message) => {
+    searchParamsState.query = new URLSearchParams({ error: code }).toString();
+    try {
+      setup(<SignInProviders providers={["google"]} />);
+
+      expect(screen.getByRole("alert")).toHaveTextContent(message);
+      expect(screen.getByRole("alert")).not.toHaveTextContent(code);
+    } finally {
+      searchParamsState.query = "";
+    }
+  });
+
+  it("shows no error banner without an error parameter", () => {
+    setup(<SignInProviders providers={["google"]} />);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("should render both buttons when both are enabled", async () => {

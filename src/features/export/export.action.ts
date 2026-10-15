@@ -1,6 +1,10 @@
 "use server";
 
 import { authAction } from "@/lib/actions/safe-actions";
+import {
+  countMoodTimeline,
+  listMoodTimeline,
+} from "@/features/insights/mood-timeline";
 import { calculateMedicationAdherence } from "@/features/medication/adherence";
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { prisma } from "@/lib/prisma";
@@ -94,22 +98,14 @@ export const getExportData = authAction
         timezone: preferences?.timezone,
       });
 
-      // Get mood entries
-      const moodEntries = await prisma.moodEntry.findMany({
-        where: {
-          userId: user.id,
-          createdAt: { gte: start, lt: endExclusive },
-        },
-        orderBy: { createdAt: "asc" },
-        select: {
-          value: true,
-          energy: true,
-          anxiety: true,
-          sleepHours: true,
-          sleepQuality: true,
-          note: true,
-          createdAt: true,
-        },
+      // Get mood entries (daily check-ins and journal entries)
+      const moodEntries = await listMoodTimeline({
+        userId: user.id,
+        startDate,
+        endDate,
+        start,
+        endExclusive,
+        timezone,
       });
 
       // Get medications and their intakes
@@ -234,7 +230,7 @@ export const getExportData = authAction
             sleepHours: e.sleepHours,
             sleepQuality: e.sleepQuality,
             note: e.note,
-            date: e.createdAt.toISOString(),
+            date: e.date.toISOString(),
           })),
           stats: {
             average: moodAvg !== null ? Math.round(moodAvg * 10) / 10 : null,
@@ -297,7 +293,7 @@ export const getExportPreview = authAction
       where: { userId: user.id },
       select: { timezone: true },
     });
-    const { start, endExclusive } = getExportDateRange({
+    const { start, endExclusive, timezone } = getExportDateRange({
       startDate,
       endDate,
       timezone: preferences?.timezone,
@@ -305,11 +301,13 @@ export const getExportPreview = authAction
 
     const [moodCount, medicationIntakeCount, therapyCount, exerciseCount] =
       await Promise.all([
-        prisma.moodEntry.count({
-          where: {
-            userId: user.id,
-            createdAt: { gte: start, lt: endExclusive },
-          },
+        countMoodTimeline({
+          userId: user.id,
+          startDate,
+          endDate,
+          start,
+          endExclusive,
+          timezone,
         }),
         prisma.medIntake.count({
           where: {

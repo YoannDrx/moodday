@@ -200,7 +200,11 @@ describe("export form", () => {
       endDate: "2026-08-13",
       purpose: "csv",
     });
-    expect(mocks.revokeObjectURL).toHaveBeenCalledWith("blob:moodday-test");
+    await waitFor(
+      () =>
+        expect(mocks.revokeObjectURL).toHaveBeenCalledWith("blob:moodday-test"),
+      { timeout: 3_000 },
+    );
     expect(mocks.toastSuccess).toHaveBeenCalledWith("export.download.success");
     expect(mocks.toastSuccess).toHaveBeenCalledWith(
       "export.download.csvSuccess",

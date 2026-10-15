@@ -1958,6 +1958,17 @@ const en = {
       or: "or",
       lastUsed: "Last used",
       provider: "Continue with {provider}",
+      errors: {
+        signupClosed:
+          "No Moodday account uses this address yet, and new accounts are closed during the private beta. Sign in with the address of your existing account.",
+        inviteRequired:
+          "This address has not been invited to the beta. Use the address your invitation was sent to.",
+        accountNotLinked:
+          "An account already exists with this address. Sign in with your email first, then connect this provider from your settings.",
+        cancelled: "Sign-in was cancelled. You can try again.",
+        generic:
+          "Sign-in with this provider failed. Try again, or use your email address.",
+      },
     },
     signUp: {
       metaTitle: "Create your {app} account",

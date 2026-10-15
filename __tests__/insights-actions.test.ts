@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { getDateKeyForTimeZone } from "@/lib/temporal/civil-date";
 
 const actionClient = vi.hoisted(() => {
   const client = { inputSchema: vi.fn(), action: vi.fn() };
@@ -63,6 +64,7 @@ import {
 
 const user = { id: "insights-user", email: "user@moodday.invalid" };
 const currentEntryDate = new Date();
+const todayKey = getDateKeyForTimeZone(currentEntryDate, "Europe/Paris");
 type ActionHandler<T = unknown> = (args: {
   parsedInput?: Record<string, unknown>;
   ctx: { user: typeof user };
@@ -84,6 +86,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   actionClient.inputSchema.mockReturnValue(actionClient);
   actionClient.action.mockImplementation((handler) => handler);
+  vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.checkIn.count).mockResolvedValue(0);
   vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
     typeof callback === "function"
       ? callback(prisma as never)
@@ -149,6 +153,38 @@ describe("deterministic product insights", () => {
       moodEntries: [{ value: 0 }],
       medicationAdherence: 90,
     });
+  });
+
+  it("shows a daily check-in in the Repères chart and streak", async () => {
+    vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.medicationHistory.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      {
+        id: "check-in-1",
+        localDate: todayKey,
+        valence: 7,
+        activation: 5,
+        anxiety: 2,
+        note: null,
+        createdAt: currentEntryDate,
+      },
+    ] as never);
+
+    const chart = await invoke<{
+      moodEntries: { id: string; value: number; energy: number | null }[];
+    }>(getMoodChartData, { parsedInput: { days: 7 }, ctx: { user } });
+    expect(chart.moodEntries).toEqual([
+      expect.objectContaining({ id: "check-in-1", value: 7, energy: 5 }),
+    ]);
+
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      { localDate: todayKey, createdAt: currentEntryDate },
+    ] as never);
+    const streak = await invoke<{ hasEntryToday: boolean }>(getStreakData, {
+      ctx: { user },
+    });
+    expect(streak.hasEntryToday).toBe(true);
   });
 
   it("aggregates the representative dashboard without losing zero values", async () => {

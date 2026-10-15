@@ -33,6 +33,7 @@ import { getMedicationAdherenceForUser } from "@/features/medication/adherence-s
 import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { addCivilDays, getSafeTimeZone } from "@/lib/temporal/civil-date";
 import { getExportDateRange } from "@/features/export/date-range";
+import { listMoodTimeline } from "@/features/insights/mood-timeline";
 import { env } from "@/lib/env";
 
 const ensureCaregiverAvailable = async <T>(next: () => Promise<T>) => {
@@ -1201,13 +1202,14 @@ export const getSharedMoodSummary = caregiverAction
         timezone,
       });
 
-      const entries = await transaction.moodEntry.findMany({
-        where: {
-          userId: relationship.patientId,
-          createdAt: { gte: since, lt: endExclusive },
-        },
-        select: { value: true, energy: true, anxiety: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
+      const entries = await listMoodTimeline({
+        client: transaction,
+        userId: relationship.patientId,
+        startDate,
+        endDate,
+        start: since,
+        endExclusive,
+        timezone,
       });
       await recordCaregiverResourceAccess({
         client: transaction,
@@ -1226,7 +1228,7 @@ export const getSharedMoodSummary = caregiverAction
         }
       >();
       entries.forEach((entry) => {
-        const day = getDateKeyForTimeZone(entry.createdAt, timezone);
+        const day = getDateKeyForTimeZone(entry.date, timezone);
         const aggregate = byDay.get(day) ?? {
           moodTotal: 0,
           energyTotal: 0,

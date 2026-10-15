@@ -227,4 +227,38 @@ describe("auth recovery, consent and deletion", () => {
     fireEvent.click(screen.getByRole("button", { name: "actions.cancel" }));
     expect(mocks.push).toHaveBeenCalledWith("/settings/privacy");
   });
+
+  it("leaves the page after deletion even if local cleanup stalls", async () => {
+    const replace = vi.fn();
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, replace },
+    });
+    mocks.deleteUser.mockResolvedValue({ data: { success: true } });
+    mocks.purgeOfflineDataForOwner.mockReturnValue(
+      new Promise(() => undefined),
+    );
+
+    try {
+      render(<ConfirmDeletePage token="delete-token" />);
+      fireEvent.click(
+        screen.getByRole("button", { name: "auth.confirmDelete.confirm" }),
+      );
+      await waitFor(
+        () => expect(replace).toHaveBeenCalledWith("/auth/goodbye"),
+        {
+          timeout: 4_000,
+        },
+      );
+      expect(mocks.purgeOfflineDataForOwner).toHaveBeenCalledWith(
+        "delete-owner",
+      );
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
 });

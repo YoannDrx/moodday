@@ -326,12 +326,23 @@ test.describe("account", () => {
     // actual interactive state avoids WebKit occasionally dispatching the
     // click while the server-rendered button is being replaced.
     await expect(confirmDeleteButton).toBeEnabled();
+    const deleteResponsePromise = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/auth/delete-user" &&
+        response.request().method() === "POST",
+      { timeout: 20000 },
+    );
     await Promise.all([
       page.waitForURL((url) => url.pathname === "/auth/goodbye", {
         timeout: 30000,
         waitUntil: "commit",
       }),
       confirmDeleteButton.click(),
+      // Report the server answer when the redirect does not happen, so a
+      // WebKit-only failure says whether deletion or navigation stalled.
+      deleteResponsePromise.then((response) => {
+        expect(response.status()).toBe(200);
+      }),
     ]);
     // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
     await expect(
