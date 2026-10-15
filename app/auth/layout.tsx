@@ -6,7 +6,7 @@ export default async function RouteLayout(props: PropsWithChildren) {
   const { locale } = await getI18n();
   const isEnglish = locale === "en";
   return (
-    <div className="grid min-h-full bg-[#f6f3ec] lg:grid-cols-[minmax(360px,0.82fr)_minmax(520px,1.18fr)]">
+    <div className="grid min-h-full grid-cols-[minmax(0,1fr)] bg-[#f6f3ec] lg:grid-cols-[minmax(360px,0.82fr)_minmax(520px,1.18fr)]">
       <aside className="relative hidden overflow-hidden bg-[#155c5a] px-10 py-12 text-[#fff8ed] lg:flex lg:flex-col lg:justify-between xl:px-16">
         <div className="absolute -top-24 -left-24 size-80 rounded-full bg-[#afc9bc]/20 blur-3xl" />
         <div className="relative">
@@ -36,7 +36,7 @@ export default async function RouteLayout(props: PropsWithChildren) {
             : "Confidentiel par conception · sans diagnostic · sans série culpabilisante"}
         </p>
       </aside>
-      <main className="relative flex min-h-full flex-col items-center justify-center px-4 py-8 sm:px-8 lg:px-12">
+      <main className="relative flex min-h-full min-w-0 flex-col items-center justify-center px-4 py-8 sm:px-8 lg:px-12">
         <div className="mb-2 flex h-36 w-full max-w-sm items-center justify-center overflow-hidden rounded-[28px] bg-[#155c5a] lg:hidden">
           <BrandIllustration
             variant="welcome"

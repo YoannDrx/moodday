@@ -49,7 +49,7 @@ références opaques autorisées dans les deux registres JSON.
 2. Confirmer les contacts d'escalade et le canal de décision.
 3. Confirmer que le déploiement Production précédent est encore restaurable
    sans reconstruction.
-4. Répéter sur une cible isolée : baseline historique → 27 migrations,
+4. Répéter sur une cible isolée : baseline historique → migrations du candidat,
    sauvegarde/restauration,
    smoke tests, révocation des sessions non vérifiées et rollback applicatif.
 5. Vérifier les politiques de sauvegarde Neon, la rétention de 30 jours et le
@@ -96,12 +96,12 @@ opérateur, nombre de migrations attendu et décision `ready_for_maintenance`.
 
 Sur une branche Neon isolée issue de Production :
 
-1. relever la migration courante, les 64 tables attendues et les volumes
+1. relever la migration courante, les tables attendues selon le schéma du candidat et les volumes
    agrégés des tables critiques ;
 2. créer un point de restauration fournisseur ;
 3. appliquer `prisma migrate deploy` avec l'URL non poolée de cette branche ;
 4. exécuter le backfill prévu et le script de sessions non vérifiées ;
-5. confirmer 27 migrations, 64 tables, contraintes, index et absence de dérive ;
+5. confirmer l’inventaire des migrations et modèles du candidat, contraintes, index et absence de dérive ;
 6. exécuter les smoke tests et chronométrer un restore vers une autre branche ;
 7. détruire la branche uniquement après conservation des preuves non sensibles.
 
@@ -138,7 +138,7 @@ déploiement sûr et abandonner la migration.
 3. Exécuter les backfills versionnés de locale et de révisions initiales.
 4. Exécuter `pnpm maintenance:revoke-unverified-sessions`.
 5. Ne créer aucun consentement, âge ou état de vérification artificiel.
-6. Contrôler les 27 migrations, les 64 tables, les contraintes, les index, les
+6. Contrôler les migrations et tables du candidat, les contraintes, les index, les
    volumes agrégés et les relations orphelines attendues à zéro.
 7. Exécuter `prisma migrate diff` contre le schéma du candidat.
 8. Déployer le candidat avec tous les flags sensibles encore fermés. Le build
@@ -267,3 +267,7 @@ La release n'est clôturée qu'après :
 
 Une étape non prouvée reste `pending`. Aucun opérateur ne remplit rétroactivement
 une preuve à partir d'une supposition ou d'un simple succès local.
+
+### Inventaire du candidat
+
+Exécuter `pnpm release:schema-inventory` et joindre le résultat au dossier de publication. Le nombre de migrations, leur empreinte SHA-256 et la liste des modèles sont dérivés des fichiers versionnés ; ne pas réutiliser les nombres d’une répétition antérieure. Comparer les tables métier (hors `_prisma_migrations`) et les migrations appliquées à cet inventaire après restauration et migration.

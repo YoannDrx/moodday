@@ -23,10 +23,7 @@ import {
 } from "@/features/mood/journal-search.action";
 import { useQuickEntryStore } from "@/features/mood/quick-entry-store";
 import { useI18n } from "@/i18n/provider";
-import {
-  getDateKeyForTimeZone,
-  getSafeTimeZone,
-} from "@/lib/temporal/civil-date";
+import { getSafeTimeZone } from "@/lib/temporal/civil-date";
 import { cn } from "@/lib/utils";
 
 type Filters = {
@@ -54,7 +51,8 @@ const emptyFilters: Filters = {
   end: "",
 };
 
-const getMoodColor = (value: number) => {
+const getMoodColor = (value: number | null) => {
+  if (value === null) return "rgb(100, 116, 139)";
   if (value <= 2) return "rgb(239, 68, 68)";
   if (value <= 4) return "rgb(249, 115, 22)";
   if (value <= 6) return "rgb(234, 179, 8)";
@@ -62,7 +60,8 @@ const getMoodColor = (value: number) => {
   return "rgb(34, 197, 94)";
 };
 
-const getMoodEmoji = (value: number) => {
+const getMoodEmoji = (value: number | null) => {
+  if (value === null) return "✓";
   if (value <= 1) return "😢";
   if (value <= 3) return "😔";
   if (value <= 5) return "😐";
@@ -115,14 +114,11 @@ export function MoodHistoryList({
   const calendarGroups = useMemo(() => {
     const grouped = new Map<string, typeof entries>();
     for (const entry of entries) {
-      const key = getDateKeyForTimeZone(
-        new Date(entry.createdAt),
-        timezone,
-      ).slice(0, 7);
+      const key = entry.localDate.slice(0, 7);
       grouped.set(key, [...(grouped.get(key) ?? []), entry]);
     }
     return [...grouped.entries()];
-  }, [entries, timezone]);
+  }, [entries]);
 
   const updateDraft = (key: keyof Filters, value: string) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -373,9 +369,12 @@ export function MoodHistoryList({
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-7">
                 {monthEntries.map((entry) => (
                   <button
-                    key={entry.id}
+                    key={`${entry.source}:${entry.id}`}
                     type="button"
+                    disabled={entry.source !== "legacy"}
                     onClick={() =>
+                      entry.source === "legacy" &&
+                      entry.value !== null &&
                       openForEdit({
                         id: entry.id,
                         value: entry.value,
@@ -386,16 +385,27 @@ export function MoodHistoryList({
                     className="hover:border-primary rounded-lg border p-3 text-left"
                   >
                     <span className="text-muted-foreground block text-xs">
-                      {new Intl.DateTimeFormat(
-                        locale === "fr" ? "fr-FR" : "en-US",
-                        { day: "numeric", month: "short", timeZone: timezone },
-                      ).format(new Date(entry.createdAt))}
+                      {entry.localDate
+                        ? entry.localDate
+                        : new Intl.DateTimeFormat(
+                            locale === "fr" ? "fr-FR" : "en-US",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              timeZone: timezone,
+                            },
+                          ).format(new Date(entry.createdAt))}
                     </span>
                     <span
                       className="mt-1 block text-lg font-semibold"
                       style={{ color: getMoodColor(entry.value) }}
                     >
-                      {getMoodEmoji(entry.value)} {entry.value}/10
+                      {getMoodEmoji(entry.value)}{" "}
+                      {entry.value === null
+                        ? locale === "fr"
+                          ? "Présence"
+                          : "Presence"
+                        : `${entry.value}/10`}
                     </span>
                   </button>
                 ))}
@@ -407,12 +417,15 @@ export function MoodHistoryList({
         <div className="space-y-3">
           {entries.map((entry) => (
             <Card
-              key={entry.id}
+              key={`${entry.source}:${entry.id}`}
               className={cn(
-                "cursor-pointer p-4 transition-all hover:shadow-md",
+                "p-4 transition-all",
+                entry.source === "legacy" && "cursor-pointer hover:shadow-md",
                 "hover:border-primary/30",
               )}
               onClick={() =>
+                entry.source === "legacy" &&
+                entry.value !== null &&
                 openForEdit({
                   id: entry.id,
                   value: entry.value,
@@ -434,18 +447,24 @@ export function MoodHistoryList({
                       className="text-lg font-bold"
                       style={{ color: getMoodColor(entry.value) }}
                     >
-                      {entry.value}/10
+                      {entry.value === null
+                        ? locale === "fr"
+                          ? "Présence"
+                          : "Presence"
+                        : `${entry.value}/10`}
                     </span>
                     <span className="text-muted-foreground flex items-center gap-1 text-sm">
                       <Calendar className="size-3" />
-                      {new Intl.DateTimeFormat(
-                        locale === "fr" ? "fr-FR" : "en-US",
-                        {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                          timeZone: timezone,
-                        },
-                      ).format(new Date(entry.createdAt))}
+                      {entry.localDate
+                        ? entry.localDate
+                        : new Intl.DateTimeFormat(
+                            locale === "fr" ? "fr-FR" : "en-US",
+                            {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                              timeZone: timezone,
+                            },
+                          ).format(new Date(entry.createdAt))}
                     </span>
                   </div>
                   {entry.tags.length > 0 ? (
@@ -454,9 +473,9 @@ export function MoodHistoryList({
                     </p>
                   ) : null}
                   {entry.note ? (
-                    <p className="text-muted-foreground mt-1 flex items-start gap-1 truncate text-sm">
+                    <p className="text-muted-foreground mt-1 flex items-start gap-1 text-sm">
                       <MessageSquare className="mt-0.5 size-3 shrink-0" />
-                      <span className="truncate">{entry.note}</span>
+                      <span className="whitespace-pre-wrap">{entry.note}</span>
                     </p>
                   ) : null}
                 </div>

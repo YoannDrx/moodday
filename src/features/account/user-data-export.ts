@@ -1,84 +1,116 @@
+/* eslint-disable no-await-in-loop */
+import type { Prisma } from "@prisma/client";
+import { createJsonDownloadStream } from "./json-download";
 import { prisma } from "@/lib/prisma";
 
-export const buildUserDataExport = async (user: { id: string }) =>
-  prisma.$transaction(async (tx) => {
-    const now = new Date();
-    const activeCaregiverRelationships =
-      await tx.caregiverRelationship.findMany({
-        where: {
-          caregiverId: user.id,
-          status: "active",
-          revokedAt: null,
-          OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
-        },
-        select: { id: true, patientId: true },
+type Page = {
+  take: number;
+  skip?: number;
+  cursor?: { id: string };
+  orderBy: { id: "asc" };
+};
+type Collection = <T extends { id: string }>(
+  read: (page?: Page) => Promise<T[]>,
+) => Promise<T[] | AsyncIterable<T>>;
+const eagerCollection: Collection = async (read) => read();
+const paginatedCollection: Collection = async (read) => ({
+  async *[Symbol.asyncIterator]() {
+    let cursor: string | undefined;
+    for (;;) {
+      const rows = await read({
+        take: 250,
+        orderBy: { id: "asc" },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
-    const accessiblePatientIds = activeCaregiverRelationships.map(
-      ({ patientId }) => patientId,
-    );
-    const accessibleRelationshipIds = activeCaregiverRelationships.map(
-      ({ id }) => id,
-    );
-    const [
-      userProfile,
-      preferences,
-      moodEntries,
-      medications,
-      therapySessions,
-      exercises,
-      caregiverRelationships,
-      caregiverObservations,
-      caregiverEvents,
-      caregiverAccessLog,
-      consents,
-      moodTags,
-      consultationPreparations,
-      safetyPlan,
-      v2Appointments,
-      calendarConnections,
-      checkIns,
-      observations,
-      dailyAggregates,
-      sourceConnections,
-      routines,
-      userDrafts,
-      circleRelationships,
-      supportRequests,
-      caregiverContributions,
-      v2AccessLog,
-    ] = await Promise.all([
-      tx.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          image: true,
-          emailVerified: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.userPreferences.findUnique({
-        where: { userId: user.id },
-        select: {
-          hasCompletedOnboarding: true,
-          onboardingStep: true,
-          defaultChartPeriod: true,
-          timezone: true,
-          theme: true,
-          locale: true,
-          reducedMotion: true,
-          preferredTextScale: true,
-          notificationsEnabled: true,
-          dailyCheckInReminder: true,
-          dailyCheckInTime: true,
-          medicationReminders: true,
-          medicationReminderTime: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      for (const row of rows) yield row;
+      if (rows.length < 250) break;
+      cursor = rows.at(-1)?.id;
+    }
+  },
+});
+
+const readUserDataExport = async (
+  tx: Prisma.TransactionClient,
+  user: { id: string },
+  collection: Collection,
+) => {
+  const now = new Date();
+  const activeCaregiverRelationships = await tx.caregiverRelationship.findMany({
+    where: {
+      caregiverId: user.id,
+      status: "active",
+      revokedAt: null,
+      OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
+    },
+    select: { id: true, patientId: true },
+  });
+  const accessiblePatientIds = activeCaregiverRelationships.map(
+    ({ patientId }) => patientId,
+  );
+  const accessibleRelationshipIds = activeCaregiverRelationships.map(
+    ({ id }) => id,
+  );
+  const [
+    userProfile,
+    preferences,
+    moodEntries,
+    medications,
+    therapySessions,
+    exercises,
+    caregiverRelationships,
+    caregiverObservations,
+    caregiverEvents,
+    caregiverAccessLog,
+    consents,
+    moodTags,
+    consultationPreparations,
+    safetyPlan,
+    v2Appointments,
+    calendarConnections,
+    checkIns,
+    observations,
+    dailyAggregates,
+    sourceConnections,
+    routines,
+    userDrafts,
+    circleRelationships,
+    supportRequests,
+    caregiverContributions,
+    v2AccessLog,
+  ] = await Promise.all([
+    tx.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    tx.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: {
+        hasCompletedOnboarding: true,
+        onboardingStep: true,
+        defaultChartPeriod: true,
+        timezone: true,
+        theme: true,
+        locale: true,
+        reducedMotion: true,
+        preferredTextScale: true,
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        dailyCheckInTime: true,
+        medicationReminders: true,
+        medicationReminderTime: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    collection(async (page) =>
       tx.moodEntry.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -96,7 +128,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.medication.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -189,7 +224,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.therapySession.findMany({
         where: { userId: user.id },
         orderBy: { date: "asc" },
@@ -201,7 +239,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.exercise.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -222,7 +263,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.caregiverRelationship.findMany({
         where: {
           OR: [
@@ -253,7 +297,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.caregiverObservation.findMany({
         where: {
           OR: [
@@ -278,7 +325,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.caregiverEvent.findMany({
         where: {
           OR: [
@@ -302,7 +352,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.caregiverAccessLog.findMany({
         where: {
           OR: [
@@ -322,11 +375,15 @@ export const buildUserDataExport = async (user: { id: string }) =>
           resource: true,
           accessedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.userConsent.findMany({
         where: { userId: user.id },
         orderBy: { acceptedAt: "asc" },
         select: {
+          id: true,
           purpose: true,
           version: true,
           locale: true,
@@ -335,7 +392,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           acceptedAt: true,
           revokedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.moodTagDefinition.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -349,7 +409,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.consultationPreparation.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -366,20 +429,23 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
-      tx.safetyPlan.findUnique({
-        where: { userId: user.id },
-        select: {
-          warningSigns: true,
-          copingStrategies: true,
-          safePlaces: true,
-          trustedContacts: true,
-          professionalContacts: true,
-          lastReviewedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+    ),
+    tx.safetyPlan.findUnique({
+      where: { userId: user.id },
+      select: {
+        warningSigns: true,
+        copingStrategies: true,
+        safePlaces: true,
+        trustedContacts: true,
+        professionalContacts: true,
+        lastReviewedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    collection(async (page) =>
       tx.appointment.findMany({
         where: { userId: user.id },
         orderBy: { startsAt: "asc" },
@@ -457,7 +523,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.calendarConnection.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -496,7 +565,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.checkIn.findMany({
         where: { userId: user.id },
         orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
@@ -514,7 +586,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.observation.findMany({
         where: { userId: user.id },
         orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
@@ -536,7 +611,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.dailyAggregate.findMany({
         where: { userId: user.id },
         orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
@@ -558,7 +636,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.sourceConnection.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -573,7 +654,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.routine.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -601,7 +685,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.userDraft.findMany({
         where: { userId: user.id },
         orderBy: { updatedAt: "asc" },
@@ -613,7 +700,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.circleRelationship.findMany({
         where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
         orderBy: { createdAt: "asc" },
@@ -645,7 +735,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
             },
           },
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.supportRequest.findMany({
         where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
         orderBy: { createdAt: "asc" },
@@ -663,7 +756,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           createdAt: true,
           updatedAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.caregiverContribution.findMany({
         where: { OR: [{ patientId: user.id }, { authorId: user.id }] },
         orderBy: { createdAt: "asc" },
@@ -677,7 +773,10 @@ export const buildUserDataExport = async (user: { id: string }) =>
           content: true,
           createdAt: true,
         },
+        ...page,
       }),
+    ),
+    collection(async (page) =>
       tx.accessLog.findMany({
         where: { OR: [{ patientId: user.id }, { actorId: user.id }] },
         orderBy: { createdAt: "asc" },
@@ -690,53 +789,87 @@ export const buildUserDataExport = async (user: { id: string }) =>
           resourceKind: true,
           createdAt: true,
         },
+        ...page,
       }),
-    ]);
+    ),
+  ]);
 
-    return {
-      exportMetadata: {
-        exportDate: new Date().toISOString(),
-        dataVersion: "2.5",
-        applicationName: "Moodday",
-        userId: user.id,
-        timezone: preferences?.timezone ?? null,
-        excludedSecurityData: [
-          "authentication sessions and credentials",
-          "push subscription secrets",
-          "Stripe identifiers",
-          "caregiver invitation tokens",
-          "offline operation identifiers",
-        ],
+  return {
+    exportMetadata: {
+      exportDate: new Date().toISOString(),
+      dataVersion: "2.5",
+      applicationName: "Moodday",
+      userId: user.id,
+      timezone: preferences?.timezone ?? null,
+      excludedSecurityData: [
+        "authentication sessions and credentials",
+        "push subscription secrets",
+        "Stripe identifiers",
+        "caregiver invitation tokens",
+        "offline operation identifiers",
+      ],
+    },
+    user: userProfile,
+    preferences,
+    moodEntries,
+    medications,
+    therapySessions,
+    exercises,
+    consents,
+    moodTags,
+    consultationPreparations,
+    safetyPlan,
+    appointments: v2Appointments,
+    calendarConnections,
+    checkIns,
+    observations,
+    dailyAggregates,
+    sourceConnections,
+    routines,
+    drafts: userDrafts,
+    circle: {
+      relationships: circleRelationships,
+      supportRequests,
+      contributions: caregiverContributions,
+      accessLog: v2AccessLog,
+    },
+    caregiverCircle: {
+      relationships: caregiverRelationships,
+      observations: caregiverObservations,
+      events: caregiverEvents,
+      accessLog: caregiverAccessLog,
+    },
+  };
+};
+
+export const buildUserDataExport = async (user: { id: string }) =>
+  prisma.$transaction(
+    async (tx) => readUserDataExport(tx, user, eagerCollection),
+    { isolationLevel: "RepeatableRead", timeout: 30_000 },
+  );
+
+/** The snapshot stays open until the paginated body is consumed or cancelled. */
+export const createUserDataExportStream = (user: { id: string }) => {
+  const transport = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = transport.writable.getWriter();
+  void prisma
+    .$transaction(
+      async (tx) => {
+        const data = await readUserDataExport(tx, user, paginatedCollection);
+        const reader = createJsonDownloadStream(data).getReader();
+        try {
+          for (;;) {
+            const part = await reader.read();
+            if (part.done) break;
+            await writer.write(part.value);
+          }
+        } finally {
+          await reader.cancel();
+        }
       },
-      user: userProfile,
-      preferences,
-      moodEntries,
-      medications,
-      therapySessions,
-      exercises,
-      consents,
-      moodTags,
-      consultationPreparations,
-      safetyPlan,
-      appointments: v2Appointments,
-      calendarConnections,
-      checkIns,
-      observations,
-      dailyAggregates,
-      sourceConnections,
-      routines,
-      drafts: userDrafts,
-      circle: {
-        relationships: circleRelationships,
-        supportRequests,
-        contributions: caregiverContributions,
-        accessLog: v2AccessLog,
-      },
-      caregiverCircle: {
-        relationships: caregiverRelationships,
-        observations: caregiverObservations,
-        events: caregiverEvents,
-        accessLog: caregiverAccessLog,
-      },
-    };
-  });
+      { isolationLevel: "RepeatableRead", timeout: 90_000 },
+    )
+    .then(async () => writer.close())
+    .catch(async (error: unknown) => writer.abort(error));
+  return transport.readable;
+};

@@ -30,17 +30,25 @@ type ProviderButtonProps = {
 };
 
 export const ProviderButton = (props: ProviderButtonProps) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { lastUsedProvider } = useLastUsedProviderStore();
 
-  const githubSignInMutation = useMutation({
+  const signInMutation = useMutation({
     mutationFn: async () => {
-      await authClient.signIn.social({
+      const query = new URLSearchParams({
         provider: props.providerId,
+        callbackUrl: props.callbackUrl ?? "/dashboard",
+      });
+      const result = await authClient.signIn.social({
+        provider: props.providerId,
+        errorCallbackURL: getCallbackUrl(
+          `/auth/signin?${new URLSearchParams({ callbackUrl: props.callbackUrl ?? "/dashboard" }).toString()}`,
+        ),
         callbackURL: getCallbackUrl(
-          `/auth/last-used-provider?provider=${props.providerId}&callbackUrl=${props.callbackUrl ?? "/dashboard"}`,
+          `/auth/last-used-provider?${query.toString()}`,
         ),
       });
+      if (result.error) throw new Error("social_sign_in_failed");
     },
   });
 
@@ -58,8 +66,8 @@ export const ProviderButton = (props: ProviderButtonProps) => {
         </Badge>
       )}
       <LoadingButton
-        loading={githubSignInMutation.isPending}
-        className={cn("w-full", {
+        loading={signInMutation.isPending}
+        className={cn("h-auto min-h-11 w-full whitespace-normal", {
           "border bg-white text-black hover:bg-white dark:border-neutral-700":
             data.name === "Google",
           "border bg-black text-white hover:bg-gray-950 dark:border-neutral-700":
@@ -67,7 +75,7 @@ export const ProviderButton = (props: ProviderButtonProps) => {
         })}
         size="lg"
         onClick={() => {
-          githubSignInMutation.mutate();
+          signInMutation.mutate();
         }}
       >
         {data.icon}
@@ -75,6 +83,13 @@ export const ProviderButton = (props: ProviderButtonProps) => {
           {t("auth.signIn.provider", { provider: data.name })}
         </span>
       </LoadingButton>
+      {signInMutation.isError ? (
+        <p role="alert" className="text-destructive mt-2 text-sm">
+          {locale === "fr"
+            ? "Connexion impossible. Réessayez ou utilisez votre e-mail."
+            : "Sign-in failed. Try again or use your email."}
+        </p>
+      ) : null}
     </div>
   );
 };

@@ -3,8 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   getRequiredUser: vi.fn(),
-  buildUserDataExport: vi.fn(),
-  createJsonDownloadStream: vi.fn(),
+  createUserDataExportStream: vi.fn(),
   enforceRateLimit: vi.fn(),
   getExportData: vi.fn(),
   getI18n: vi.fn(),
@@ -18,10 +17,7 @@ vi.mock("@/lib/auth/auth-user", () => ({
   RECENT_AUTHENTICATION_WINDOW_MS: 10 * 60 * 1_000,
 }));
 vi.mock("@/features/account/user-data-export", () => ({
-  buildUserDataExport: mocks.buildUserDataExport,
-}));
-vi.mock("@/features/account/json-download", () => ({
-  createJsonDownloadStream: mocks.createJsonDownloadStream,
+  createUserDataExportStream: mocks.createUserDataExportStream,
 }));
 vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: mocks.enforceRateLimit,
@@ -44,8 +40,15 @@ describe("export routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getRequiredUser.mockResolvedValue({ id: "user-1" });
-    mocks.buildUserDataExport.mockResolvedValue({ exportMetadata: {} });
-    mocks.createJsonDownloadStream.mockReturnValue("json-body");
+    mocks.createUserDataExportStream.mockImplementation(
+      () =>
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode("{}"));
+            controller.close();
+          },
+        }),
+    );
     mocks.getI18n.mockResolvedValue({ locale: "fr", t: vi.fn() });
     mocks.ExportPDFDocument.mockReturnValue({ type: "pdf" });
     mocks.renderToBuffer.mockResolvedValue(Buffer.from("pdf-body"));
@@ -80,7 +83,7 @@ describe("export routes", () => {
     });
     const response = await getJsonExport();
     expect(response.status).toBe(200);
-    expect(await response.text()).toBe("json-body");
+    expect(await response.text()).toBe("{}");
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("content-disposition")).toMatch(
       /moodday-export-\d{4}-\d{2}-\d{2}\.json/u,

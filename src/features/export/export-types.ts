@@ -30,6 +30,9 @@ export type ConsultationExportData = {
       sleepQuality: string | null;
       note: string | null;
       date: string;
+      localDate?: string;
+      source?: "journal" | "check-in";
+      timePrecision?: "instant" | "day";
     }[];
     stats: {
       average: number | null;

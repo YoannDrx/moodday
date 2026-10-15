@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config } from "dotenv";
 import Stripe from "stripe";
+import { auditStripeWebhookConfiguration } from "../src/lib/billing/webhook-configuration";
 
 for (const filename of [".env.local", ".env"]) {
   const candidate = path.join(process.cwd(), filename);
@@ -54,6 +55,15 @@ async function main() {
 
   const readinessFailures: string[] = [];
   const configurationFailures: string[] = [];
+  const endpoints = await stripe.webhookEndpoints.list({ limit: 100 });
+  configurationFailures.push(
+    ...auditStripeWebhookConfiguration(
+      endpoints.data,
+      "https://www.moodday.app",
+    ),
+  );
+  if (endpoints.has_more)
+    configurationFailures.push("webhook_inventory_incomplete");
   if (account.id !== process.env.STRIPE_ACCOUNT_ID)
     configurationFailures.push("account_mismatch");
   if (!account.charges_enabled) readinessFailures.push("charges_disabled");

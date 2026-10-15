@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 
 const entries = Array.from({ length: 30 }, (_, index) => ({
   id: `entry-${index}`,
+  source: "legacy",
+  localDate: index < 15 ? "2026-08-15" : "2026-07-15",
   value: index < 11 ? index : 5,
   note: index === 0 ? "Note synthétique" : null,
   tags: index === 1 ? ["protective", "context"] : [],

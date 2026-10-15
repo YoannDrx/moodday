@@ -19,6 +19,7 @@ describe("applyOperationalRetention", () => {
       deleted,
     );
     vi.mocked(prisma.verification.deleteMany).mockResolvedValue(deleted);
+    vi.mocked(prisma.rateLimit.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.regulatoryExportAudit.updateMany).mockResolvedValue(
       deleted,
     );
@@ -49,10 +50,14 @@ describe("applyOperationalRetention", () => {
         medicationMutationReceipts: 1,
         expiredVerifications: 1,
         regulatoryExportAudits: 1,
+        rateLimitCounters: 1,
       },
     });
     const daysBefore = (days: number) =>
       new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    expect(prisma.rateLimit.deleteMany).toHaveBeenCalledWith({
+      where: { lastRequest: { lt: BigInt(daysBefore(1).getTime()) } },
+    });
     expect(prisma.emailLog.deleteMany).toHaveBeenCalledWith({
       where: { sentAt: { lt: daysBefore(90) } },
     });

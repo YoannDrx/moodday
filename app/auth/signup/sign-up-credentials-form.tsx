@@ -211,7 +211,7 @@ export const SignUpCredentialsForm = ({
                     href="/legal/terms"
                     target="_blank"
                   >
-                    {t("nav.terms")}
+                    {t("footer.terms")}
                   </Link>
                 </FormLabel>
                 <FormMessage />
@@ -242,7 +242,7 @@ export const SignUpCredentialsForm = ({
                     href="/legal/privacy"
                     target="_blank"
                   >
-                    {t("nav.privacy")}
+                    {t("footer.privacy")}
                   </Link>
                 </FormLabel>
                 <FormMessage />

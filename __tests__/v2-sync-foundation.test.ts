@@ -41,6 +41,14 @@ describe("V2 synchronization foundation", () => {
     vi.mocked(prisma.syncOperation.findUnique).mockResolvedValue({
       status: "applied",
       entityId: "check-in-1",
+      entityType: "check_in",
+      mutation: "create",
+    } as never);
+    vi.mocked(prisma.checkIn.findUnique).mockResolvedValue({
+      depth: "presence",
+      localDate: "2026-08-22",
+      timezone: "Europe/Paris",
+      contexts: [],
     } as never);
 
     const result = await pushSyncOperations("user-1", {
@@ -52,7 +60,12 @@ describe("V2 synchronization foundation", () => {
           entityId: "check-in-1",
           entityType: "check_in",
           mutation: "create",
-          payload: {},
+          payload: {
+            depth: "presence",
+            localDate: "2026-08-22",
+            timezone: "Europe/Paris",
+            contexts: [],
+          },
         },
       ],
     });
@@ -317,7 +330,7 @@ describe("V2 synchronization foundation", () => {
     expect(prisma.syncOperation.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         entityType: "user_draft",
-        payloadDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+        payloadDigest: expect.stringMatching(/^v2:[a-f0-9]{64}$/),
       }),
     });
     expect(prisma.syncOperation.create).not.toHaveBeenCalledWith(
@@ -407,5 +420,26 @@ describe("V2 synchronization foundation", () => {
       code: "draft_content_too_large",
     });
     expect(prisma.userDraft.create).not.toHaveBeenCalled();
+  });
+});
+
+it("bounds registered device identifiers without blocking an existing device", async () => {
+  vi.clearAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+    callback(prisma),
+  );
+  vi.mocked(prisma.device.findUnique).mockResolvedValue(null);
+  vi.mocked(prisma.device.count).mockResolvedValue(50);
+  const input = { deviceId: "new", platform: "ios" as const, operations: [] };
+  await expect(pushSyncOperations("owner", input)).rejects.toMatchObject({
+    name: "DeviceLimitError",
+  });
+  expect(prisma.device.upsert).not.toHaveBeenCalled();
+  vi.mocked(prisma.device.findUnique).mockResolvedValue({
+    id: "existing",
+  } as never);
+  vi.mocked(prisma.device.upsert).mockResolvedValue(device as never);
+  await expect(pushSyncOperations("owner", input)).resolves.toEqual({
+    results: [],
   });
 });

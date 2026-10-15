@@ -14,6 +14,7 @@ import {
 } from "@/lib/temporal/civil-date";
 import { getExportDateRange } from "@/features/export/date-range";
 import { calculateMoodStreak } from "./streak";
+import { readMoodRange } from "./mood-read-model";
 
 const getUserTimeContext = async (userId: string, days: number) => {
   const preferences = await prisma.userPreferences.findUnique({
@@ -51,21 +52,9 @@ export const getMoodChartData = authAction
     const timeContext = await getUserTimeContext(user.id, effectiveDays);
     const since = timeContext.start;
 
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: since, lt: timeContext.endExclusive },
-      },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        value: true,
-        note: true,
-        energy: true,
-        sleepHours: true,
-        anxiety: true,
-        createdAt: true,
-      },
+    const { entries: moodEntries } = await readMoodRange({
+      userId: user.id,
+      ...timeContext,
     });
 
     // Get dosage changes for markers
@@ -100,6 +89,9 @@ export const getMoodChartData = authAction
         sleepHours: entry.sleepHours,
         anxiety: entry.anxiety,
         date: entry.createdAt.toISOString(),
+        localDate: entry.localDate,
+        source: entry.source,
+        timePrecision: entry.timePrecision,
       })),
       dosageChanges: dosageChanges.map((change) => ({
         id: change.id,
@@ -121,11 +113,6 @@ export const getDashboardSummary = authAction.action(
     const monthContext = await getUserTimeContext(user.id, 30);
     const weekContext = await getUserTimeContext(user.id, 7);
     const previousWeekStartDate = addCivilDays(weekContext.startDate, -7);
-    const previousWeekRange = getExportDateRange({
-      startDate: previousWeekStartDate,
-      endDate: addCivilDays(weekContext.startDate, -1),
-      timezone: monthContext.timezone,
-    });
     const todayRange = getExportDateRange({
       startDate: monthContext.endDate,
       endDate: monthContext.endDate,
@@ -134,31 +121,19 @@ export const getDashboardSummary = authAction.action(
     const startOfDay = todayRange.start;
     const startOfWeek = weekContext.start;
     const startOfMonth = monthContext.start;
-    const startOfPrevWeek = previousWeekRange.start;
 
     // Mood data (last 7 days for mini chart) - with sleep data
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfWeek, lt: weekContext.endExclusive },
-      },
-      orderBy: { createdAt: "asc" },
-      select: {
-        value: true,
-        createdAt: true,
-        sleepHours: true,
-        sleepQuality: true,
-        energy: true,
-      },
+    const { entries: moodEntries, recordedDates } = await readMoodRange({
+      userId: user.id,
+      ...weekContext,
     });
 
     // Previous week mood entries for trend
-    const prevWeekMoodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfPrevWeek, lt: startOfWeek },
-      },
-      select: { value: true },
+    const { entries: prevWeekMoodEntries } = await readMoodRange({
+      userId: user.id,
+      startDate: previousWeekStartDate,
+      endDate: addCivilDays(weekContext.startDate, -1),
+      timezone: monthContext.timezone,
     });
 
     const weeklyMoodAvg =
@@ -271,11 +246,7 @@ export const getDashboardSummary = authAction.action(
           value: e.value,
           date: e.createdAt.toISOString(),
         })),
-        hasEntryToday: moodEntries.some(
-          (entry) =>
-            entry.createdAt.getTime() >= startOfDay.getTime() &&
-            entry.createdAt.getTime() < todayRange.endExclusive.getTime(),
-        ),
+        hasEntryToday: recordedDates.includes(monthContext.endDate),
       },
       sleep: {
         avgHours:
@@ -320,12 +291,9 @@ export const getPatternInsights = authAction.action(
     });
 
     // Mood insights
-    const moodEntries = await prisma.moodEntry.findMany({
-      where: {
-        userId: user.id,
-        createdAt: { gte: startOfMonth, lt: monthContext.endExclusive },
-      },
-      select: { value: true, createdAt: true },
+    const { entries: moodEntries } = await readMoodRange({
+      userId: user.id,
+      ...monthContext,
     });
 
     const insights: {

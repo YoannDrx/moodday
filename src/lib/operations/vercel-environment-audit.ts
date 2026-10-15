@@ -8,11 +8,13 @@ export type VercelEnvironmentEntry = {
 
 export type VercelEnvironmentFinding = {
   code:
+    | "invalid_feature_flag"
     | "duplicate_key"
     | "missing_key"
     | "shared_sensitive_key"
     | "weak_secret_storage"
     | "same_sensitive_value"
+    | "sensitive_value_unavailable"
     | "invalid_database_runtime_url"
     | "invalid_database_direct_url"
     | "database_not_neon"
@@ -125,9 +127,62 @@ export const SENSITIVE_ISOLATED_ENVIRONMENT_KEYS = new Set([
 
 const SECRET_KEYS = new Set(SENSITIVE_ISOLATED_ENVIRONMENT_KEYS);
 
+// Vercel does not disclose sensitive variables through `env pull`. Comparing
+// these markers would falsely report shared credentials and malformed DB URLs.
+const isRedactedValue = (value: string | undefined) =>
+  value === "[SENSITIVE]" || value === "[REDACTED]";
+
+const moduleFlags = [
+  "BILLING_ENABLED",
+  "AI_INSIGHTS_ENABLED",
+  "PUSH_NOTIFICATIONS_ENABLED",
+  "GOOGLE_CALENDAR_ENABLED",
+  "OAUTH_GOOGLE_ENABLED",
+  "OAUTH_APPLE_ENABLED",
+  "OAUTH_GITHUB_ENABLED",
+] as const;
+
+export function requiredEnvironmentKeysFor(
+  values: Record<string, string>,
+): string[] {
+  const disabled = (flag: string) => values[flag] === "false";
+  const keys: string[] = REQUIRED_RELEASE_ENVIRONMENT_KEYS.filter((key) => {
+    if (
+      disabled("BILLING_ENABLED") &&
+      /^(STRIPE_|NEXT_PUBLIC_STRIPE_|REVENUECAT_)/.test(key)
+    )
+      return false;
+    if (
+      disabled("AI_INSIGHTS_ENABLED") &&
+      key !== "AI_INSIGHTS_ENABLED" &&
+      /^(AI_|OPENAI_)/.test(key)
+    )
+      return false;
+    if (
+      disabled("PUSH_NOTIFICATIONS_ENABLED") &&
+      /^(VAPID_|NEXT_PUBLIC_VAPID_)/.test(key)
+    )
+      return false;
+    if (disabled("OAUTH_APPLE_ENABLED") && key.startsWith("APPLE_"))
+      return false;
+    if (
+      disabled("OAUTH_GOOGLE_ENABLED") &&
+      disabled("GOOGLE_CALENDAR_ENABLED") &&
+      key.startsWith("GOOGLE_CLIENT_")
+    )
+      return false;
+    return true;
+  });
+  keys.push(...moduleFlags);
+  if (!disabled("OAUTH_GITHUB_ENABLED"))
+    keys.push("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET");
+  return [...new Set(keys)];
+}
+
 export function auditVercelEnvironmentEntries(
   entries: VercelEnvironmentEntry[],
   environment: VercelEnvironment,
+  values?: Record<string, string>,
 ) {
   const applicable = entries.filter(({ target }) =>
     target.includes(environment),
@@ -141,7 +196,18 @@ export function auditVercelEnvironmentEntries(
     byKey.set(entry.key, existing);
   }
 
-  for (const key of REQUIRED_RELEASE_ENVIRONMENT_KEYS) {
+  if (values)
+    for (const flag of moduleFlags) {
+      if (!["true", "false"].includes(values[flag]))
+        findings.push({
+          code: "invalid_feature_flag",
+          key: flag,
+          severity: "error",
+        });
+    }
+  for (const key of values
+    ? requiredEnvironmentKeysFor(values)
+    : REQUIRED_RELEASE_ENVIRONMENT_KEYS) {
     if (!byKey.has(key)) {
       findings.push({ code: "missing_key", key, severity: "error" });
     }
@@ -196,6 +262,14 @@ export function auditVercelSensitiveValueIsolation(
   for (const key of SENSITIVE_ISOLATED_ENVIRONMENT_KEYS) {
     const productionValue = production[key];
     const previewValue = preview[key];
+    if (isRedactedValue(productionValue) || isRedactedValue(previewValue)) {
+      findings.push({
+        code: "sensitive_value_unavailable",
+        key,
+        severity: "error",
+      });
+      continue;
+    }
     if (productionValue && previewValue && productionValue === previewValue) {
       findings.push({
         code: "same_sensitive_value",
@@ -222,6 +296,14 @@ export function auditVercelDatabaseTopology(
     value: string | undefined,
     key: "DATABASE_URL" | "DATABASE_URL_UNPOOLED",
   ) => {
+    if (isRedactedValue(value)) {
+      findings.push({
+        code: "sensitive_value_unavailable",
+        key,
+        severity: "error",
+      });
+      return null;
+    }
     try {
       const url = new URL(value ?? "");
       if (!["postgres:", "postgresql:"].includes(url.protocol)) {

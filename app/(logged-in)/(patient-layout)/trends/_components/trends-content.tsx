@@ -29,7 +29,7 @@ import { PageLayout } from "@/components/nowts/page-layout";
 import { MoodChart } from "@/components/nowts/mood-chart";
 import { useI18n } from "@/i18n/provider";
 import Link from "next/link";
-import { calculateSignedAssociation } from "@moodday/domain";
+import { calculateDailyAssociation } from "@/features/insights/daily-association";
 
 type MoodEntry = {
   id: string;
@@ -39,6 +39,7 @@ type MoodEntry = {
   sleepHours?: number | null;
   anxiety?: number | null;
   date: string;
+  localDate?: string;
 };
 
 type DosageChange = {
@@ -57,16 +58,19 @@ type Insight = {
 
 type TrendsContentProps = {
   chartData7?: {
+    effectiveDays?: number;
     moodEntries: MoodEntry[];
     dosageChanges: DosageChange[];
     medicationAdherence?: number | null;
   };
   chartData30?: {
+    effectiveDays?: number;
     moodEntries: MoodEntry[];
     dosageChanges: DosageChange[];
     medicationAdherence?: number | null;
   };
   chartData90?: {
+    effectiveDays?: number;
     moodEntries: MoodEntry[];
     dosageChanges: DosageChange[];
     medicationAdherence?: number | null;
@@ -138,30 +142,25 @@ export function TrendsContent({
 
   const trend7vs30 = calculateTrend(avg7, avg30);
 
-  const calculateCorrelation = (pairs: [number, number][]) => {
-    const association = calculateSignedAssociation(
-      pairs.map(([x, y]) => ({ x, y })),
-    );
-    return association ? Math.round(association.coefficient * 100) : null;
-  };
-
-  const buildPairs = (
-    entries: MoodEntry[] | undefined,
-    key: "sleepHours" | "energy" | "anxiety",
-  ): [number, number][] => {
-    if (!entries) return [];
-    return entries
-      .filter((entry) => entry[key] !== null && entry[key] !== undefined)
-      .map((entry) => [entry.value, entry[key] as number] as [number, number]);
-  };
-
   const currentData = getCurrentChartData();
-  const sleepCorrelation = calculateCorrelation(
-    buildPairs(currentData?.moodEntries, "sleepHours"),
-  );
-  const energyCorrelation = calculateCorrelation(
-    buildPairs(currentData?.moodEntries, "energy"),
-  );
+  const periodDays = currentData?.effectiveDays ?? Number(selectedPeriod);
+  const associationFor = (key: "sleepHours" | "energy") =>
+    calculateDailyAssociation(
+      (currentData?.moodEntries ?? []).map((entry) => ({
+        localDate: entry.localDate ?? entry.date.slice(0, 10),
+        x: entry.value,
+        y: entry[key],
+      })),
+      periodDays,
+    );
+  const sleepAssociation = associationFor("sleepHours");
+  const energyAssociation = associationFor("energy");
+  const sleepCorrelation = sleepAssociation.association
+    ? Math.round(sleepAssociation.association.coefficient * 100)
+    : null;
+  const energyCorrelation = energyAssociation.association
+    ? Math.round(energyAssociation.association.coefficient * 100)
+    : null;
   const medicationAdherence = currentData?.medicationAdherence ?? null;
 
   const formatPercent = (value: number | null | undefined) =>
@@ -505,8 +504,8 @@ export function TrendsContent({
               </div>
               <p className="text-muted-foreground text-xs leading-5">
                 {locale === "fr"
-                  ? "Le signe indique le sens de l’association. Au moins 5 jours comparables sont nécessaires. Ces pistes ne démontrent ni cause, ni effet médical."
-                  : "The sign shows the direction of the association. At least 5 comparable days are required. These clues do not establish a cause or medical effect."}
+                  ? `Même jour uniquement. Sommeil : ${sleepAssociation.comparableDays}/${periodDays} jours comparables ; énergie : ${energyAssociation.comparableDays}/${periodDays}. Le signe indique le sens. Au moins 5 jours comparables et 50 % de couverture sont nécessaires. Plusieurs saisies d’un jour comptent pour un seul jour. Ces pistes à confirmer ne démontrent ni cause, ni effet médical.`
+                  : `Same-day only. Sleep: ${sleepAssociation.comparableDays}/${periodDays} comparable days; energy: ${energyAssociation.comparableDays}/${periodDays}. The sign shows direction. At least 5 days and 50% coverage are required. Multiple entries on a day count as one day. These clues to confirm do not establish a cause or medical effect.`}
               </p>
             </GlassCardContent>
           </GlassCard>

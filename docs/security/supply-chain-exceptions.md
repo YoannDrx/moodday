@@ -36,3 +36,12 @@ Les autres avis visibles le 22 août 2026 ne font pas l'objet d'une exception :
 
 Toute réapparition des versions vulnérables dans `pnpm-lock.yaml` fait échouer
 le test de chaîne de dépendances.
+
+## `node-forge` — GHSA-86w9-cpqp-85rv / CVE-2026-85393
+
+- Revue du 2 octobre 2026 : la dernière version publiée, 1.4.0, est affectée ; aucune version corrigée n’est publiée dans l’avis [GitHub](https://github.com/advisories/GHSA-86w9-cpqp-85rv).
+- Dépendance transitive d’Expo CLI. Correctif pnpm versionné dans `patches/node-forge@1.4.0.patch` : validation du nombre d’éléments de la séquence DigestAlgorithm imbriquée, suivant la [proposition amont 1152](https://github.com/digitalbazaar/forge/pull/1152).
+- Le test de chaîne de dépendances vérifie une vraie signature RSA et rejette une signature contenant une séquence imbriquée supplémentaire. Le lockfile impose le hash du patch ; une installation non patchée fait échouer le test.
+- L’exception de cet avis précis s’applique à l’audit pnpm et à dependency-review. Elle ne constitue pas une déclaration de correction amont. Engineering doit la retirer avec le patch dès la publication d’une version corrigée ; prochaine revue au plus tard le 2 novembre 2026.
+
+Revue `extract-zip` du 2 octobre : patch et test toujours nécessaires ; prochaine revue au plus tard le 2 novembre 2026. Les autres avis remontés dans l’audit du 2 octobre ont été traités dans le lockfile, sans exception supplémentaire.

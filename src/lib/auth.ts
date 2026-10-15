@@ -13,7 +13,13 @@ import EmailChangedEmail from "@email/auth/email-changed";
 import MagicLinkEmail from "@email/auth/magic-link";
 import ResetPasswordEmail from "@email/auth/reset-password";
 import VerifyEmail from "@email/auth/verify-email";
+import { APIError } from "better-auth/api";
 import { setupResendCustomer } from "./auth/auth-config-setup";
+import {
+  getSignupAccess,
+  isProviderSignupPath,
+  PROVIDER_SIGNUP_ERRORS,
+} from "./auth/signup-access";
 import { env } from "./env";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
@@ -24,6 +30,7 @@ import {
 } from "./server-url";
 import { deleteUserDataOutsideAuthCascade } from "./user/delete-user-data";
 import { notifySignificantNewSession } from "./auth/new-session-alert";
+import { authRateLimitStorage } from "./auth/rate-limit-storage";
 import {
   getOperationalErrorCode,
   getOperationalSubjectReference,
@@ -35,6 +42,10 @@ const isolatedE2ERateLimit =
   process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED === "true" ? 1000 : null;
 
 export const SocialProviders: SocialProvidersType = {};
+
+// Invite mode lets invited emails create an account through a provider; the
+// user create hook below rejects everyone else with an explicit error code.
+const socialSignupDisabled = env.PUBLIC_SIGNUP_MODE === "closed";
 
 const generateAppleClientSecret = async ({
   clientId,
@@ -63,19 +74,27 @@ const generateAppleClientSecret = async ({
     .sign(signingKey);
 };
 
-if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+if (
+  env.OAUTH_GITHUB_ENABLED &&
+  env.GITHUB_CLIENT_ID &&
+  env.GITHUB_CLIENT_SECRET
+) {
   SocialProviders.github = {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
   };
 }
 
-if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+if (
+  env.OAUTH_GOOGLE_ENABLED &&
+  env.GOOGLE_CLIENT_ID &&
+  env.GOOGLE_CLIENT_SECRET
+) {
   SocialProviders.google = {
     clientId: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
     accessType: "offline",
     prompt: "select_account consent",
   };
@@ -88,6 +107,7 @@ const applePrivateKey = env.APPLE_PRIVATE_KEY;
 const appleAppBundleIdentifier = env.APPLE_APP_BUNDLE_IDENTIFIER;
 
 if (
+  env.OAUTH_APPLE_ENABLED &&
   appleClientId &&
   appleTeamId &&
   appleKeyId &&
@@ -103,7 +123,7 @@ if (
       privateKey: applePrivateKey,
     }),
     appBundleIdentifier: appleAppBundleIdentifier,
-    disableSignUp: env.PUBLIC_SIGNUP_MODE !== "public",
+    disableSignUp: socialSignupDisabled,
   });
 }
 
@@ -132,6 +152,7 @@ export const auth = betterAuth({
   rateLimit: {
     enabled: true,
     storage: "database",
+    customStorage: authRateLimitStorage,
     modelName: "rateLimit",
     window: 60,
     max: isolatedE2ERateLimit ?? 60,
@@ -144,6 +165,10 @@ export const auth = betterAuth({
       },
       "/change-password": { window: 300, max: isolatedE2ERateLimit ?? 5 },
       "/magic-link/send": { window: 300, max: isolatedE2ERateLimit ?? 3 },
+      "/send-verification-email": {
+        window: 300,
+        max: isolatedE2ERateLimit ?? 3,
+      },
     },
   },
   baseURL: getServerUrl(),
@@ -186,6 +211,14 @@ export const auth = betterAuth({
     },
     user: {
       create: {
+        before: async (user, ctx) => {
+          if (!isProviderSignupPath(ctx?.path)) return;
+          const decision = getSignupAccess(user.email);
+          if (decision.allowed) return;
+          throw new APIError("FORBIDDEN", {
+            message: PROVIDER_SIGNUP_ERRORS[decision.code],
+          });
+        },
         after: async (user, _req) => {
           try {
             await setupResendCustomer(user);
@@ -367,7 +400,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendEmail({
+      const delivery = await sendEmail({
         to: user.email,
         subject: `Vérifiez votre email ${SiteConfig.title} / Verify your email`,
         html: VerifyEmail({
@@ -379,6 +412,10 @@ export const auth = betterAuth({
           userId: user.id,
         },
       });
+      // Better Auth only logs this failure during sign-up, but turns it into
+      // an error response on /send-verification-email so the resend UI can
+      // tell the user the link did not leave.
+      if (delivery.error) throw new Error("verification_email_delivery_failed");
     },
   },
   socialProviders: SocialProviders,

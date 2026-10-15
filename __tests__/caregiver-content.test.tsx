@@ -497,31 +497,40 @@ describe("caregiver dashboard content", () => {
     );
   });
 
-  it("surfaces invitation errors through a localized toast", async () => {
-    mocks.inviteCaregiver.mockResolvedValueOnce({
-      serverError: "invite-failed",
-    });
-    const user = userEvent.setup();
-    render(<CaregiverContent />);
+  it.each([
+    [{ serverError: "invite-failed" }, "invite-failed"],
+    [
+      { validationErrors: { email: { _errors: ["Invalid"] } } },
+      "common.actionFailed",
+    ],
+    [{}, "common.actionFailed"],
+  ])(
+    "does not announce an invitation before confirmed success (%j)",
+    async (result, message) => {
+      mocks.inviteCaregiver.mockResolvedValueOnce(result);
+      const user = userEvent.setup();
+      render(<CaregiverContent />);
 
-    await user.click(
-      screen.getByRole("button", {
-        name: /caregiver\.dashboard\.actions\.invite\.title/,
-      }),
-    );
-    await user.type(
-      screen.getByLabelText("caregiver.dashboard.inviteDialog.emailLabel"),
-      "helper@moodday.invalid",
-    );
-    await user.click(
-      screen.getByRole("button", {
-        name: "caregiver.dashboard.inviteDialog.send",
-      }),
-    );
-    await waitFor(() =>
-      expect(mocks.toastError).toHaveBeenCalledWith("invite-failed"),
-    );
-  });
+      await user.click(
+        screen.getByRole("button", {
+          name: /caregiver\.dashboard\.actions\.invite\.title/,
+        }),
+      );
+      await user.type(
+        screen.getByLabelText("caregiver.dashboard.inviteDialog.emailLabel"),
+        "helper@moodday.invalid",
+      );
+      await user.click(
+        screen.getByRole("button", {
+          name: "caregiver.dashboard.inviteDialog.send",
+        }),
+      );
+      await waitFor(() =>
+        expect(mocks.toastError).toHaveBeenCalledWith(message),
+      );
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    },
+  );
 
   it("surfaces revocation errors through a localized toast", async () => {
     mocks.removeCaregiverRelationship.mockResolvedValueOnce({

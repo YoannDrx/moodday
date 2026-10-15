@@ -13,6 +13,15 @@ import type { PublicSignupMode } from "@/lib/auth/signup-access";
 
 const SUPPORTED_PROVIDERS = ["github", "google", "apple"] as const;
 
+const PROVIDER_ERROR_KEYS: Record<string, string> = {
+  access_denied: "accessDenied",
+  signup_disabled: "signupClosed",
+  signup_invite_required: "signupInviteRequired",
+};
+
+export const getProviderErrorKey = (error: string | null) =>
+  error ? (PROVIDER_ERROR_KEYS[error] ?? "generic") : null;
+
 export const SignInProviders = ({
   providers,
   callbackUrl,
@@ -25,6 +34,7 @@ export const SignInProviders = ({
   const searchParams = useSearchParams();
   const callbackUrlParams = searchParams.get("callbackUrl");
   const { t } = useI18n();
+  const providerErrorKey = getProviderErrorKey(searchParams.get("error"));
 
   // Default to /dashboard if no callback URL is provided or if it's the landing page
   const rawCallbackUrl = callbackUrl ?? callbackUrlParams;
@@ -38,6 +48,22 @@ export const SignInProviders = ({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
+      {providerErrorKey ? (
+        <div role="alert" className="text-destructive text-sm">
+          <p>{t(`auth.signIn.providerErrors.${providerErrorKey}`)}</p>
+          {providerErrorKey === "signupClosed" ||
+          providerErrorKey === "signupInviteRequired" ? (
+            <Typography
+              variant="link"
+              as={Link}
+              href="/#waitlist"
+              className="mt-1 inline-block text-sm"
+            >
+              {t("auth.signIn.providerErrors.joinWaitlist")}
+            </Typography>
+          ) : null}
+        </div>
+      ) : null}
       <SignInCredentialsAndMagicLinkForm callbackUrl={finalCallbackUrl} />
       <Divider>{t("auth.signIn.or")}</Divider>
       <PasskeySignInButton callbackUrl={finalCallbackUrl} />
@@ -45,9 +71,8 @@ export const SignInProviders = ({
       {providerCount > 0 ? (
         <div
           className={cn("grid gap-2 lg:gap-4", {
-            "grid-cols-1": providerCount === 1,
-            "grid-cols-2": providerCount === 2,
-            "grid-cols-3": providerCount >= 3,
+            "grid-cols-1": providerCount !== 2,
+            "grid-cols-1 sm:grid-cols-2": providerCount === 2,
           })}
         >
           {activeProviders.map((providerId) => (
@@ -70,7 +95,7 @@ export const SignInProviders = ({
           <Typography
             variant="link"
             as={Link}
-            href={`/auth/signup?callbackUrl=${finalCallbackUrl}`}
+            href={`/auth/signup?callbackUrl=${encodeURIComponent(finalCallbackUrl)}`}
           >
             {t("auth.signIn.signUp")}
           </Typography>

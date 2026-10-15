@@ -64,6 +64,19 @@ test("exports complete user data without authentication or notification secrets"
       note: "Private test note",
     },
   });
+  await prisma.checkIn.create({
+    data: {
+      userId: user.id,
+      operationId: `e2e-export-check-in-${user.id}`,
+      localDate: exportDateKey,
+      timezone: "Europe/Paris",
+      depth: "quick",
+      valence: 0,
+      activation: 4,
+      irritability: 2,
+      note: "Private V2 portability note",
+    },
+  });
   await prisma.therapySession.create({
     data: {
       userId: user.id,
@@ -118,9 +131,7 @@ test("exports complete user data without authentication or notification secrets"
     }),
   ).toBeVisible();
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
-  await page
-    .getByRole("link", { name: /Export JSON|Exporter JSON/i })
-    .click();
+  await page.getByRole("link", { name: /Export JSON|Exporter JSON/i }).click();
   const download = await downloadPromise;
   const stream = await download.createReadStream();
   const chunks: Buffer[] = [];
@@ -138,6 +149,7 @@ test("exports complete user data without authentication or notification secrets"
     consultationPreparations: unknown[];
     safetyPlan: unknown;
     moodEntries: unknown[];
+    checkIns: unknown[];
     medications: { intakes: unknown[] }[];
     therapySessions: unknown[];
     exercises: { logs: unknown[] }[];
@@ -160,6 +172,16 @@ test("exports complete user data without authentication or notification secrets"
   expect(exported.consultationPreparations).toEqual([]);
   expect(exported.safetyPlan).toBeNull();
   expect(exported.moodEntries).toHaveLength(1);
+  // Portability includes the patient's private notes by choice. Consultation
+  // briefs have their own stricter sharing boundary, tested separately.
+  expect(exported.checkIns).toEqual([
+    expect.objectContaining({
+      valence: 0,
+      activation: 4,
+      note: "Private V2 portability note",
+    }),
+  ]);
+  expect(rawExport).not.toContain(`e2e-export-check-in-${user.id}`);
   expect(exported.medications[0]?.intakes).toHaveLength(1);
   expect(exported.therapySessions).toHaveLength(1);
   expect(exported.exercises[0]?.logs).toHaveLength(1);
@@ -210,6 +232,10 @@ test("exports complete user data without authentication or notification secrets"
   expect(csv).toContain("therapy_session");
   expect(csv).toContain("exercise");
   expect(csv).toContain("Europe/Paris");
+  expect(csv).toContain(
+    `mood,,${exportDateKey},daily_check_in,0,4,recorded,,Europe/Paris,check-in`,
+  );
+  expect(csv).not.toContain("Private V2 portability note");
 
   let pdfButton = page.getByRole("button", {
     name: /Download PDF|Télécharger PDF/i,

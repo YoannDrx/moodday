@@ -11,6 +11,7 @@ import {
   subscribeToMobileSessionInvalidation,
 } from "../../src/lib/session-security";
 import { configureMobilePurchases } from "../../src/lib/purchases";
+import { AccountAccessGate } from "../../src/components/account-access-gate";
 
 const messages = getCommonMessages("fr");
 
@@ -137,51 +138,59 @@ export default function TabLayout() {
   if (!session || sessionInvalidated) return <Redirect href="/sign-in" />;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: color.primary,
-        tabBarInactiveTintColor: color.inkMuted,
-        tabBarStyle: {
-          minHeight: 76,
-          paddingTop: 8,
-          paddingBottom: 10,
-          backgroundColor: color.surfaceStrong,
-          borderTopColor: color.border,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: messages.navigation.today,
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="⌂" focused={focused} />,
+    <AccountAccessGate>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: color.primary,
+          tabBarInactiveTintColor: color.inkMuted,
+          tabBarStyle: {
+            minHeight: 76,
+            paddingTop: 8,
+            paddingBottom: 10,
+            backgroundColor: color.surfaceStrong,
+            borderTopColor: color.border,
+          },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         }}
-      />
-      <Tabs.Screen
-        name="reperes"
-        options={{
-          title: messages.navigation.landmarks,
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="⌁" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="soin"
-        options={{
-          title: messages.navigation.care,
-          tabBarIcon: ({ focused }) => (
-            <TabGlyph glyph="＋" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cercle"
-        options={{
-          title: messages.navigation.circle,
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="○" focused={focused} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: messages.navigation.today,
+            tabBarIcon: ({ focused }) => (
+              <TabGlyph glyph="⌂" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="reperes"
+          options={{
+            title: messages.navigation.landmarks,
+            tabBarIcon: ({ focused }) => (
+              <TabGlyph glyph="⌁" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="soin"
+          options={{
+            title: messages.navigation.care,
+            tabBarIcon: ({ focused }) => (
+              <TabGlyph glyph="＋" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="cercle"
+          options={{
+            title: messages.navigation.circle,
+            tabBarIcon: ({ focused }) => (
+              <TabGlyph glyph="○" focused={focused} />
+            ),
+          }}
+        />
+      </Tabs>
+    </AccountAccessGate>
   );
 }

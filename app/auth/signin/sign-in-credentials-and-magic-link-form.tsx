@@ -89,7 +89,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       form={form}
       onSubmit={onSubmit}
       disabled={!isHydrated || signInMutation.isPending}
-      className="max-w-lg space-y-4"
+      className="w-full max-w-lg min-w-0 space-y-4"
     >
       <FormField
         control={form.control}
@@ -113,7 +113,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
           name="password"
           render={({ field }) => (
             <FormItem className="flex-1">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <FormLabel>{t("auth.form.password")}</FormLabel>
                 <Link
                   href="/auth/forget-password"

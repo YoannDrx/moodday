@@ -35,6 +35,16 @@ export default [
     },
   },
   // Typescript
+  {
+    files: [
+      "__tests__/mobile-auth-screens.test.tsx",
+      "__tests__/mobile-account-access-gate.test.tsx",
+      "__tests__/mobile-today-screen.test.tsx",
+    ],
+    languageOptions: {
+      parserOptions: { project: "tsconfig.native-tests.json" },
+    },
+  },
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,
   // Tailwind

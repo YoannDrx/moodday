@@ -81,3 +81,7 @@ ne sont jamais stockés en clair.
   90 jours aux traces de livraison e-mail et push terminées, 12 mois aux accès
   aidant et usages IA sans contenu, 13 mois aux événements webhook Stripe et 30
   jours aux jobs terminés et reçus d'idempotence médicamenteux.
+- Les compteurs anti-abus inactifs depuis plus de 24 heures sont purgés par ce
+  job. Les fenêtres configurées ne dépassent pas une heure ; un compteur actif
+  n'est donc pas remis à zéro par cette rétention. Toute nouvelle fenêtre plus
+  longue doit réviser cette règle avant activation.

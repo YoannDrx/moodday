@@ -2,14 +2,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
+import { statSync, unlinkSync } from "node:fs";
+import { Prisma, PrismaClient } from "@prisma/client";
 
-const EXPECTED_PUBLIC_TABLES = 64;
+const EXPECTED_PUBLIC_TABLES = Prisma.dmmf.datamodel.models.length + 1;
 const CONTAINER_DUMP_PATH = `/tmp/moodday-backup-restore-${process.pid}.dump`;
 
 const sourceUrl = process.env.BACKUP_RESTORE_SOURCE_URL;
 const destinationUrl = process.env.BACKUP_RESTORE_DESTINATION_URL;
 const containerName = process.env.BACKUP_RESTORE_CONTAINER;
+const localTools = process.env.BACKUP_RESTORE_LOCAL_TOOLS === "true";
 
 type DatabaseTarget = {
   url: string;
@@ -32,7 +34,8 @@ const parseDisposableTarget = (
   const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
   assert.match(database, expectedDatabase, `${name} database name is unsafe`);
   assert.match(parsed.username, /^[a-zA-Z0-9_-]+$/, `${name} user is unsafe`);
-  assert.ok(parsed.password, `${name} must include a password`);
+  if (!localTools)
+    assert.ok(parsed.password, `${name} must include a password`);
   return {
     url: value,
     database,
@@ -60,12 +63,14 @@ assert.equal(
   "local-disposable",
   "BACKUP_RESTORE_ACK=local-disposable is required",
 );
-assert.ok(containerName, "BACKUP_RESTORE_CONTAINER is required");
-assert.match(
-  containerName,
-  /^(?:moodday-backup-restore[-a-z0-9]*|[a-f0-9]{12,64})$/,
-  "BACKUP_RESTORE_CONTAINER must be a dedicated local name or CI container id",
-);
+if (!localTools) {
+  assert.ok(containerName, "BACKUP_RESTORE_CONTAINER is required");
+  assert.match(
+    containerName,
+    /^(?:moodday-backup-restore[-a-z0-9]*|[a-f0-9]{12,64})$/,
+    "BACKUP_RESTORE_CONTAINER must be a dedicated local name or CI container id",
+  );
+}
 
 const run = (
   command: string,
@@ -87,12 +92,31 @@ const run = (
   return typeof result.stdout === "string" ? result.stdout.trim() : "";
 };
 
-const runPostgresTool = (args: string[], options?: { capture?: boolean }) =>
-  run(
-    "docker",
-    ["exec", "-e", `PGPASSWORD=${source.password}`, containerName, ...args],
-    options,
+const runPostgresTool = (args: string[], options?: { capture?: boolean }) => {
+  if (!localTools) {
+    assert.ok(containerName);
+    return run(
+      "docker",
+      ["exec", "-e", `PGPASSWORD=${source.password}`, containerName, ...args],
+      options,
+    );
+  }
+  const sourceTarget = new URL(source.url);
+  const destinationTarget = new URL(destination.url);
+  assert.equal(
+    sourceTarget.host,
+    destinationTarget.host,
+    "Local source and destination must share the disposable cluster",
   );
+  return run(args[0], args.slice(1), {
+    ...options,
+    env: {
+      PGHOST: sourceTarget.hostname,
+      PGPORT: sourceTarget.port || "5432",
+      PGPASSWORD: source.password,
+    },
+  });
+};
 
 const runPrisma = (args: string[], databaseUrl: string, capture = false) =>
   run("pnpm", ["exec", "prisma", ...args], {
@@ -200,11 +224,13 @@ const main = async () => {
       source.database,
     ]);
     const backupDurationMs = Math.round(performance.now() - backupStartedAt);
-    const backupBytes = Number(
-      runPostgresTool(["stat", "-c", "%s", CONTAINER_DUMP_PATH], {
-        capture: true,
-      }),
-    );
+    const backupBytes = localTools
+      ? statSync(CONTAINER_DUMP_PATH).size
+      : Number(
+          runPostgresTool(["stat", "-c", "%s", CONTAINER_DUMP_PATH], {
+            capture: true,
+          }),
+        );
     assert.ok(backupBytes > 0, "Backup artifact must not be empty");
 
     const restoreStartedAt = performance.now();
@@ -261,7 +287,7 @@ const main = async () => {
     );
     assert.match(schemaDiff, /No difference detected/i);
 
-    const observedRpoSeconds = Math.max(
+    const fixtureAgeSeconds = Math.max(
       0,
       Math.ceil((Date.now() - fixtureCreatedAt.getTime()) / 1000),
     );
@@ -273,7 +299,8 @@ const main = async () => {
         backupBytes,
         backupDurationMs,
         restoreDurationMs,
-        observedRpoSeconds,
+        fixtureAgeSeconds,
+        productionRpoValidated: false,
         rowCountsMatch: true,
         zeroValuePreserved: true,
         migrationHistoryRestored: true,
@@ -283,7 +310,13 @@ const main = async () => {
   } finally {
     await destinationClient?.$disconnect();
     await sourceClient?.$disconnect();
-    runPostgresTool(["rm", "-f", CONTAINER_DUMP_PATH]);
+    if (localTools) {
+      try {
+        unlinkSync(CONTAINER_DUMP_PATH);
+      } catch {
+        /* No dump if backup failed. */
+      }
+    } else runPostgresTool(["rm", "-f", CONTAINER_DUMP_PATH]);
     dropDatabase(destination);
     dropDatabase(source);
   }

@@ -1,5 +1,8 @@
 import { syncPushSchema } from "@moodday/contracts";
-import { pushSyncOperations } from "@/features/v2/sync/service";
+import {
+  DeviceLimitError,
+  pushSyncOperations,
+} from "@/features/v2/sync/service";
 import {
   apiError,
   apiSuccess,
@@ -15,6 +18,15 @@ const postHandler = authRoute
     try {
       return apiSuccess(await pushSyncOperations(ctx.user.id, body), requestId);
     } catch (error) {
+      if (error instanceof DeviceLimitError)
+        return apiError({
+          code: "device_limit_reached",
+          message:
+            "La limite d’appareils de ce compte est atteinte. Contacte le support.",
+          recoverable: false,
+          requestId,
+          status: 429,
+        });
       const revoked =
         error instanceof Error &&
         error.message === "Device access has been revoked";

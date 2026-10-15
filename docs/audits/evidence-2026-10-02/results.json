@@ -1,0 +1,463 @@
+{
+  "date": "2026-10-02",
+  "timezone": "Europe/Paris",
+  "scope": "commit 1cde6ff plus pre-existing working tree; not deployed production",
+  "runtime": {
+    "node": "24.9.0",
+    "ciNode": "22.x",
+    "postgres": "17.11",
+    "next": "16.3.0"
+  },
+  "passed": [
+    "pnpm lint:ci",
+    "pnpm ts",
+    "pnpm typecheck:mobile",
+    "pnpm build (isolated environment)",
+    "pnpm prisma validate",
+    "33 migrations on empty isolated PostgreSQL",
+    "verify:medication-integrity",
+    "verify:operational-jobs",
+    "verify:auth-rate-limit (final run)",
+    "verify:vercel-source-boundary"
+  ],
+  "unit": {
+    "files": 182,
+    "tests": 1149,
+    "passed": 1149,
+    "maxWorkers": 2
+  },
+  "e2e": {
+    "tests": 176,
+    "passed": 176,
+    "failed": 0,
+    "retries": 0,
+    "workers": 2,
+    "origin": "http://localhost:3200",
+    "projects": [
+      "chromium",
+      "firefox",
+      "webkit",
+      "mobile-chromium",
+      "mobile-webkit"
+    ],
+    "realExternalProviders": false
+  },
+  "coverage": {
+    "gate": "failed",
+    "total": {
+      "lines": {
+        "total": 39224,
+        "covered": 30853,
+        "skipped": 0,
+        "pct": 78.65
+      },
+      "statements": {
+        "total": 39224,
+        "covered": 30853,
+        "skipped": 0,
+        "pct": 78.65
+      },
+      "functions": {
+        "total": 1097,
+        "covered": 889,
+        "skipped": 0,
+        "pct": 81.03
+      },
+      "branches": {
+        "total": 4479,
+        "covered": 3512,
+        "skipped": 0,
+        "pct": 78.41
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "webhookBranches": {
+      "app/api/webhooks/resend/route.ts": {
+        "total": 42,
+        "covered": 41,
+        "skipped": 0,
+        "pct": 97.61
+      },
+      "app/api/webhooks/revenuecat/route.ts": {
+        "total": 31,
+        "covered": 20,
+        "skipped": 0,
+        "pct": 64.51
+      },
+      "app/api/webhooks/stripe/route.ts": {
+        "total": 24,
+        "covered": 24,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "dependencyAudit": {
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 1,
+        "moderate": 11,
+        "high": 26,
+        "critical": 6
+      },
+      "dependencies": 1478,
+      "devDependencies": 0,
+      "optionalDependencies": 0,
+      "totalDependencies": 1478
+    },
+    "advisories": [
+      {
+        "module": "decode-uri-component",
+        "severity": "moderate",
+        "title": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input",
+        "url": "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr",
+        "affected": "<=0.4.2"
+      },
+      {
+        "module": "browserslist",
+        "severity": "high",
+        "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+        "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+        "affected": "<=4.28.6"
+      },
+      {
+        "module": "browserslist",
+        "severity": "high",
+        "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+        "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+        "affected": "<=4.28.6"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "moderate",
+        "title": "xmldom: XML fragment injection via invalid EntityReference.nodeName during requireWellFormed serialization",
+        "url": "https://github.com/advisories/GHSA-6gmq-8vp8-gcm6",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "moderate",
+        "title": "xmldom: XML fragment injection via invalid EntityReference.nodeName during requireWellFormed serialization",
+        "url": "https://github.com/advisories/GHSA-6gmq-8vp8-gcm6",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: HTML raw-text closing-tag case mismatch causes output amplification",
+        "url": "https://github.com/advisories/GHSA-6mj3-qw4j-hgrw",
+        "affected": ">=0.9.0-beta.1 <=0.9.11"
+      },
+      {
+        "module": "next",
+        "severity": "critical",
+        "title": "Next.js: Unauthenticated Remote Code Execution on windows-hosted servers",
+        "url": "https://github.com/advisories/GHSA-p293-qw3h-jr36",
+        "affected": ">=16.0.0 <16.3.3"
+      },
+      {
+        "module": "vitest",
+        "severity": "moderate",
+        "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+        "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+        "affected": ">=2.1.0 <4.1.11"
+      },
+      {
+        "module": "@vitest/mocker",
+        "severity": "moderate",
+        "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+        "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+        "affected": ">=2.1.0 <4.1.11"
+      },
+      {
+        "module": "baseline-browser-mapping",
+        "severity": "moderate",
+        "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+        "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+        "affected": ">=2.0.0 <2.11.0"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Processing Instruction Target Injection Bypasses requireWellFormed",
+        "url": "https://github.com/advisories/GHSA-c7q8-3ch8-vqpv",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Processing Instruction Target Injection Bypasses requireWellFormed",
+        "url": "https://github.com/advisories/GHSA-c7q8-3ch8-vqpv",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: requireWellFormed element/attribute name validation is bypassable via an embedded line terminator",
+        "url": "https://github.com/advisories/GHSA-jxjr-3g7g-3944",
+        "affected": "=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: DocType `name` Injection Bypasses requireWellFormed",
+        "url": "https://github.com/advisories/GHSA-27p8-2357-5qqv",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: DocType `name` Injection Bypasses requireWellFormed",
+        "url": "https://github.com/advisories/GHSA-27p8-2357-5qqv",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Creation-time XML Name/QName validation is bypassable via an embedded line terminator, allowing injection on the default serialization path",
+        "url": "https://github.com/advisories/GHSA-3px3-54cx-rmw9",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: requireWellFormed DocType publicId/systemId validation is bypassable via an embedded line terminator",
+        "url": "https://github.com/advisories/GHSA-vr34-hp96-76pp",
+        "affected": ">=0.9.10 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "moderate",
+        "title": "xmldom: Parser silently accepts a not-well-formed end tag whose name is followed by a line break and trailing content",
+        "url": "https://github.com/advisories/GHSA-6h8r-xr42-gp59",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "moderate",
+        "title": "xmldom: Parser silently accepts a not-well-formed end tag whose name is followed by a line break and trailing content",
+        "url": "https://github.com/advisories/GHSA-6h8r-xr42-gp59",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-time attribute deduplication",
+        "url": "https://github.com/advisories/GHSA-8344-3jmq-59r6",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-time attribute deduplication",
+        "url": "https://github.com/advisories/GHSA-8344-3jmq-59r6",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: End-tag Whitespace-Trim Regex ReDoS — quadratic backtracking in the 0.8.x end-tag parser",
+        "url": "https://github.com/advisories/GHSA-x4fp-j954-r2f4",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-memory consumption",
+        "url": "https://github.com/advisories/GHSA-965w-775f-mr7g",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-memory consumption",
+        "url": "https://github.com/advisories/GHSA-965w-775f-mr7g",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-time parsing via the malformed-input recovery path — `parseElementStartPart` re-scan and `normalize()` adjacent-text merge",
+        "url": "https://github.com/advisories/GHSA-93r5-fhx6-vmg9",
+        "affected": ">=0.9.0 <=0.9.11"
+      },
+      {
+        "module": "@xmldom/xmldom",
+        "severity": "high",
+        "title": "xmldom: Quadratic-time parsing via the malformed-input recovery path — `parseElementStartPart` re-scan and `normalize()` adjacent-text merge",
+        "url": "https://github.com/advisories/GHSA-93r5-fhx6-vmg9",
+        "affected": ">=0.7.0 <=0.8.14"
+      },
+      {
+        "module": "sharp",
+        "severity": "high",
+        "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+        "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+        "affected": "<0.35.4"
+      },
+      {
+        "module": "js-yaml",
+        "severity": "high",
+        "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+        "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+        "affected": ">=3.0.0 <3.15.2"
+      },
+      {
+        "module": "js-yaml",
+        "severity": "high",
+        "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+        "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+        "affected": ">=4.0.0 <4.3.2"
+      },
+      {
+        "module": "next",
+        "severity": "critical",
+        "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used",
+        "url": "https://github.com/advisories/GHSA-2xp9-vwfh-vxw4",
+        "affected": ">=16.0.0 <16.3.3"
+      },
+      {
+        "module": "undici",
+        "severity": "moderate",
+        "title": "undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression",
+        "url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+        "affected": ">=6.25.0 <6.28.1"
+      },
+      {
+        "module": "undici",
+        "severity": "low",
+        "title": "undici vulnerable to downstream response splitting via retry interceptor",
+        "url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+        "affected": "<6.28.1"
+      },
+      {
+        "module": "undici",
+        "severity": "high",
+        "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+        "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+        "affected": ">=6.7.0 <6.28.1"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "moderate",
+        "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+        "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+        "affected": "<1.1.21"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "moderate",
+        "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+        "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+        "affected": ">=4.0.0 <5.0.12"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+        "affected": "<1.1.20"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+        "affected": ">=4.0.0 <5.0.11"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+        "affected": "<1.1.19"
+      },
+      {
+        "module": "brace-expansion",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+        "affected": ">=4.0.0 <5.0.10"
+      },
+      {
+        "module": "next",
+        "severity": "critical",
+        "title": "Next.js: Remote Code Execution in next/og ImageResponse",
+        "url": "https://github.com/advisories/GHSA-vcvr-r3jv-pc5j",
+        "affected": ">=16.2.0 <16.3.6"
+      },
+      {
+        "module": "node-forge",
+        "severity": "high",
+        "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+        "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+        "affected": "<=1.4.0"
+      }
+    ]
+  },
+  "credentialEvidence": {
+    "pending": 12,
+    "gate": "failed"
+  },
+  "releaseApprovalEvidence": {
+    "pending": 21,
+    "source": "local registry only"
+  },
+  "reproductions": {
+    "history": {
+      "createStatus": 201,
+      "checkInRows": 1,
+      "moodEntryRows": 0,
+      "ui": "Aucune entrée pour ces filtres."
+    },
+    "concurrentCheckIn": {
+      "requests": 12,
+      "succeeded": 1,
+      "P2002": 11,
+      "persistedRows": 1
+    },
+    "changedCheckInPayload": {
+      "sentValence": 9,
+      "returnedValence": 5
+    },
+    "draftRefreshRace": {
+      "scope": "extracted production function; deferred API; in-memory SQLite; not native SQLCipher",
+      "expected": "new local draft remains dirty",
+      "observed": "old server draft replaces local content and becomes synced"
+    }
+  },
+  "publicAxe": {
+    "viewports": [
+      1280,
+      390
+    ],
+    "paths": [
+      "/",
+      "/auth/signin",
+      "/auth/signup",
+      "/crisis"
+    ],
+    "violations": 0,
+    "tags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21aa"
+    ],
+    "limitations": "Visual clipping exists despite no automated violations"
+  },
+  "initialRuns": {
+    "unit": "ENOSPC; invalid initial full run; limited concurrency run passed",
+    "rateLimit": "initial unexplained failure; instrumented repeat and original repeat passed",
+    "e2eOnIPAddress": {
+      "passed": 31,
+      "failed": 5,
+      "explanation": "4 consent Origin mismatch, 1 invalid IP WebAuthn RP context; corrected localhost run passed"
+    }
+  }
+}

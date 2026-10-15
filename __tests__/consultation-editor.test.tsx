@@ -144,7 +144,10 @@ describe("consultation preparation editor", () => {
     renderEditor();
     const titleInput = screen.getByLabelText("Titre");
     await waitFor(() => expect(titleInput).toBeEnabled());
-    expect(titleInput.closest("fieldset")).toHaveAttribute("aria-busy", "false");
+    expect(titleInput.closest("fieldset")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
     fireEvent.change(titleInput, {
       target: { value: "Nouveau" },
     });
@@ -239,4 +242,57 @@ describe("consultation preparation editor", () => {
       screen.queryByRole("link", { name: "PDF avec Moodday Plus" }),
     ).not.toBeInTheDocument();
   });
+
+  it.each(["validation", "network", "empty"])(
+    "preserves the draft and releases pending state after a %s failure",
+    async (failure) => {
+      if (failure === "network")
+        mocks.saveConsultationPreparation.mockRejectedValue(
+          new Error("offline"),
+        );
+      else
+        mocks.saveConsultationPreparation.mockResolvedValue(
+          failure === "validation"
+            ? { validationErrors: { title: { _errors: ["Invalid"] } } }
+            : {},
+        );
+      renderEditor();
+      fireEvent.change(screen.getByLabelText("Titre"), {
+        target: { value: "Mon brouillon à conserver" },
+      });
+      fireEvent.click(
+        screen.getByRole("button", { name: "Enregistrer le brouillon" }),
+      );
+      await waitFor(() => expect(mocks.toastError).toHaveBeenCalled());
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("Titre")).toHaveValue(
+        "Mon brouillon à conserver",
+      );
+      expect(
+        screen.getByRole("button", { name: "Enregistrer le brouillon" }),
+      ).toBeEnabled();
+    },
+  );
+
+  it.each(["validation", "network"])(
+    "does not announce an unconfirmed %s status change",
+    async (failure) => {
+      if (failure === "network")
+        mocks.setConsultationPreparationStatus.mockRejectedValue(
+          new Error("offline"),
+        );
+      else
+        mocks.setConsultationPreparationStatus.mockResolvedValue({
+          validationErrors: { _errors: ["Invalid"] },
+        });
+      renderEditor();
+      fireEvent.click(screen.getByRole("button", { name: "Marquer terminée" }));
+      await waitFor(() => expect(mocks.toastError).toHaveBeenCalled());
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole("button", { name: "Marquer terminée" }),
+      ).toBeEnabled();
+    },
+  );
 });

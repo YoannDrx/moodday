@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 
 type AuthConfig = {
   socialProviders: Record<
@@ -19,13 +20,21 @@ type AuthConfig = {
       updateUserInfoOnLink: boolean;
     };
   };
-  rateLimit: { max: number; customRules: Record<string, { max: number }> };
+  rateLimit: {
+    max: number;
+    customStorage: { consume: unknown };
+    customRules: Record<string, { max: number }>;
+  };
   databaseHooks: {
     session: {
       create: { after: (session: Record<string, unknown>) => Promise<void> };
     };
     user: {
       create: {
+        before: (
+          user: { email: string },
+          context?: { path?: string },
+        ) => Promise<void>;
         after: (
           user: Record<string, unknown>,
           request?: unknown,
@@ -163,6 +172,9 @@ vi.mock("@email/auth/verify-email", () => ({ default: vi.fn(() => null) }));
 import { prisma } from "@/lib/prisma";
 
 const baseEnv = () => ({
+  OAUTH_GOOGLE_ENABLED: true,
+  OAUTH_GITHUB_ENABLED: true,
+  OAUTH_APPLE_ENABLED: true,
   GITHUB_CLIENT_ID: "github-client",
   GITHUB_CLIENT_SECRET: "github-secret",
   GOOGLE_CLIENT_ID: "google-client",
@@ -200,17 +212,60 @@ const loadConfig = async (
 };
 
 describe("Better Auth production configuration", () => {
+  it("keeps configured providers disabled until their explicit rollout flag is enabled", async () => {
+    const config = await loadConfig({
+      OAUTH_GOOGLE_ENABLED: false,
+      OAUTH_APPLE_ENABLED: false,
+      OAUTH_GITHUB_ENABLED: false,
+    });
+    expect(config.socialProviders).toEqual({});
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     state.setupResendCustomer.mockResolvedValue(undefined);
     state.notifySignificantNewSession.mockResolvedValue(undefined);
-    state.sendEmail.mockResolvedValue(undefined);
+    state.sendEmail.mockResolvedValue({ error: null, data: { id: "email" } });
     state.deleteUserDataOutsideAuthCascade.mockResolvedValue(undefined);
     vi.mocked(prisma.userConsent.createMany).mockResolvedValue({ count: 4 });
   });
 
   afterAll(() => {
     delete process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED;
+  });
+
+  it("lets invited emails create an account through a provider in invite mode", async () => {
+    const config = await loadConfig({
+      PUBLIC_SIGNUP_MODE: "invite",
+      PUBLIC_SIGNUP_INVITE_EMAILS: "invited@example.com",
+    });
+    expect(config.socialProviders.google).toMatchObject({
+      disableSignUp: false,
+    });
+    const beforeCreate = config.databaseHooks.user.create.before;
+
+    await expect(
+      beforeCreate({ email: "Invited@Example.com" }, { path: "/callback/:id" }),
+    ).resolves.toBeUndefined();
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/callback/:id" },
+      ),
+    ).rejects.toMatchObject({ message: "signup invite required" });
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/sign-in/social" },
+      ),
+    ).rejects.toMatchObject({ message: "signup invite required" });
+    // Email sign-up keeps its own route guard; admin and import paths are not
+    // provider sign-ups.
+    await expect(
+      beforeCreate(
+        { email: "stranger@example.com" },
+        { path: "/admin/create-user" },
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("enables only fully configured social providers and production rate limits", async () => {
@@ -241,6 +296,7 @@ describe("Better Auth production configuration", () => {
       disableSignUp: true,
     });
     expect(config.rateLimit.max).toBe(60);
+    expect(config.rateLimit.customStorage.consume).toBeTypeOf("function");
     expect(config.rateLimit.customRules["/sign-in/email"].max).toBe(5);
     expect(config.rateLimit.customRules["/request-password-reset"].max).toBe(3);
     expect(config.account).toEqual({
@@ -409,5 +465,23 @@ describe("Better Auth production configuration", () => {
 
     expect(state.sendEmail).toHaveBeenCalledTimes(7);
     expect(state.deleteUserDataOutsideAuthCascade).toHaveBeenCalledWith(user);
+  });
+
+  it("reports a verification email that could not be delivered", async () => {
+    const config = await loadConfig();
+    state.sendEmail.mockResolvedValueOnce({
+      error: new Error("provider down"),
+      data: null,
+    });
+
+    await expect(
+      config.emailVerification.sendVerificationEmail({
+        user: { id: "user-1", email: "user@example.com", name: "User" },
+        url: "https://moodday.app/verify",
+      }),
+    ).rejects.toThrow("verification_email_delivery_failed");
+    expect(config.rateLimit.customRules["/send-verification-email"].max).toBe(
+      3,
+    );
   });
 });

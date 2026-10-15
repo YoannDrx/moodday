@@ -1,6 +1,17 @@
 # Moodday — portes de mise en production
 
-Dernière mise à jour : 23 août 2026
+Dernière revue : 6 septembre 2026
+
+**Décision courante : NO-GO commercial / App Store.** La
+[revue du 6 septembre](../audits/production-readiness-2026-09-06.md) documente les
+écarts V1/V2, les parcours natifs incomplets et l'alerte Stripe confirmée. Les
+cases cochées ci-dessous sont des preuves historiques de leurs périmètres, pas
+une certification du candidat courant. Le dépôt contient aujourd'hui 33
+migrations ; les comptes de 27 migrations plus bas décrivent la preuve d'août.
+
+Attention : `vercel env pull` masque les variables sensibles par `[SENSITIVE]`.
+Leur égalité apparente ne prouve ni des secrets partagés ni une base identique.
+L'audit corrigé les classe comme non vérifiables, et non comme validées.
 
 Ce document est la checklist exécutable de la release France 18+. Une case ne
 peut être cochée qu'avec une preuve datée et reproductible. Les flags Billing,

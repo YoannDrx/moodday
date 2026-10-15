@@ -4,6 +4,7 @@ import { BrandIllustration } from "@/components/brand/brand-illustration";
 import { MooddayLogo } from "@/components/nowts/moodday-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { LanguageToggle } from "@/features/i18n/language-toggle";
+import { WaitlistSection } from "@/features/landing/waitlist-form";
 import { Pricing } from "@/features/plans/pricing-section";
 import { ThemeToggle } from "@/features/theme/theme-toggle";
 import { useI18n } from "@/i18n/provider";
@@ -35,6 +36,7 @@ const copy = {
       product: "Produit",
       consultation: "Bilans",
       pricing: "Tarifs",
+      waitlist: "Liste d’attente",
       signin: "Se connecter",
       start: "Commencer gratuitement",
       aria: "Navigation principale",
@@ -121,6 +123,9 @@ const copy = {
         "Le suivi essentiel reste gratuit. L’offre Plus sera proposée après la validation finale des paiements.",
       primary: "Créer mon espace",
       secondary: "Découvrir les tarifs",
+      descriptionBeta:
+        "Moodday est en bêta privée. Le suivi essentiel restera gratuit à l’ouverture.",
+      waitlist: "Rejoindre la liste d’attente",
     },
     footer: "Compagnon de suivi personnel non médical.",
     footerLinks: {
@@ -148,6 +153,7 @@ const copy = {
       product: "Product",
       consultation: "Summaries",
       pricing: "Pricing",
+      waitlist: "Waitlist",
       signin: "Sign in",
       start: "Start for free",
       aria: "Main navigation",
@@ -233,6 +239,9 @@ const copy = {
         "Essential tracking stays free. Plus will be offered after final payment validation.",
       primary: "Create my space",
       secondary: "See pricing",
+      descriptionBeta:
+        "Moodday is in private beta. Essential tracking will stay free when it opens.",
+      waitlist: "Join the waitlist",
     },
     footer: "A non-medical personal tracking companion.",
     footerLinks: { privacy: "Privacy", terms: "Terms", contact: "Contact" },
@@ -254,16 +263,35 @@ const copy = {
 } as const;
 
 export function ImmersiveLanding({
+  signupMode = "closed",
   billingEnabled,
   aiInsightsEnabled,
   caregiverSharingEnabled,
 }: {
+  signupMode?: "public" | "invite" | "closed";
   billingEnabled: boolean;
   aiInsightsEnabled: boolean;
   caregiverSharingEnabled: boolean;
 }) {
   const { locale } = useI18n();
   const t = copy[locale === "en" ? "en" : "fr"];
+  const signupHref = signupMode === "closed" ? "/auth/signin" : "/auth/signup";
+  const accessLabel =
+    signupMode === "public"
+      ? null
+      : signupMode === "invite"
+        ? locale === "fr"
+          ? "Accès sur invitation"
+          : "Invited access"
+        : locale === "fr"
+          ? "Se connecter · accès existant"
+          : "Sign in · existing access";
+  // Prices stay hidden until anyone can create an account; until then the
+  // landing collects a waitlist instead.
+  const isPublicSignup = signupMode === "public";
+  const offerAnchor = isPublicSignup
+    ? { href: "#pricing", label: t.nav.pricing }
+    : { href: "#waitlist", label: t.nav.waitlist };
   const [menuOpen, setMenuOpen] = useState(false);
   const claims = getActivePublicClaims("landing").filter(
     (claim) => claim.id !== "caregiver-permissions" || caregiverSharingEnabled,
@@ -291,10 +319,10 @@ export function ImmersiveLanding({
               {t.nav.consultation}
             </Link>
             <Link
-              href="#pricing"
+              href={offerAnchor.href}
               className="text-sm font-semibold hover:text-[#1E7775]"
             >
-              {t.nav.pricing}
+              {offerAnchor.label}
             </Link>
           </nav>
           <div className="hidden items-center gap-2 md:flex">
@@ -307,13 +335,13 @@ export function ImmersiveLanding({
               {t.nav.signin}
             </Link>
             <Link
-              href="/auth/signup"
+              href={signupHref}
               className={cn(
                 buttonVariants(),
                 "rounded-full bg-[#1E7775] px-5 text-white hover:bg-[#175f5d]",
               )}
             >
-              {t.nav.start}
+              {accessLabel ?? t.nav.start}
             </Link>
           </div>
           <button
@@ -330,7 +358,7 @@ export function ImmersiveLanding({
             {[
               { href: "#product", label: t.nav.product },
               { href: "#consultation", label: t.nav.consultation },
-              { href: "#pricing", label: t.nav.pricing },
+              offerAnchor,
               { href: "/auth/signin", label: t.nav.signin },
             ].map((item) => (
               <Link
@@ -343,13 +371,13 @@ export function ImmersiveLanding({
               </Link>
             ))}
             <Link
-              href="/auth/signup"
+              href={signupHref}
               className={cn(
                 buttonVariants(),
                 "mt-2 w-full rounded-full bg-[#1E7775] text-white",
               )}
             >
-              {t.nav.start}
+              {accessLabel ?? t.nav.start}
             </Link>
           </nav>
         )}
@@ -372,13 +400,13 @@ export function ImmersiveLanding({
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/auth/signup"
+                  href={signupHref}
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "group rounded-full bg-[#1E7775] px-7 text-white hover:bg-[#175f5d]",
                   )}
                 >
-                  {t.hero.primary}
+                  {accessLabel ?? t.hero.primary}
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
@@ -606,10 +634,11 @@ export function ImmersiveLanding({
                   {t.caregivers.description}
                 </p>
                 <Link
-                  href="/auth/signup"
+                  href={signupHref}
                   className="mt-8 inline-flex items-center gap-2 font-bold text-[#1E7775]"
                 >
-                  {t.caregivers.action} <ChevronRight className="size-4" />
+                  {accessLabel ?? t.caregivers.action}{" "}
+                  <ChevronRight className="size-4" />
                 </Link>
               </div>
             </div>
@@ -662,14 +691,18 @@ export function ImmersiveLanding({
           </div>
         </section>
 
-        <div id="pricing">
-          <Pricing
-            mode="landing"
-            billingEnabled={billingEnabled}
-            aiInsightsEnabled={aiInsightsEnabled}
-            caregiverSharingEnabled={caregiverSharingEnabled}
-          />
-        </div>
+        {isPublicSignup ? (
+          <div id="pricing">
+            <Pricing
+              mode="landing"
+              billingEnabled={billingEnabled}
+              aiInsightsEnabled={aiInsightsEnabled}
+              caregiverSharingEnabled={caregiverSharingEnabled}
+            />
+          </div>
+        ) : (
+          <WaitlistSection />
+        )}
 
         <section className="px-5 py-20 lg:px-8 lg:py-28">
           <div className="mx-auto max-w-5xl overflow-hidden rounded-[3rem] bg-[#1E7775] px-6 py-14 text-center text-white shadow-2xl sm:px-12 sm:py-20">
@@ -678,28 +711,30 @@ export function ImmersiveLanding({
               {t.cta.title}
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white">
-              {billingEnabled
-                ? t.cta.description
-                : t.cta.descriptionUnavailable}
+              {!isPublicSignup
+                ? t.cta.descriptionBeta
+                : billingEnabled
+                  ? t.cta.description
+                  : t.cta.descriptionUnavailable}
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
-                href="/auth/signup"
+                href={signupHref}
                 className={cn(
                   buttonVariants({ size: "lg" }),
                   "rounded-full bg-white px-7 text-[#1E7775] hover:bg-[#F7F5F0]",
                 )}
               >
-                {t.cta.primary}
+                {accessLabel ?? t.cta.primary}
               </Link>
               <Link
-                href="#pricing"
+                href={offerAnchor.href}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
                   "rounded-full border-white/30 bg-transparent px-7 text-white hover:bg-white/10 hover:text-white",
                 )}
               >
-                {t.cta.secondary}
+                {isPublicSignup ? t.cta.secondary : t.cta.waitlist}
               </Link>
             </div>
           </div>

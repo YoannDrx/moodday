@@ -4,15 +4,16 @@ import {
 } from "@/features/notifications/delivery";
 import { prisma } from "@/lib/prisma";
 import { expect, test } from "@playwright/test";
-import { createTestAccount } from "./utils/auth-test";
+import { createTestAccountViaApi } from "./utils/auth-test";
 import { retry } from "./utils/retry";
 
 test("claims a notification once across concurrent workers", async ({
   page,
+  baseURL,
 }) => {
-  const userData = await createTestAccount({
+  const userData = await createTestAccountViaApi({
     page,
-    callbackURL: "/dashboard",
+    baseURL,
   });
   const user = await retry(
     async () =>

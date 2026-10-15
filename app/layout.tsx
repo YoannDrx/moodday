@@ -1,3 +1,4 @@
+import { CrisisNumbersBar } from "@/components/crisis/crisis-numbers-bar";
 import { TailwindIndicator } from "@/components/utils/tailwind-indicator";
 import { NextTopLoader } from "@/features/page/next-top-loader";
 import { ServerToaster } from "@/features/server-sonner/server-toaster";
@@ -85,6 +86,7 @@ export default async function RootLayout({
               color="var(--primary)"
             />
             {children}
+            <CrisisNumbersBar locale={locale} />
             {modal}
             <TailwindIndicator />
             <Suspense>

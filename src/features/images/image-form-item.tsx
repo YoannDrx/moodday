@@ -78,7 +78,7 @@ const UseImageUpload = ({ onChange }: { onChange: (url: string) => void }) => {
   const handleDrop = async (item: { files: File[] }) => {
     const file = item.files[0] as File;
 
-    const validFiles = ["image/png", "image/jpeg", "image/jpg"];
+    const validFiles = ["image/png", "image/jpeg"];
 
     if (!validFiles.includes(file.type)) {
       toast.error(t("images.errors.invalidType"), {
@@ -103,7 +103,7 @@ const UseImageUpload = ({ onChange }: { onChange: (url: string) => void }) => {
         className="absolute inset-0 flex h-auto items-center justify-center"
         isLoading={uploadImageMutation.isPending}
         onDrop={handleDrop}
-        accept={["*.png"]}
+        accept={["image/png", "image/jpeg"]}
       >
         {uploadImageMutation.isPending ? <Loader /> : <></>}
       </NativeTargetBox>

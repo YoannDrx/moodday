@@ -1,5 +1,30 @@
 import { z } from "zod";
 
+export const requiredConsentVersionsSchema = z.object({
+  terms: z.string().min(1),
+  privacy: z.string().min(1),
+  healthData: z.string().min(1),
+  minimumAge: z.literal(18),
+  country: z.literal("FR"),
+});
+export const accountAccessSchema = z.object({
+  emailVerified: z.boolean(),
+  consentsAccepted: z.boolean(),
+  versions: requiredConsentVersionsSchema,
+});
+export const acceptAccountConsentsSchema = z.object({
+  age18Accepted: z.literal(true),
+  termsAccepted: z.literal(true),
+  privacyAccepted: z.literal(true),
+  healthDataConsentAccepted: z.literal(true),
+  locale: z.enum(["fr", "en"]),
+  versions: requiredConsentVersionsSchema,
+});
+export type AccountAccessDto = z.infer<typeof accountAccessSchema>;
+export type AcceptAccountConsentsInput = z.infer<
+  typeof acceptAccountConsentsSchema
+>;
+
 export const checkInDepthSchema = z.enum(["presence", "quick", "complete"]);
 
 const optionalScale = z.number().int().min(0).max(10).nullable().optional();

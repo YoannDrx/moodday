@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+vi.mock("server-only", () => ({}));
 
 const actionClient = vi.hoisted(() => {
   const client = { inputSchema: vi.fn(), action: vi.fn() };
@@ -42,6 +43,8 @@ const invoke = async <T>(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.checkIn.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.checkIn.count).mockResolvedValue(0);
   actionClient.inputSchema.mockReturnValue(actionClient);
   actionClient.action.mockImplementation((handler) => handler);
   vi.mocked(prisma.userPreferences.findUnique).mockResolvedValue({
@@ -55,6 +58,61 @@ beforeEach(() => {
 });
 
 describe("export actions", () => {
+  it("includes scored V2 days in reports but never private notes by default", async () => {
+    vi.mocked(prisma.subscription.findUnique).mockResolvedValue({
+      plan: "plus",
+      status: "active",
+      periodEnd: new Date("2030-01-01T00:00:00Z"),
+    } as never);
+    vi.mocked(prisma.moodEntry.findMany).mockResolvedValue([
+      {
+        id: "legacy",
+        value: 4,
+        energy: 2,
+        anxiety: null,
+        sleepHours: null,
+        sleepQuality: null,
+        note: "PRIVATE LEGACY",
+        createdAt: date,
+      },
+    ] as never);
+    vi.mocked(prisma.checkIn.findMany).mockResolvedValue([
+      {
+        id: "v2",
+        depth: "quick",
+        localDate: "2026-08-09",
+        valence: 0,
+        activation: 3,
+        irritability: 1,
+        anxiety: null,
+        createdAt: new Date(),
+      },
+    ] as never);
+    vi.mocked(prisma.medication.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.therapySession.findMany).mockResolvedValue([
+      { date, notes: "PRIVATE THERAPY", benefitRating: 3 },
+    ] as never);
+    vi.mocked(prisma.exerciseLog.findMany).mockResolvedValue([]);
+    const result = await invoke<{
+      mood: { entries: unknown[]; stats: { average: number } };
+    }>(getExportData, {
+      parsedInput: {
+        startDate: "2026-08-01",
+        endDate: "2026-08-10",
+        purpose: "consultation-report",
+      },
+      ctx: { user },
+    });
+    expect(result.mood.entries).toHaveLength(2);
+    expect(result.mood.stats.average).toBe(2);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(result.mood.entries[0]).toMatchObject({
+      value: 0,
+      localDate: "2026-08-09",
+      source: "check-in",
+      timePrecision: "day",
+    });
+  });
   it("builds the versioned consultation data contract from one bounded range", async () => {
     vi.mocked(prisma.consultationPreparation.findFirst).mockResolvedValue({
       id: "preparation-1",

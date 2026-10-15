@@ -82,8 +82,13 @@ const fields = [
   ["professionalContacts", "Contacts professionnels · Nom — coordonnées"],
 ] as const;
 
-const call = async (number: "3114" | "15" | "112") =>
-  Linking.openURL(`tel:${number}`);
+const emergencyContacts = [
+  { number: "3114", url: "tel:3114", action: "Appeler" },
+  { number: "15", url: "tel:15", action: "Appeler" },
+  { number: "112", url: "tel:112", action: "Appeler" },
+  // 114 is reachable by text, video or chat for deaf or speech-impaired people.
+  { number: "114", url: "sms:114", action: "SMS au" },
+] as const;
 
 export default function SafetyPlanScreen() {
   const router = useRouter();
@@ -165,21 +170,23 @@ export default function SafetyPlanScreen() {
       <SectionCard
         eyebrow="Besoin d’aide maintenant"
         title="Mood Day n’est pas un service d’urgence"
-        description="En France, tu peux appeler gratuitement le 3114. En cas d’urgence médicale, appelle le 15 ou le 112."
+        description="En France, tu peux appeler gratuitement le 3114. En cas d’urgence médicale, appelle le 15 ou le 112. Si tu ne peux pas parler, envoie un SMS au 114."
       >
         <View style={styles.emergencyRow}>
-          {(["3114", "15", "112"] as const).map((number) => (
+          {emergencyContacts.map(({ number, url, action }) => (
             <Pressable
               key={number}
               accessibilityRole="button"
-              accessibilityLabel={`Appeler le ${number}`}
-              onPress={() => void call(number)}
+              accessibilityLabel={`${action} ${number}`}
+              onPress={() => void Linking.openURL(url)}
               style={({ pressed }) => [
                 styles.emergencyButton,
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.emergencyLabel}>Appeler {number}</Text>
+              <Text style={styles.emergencyLabel}>
+                {action} {number}
+              </Text>
             </Pressable>
           ))}
         </View>

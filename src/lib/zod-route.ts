@@ -6,6 +6,10 @@ import { ApplicationError } from "./errors/application-error";
 import { ZodRouteError } from "./errors/zod-route-error";
 import { logger } from "./logger";
 import { assertWritesAvailable } from "./maintenance";
+import {
+  enforceMutationBudget,
+  MutationRateLimitError,
+} from "./api-v2/mutation-budget";
 import { getOperationalErrorDetails } from "./operations/error-details";
 
 /**
@@ -23,6 +27,12 @@ import { getOperationalErrorDetails } from "./operations/error-details";
  */
 export const route = createZodRoute({
   handleServerError: (e: Error) => {
+    if (e instanceof MutationRateLimitError) {
+      return NextResponse.json(
+        { message: e.message },
+        { status: 429, headers: { "Retry-After": String(e.retryAfter) } },
+      );
+    }
     if (e instanceof ZodRouteError) {
       logger.debug("Route rejected", {
         eventName: "route_rejected",
@@ -77,8 +87,9 @@ export const readAuthRoute = route.use(async ({ next }) => {
   });
 });
 
-export const authRoute = readAuthRoute.use(async ({ next }) => {
+export const authRoute = readAuthRoute.use(async ({ next, ctx }) => {
   assertWritesAvailable();
+  await enforceMutationBudget(ctx.user.id);
   return next();
 });
 
@@ -91,8 +102,9 @@ export const sensitiveReadAuthRoute = readAuthRoute.use(async ({ next }) => {
 });
 
 export const sensitiveAuthRoute = sensitiveReadAuthRoute.use(
-  async ({ next }) => {
+  async ({ next, ctx }) => {
     assertWritesAvailable();
+    await enforceMutationBudget(ctx.user.id);
     return next();
   },
 );

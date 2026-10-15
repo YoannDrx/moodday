@@ -43,15 +43,17 @@ export const buildConsultationCsv = (data: ConsultationExportData) => {
   data.mood.entries.forEach((entry) => {
     rows.push([
       "mood",
-      entry.date,
-      formatLocalDateTime(entry.date, timezone),
+      entry.timePrecision === "day" ? "" : entry.date,
+      entry.timePrecision === "day"
+        ? entry.localDate
+        : formatLocalDateTime(entry.date, timezone),
       "daily_check_in",
       entry.value,
       entry.energy,
       "recorded",
       entry.note,
       timezone,
-      data.metadata.source,
+      entry.source ?? data.metadata.source,
     ]);
   });
 

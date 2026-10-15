@@ -696,6 +696,18 @@ const en = {
         description: "Emergency medical services.",
         availability: "Emergency service",
       },
+      europeanEmergency: {
+        name: "112 - European emergency number",
+        description:
+          "Free emergency number, reachable from any phone in the European Union.",
+        availability: "24/7",
+      },
+      deafEmergency: {
+        name: "114 - Emergency by text",
+        description:
+          "For deaf or hard-of-hearing people, or anyone unable to speak: text, video or chat.",
+        availability: "24/7",
+      },
       suicideEcoute: {
         name: "Suicide Ecoute",
         description: "Listening and support in crisis.",
@@ -1958,6 +1970,16 @@ const en = {
       or: "or",
       lastUsed: "Last used",
       provider: "Continue with {provider}",
+      providerErrors: {
+        accessDenied: "Sign-in cancelled. Try again or use your email.",
+        signupClosed:
+          "No Moodday account is linked to this address. Registration is closed during the private beta: join the waitlist to hear when it opens.",
+        signupInviteRequired:
+          "This address has not been invited to the private beta yet. Use the invited address, or join the waitlist.",
+        generic:
+          "The provider could not complete sign-in. Try again or use your email.",
+        joinWaitlist: "Join the waitlist",
+      },
     },
     signUp: {
       metaTitle: "Create your {app} account",
@@ -2045,6 +2067,13 @@ const en = {
       instructions: "Click the link in the email to verify your address.",
       spamHelp: "If you don't see it, check your spam folder.",
       support: "Need help? Contact support.",
+      resendLabel: "Email used to sign up",
+      resendSubmit: "Resend the link",
+      resendCooldown: "Resend available in {seconds}s",
+      resendSent:
+        "If an unverified account uses this address, a new link is on its way. It expires in one hour.",
+      resendFailed:
+        "The email could not be sent. Try again in a few minutes or contact support.",
     },
     error: {
       message: "Something went wrong",

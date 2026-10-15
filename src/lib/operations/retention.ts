@@ -29,6 +29,7 @@ export const applyOperationalRetention = async (now = new Date()) => {
     medicationMutationReceipts,
     expiredVerifications,
     regulatoryExportAudits,
+    rateLimitCounters,
   ] = await prisma.$transaction([
     prisma.regulatoryExportAudit.updateMany({
       where: {
@@ -78,6 +79,11 @@ export const applyOperationalRetention = async (now = new Date()) => {
         updatedAt: { lt: regulatoryAuditCutoff },
       },
     }),
+    // All configured auth/app windows are at most one hour. Keep a full day
+    // to avoid resetting an active limit; only expired technical counters leave.
+    prisma.rateLimit.deleteMany({
+      where: { lastRequest: { lt: BigInt(before(now, 1).getTime()) } },
+    }),
   ]);
 
   return {
@@ -96,6 +102,7 @@ export const applyOperationalRetention = async (now = new Date()) => {
       medicationMutationReceipts: medicationMutationReceipts.count,
       expiredVerifications: expiredVerifications.count,
       regulatoryExportAudits: regulatoryExportAudits.count,
+      rateLimitCounters: rateLimitCounters.count,
     },
   };
 };

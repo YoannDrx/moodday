@@ -708,6 +708,18 @@ const fr: typeof en = {
         description: "Services médicaux d'urgence.",
         availability: "Service d'urgence",
       },
+      europeanEmergency: {
+        name: "112 - Numéro d'urgence européen",
+        description:
+          "Numéro d'urgence gratuit, joignable depuis tout téléphone dans l'Union européenne.",
+        availability: "24h/24, 7j/7",
+      },
+      deafEmergency: {
+        name: "114 - Urgences par SMS",
+        description:
+          "Pour les personnes sourdes, malentendantes ou ne pouvant pas parler : SMS, visio ou tchat.",
+        availability: "24h/24, 7j/7",
+      },
       suicideEcoute: {
         name: "Suicide Ecoute",
         description: "Écoute et soutien en situation de crise.",
@@ -1992,6 +2004,17 @@ const fr: typeof en = {
       or: "ou",
       lastUsed: "Dernier utilisé",
       provider: "Continuer avec {provider}",
+      providerErrors: {
+        accessDenied:
+          "Connexion annulée. Tu peux réessayer ou utiliser ton e-mail.",
+        signupClosed:
+          "Aucun compte Moodday n’est associé à cette adresse. Les inscriptions sont fermées pendant la bêta privée : rejoins la liste d’attente pour être prévenu·e de l’ouverture.",
+        signupInviteRequired:
+          "Cette adresse n’est pas encore invitée à la bêta privée. Utilise l’adresse qui a reçu l’invitation, ou rejoins la liste d’attente.",
+        generic:
+          "Le fournisseur n’a pas pu terminer la connexion. Réessaie ou utilise ton e-mail.",
+        joinWaitlist: "Rejoindre la liste d’attente",
+      },
     },
     signUp: {
       metaTitle: "Créer votre compte {app}",
@@ -2083,6 +2106,13 @@ const fr: typeof en = {
         "Cliquez sur le lien dans l'email pour vérifier votre adresse.",
       spamHelp: "Si vous ne le voyez pas, vérifiez les spams.",
       support: "Besoin d'aide ? Contactez le support.",
+      resendLabel: "E-mail utilisé à l'inscription",
+      resendSubmit: "Renvoyer le lien",
+      resendCooldown: "Nouvel envoi possible dans {seconds} s",
+      resendSent:
+        "Si un compte non vérifié utilise cette adresse, un nouveau lien est en route. Il expire dans une heure.",
+      resendFailed:
+        "L'e-mail n'a pas pu être envoyé. Réessayez dans quelques minutes ou contactez le support.",
     },
     error: {
       message: "Une erreur est survenue",

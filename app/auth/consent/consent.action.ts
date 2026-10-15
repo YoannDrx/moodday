@@ -1,8 +1,7 @@
 "use server";
 
 import { verifiedAuthAction } from "@/lib/actions/safe-actions";
-import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { recordRequiredConsents } from "@/lib/auth/required-consents";
 import { z } from "zod";
 
 export const acceptRequiredConsents = verifiedAuthAction
@@ -16,43 +15,7 @@ export const acceptRequiredConsents = verifiedAuthAction
     }),
   )
   .action(async ({ parsedInput, ctx: { user } }) => {
-    await prisma.userConsent.createMany({
-      data: [
-        {
-          userId: user.id,
-          purpose: "age_18",
-          version: String(env.MINIMUM_AGE),
-          locale: parsedInput.locale,
-          country: env.LAUNCH_COUNTRY,
-          source: "migration_gate",
-        },
-        {
-          userId: user.id,
-          purpose: "terms",
-          version: env.LEGAL_TERMS_VERSION,
-          locale: parsedInput.locale,
-          country: env.LAUNCH_COUNTRY,
-          source: "migration_gate",
-        },
-        {
-          userId: user.id,
-          purpose: "privacy",
-          version: env.LEGAL_PRIVACY_VERSION,
-          locale: parsedInput.locale,
-          country: env.LAUNCH_COUNTRY,
-          source: "migration_gate",
-        },
-        {
-          userId: user.id,
-          purpose: "health_data",
-          version: env.HEALTH_DATA_CONSENT_VERSION,
-          locale: parsedInput.locale,
-          country: env.LAUNCH_COUNTRY,
-          source: "migration_gate",
-        },
-      ],
-      skipDuplicates: true,
-    });
+    await recordRequiredConsents(user.id, parsedInput.locale);
 
     return { accepted: true };
   });

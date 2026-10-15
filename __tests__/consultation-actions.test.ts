@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const actionClient = vi.hoisted(() => {
   const client = { inputSchema: vi.fn(), action: vi.fn() };
@@ -72,6 +75,7 @@ describe("consultation preparation actions", () => {
         personalNotes: null,
       }),
     });
+    expect(revalidatePath).toHaveBeenCalledWith("/consultation");
   });
 
   it("updates only an owned preparation and supports an unscheduled appointment", async () => {

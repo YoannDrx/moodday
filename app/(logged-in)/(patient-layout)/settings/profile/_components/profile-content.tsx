@@ -30,7 +30,7 @@ import { useI18n } from "@/i18n/provider";
 import { useSession } from "@/lib/auth-client";
 
 export function ProfileContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -134,6 +134,9 @@ export function ProfileContent() {
                     <p className="text-gray-500">{user?.email}</p>
                     <p className="mt-2 text-sm text-gray-400">
                       {t("settings.profile.changePhoto")}
+                      {locale === "fr"
+                        ? " Photo accessible par son lien public. N’ajoutez pas de document de santé."
+                        : " Photo accessible through its public link. Do not upload a health document."}
                     </p>
                   </div>
                 </div>

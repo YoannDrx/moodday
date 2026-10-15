@@ -60,7 +60,7 @@ for (const pathname of publicPages) {
 
 test("crisis resources remain public without an account", async ({ page }) => {
   await page.goto("/crisis");
-  await expect(page.locator('a[href="tel:3114"]')).toBeVisible();
+  await expect(page.locator('a[href="tel:3114"]').first()).toBeVisible();
   await expect(page.locator('a[href="tel:15"]').first()).toBeVisible();
   await expect(page.locator('a[href="tel:112"]').first()).toBeVisible();
   await expect(page).not.toHaveURL(/\/auth\/signin/);

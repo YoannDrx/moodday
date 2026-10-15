@@ -3,8 +3,10 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +17,7 @@ import { BrandIllustration } from "../src/components/brand-illustration";
 import { MoodDayMark } from "../src/components/moodday-mark";
 import { authClient } from "../src/lib/auth-client";
 import { clearMobileSessionInvalidation } from "../src/lib/session-security";
+import { appBaseUrl } from "../src/lib/api";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -28,20 +31,34 @@ export default function SignInScreen() {
   const authPending = isPending || isGooglePending || isApplePending;
 
   const signIn = async () => {
+    if (authPending) return;
     setIsPending(true);
     setError(undefined);
-    const result = await authClient.signIn.email({
-      email: email.trim(),
-      password,
-    });
-    setIsPending(false);
+    try {
+      const result = await authClient.signIn.email({
+        email: email.trim(),
+        password,
+      });
 
-    if (result.error) {
-      setError("Connexion impossible. Vérifie tes informations puis réessaie.");
-      return;
+      if (result.error) {
+        setError(
+          "Connexion impossible. Vérifie tes informations puis réessaie.",
+        );
+        return;
+      }
+      if ("twoFactorRedirect" in result.data && result.data.twoFactorRedirect) {
+        router.push("/two-factor");
+        return;
+      }
+      clearMobileSessionInvalidation();
+      router.replace("/");
+    } catch {
+      setError(
+        "Vérifie ta connexion puis réessaie. Tu peux reprendre sans perdre tes informations.",
+      );
+    } finally {
+      setIsPending(false);
     }
-    clearMobileSessionInvalidation();
-    router.replace("/");
   };
 
   const signInWithGoogle = async () => {
@@ -106,7 +123,10 @@ export default function SignInScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboard}
       >
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           <View testID="sign-in-screen">
             <MoodDayMark />
           </View>
@@ -117,47 +137,53 @@ export default function SignInScreen() {
           </Text>
 
           <View style={styles.form}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Continuer avec Google"
-              disabled={authPending}
-              onPress={() => void signInWithGoogle()}
-              style={({ pressed }) => [
-                styles.googleButton,
-                authPending && styles.disabled,
-                pressed && styles.pressed,
-              ]}
-              testID="sign-in-google"
-            >
-              <Text accessibilityElementsHidden style={styles.googleMark}>
-                G
-              </Text>
-              <Text style={styles.googleButtonLabel}>
-                {isGooglePending
-                  ? "Ouverture de Google…"
-                  : "Continuer avec Google"}
-              </Text>
-            </Pressable>
+            {process.env.EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED === "true" ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Continuer avec Google"
+                disabled={authPending}
+                onPress={() => void signInWithGoogle()}
+                style={({ pressed }) => [
+                  styles.googleButton,
+                  authPending && styles.disabled,
+                  pressed && styles.pressed,
+                ]}
+                testID="sign-in-google"
+              >
+                <Text accessibilityElementsHidden style={styles.googleMark}>
+                  G
+                </Text>
+                <Text style={styles.googleButtonLabel}>
+                  {isGooglePending
+                    ? "Ouverture de Google…"
+                    : "Continuer avec Google"}
+                </Text>
+              </Pressable>
+            ) : null}
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Continuer avec Apple"
-              disabled={authPending}
-              onPress={() => void signInWithApple()}
-              style={({ pressed }) => [
-                styles.appleButton,
-                authPending && styles.disabled,
-                pressed && styles.pressed,
-              ]}
-              testID="sign-in-apple"
-            >
-              <Text accessibilityElementsHidden style={styles.appleMark}>
-                
-              </Text>
-              <Text style={styles.appleButtonLabel}>
-                {isApplePending ? "Ouverture d’Apple…" : "Continuer avec Apple"}
-              </Text>
-            </Pressable>
+            {process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED === "true" ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Continuer avec Apple"
+                disabled={authPending}
+                onPress={() => void signInWithApple()}
+                style={({ pressed }) => [
+                  styles.appleButton,
+                  authPending && styles.disabled,
+                  pressed && styles.pressed,
+                ]}
+                testID="sign-in-apple"
+              >
+                <Text accessibilityElementsHidden style={styles.appleMark}>
+                  
+                </Text>
+                <Text style={styles.appleButtonLabel}>
+                  {isApplePending
+                    ? "Ouverture d’Apple…"
+                    : "Continuer avec Apple"}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <View accessibilityElementsHidden style={styles.dividerRow}>
               <View style={styles.divider} />
@@ -216,12 +242,29 @@ export default function SignInScreen() {
             </Pressable>
           </View>
 
-          <Text style={styles.help}>
-            En continuant, tu ouvres le même compte sécurisé que sur le web. La
-            création par e-mail et la récupération restent disponibles sur le
-            web.
-          </Text>
-        </View>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.helpLink}
+            onPress={() => router.push("/forgot-password")}
+          >
+            <Text style={styles.help}>Mot de passe oublié ?</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="link"
+            style={styles.helpLink}
+            onPress={() => {
+              void Linking.openURL(`${appBaseUrl}/auth/signup`).catch(() =>
+                setError(
+                  "Impossible d’ouvrir la création de compte pour le moment.",
+                ),
+              );
+            }}
+          >
+            <Text style={styles.help}>
+              Créer mon compte par e-mail sur le web
+            </Text>
+          </Pressable>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -230,7 +273,8 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: color.canvas },
   keyboard: { flex: 1 },
-  content: { flex: 1, justifyContent: "center", padding: space[6] },
+  content: { flexGrow: 1, justifyContent: "center", padding: space[6] },
+  helpLink: { minHeight: 48, justifyContent: "center" },
   illustration: {
     alignSelf: "center",
     width: 220,

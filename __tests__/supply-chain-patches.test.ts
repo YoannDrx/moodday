@@ -10,6 +10,13 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  constants,
+  createHash,
+  generateKeyPairSync,
+  privateEncrypt,
+  sign,
+} from "node:crypto";
 
 const maliciousSymlinkArchive = Buffer.from(
   "UEsDBAoAAAAAADlyEl1ASv+xDQAAAA0AAAAGABwAZXNjYXBlVVQJAANtTYRqbU2EanV4CwABBPUBAAAEAAAAAC4uLy4uL291dHNpZGVQSwECHgMKAAAAAAA5chJdQEr/sQ0AAAANAAAABgAYAAAAAAAAAAAA7aEAAAAAZXNjYXBlVVQFAANtTYRqdXgLAAEE9QEAAAQAAAAAUEsFBgAAAAABAAEATAAAAE0AAAAAAA==",
@@ -99,6 +106,50 @@ const loadTransitiveUuid = async (
 };
 
 describe("supply-chain patches", () => {
+  it("rejects extra nested DigestAlgorithm elements while accepting genuine RSA signatures", async () => {
+    const pnpmStore = path.join(process.cwd(), "node_modules", ".pnpm");
+    const packageDirectory = (await readdir(pnpmStore)).find((entry) =>
+      entry.startsWith("node-forge@1.4.0_patch_hash="),
+    );
+    if (!packageDirectory) throw new Error("patched_node_forge_not_installed");
+    const require = createRequire(import.meta.url);
+    const forge = require(
+      path.join(pnpmStore, packageDirectory, "node_modules/node-forge"),
+    ) as {
+      pki: {
+        publicKeyFromPem: (pem: string) => {
+          verify: (digest: string, signature: string) => boolean;
+        };
+      };
+    };
+    const keys = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicExponent: 3,
+    });
+    const key = forge.pki.publicKeyFromPem(
+      keys.publicKey.export({ type: "spki", format: "pem" }).toString(),
+    );
+    const message = Buffer.from("synthetic regression fixture");
+    const digest = createHash("sha256").update(message).digest();
+    expect(
+      key.verify(
+        digest.toString("binary"),
+        sign("sha256", message, keys.privateKey).toString("binary"),
+      ),
+    ).toBe(true);
+    // DigestInfo: SEQUENCE { SEQUENCE { OID sha256, NULL, OCTET STRING garbage }, OCTET STRING digest }
+    const malformed = Buffer.concat([
+      Buffer.from("303630120609608648016503040201050004036261640420", "hex"),
+      digest,
+    ]);
+    const signature = privateEncrypt(
+      { key: keys.privateKey, padding: constants.RSA_PKCS1_PADDING },
+      malformed,
+    );
+    expect(() =>
+      key.verify(digest.toString("binary"), signature.toString("binary")),
+    ).toThrow("DigestInfo");
+  });
   it("locks corrected Valibot, Babel and UUID releases", async () => {
     const lockfile = await readFile(
       path.join(process.cwd(), "pnpm-lock.yaml"),

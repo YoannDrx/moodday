@@ -26,20 +26,23 @@ export function PasskeySignInButton({ callbackUrl }: { callbackUrl: string }) {
       return;
     }
 
-    window.location.href =
-      window.location.origin + getCallbackUrl(callbackUrl);
+    window.location.href = window.location.origin + getCallbackUrl(callbackUrl);
   };
 
   return (
     <Button
       type="button"
       variant="outline"
-      className="w-full"
+      className="h-auto min-h-9 w-full whitespace-normal"
       disabled={pending}
       onClick={() => void signIn()}
     >
       <KeyRound aria-hidden="true" />
-      {locale === "fr" ? "Continuer avec une passkey" : "Continue with a passkey"}
+      <span className="min-w-0">
+        {locale === "fr"
+          ? "Continuer avec une passkey"
+          : "Continue with a passkey"}
+      </span>
     </Button>
   );
 }

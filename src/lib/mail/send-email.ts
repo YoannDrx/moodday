@@ -5,6 +5,7 @@ import { pretty, render } from "react-email";
 import { nanoid } from "nanoid";
 import { getOperationalIdentifier } from "@/lib/operations/log-identifiers";
 import { resendMailAdapter } from "./resend";
+import { usesIsolatedTestDelivery } from "./isolated-test-delivery";
 
 type EmailParams = {
   from: string;
@@ -71,12 +72,12 @@ export const sendEmail = async (params: SendEmailParams) => {
     emailParams.subject = `[DEV] ${emailParams.subject}`;
   }
 
-  // Avoid sending emails to playwright-test emails
-  if (
-    Array.isArray(emailParams.to)
-      ? emailParams.to.some((to) => to.startsWith("playwright-test-"))
-      : emailParams.to.startsWith("playwright-test-")
-  ) {
+  const recipients = [
+    emailParams.to,
+    emailParams.cc ?? [],
+    emailParams.bcc ?? [],
+  ].flat();
+  if (usesIsolatedTestDelivery(process.env, recipients)) {
     logger.info("Email delivery skipped for isolated browser test", {
       eventName: "email_delivery_test_skipped",
       status: "succeeded",

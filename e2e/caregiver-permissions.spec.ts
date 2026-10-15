@@ -1,16 +1,63 @@
 import { prisma } from "@/lib/prisma";
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
-import { createTestAccount } from "./utils/auth-test";
+import { createTestAccount, createTestAccountViaApi } from "./utils/auth-test";
 import { retry } from "./utils/retry";
+
+test("sends an invitation while dashboard reads are still pending", async ({
+  page,
+  baseURL,
+}) => {
+  const account = await createTestAccountViaApi({ page, baseURL });
+  const patient = await prisma.user.findUniqueOrThrow({
+    where: { email: account.email },
+    select: { id: true },
+  });
+  let releaseReads: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    releaseReads = resolve;
+  });
+  let heldReads = 0;
+  await page.route("**/api/caregiver/dashboard?**", async (route) => {
+    heldReads += 1;
+    await gate;
+    await route.continue();
+  });
+  try {
+    await page.goto("/caregiver", { waitUntil: "domcontentloaded" });
+    await expect.poll(() => heldReads).toBeGreaterThan(0);
+    await page
+      .getByRole("button", { name: /Invite someone|Inviter quelqu'un/i })
+      .last()
+      .click();
+    await page
+      .getByLabel(/^Email$|^E-mail$/i)
+      .fill(`playwright-test-slow-read-${crypto.randomUUID()}@example.test`);
+    await page
+      .getByRole("button", { name: /Send invite|Envoyer l'invitation/i })
+      .click();
+    // Reads stay blocked until after the real database write is demonstrated.
+    await expect
+      .poll(async () =>
+        prisma.caregiverRelationship.count({
+          where: { patientId: patient.id, status: "pending" },
+        }),
+      )
+      .toBe(1);
+  } finally {
+    releaseReads();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+});
 
 test("enforces the Free caregiver limit across concurrent invitations", async ({
   context,
   page,
+  baseURL,
 }) => {
-  const patientData = await createTestAccount({
+  const patientData = await createTestAccountViaApi({
     page,
-    callbackURL: "/dashboard",
+    baseURL,
   });
   const patient = await prisma.user.findUniqueOrThrow({
     where: { email: patientData.email },
@@ -23,7 +70,10 @@ test("enforces the Free caregiver limit across concurrent invitations", async ({
   ];
 
   try {
-    await Promise.all([page.goto("/caregiver"), secondPage.goto("/caregiver")]);
+    await Promise.all([
+      page.goto("/caregiver", { waitUntil: "domcontentloaded" }),
+      secondPage.goto("/caregiver", { waitUntil: "domcontentloaded" }),
+    ]);
     await Promise.all(
       [page, secondPage].map(async (currentPage, index) => {
         await currentPage
@@ -219,9 +269,9 @@ test("declines an invitation and invalidates its token", async ({
   const caregiverPage = await caregiverContext.newPage();
 
   try {
-    const caregiverData = await createTestAccount({
+    const caregiverData = await createTestAccountViaApi({
       page: caregiverPage,
-      callbackURL: "/dashboard",
+      baseURL,
     });
     const caregiver = await retry(
       async () =>
@@ -231,9 +281,9 @@ test("declines an invitation and invalidates its token", async ({
         }),
       { maxAttempts: 5, delayMs: 250, backoff: true },
     );
-    const patientData = await createTestAccount({
+    const patientData = await createTestAccountViaApi({
       page,
-      callbackURL: "/dashboard",
+      baseURL,
     });
     const patient = await retry(
       async () =>

@@ -1,0 +1,153 @@
+{
+  "recordedAt": "2026-10-02T19:13:08.341244+00:00",
+  "scope": "local-working-tree-not-a-production-approval",
+  "branch": "codex/production-readiness-2026-10-02",
+  "baseCommit": "1cde6ff",
+  "committed": false,
+  "deployed": false,
+  "runtimeVerification": {
+    "unitCoverage": ["Node 24.9.0", "Node 22.23.3"],
+    "productionBuild": ["Node 24.9.0", "Node 22.23.3"],
+    "remoteCIExecuted": false
+  },
+  "checks": {
+    "unit": {
+      "status": "passed",
+      "files": 203,
+      "tests": 1368,
+      "command": "pnpm test:coverage:release",
+      "coverage": {
+        "lines": {
+          "total": 8445,
+          "covered": 6873,
+          "skipped": 0,
+          "pct": 81.38
+        },
+        "statements": {
+          "total": 9020,
+          "covered": 7225,
+          "skipped": 0,
+          "pct": 80.09
+        },
+        "functions": {
+          "total": 1995,
+          "covered": 1612,
+          "skipped": 0,
+          "pct": 80.8
+        },
+        "branches": {
+          "total": 6428,
+          "covered": 4659,
+          "skipped": 0,
+          "pct": 72.47
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      },
+      "thresholdsUnchanged": true
+    },
+    "e2e": {
+      "status": "passed",
+      "fullSuite": 176,
+      "subsequentAuthAndAccessibilitySuite": 80,
+      "newOauthErrorScenarios": 15,
+      "uniqueScenariosAcrossRuns": 191,
+      "profiles": [
+        "chromium",
+        "firefox",
+        "webkit",
+        "mobile-chromium",
+        "mobile-webkit"
+      ],
+      "retriesInSuccessfulRuns": 0
+    },
+    "webTypes": "passed",
+    "mobileTypes": "passed",
+    "lint": "passed",
+    "build": "passed",
+    "prismaValidate": "passed",
+    "vercelSourceBoundary": "passed",
+    "knip": "passed with two pre-existing configuration hints",
+    "licenses": "passed",
+    "sbom": {
+      "status": "generated",
+      "components": 1254
+    },
+    "dependencies": {
+      "status": "passed with documented patched exceptions",
+      "exceptions": ["GHSA-jmr9-qjv8-65gv", "GHSA-86w9-cpqp-85rv"],
+      "exploitTestsPassed": 5
+    },
+    "operationIntegrity": {
+      "concurrentRetries": 12,
+      "deviceAdmissionQuota": true,
+      "identicalEntity": true,
+      "divergentRetryRejected": true,
+      "directAndSyncSerialized": true,
+      "unifiedJournal": true,
+      "ownershipAndFilters": true
+    },
+    "authRateLimit": {
+      "concurrentRequests": 24,
+      "allowed": 5,
+      "denied": 19,
+      "status": "passed"
+    },
+    "migrationUpgrade": {
+      "ok": true,
+      "snapshotMigrations": 12,
+      "finalMigrations": 33,
+      "publicTables": 68,
+      "validPreferencePreserved": true,
+      "orphanPreferenceRemoved": true,
+      "existingConsentNotBackfilled": true,
+      "medicationRevisionBackfilled": true,
+      "schemaDrift": false
+    },
+    "backupRestore": {
+      "ok": true,
+      "scope": "local-disposable",
+      "publicTablesCompared": 68,
+      "backupBytes": 218675,
+      "backupDurationMs": 496,
+      "restoreDurationMs": 1516,
+      "fixtureAgeSeconds": 14,
+      "productionRpoValidated": false,
+      "rowCountsMatch": true,
+      "zeroValuePreserved": true,
+      "migrationHistoryRestored": true,
+      "schemaDrift": false
+    },
+    "exportBenchmark": {
+      "synthetic": true,
+      "records": 10000,
+      "runs": 20,
+      "concurrency": 4,
+      "bytes": 14391143,
+      "p95Ms": 1373,
+      "p99Ms": 1375,
+      "peakRssMiB": 437,
+      "budget": {
+        "p95Ms": 10000,
+        "peakRssMiB": 512
+      },
+      "scope": "local exports of one synthetic account at four concurrent requests, including database read and streamed serialization; p99 is sample maximum"
+    }
+  },
+  "openExternalGates": {
+    "credentialRotationsPending": 12,
+    "coreBetaApprovalsPending": 18,
+    "providerAndDeviceProofs": "not executed",
+    "productionLoadPoolSaturationAndBacklog": "not measured"
+  },
+  "limitations": [
+    "Nested relations of one exported parent remain materialized; the benchmark exercises check-ins.",
+    "Local restoration does not validate production RTO/RPO.",
+    "Browser mobile profiles do not validate native hardware.",
+    "These observations are not bound to a sealed candidate commit."
+  ]
+}

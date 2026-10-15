@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   auditReleaseApprovalEvidence,
+  approvalRequirementsFor,
+  releaseScopeConfigurationErrors,
   RELEASE_APPROVAL_REQUIREMENTS,
   type ReleaseApprovalEvidence,
 } from "@/lib/operations/release-approval-evidence";
@@ -21,6 +23,37 @@ const completedEvidence = (): ReleaseApprovalEvidence => ({
 });
 
 describe("release approval evidence", () => {
+  it("keeps shared safety approvals and rejects modules outside a core release", () => {
+    const core = approvalRequirementsFor("core-beta");
+    expect(core).toEqual(
+      expect.arrayContaining([
+        "hds",
+        "dpia",
+        "clinical_safety",
+        "credential_rotation",
+      ]),
+    );
+    expect(core).not.toContain("stripe_live");
+    expect(core).not.toContain("openai_processing");
+    expect(
+      releaseScopeConfigurationErrors("core-beta", {
+        billing: true,
+        ai: true,
+        native: true,
+      }),
+    ).toHaveLength(3);
+    expect(
+      releaseScopeConfigurationErrors("commercial", {
+        billing: true,
+        ai: false,
+        native: false,
+      }),
+    ).toEqual([]);
+    expect(approvalRequirementsFor("ai")).toContain("openai_processing");
+    expect(approvalRequirementsFor("native")).toContain(
+      "native_device_validation",
+    );
+  });
   it("rejects a malformed registry without exposing schema input", () => {
     expect(auditReleaseApprovalEvidence({ schemaVersion: 2 })).toEqual({
       valid: false,

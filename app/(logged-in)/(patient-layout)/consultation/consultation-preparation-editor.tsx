@@ -87,49 +87,79 @@ export function ConsultationPreparationEditor({
   };
 
   const save = async () => {
+    if (pending) return;
     setPending(true);
-    const result = await saveConsultationPreparation({
-      id: editingId,
-      title,
-      questions: questions
-        .split("\n")
-        .map((question) => question.trim())
-        .filter(Boolean)
-        .slice(0, 20),
-      importantEvents: importantEvents
-        .split("\n")
-        .map((event) => event.trim())
-        .filter(Boolean)
-        .slice(0, 20),
-      personalNotes: notes || null,
-      periodStartDate: startDate,
-      periodEndDate: endDate,
-      scheduledFor: scheduledFor || null,
-      status: "draft",
-    });
-    setPending(false);
-    if (result.serverError) {
-      toast.error(result.serverError);
-      return;
+    try {
+      const result = await saveConsultationPreparation({
+        id: editingId,
+        title,
+        questions: questions
+          .split("\n")
+          .map((question) => question.trim())
+          .filter(Boolean)
+          .slice(0, 20),
+        importantEvents: importantEvents
+          .split("\n")
+          .map((event) => event.trim())
+          .filter(Boolean)
+          .slice(0, 20),
+        personalNotes: notes || null,
+        periodStartDate: startDate,
+        periodEndDate: endDate,
+        scheduledFor: scheduledFor || null,
+        status: "draft",
+      });
+      if (!result.data || result.serverError || result.validationErrors) {
+        toast.error(
+          result.serverError ??
+            (fr
+              ? "La préparation n’a pas été enregistrée. Vérifie les champs et la période ; ton brouillon est conservé."
+              : "The preparation was not saved. Check the fields and date range; your draft is preserved."),
+        );
+        return;
+      }
+      toast.success(fr ? "Préparation enregistrée" : "Preparation saved");
+      reset();
+      router.refresh();
+    } catch {
+      toast.error(
+        fr
+          ? "La connexion a été interrompue. Ton brouillon est conservé ; vérifie la liste avant de réessayer."
+          : "The connection was interrupted. Your draft is preserved; check the list before retrying.",
+      );
+    } finally {
+      setPending(false);
     }
-    toast.success(fr ? "Préparation enregistrée" : "Preparation saved");
-    reset();
-    router.refresh();
   };
 
   const changeStatus = async (
     id: string,
     status: "draft" | "completed" | "archived",
   ) => {
+    if (pending) return;
     setPending(true);
-    const result = await setConsultationPreparationStatus({ id, status });
-    setPending(false);
-    if (result.serverError) {
-      toast.error(result.serverError);
-      return;
+    try {
+      const result = await setConsultationPreparationStatus({ id, status });
+      if (!result.data || result.serverError || result.validationErrors) {
+        toast.error(
+          result.serverError ??
+            (fr
+              ? "Le changement n’a pas été confirmé. Réessaie."
+              : "The change was not confirmed. Please try again."),
+        );
+        return;
+      }
+      toast.success(fr ? "Statut mis à jour" : "Status updated");
+      router.refresh();
+    } catch {
+      toast.error(
+        fr
+          ? "La connexion a été interrompue. Vérifie le statut avant de réessayer."
+          : "The connection was interrupted. Check the status before retrying.",
+      );
+    } finally {
+      setPending(false);
     }
-    toast.success(fr ? "Statut mis à jour" : "Status updated");
-    router.refresh();
   };
 
   return (
