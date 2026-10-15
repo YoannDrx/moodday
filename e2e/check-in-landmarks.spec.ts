@@ -50,14 +50,16 @@ test("a quick check-in feeds Repères and the consultation PDF", async ({
       timeout: 20_000,
     })
     .toBe(1);
-  // Saving refreshes Today in place; navigating before that refresh settles
-  // aborts the navigation in Firefox.
   await expect(
     page.getByText(/Your check-in is saved|Ton point est enregistré/i).first(),
   ).toBeVisible();
-  await page.waitForLoadState("networkidle");
 
-  await page.goto("/trends");
+  // Saving refreshes Today in place, and WebKit can still be finishing a
+  // navigation back to /dashboard; retry until Repères is the page shown.
+  await expect(async () => {
+    await page.goto("/trends");
+    await expect(page).toHaveURL(/\/trends/, { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await page
     .getByRole("button", { name: /^(Last 7 days|7 derniers jours)$/i })
     .first()
