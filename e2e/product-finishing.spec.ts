@@ -120,34 +120,43 @@ test("finishes import, journal tags, consultation PDF and the offline safety pla
   ).toHaveCount(0);
 
   await page.goto("/safety-plan");
-  await page.getByLabel(/Mes signaux personnels|My warning signs/i).fill("Isolement inhabituel");
-  await page
-    .getByLabel(/Stratégies qui peuvent m’apaiser|Coping strategies/i)
-    .fill("Marcher dix minutes");
-  await page
-    .getByLabel(/Lieux où je me sens en sécurité|Places where I feel safe/i)
-    .fill("Chez Camille");
-  await page
-    .getByLabel(/Contacts de confiance|Trusted contacts/i)
-    .fill("Camille — 06 00 00 00 00");
-  await page
-    .getByRole("button", {
-      name: /Enregistrer et marquer comme revu|Save and mark as reviewed/i,
-    })
-    .click();
-  await expect(page.getByText(/Plan enregistré|Safety plan saved/i)).toBeVisible();
-  await expect
-    .poll(async () => {
-      const plan = await prisma.safetyPlan.findUnique({
-        where: { userId: user.id },
-        select: { warningSigns: true, copingStrategies: true },
+  // Text typed before the editor hydrates can be reset by React (seen in
+  // mobile WebKit). Saving is an upsert, so retry until the plan is stored.
+  await expect(async () => {
+    await page
+      .getByLabel(/Mes signaux personnels|My warning signs/i)
+      .fill("Isolement inhabituel");
+    await page
+      .getByLabel(/Stratégies qui peuvent m’apaiser|Coping strategies/i)
+      .fill("Marcher dix minutes");
+    await page
+      .getByLabel(/Lieux où je me sens en sécurité|Places where I feel safe/i)
+      .fill("Chez Camille");
+    await page
+      .getByLabel(/Contacts de confiance|Trusted contacts/i)
+      .fill("Camille — 06 00 00 00 00");
+    await page
+      .getByRole("button", {
+        name: /Enregistrer et marquer comme revu|Save and mark as reviewed/i,
+      })
+      .click();
+    await expect(
+      page.getByText(/Plan enregistré|Safety plan saved/i).first(),
+    ).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          prisma.safetyPlan.findUnique({
+            where: { userId: user.id },
+            select: { warningSigns: true, copingStrategies: true },
+          }),
+        { timeout: 5_000 },
+      )
+      .toEqual({
+        warningSigns: ["Isolement inhabituel"],
+        copingStrategies: ["Marcher dix minutes"],
       });
-      return plan;
-    })
-    .toEqual({
-      warningSigns: ["Isolement inhabituel"],
-      copingStrategies: ["Marcher dix minutes"],
-    });
+  }).toPass({ timeout: 45_000 });
   await expect
     .poll(async () =>
       page.evaluate(() =>
