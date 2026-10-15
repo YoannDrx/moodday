@@ -50,6 +50,12 @@ test("a quick check-in feeds Repères and the consultation PDF", async ({
       timeout: 20_000,
     })
     .toBe(1);
+  // Saving refreshes Today in place; navigating before that refresh settles
+  // aborts the navigation in Firefox.
+  await expect(
+    page.getByText(/Your check-in is saved|Ton point est enregistré/i).first(),
+  ).toBeVisible();
+  await page.waitForLoadState("networkidle");
 
   await page.goto("/trends");
   await page
