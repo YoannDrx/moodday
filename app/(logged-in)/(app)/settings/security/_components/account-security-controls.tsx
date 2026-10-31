@@ -119,7 +119,7 @@ export function AccountSecurityControls({
       issuer: "Moodday",
     });
     setPending(false);
-    if (result.error) {
+    if (result.error || result.data.method !== "totp") {
       toast.error(
         isFrench
           ? "Vérification du mot de passe impossible"

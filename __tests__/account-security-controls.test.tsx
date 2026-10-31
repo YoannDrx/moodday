@@ -179,6 +179,7 @@ describe("account security controls", () => {
     mocks.deletePasskey.mockResolvedValue({ data: { success: true } });
     mocks.enableTwoFactor.mockResolvedValue({
       data: {
+        method: "totp",
         totpURI: "otpauth://totp/Moodday",
         backupCodes: ["backup-1", "backup-2"],
       },

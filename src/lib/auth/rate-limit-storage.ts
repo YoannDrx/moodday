@@ -59,17 +59,4 @@ export async function consumeAuthRateLimit(
 
 export const authRateLimitStorage: Storage = {
   consume: consumeAuthRateLimit,
-  get: async (key) => {
-    const row = await prisma.rateLimit.findUnique({ where: { key } });
-    return row ? { ...row, lastRequest: Number(row.lastRequest) } : null;
-  },
-  // Required by the current SDK interface; admission always uses consume above.
-  set: async (key, value) => {
-    const data = { count: value.count, lastRequest: BigInt(value.lastRequest) };
-    await prisma.rateLimit.upsert({
-      where: { key },
-      create: { id: `auth:${randomUUID()}`, key, ...data },
-      update: data,
-    });
-  },
 };

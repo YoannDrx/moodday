@@ -18,13 +18,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/expo": "1.6.27",
+    "@better-auth/expo": "1.7.14",
     "@moodday/api-client": "workspace:*",
     "@moodday/contracts": "workspace:*",
     "@moodday/design-tokens": "workspace:*",
     "@moodday/domain": "workspace:*",
     "@moodday/i18n": "workspace:*",
-    "better-auth": "1.6.27",
+    "better-auth": "1.7.14",
     "expo": "55.0.29",
     "expo-constants": "~55.0.7",
     "expo-crypto": "~55.0.18",
