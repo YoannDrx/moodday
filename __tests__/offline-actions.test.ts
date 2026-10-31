@@ -37,6 +37,7 @@ vi.mock("@/features/pwa/offline-store", () => ({
 
 import {
   getQueuedActionCount,
+  getQueuedActions,
   queueAction,
   syncQueuedActions,
   type OfflineActionPayload,
@@ -156,6 +157,108 @@ describe("offline check-in queue", () => {
       conflicts: 1,
     });
     expect(mocks.saveCheckInAction).not.toHaveBeenCalled();
+  });
+
+  it("defaults the creation time and time zone when no options are given", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(createdAt);
+    try {
+      const entry = await queueAction(ownerId, payload);
+      expect(entry.createdAt).toBe(createdAt.toISOString());
+      expect(mocks.getSafeOfflineTimeZone).toHaveBeenCalledWith(undefined);
+      expect(entry.timeZoneAtCreation).toBe("Europe/Paris");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns early on an empty queue without notifying", async () => {
+    mocks.listOfflineOperations.mockResolvedValueOnce([]);
+
+    await expect(syncQueuedActions(ownerId)).resolves.toEqual({
+      synced: 0,
+      remaining: 0,
+      conflicts: 0,
+    });
+    expect(mocks.notifyOfflineQueueChanged).not.toHaveBeenCalled();
+  });
+
+  it("waits for operations that are not due yet", async () => {
+    mocks.isOfflineOperationDue.mockReturnValue(false);
+    mocks.listOfflineOperations
+      .mockResolvedValueOnce([operation({ status: "failed" })])
+      .mockResolvedValueOnce([operation({ status: "failed" })]);
+
+    await syncQueuedActions(ownerId);
+    expect(mocks.saveCheckInAction).not.toHaveBeenCalled();
+    expect(mocks.updateOfflineOperation).not.toHaveBeenCalled();
+  });
+
+  it("sends a null private note and marks validation refusals as conflicts", async () => {
+    const withoutNote = { ...payload, privateNote: undefined };
+    mocks.getOfflineFailureStatus.mockReturnValue("conflict");
+    mocks.getOfflineErrorCategory.mockReturnValue("validation");
+    mocks.listOfflineOperations
+      .mockResolvedValueOnce([operation({ payload: withoutNote })])
+      .mockResolvedValueOnce([operation({ status: "conflict" })]);
+    mocks.saveCheckInAction.mockResolvedValue({ validationErrors: {} });
+
+    await expect(syncQueuedActions(ownerId)).resolves.toEqual({
+      synced: 0,
+      remaining: 1,
+      conflicts: 1,
+    });
+    expect(mocks.saveCheckInAction).toHaveBeenCalledWith(
+      expect.objectContaining({ privateNote: null }),
+    );
+    expect(mocks.updateOfflineOperation).toHaveBeenLastCalledWith(
+      ownerId,
+      "action:offline-id",
+      expect.objectContaining({
+        status: "conflict",
+        lastError: "validation_failed",
+        nextAttemptAt: undefined,
+      }),
+    );
+  });
+
+  it("records a generic message when the failure is not an Error", async () => {
+    mocks.listOfflineOperations
+      .mockResolvedValueOnce([operation()])
+      .mockResolvedValueOnce([operation({ status: "failed" })]);
+    mocks.saveCheckInAction.mockRejectedValue("offline");
+
+    await syncQueuedActions(ownerId);
+    expect(mocks.updateOfflineOperation).toHaveBeenLastCalledWith(
+      ownerId,
+      "action:offline-id",
+      expect.objectContaining({
+        lastError: "Offline synchronization failed",
+      }),
+    );
+  });
+
+  it("shares one synchronization between concurrent callers", async () => {
+    let release: (value: unknown[]) => void = () => undefined;
+    mocks.listOfflineOperations.mockImplementationOnce(
+      async () =>
+        new Promise<unknown[]>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const first = syncQueuedActions(ownerId);
+    const second = syncQueuedActions(ownerId);
+    release([]);
+    const empty = { synced: 0, remaining: 0, conflicts: 0 };
+    await expect(first).resolves.toEqual(empty);
+    await expect(second).resolves.toEqual(empty);
+    expect(mocks.listOfflineOperations).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the queued check-ins of an owner", async () => {
+    mocks.listOfflineOperations.mockResolvedValueOnce([operation()]);
+    await expect(getQueuedActions(ownerId)).resolves.toHaveLength(1);
   });
 
   it("counts queued check-ins per owner", async () => {

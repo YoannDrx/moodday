@@ -108,10 +108,11 @@ const loadTransitiveUuid = async (
 describe("supply-chain patches", () => {
   it("rejects extra nested DigestAlgorithm elements while accepting genuine RSA signatures", async () => {
     const pnpmStore = path.join(process.cwd(), "node_modules", ".pnpm");
-    const packageDirectory = (await readdir(pnpmStore)).find((entry) =>
-      entry.startsWith("node-forge@1.4.0_patch_hash="),
+    // 1.4.1 ships the upstream fix that the former local 1.4.0 patch carried.
+    const packageDirectory = (await readdir(pnpmStore)).find(
+      (entry) => entry === "node-forge@1.4.1",
     );
-    if (!packageDirectory) throw new Error("patched_node_forge_not_installed");
+    if (!packageDirectory) throw new Error("fixed_node_forge_not_installed");
     const require = createRequire(import.meta.url);
     const forge = require(
       path.join(pnpmStore, packageDirectory, "node_modules/node-forge"),

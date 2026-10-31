@@ -13,6 +13,14 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "happy-dom",
+    // happy-dom 21 rejects `animation.finished` on cancel without marking it
+    // handled, unlike browsers; framer-motion cancels on unmount. Ignore only
+    // that rejection so every other unhandled error still fails the run.
+    onUnhandledError: (error) =>
+      !(
+        error.name === "AbortError" &&
+        error.message === "The animation was canceled."
+      ),
     setupFiles: [path.resolve(__dirname, "test/vitest.setup.ts")],
     env: {
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_123",
