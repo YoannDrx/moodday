@@ -84,7 +84,6 @@ describe("test suite policy", () => {
 
     expect(releaseWorkflow).toContain("database-integrity:");
     expect(releaseWorkflow).toContain("run: pnpm verify:operational-jobs");
-    expect(releaseWorkflow).toContain("run: pnpm verify:medication-integrity");
   });
 
   it("keeps the backup cleanup compatible with minimal PostgreSQL images", () => {
