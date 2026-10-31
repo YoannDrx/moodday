@@ -3,15 +3,7 @@ import "server-only";
 import { env } from "@/lib/env";
 import { ActionError } from "@/lib/errors/action-error";
 
-export type RuntimeFeature =
-  | "accountImport"
-  | "admin"
-  | "aiInsights"
-  | "billing"
-  | "caregiverSharing"
-  | "googleCalendar"
-  | "healthKit"
-  | "pushNotifications";
+export type RuntimeFeature = "admin" | "billing" | "pushNotifications";
 
 export type FeatureAvailability = {
   enabled: boolean;
@@ -40,15 +32,8 @@ export function getFeatureAvailability(
   feature: RuntimeFeature,
 ): FeatureAvailability {
   switch (feature) {
-    case "accountImport":
-      return env.ACCOUNT_IMPORT_ENABLED ? available() : disabledByFlag();
     case "admin":
       return env.ADMIN_ENABLED ? available() : disabledByFlag();
-    case "aiInsights":
-      if (!env.AI_INSIGHTS_ENABLED) return disabledByFlag();
-      return hasValues(env.OPENAI_API_KEY, env.AI_SAFETY_HMAC_SECRET)
-        ? available()
-        : incompleteConfiguration();
     case "billing":
       if (!env.BILLING_ENABLED) return disabledByFlag();
       return hasValues(
@@ -62,22 +47,6 @@ export function getFeatureAvailability(
         (!env.STRIPE_TAX_ENABLED || hasValues(env.STRIPE_PRODUCT_TAX_CODE))
         ? available()
         : incompleteConfiguration();
-    case "caregiverSharing":
-      if (!env.CAREGIVER_SHARING_ENABLED) return disabledByFlag();
-      return hasValues(env.RESEND_API_KEY, env.CRON_SECRET)
-        ? available()
-        : incompleteConfiguration();
-    case "googleCalendar":
-      if (!env.GOOGLE_CALENDAR_ENABLED) return disabledByFlag();
-      return hasValues(
-        env.GOOGLE_CLIENT_ID,
-        env.GOOGLE_CLIENT_SECRET,
-        env.CRON_SECRET,
-      )
-        ? available()
-        : incompleteConfiguration();
-    case "healthKit":
-      return env.HEALTHKIT_ENABLED ? available() : disabledByFlag();
     case "pushNotifications":
       if (!env.PUSH_NOTIFICATIONS_ENABLED) return disabledByFlag();
       return hasValues(
@@ -93,22 +62,10 @@ export function getFeatureAvailability(
   }
 }
 
-export function isAiInsightsAvailableForUser(userId: string) {
-  if (!getFeatureAvailability("aiInsights").enabled) return false;
-  if (env.AI_ROLLOUT_MODE === "public") return true;
-  return new Set(
-    (env.AI_INTERNAL_USER_IDS ?? "")
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean),
-  ).has(userId);
-}
-
 export const getClientVisibleFeatures = () => ({
   billing: getFeatureAvailability("billing").enabled,
-  caregiverSharing: getFeatureAvailability("caregiverSharing").enabled,
-  googleCalendar: getFeatureAvailability("googleCalendar").enabled,
-  healthKit: getFeatureAvailability("healthKit").enabled,
+  // The couple loop is the product itself: never behind a flag.
+  coupleSharing: true,
   pushNotifications: getFeatureAvailability("pushNotifications").enabled,
 });
 

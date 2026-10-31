@@ -1,20 +1,15 @@
-import { todayQuerySchema } from "@moodday/contracts";
-import { getToday } from "@/features/v2/today/service";
-import {
-  apiSuccess,
-  getRequestId,
-  withApiV2Route,
-} from "@/lib/api-v2/responses";
+import { respond } from "@/features/couple/api";
+import { markGesturesSeen } from "@/features/couple/gesture.service";
+import { getToday } from "@/features/couple/today.service";
+import { withApiV2Route } from "@/lib/api-v2/responses";
 import { readAuthRoute } from "@/lib/zod-route";
 
-const getHandler = readAuthRoute
-  .query(todayQuerySchema)
-  .handler(async (request, { query, ctx }) => {
-    const requestId = getRequestId(request);
-    return apiSuccess(
-      await getToday({ userId: ctx.user.id, localDate: query.localDate }),
-      requestId,
-    );
-  });
-
-export const GET = withApiV2Route(getHandler);
+export const GET = withApiV2Route(
+  readAuthRoute.handler(async (request, { ctx }) =>
+    respond(request, async () => {
+      const today = await getToday(ctx.user.id);
+      if (today.role === "cycle_owner") await markGesturesSeen(ctx.user.id);
+      return today;
+    }),
+  ),
+);

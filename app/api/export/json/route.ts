@@ -3,8 +3,7 @@ import {
   getRequiredUser,
   RECENT_AUTHENTICATION_WINDOW_MS,
 } from "@/lib/auth/auth-user";
-import { buildUserDataExport } from "@/features/account/user-data-export";
-import { createJsonDownloadStream } from "@/features/account/json-download";
+import { createUserDataExportStream } from "@/features/account/user-data-export";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -32,18 +31,14 @@ export async function GET() {
     windowSeconds: 60 * 60,
   });
 
-  const exported = await buildUserDataExport(user);
   const date = new Date().toISOString().slice(0, 10);
 
-  return new Response(
-    createJsonDownloadStream(exported as Record<string, unknown>),
-    {
-      headers: {
-        "Cache-Control": "private, no-store, max-age=0",
-        "Content-Disposition": `attachment; filename="moodday-export-${date}.json"`,
-        "Content-Type": "application/json; charset=utf-8",
-        "X-Content-Type-Options": "nosniff",
-      },
+  return new Response(createUserDataExportStream(user), {
+    headers: {
+      "Cache-Control": "private, no-store, max-age=0",
+      "Content-Disposition": `attachment; filename="moodday-export-${date}.json"`,
+      "Content-Type": "application/json; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
     },
-  );
+  });
 }

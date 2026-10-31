@@ -76,9 +76,9 @@ describe("auth support configuration", () => {
         expect.objectContaining({ name: "free", price: 0, currency: "EUR" }),
         expect.objectContaining({
           name: "plus",
-          price: 7.99,
-          yearlyPrice: 59.99,
-          freeTrial: { days: 14 },
+          price: 4.99,
+          yearlyPrice: 34.99,
+          freeTrial: { days: 7 },
         }),
       ]),
     );

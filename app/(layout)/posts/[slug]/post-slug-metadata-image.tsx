@@ -52,7 +52,7 @@ export const PostSlugMetadataImage = ({ post }: MetadataImageProps) => {
       >
         <p
           style={{
-            color: SiteConfig.brand.primary,
+            color: SiteConfig.brand.accent,
             fontSize: "2rem",
             fontWeight: "bold",
             margin: 0,

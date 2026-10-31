@@ -1,742 +1,279 @@
+/* eslint-disable no-await-in-loop */
+import type { Prisma } from "@prisma/client";
+import { createJsonDownloadStream } from "./json-download";
 import { prisma } from "@/lib/prisma";
 
-export const buildUserDataExport = async (user: { id: string }) =>
-  prisma.$transaction(async (tx) => {
-    const now = new Date();
-    const activeCaregiverRelationships =
-      await tx.caregiverRelationship.findMany({
-        where: {
-          caregiverId: user.id,
-          status: "active",
-          revokedAt: null,
-          OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
-        },
-        select: { id: true, patientId: true },
+type Page = {
+  take: number;
+  skip?: number;
+  cursor?: { id: string };
+  orderBy: { id: "asc" };
+};
+type Collection = <T extends { id: string }>(
+  read: (page?: Page) => Promise<T[]>,
+) => Promise<T[] | AsyncIterable<T>>;
+const eagerCollection: Collection = async (read) => read();
+const paginatedCollection: Collection = async (read) => ({
+  async *[Symbol.asyncIterator]() {
+    let cursor: string | undefined;
+    for (;;) {
+      const rows = await read({
+        take: 250,
+        orderBy: { id: "asc" },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
-    const accessiblePatientIds = activeCaregiverRelationships.map(
-      ({ patientId }) => patientId,
-    );
-    const accessibleRelationshipIds = activeCaregiverRelationships.map(
-      ({ id }) => id,
-    );
-    const [
-      userProfile,
-      preferences,
-      moodEntries,
-      medications,
-      therapySessions,
-      exercises,
-      caregiverRelationships,
-      caregiverObservations,
-      caregiverEvents,
-      caregiverAccessLog,
-      consents,
-      moodTags,
-      consultationPreparations,
-      safetyPlan,
-      v2Appointments,
-      calendarConnections,
-      checkIns,
-      observations,
-      dailyAggregates,
-      sourceConnections,
-      routines,
-      userDrafts,
-      circleRelationships,
-      supportRequests,
-      caregiverContributions,
-      v2AccessLog,
-    ] = await Promise.all([
-      tx.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          image: true,
-          emailVerified: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.userPreferences.findUnique({
+      for (const row of rows) yield row;
+      if (rows.length < 250) break;
+      cursor = rows.at(-1)?.id;
+    }
+  },
+});
+
+const readUserDataExport = async (
+  tx: Prisma.TransactionClient,
+  user: { id: string },
+  collection: Collection,
+) => {
+  const linkWhere = { OR: [{ ownerId: user.id }, { supporterId: user.id }] };
+  const [
+    userProfile,
+    preferences,
+    profile,
+    consents,
+    safetyPlan,
+    periods,
+    checkIns,
+    customNeeds,
+    coupleLinks,
+    gestures,
+    allyProgress,
+    accessLog,
+  ] = await Promise.all([
+    tx.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    tx.userPreferences.findUnique({
+      where: { userId: user.id },
+      select: {
+        hasCompletedOnboarding: true,
+        timezone: true,
+        theme: true,
+        locale: true,
+        reducedMotion: true,
+        notificationContentMode: true,
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        dailyCheckInTime: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    tx.profile.findUnique({
+      where: { userId: user.id },
+      select: {
+        role: true,
+        displayName: true,
+        typicalCycleLength: true,
+        typicalPeriodLength: true,
+        hardestThings: true,
+        usualNeeds: true,
+        supporterFocus: true,
+        onboardedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    tx.userConsent.findMany({
+      where: { userId: user.id },
+      orderBy: { acceptedAt: "asc" },
+      select: {
+        purpose: true,
+        version: true,
+        locale: true,
+        country: true,
+        source: true,
+        acceptedAt: true,
+        revokedAt: true,
+      },
+    }),
+    tx.safetyPlan.findUnique({
+      where: { userId: user.id },
+      select: {
+        warningSigns: true,
+        copingStrategies: true,
+        safePlaces: true,
+        trustedContacts: true,
+        professionalContacts: true,
+        lastReviewedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    collection(async (page) =>
+      tx.period.findMany({
         where: { userId: user.id },
         select: {
-          hasCompletedOnboarding: true,
-          onboardingStep: true,
-          defaultChartPeriod: true,
-          timezone: true,
-          theme: true,
-          locale: true,
-          reducedMotion: true,
-          preferredTextScale: true,
-          notificationsEnabled: true,
-          dailyCheckInReminder: true,
-          dailyCheckInTime: true,
-          medicationReminders: true,
-          medicationReminderTime: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.moodEntry.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
           id: true,
-          value: true,
-          note: true,
-          energy: true,
-          sleepHours: true,
-          sleepQuality: true,
-          sleepDisturbances: true,
-          anxiety: true,
-          tags: true,
-          sideEffects: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.medication.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          name: true,
-          dosage: true,
-          frequency: true,
-          isPRN: true,
-          isArchived: true,
-          scheduleTimes: true,
-          weeklyDay: true,
           startDate: true,
           endDate: true,
-          stockQuantity: true,
-          unitsPerDose: true,
-          lowStockThreshold: true,
-          createdAt: true,
-          updatedAt: true,
-          intakes: {
-            orderBy: { takenAt: "asc" },
-            select: {
-              id: true,
-              takenAt: true,
-              skipped: true,
-              note: true,
-              scheduledForDate: true,
-              timezone: true,
-              doseIndex: true,
-              cancelledAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-          history: {
-            orderBy: { changedAt: "asc" },
-            select: {
-              id: true,
-              dosage: true,
-              previousDosage: true,
-              reason: true,
-              changedAt: true,
-            },
-          },
-          scheduleRevisions: {
-            orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }],
-            select: {
-              id: true,
-              effectiveDate: true,
-              dosage: true,
-              frequency: true,
-              scheduleTimes: true,
-              weeklyDay: true,
-              unitsPerDose: true,
-              reason: true,
-              createdAt: true,
-            },
-          },
-          inventoryEvents: {
-            orderBy: { occurredAt: "asc" },
-            select: {
-              id: true,
-              medIntakeId: true,
-              quantityDelta: true,
-              reason: true,
-              note: true,
-              occurredAt: true,
-              createdAt: true,
-            },
-          },
-          intakeRevisions: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              medIntakeId: true,
-              action: true,
-              previousSkipped: true,
-              nextSkipped: true,
-              previousTakenAt: true,
-              nextTakenAt: true,
-              previousDoseIndex: true,
-              nextDoseIndex: true,
-              previousDateKey: true,
-              nextDateKey: true,
-              previousNote: true,
-              nextNote: true,
-              reason: true,
-              timezone: true,
-              createdAt: true,
-            },
-          },
-        },
-      }),
-      tx.therapySession.findMany({
-        where: { userId: user.id },
-        orderBy: { date: "asc" },
-        select: {
-          id: true,
-          date: true,
-          notes: true,
-          benefitRating: true,
           createdAt: true,
           updatedAt: true,
         },
+        orderBy: { startDate: "asc" },
+        ...page,
       }),
-      tx.exercise.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          isArchived: true,
-          createdAt: true,
-          updatedAt: true,
-          logs: {
-            orderBy: { completedAt: "asc" },
-            select: {
-              id: true,
-              completedAt: true,
-              note: true,
-              createdAt: true,
-            },
-          },
-        },
-      }),
-      tx.caregiverRelationship.findMany({
-        where: {
-          OR: [
-            { patientId: user.id },
-            {
-              caregiverId: user.id,
-              status: "active",
-              revokedAt: null,
-              OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: now } }],
-            },
-          ],
-        },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          patientId: true,
-          caregiverId: true,
-          caregiverEmail: true,
-          role: true,
-          label: true,
-          permissions: true,
-          status: true,
-          inviteExpiry: true,
-          accessExpiresAt: true,
-          revokedAt: true,
-          moodWindowDays: true,
-          medicationWindowDays: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.caregiverObservation.findMany({
-        where: {
-          OR: [
-            { subjectId: user.id, visibleToPatient: true },
-            {
-              observerId: user.id,
-              subjectId: { in: accessiblePatientIds },
-            },
-          ],
-        },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          observerId: true,
-          subjectId: true,
-          moodObserved: true,
-          energyObserved: true,
-          socialBehavior: true,
-          sleepObserved: true,
-          notes: true,
-          visibleToPatient: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.caregiverEvent.findMany({
-        where: {
-          OR: [
-            { subjectId: user.id, visibleToPatient: true },
-            {
-              reporterId: user.id,
-              subjectId: { in: accessiblePatientIds },
-            },
-          ],
-        },
-        orderBy: { eventDate: "asc" },
-        select: {
-          id: true,
-          reporterId: true,
-          subjectId: true,
-          eventType: true,
-          severity: true,
-          description: true,
-          eventDate: true,
-          visibleToPatient: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.caregiverAccessLog.findMany({
-        where: {
-          OR: [
-            { patientId: user.id },
-            {
-              caregiverId: user.id,
-              relationshipId: { in: accessibleRelationshipIds },
-            },
-          ],
-        },
-        orderBy: { accessedAt: "asc" },
-        select: {
-          id: true,
-          patientId: true,
-          caregiverId: true,
-          relationshipId: true,
-          resource: true,
-          accessedAt: true,
-        },
-      }),
-      tx.userConsent.findMany({
-        where: { userId: user.id },
-        orderBy: { acceptedAt: "asc" },
-        select: {
-          purpose: true,
-          version: true,
-          locale: true,
-          country: true,
-          source: true,
-          acceptedAt: true,
-          revokedAt: true,
-        },
-      }),
-      tx.moodTagDefinition.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          normalizedLabel: true,
-          displayLabel: true,
-          category: true,
-          color: true,
-          isArchived: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.consultationPreparation.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          scheduledFor: true,
-          title: true,
-          questions: true,
-          importantEvents: true,
-          periodStartDate: true,
-          periodEndDate: true,
-          personalNotes: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.safetyPlan.findUnique({
+    ),
+    collection(async (page) =>
+      tx.dailyCheckIn.findMany({
         where: { userId: user.id },
         select: {
-          warningSigns: true,
-          copingStrategies: true,
-          safePlaces: true,
-          trustedContacts: true,
-          professionalContacts: true,
-          lastReviewedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.appointment.findMany({
-        where: { userId: user.id },
-        orderBy: { startsAt: "asc" },
-        select: {
           id: true,
-          clinicianId: true,
-          title: true,
-          startsAt: true,
-          endsAt: true,
-          timezone: true,
-          location: true,
-          status: true,
-          source: true,
-          externalEventId: true,
-          externalVersion: true,
-          preparationStatus: true,
-          createdAt: true,
-          updatedAt: true,
-          questions: {
-            orderBy: { position: "asc" },
-            select: {
-              id: true,
-              position: true,
-              content: true,
-              privateNote: true,
-              answeredAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-          events: {
-            orderBy: { occurredAt: "asc" },
-            select: {
-              id: true,
-              type: true,
-              occurredAt: true,
-              payload: true,
-              createdAt: true,
-            },
-          },
-          decisions: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              summary: true,
-              status: true,
-              includeInBrief: true,
-              dueAt: true,
-              completedAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-          briefs: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              version: true,
-              content: true,
-              privateNotesExcluded: true,
-              periodStart: true,
-              periodEnd: true,
-              createdAt: true,
-              shares: {
-                orderBy: { createdAt: "asc" },
-                select: {
-                  id: true,
-                  expiresAt: true,
-                  revokedAt: true,
-                  accessCount: true,
-                  lastAccessedAt: true,
-                  createdAt: true,
-                },
-              },
-            },
-          },
-        },
-      }),
-      tx.calendarConnection.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          provider: true,
-          externalCalendarId: true,
-          displayName: true,
-          timezone: true,
-          detailLevel: true,
-          lastSyncStartedAt: true,
-          lastSyncCompletedAt: true,
-          lastSyncErrorCode: true,
-          revokedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          externalEvents: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              appointmentId: true,
-              externalEventId: true,
-              externalVersion: true,
-              externalUpdatedAt: true,
-              title: true,
-              startsAt: true,
-              endsAt: true,
-              timezone: true,
-              location: true,
-              syncState: true,
-              conflictDetectedAt: true,
-              providerDeletedAt: true,
-              lastSyncedAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-      }),
-      tx.checkIn.findMany({
-        where: { userId: user.id },
-        orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          depth: true,
           localDate: true,
           timezone: true,
-          valence: true,
-          activation: true,
-          irritability: true,
-          anxiety: true,
-          contexts: true,
-          note: true,
+          state: true,
+          symptoms: true,
+          needs: true,
+          privateNote: true,
           createdAt: true,
           updatedAt: true,
         },
+        orderBy: { localDate: "asc" },
+        ...page,
       }),
-      tx.observation.findMany({
-        where: { userId: user.id },
-        orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
+    ),
+    tx.customNeed.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, label: true, active: true, createdAt: true },
+    }),
+    tx.coupleLink.findMany({
+      where: linkWhere,
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        ownerId: true,
+        supporterId: true,
+        invitedByRole: true,
+        status: true,
+        level: true,
+        shareSymptoms: true,
+        detailedPreviews: true,
+        sharingVersion: true,
+        pausedUntil: true,
+        acceptedAt: true,
+        endedAt: true,
+        createdAt: true,
+      },
+    }),
+    collection(async (page) =>
+      tx.gesture.findMany({
+        where: { OR: [{ senderId: user.id }, { recipientId: user.id }] },
         select: {
           id: true,
-          metric: true,
-          value: true,
-          unit: true,
-          windowStart: true,
-          windowEnd: true,
-          localDate: true,
-          timezone: true,
-          provenance: true,
-          sourceReference: true,
-          coverage: true,
-          quality: true,
-          importedAt: true,
-          algorithmVersion: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.dailyAggregate.findMany({
-        where: { userId: user.id },
-        orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          sourceConnectionId: true,
-          metric: true,
-          value: true,
-          unit: true,
-          localDate: true,
-          timezone: true,
-          windowStart: true,
-          windowEnd: true,
-          provenance: true,
-          coverage: true,
-          quality: true,
-          algorithmVersion: true,
-          importedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.sourceConnection.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          kind: true,
-          status: true,
-          permissionScope: true,
-          pausedAt: true,
-          revokedAt: true,
-          lastSyncedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.routine.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          schedule: true,
-          weeklyTarget: true,
-          status: true,
-          pausedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          occurrences: {
-            orderBy: [{ localDate: "asc" }, { createdAt: "asc" }],
-            select: {
-              id: true,
-              localDate: true,
-              timezone: true,
-              status: true,
-              completedAt: true,
-              note: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-      }),
-      tx.userDraft.findMany({
-        where: { userId: user.id },
-        orderBy: { updatedAt: "asc" },
-        select: {
-          id: true,
-          kind: true,
-          contextKey: true,
-          content: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      tx.circleRelationship.findMany({
-        where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          patientId: true,
-          caregiverId: true,
-          invitationEmail: true,
-          displayName: true,
-          status: true,
-          invitedAt: true,
-          expiresAt: true,
-          acceptedAt: true,
-          revokedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          contracts: {
-            orderBy: { version: "asc" },
-            select: {
-              id: true,
-              version: true,
-              permissions: true,
-              startsAt: true,
-              expiresAt: true,
-              acceptedAt: true,
-              revokedAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-      }),
-      tx.supportRequest.findMany({
-        where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          patientId: true,
-          caregiverId: true,
-          relationshipId: true,
+          linkId: true,
+          senderId: true,
+          recipientId: true,
           kind: true,
           message: true,
           status: true,
-          requestedFor: true,
-          respondedAt: true,
-          completedAt: true,
+          seenAt: true,
+          thankedAt: true,
           createdAt: true,
-          updatedAt: true,
         },
-      }),
-      tx.caregiverContribution.findMany({
-        where: { OR: [{ patientId: user.id }, { authorId: user.id }] },
         orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          patientId: true,
-          authorId: true,
-          relationshipId: true,
-          kind: true,
-          occurredAt: true,
-          content: true,
-          createdAt: true,
-        },
+        ...page,
       }),
+    ),
+    tx.allyProgress.findMany({
+      where: { userId: user.id },
+      orderBy: { completedAt: "asc" },
+      select: { lessonSlug: true, completedAt: true },
+    }),
+    collection(async (page) =>
       tx.accessLog.findMany({
-        where: { OR: [{ patientId: user.id }, { actorId: user.id }] },
-        orderBy: { createdAt: "asc" },
+        where: { OR: [{ ownerId: user.id }, { actorId: user.id }] },
         select: {
           id: true,
-          patientId: true,
+          ownerId: true,
           actorId: true,
-          relationshipId: true,
+          linkId: true,
           action: true,
           resourceKind: true,
           createdAt: true,
         },
+        orderBy: { createdAt: "asc" },
+        ...page,
       }),
-    ]);
+    ),
+  ]);
 
-    return {
-      exportMetadata: {
-        exportDate: new Date().toISOString(),
-        dataVersion: "2.5",
-        applicationName: "Moodday",
-        userId: user.id,
-        timezone: preferences?.timezone ?? null,
-        excludedSecurityData: [
-          "authentication sessions and credentials",
-          "push subscription secrets",
-          "Stripe identifiers",
-          "caregiver invitation tokens",
-          "offline operation identifiers",
-        ],
+  return {
+    exportMetadata: {
+      exportDate: new Date().toISOString(),
+      dataVersion: "3.0",
+      applicationName: "Moodday",
+      userId: user.id,
+      timezone: preferences?.timezone ?? null,
+      excludedSecurityData: [
+        "authentication sessions and credentials",
+        "push subscription secrets and device push tokens",
+        "Stripe identifiers",
+        "couple invitation codes",
+        "offline operation identifiers",
+      ],
+    },
+    user: userProfile,
+    preferences,
+    profile,
+    consents,
+    safetyPlan,
+    cycle: { periods },
+    checkIns,
+    customNeeds,
+    couple: { links: coupleLinks, gestures, accessLog },
+    allyProgress,
+  };
+};
+
+export const buildUserDataExport = async (user: { id: string }) =>
+  prisma.$transaction(
+    async (tx) => readUserDataExport(tx, user, eagerCollection),
+    { isolationLevel: "RepeatableRead", timeout: 30_000 },
+  );
+
+/** The snapshot stays open until the paginated body is consumed or cancelled. */
+export const createUserDataExportStream = (user: { id: string }) => {
+  const transport = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = transport.writable.getWriter();
+  void prisma
+    .$transaction(
+      async (tx) => {
+        const data = await readUserDataExport(tx, user, paginatedCollection);
+        const reader = createJsonDownloadStream(data).getReader();
+        try {
+          for (;;) {
+            const part = await reader.read();
+            if (part.done) break;
+            await writer.write(part.value);
+          }
+        } finally {
+          await reader.cancel();
+        }
       },
-      user: userProfile,
-      preferences,
-      moodEntries,
-      medications,
-      therapySessions,
-      exercises,
-      consents,
-      moodTags,
-      consultationPreparations,
-      safetyPlan,
-      appointments: v2Appointments,
-      calendarConnections,
-      checkIns,
-      observations,
-      dailyAggregates,
-      sourceConnections,
-      routines,
-      drafts: userDrafts,
-      circle: {
-        relationships: circleRelationships,
-        supportRequests,
-        contributions: caregiverContributions,
-        accessLog: v2AccessLog,
-      },
-      caregiverCircle: {
-        relationships: caregiverRelationships,
-        observations: caregiverObservations,
-        events: caregiverEvents,
-        accessLog: caregiverAccessLog,
-      },
-    };
-  });
+      { isolationLevel: "RepeatableRead", timeout: 90_000 },
+    )
+    .then(async () => writer.close())
+    .catch(async (error: unknown) => writer.abort(error));
+  return transport.readable;
+};

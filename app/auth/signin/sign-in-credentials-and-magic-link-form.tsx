@@ -61,7 +61,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
         return unwrapSafePromise(
           authClient.signIn.magicLink({
             email: values.email,
-            callbackURL: getCallbackUrl(props.callbackUrl ?? "/dashboard"),
+            callbackURL: getCallbackUrl(props.callbackUrl ?? "/today"),
           }),
         );
       }
@@ -70,7 +70,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       toast.error(error.message);
     },
     onSuccess: () => {
-      const callbackUrl = getCallbackUrl(props.callbackUrl ?? "/dashboard");
+      const callbackUrl = getCallbackUrl(props.callbackUrl ?? "/today");
       const newUrl =
         window.location.origin +
         (isUsingCredentials ? callbackUrl : "/auth/verify");
@@ -89,7 +89,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       form={form}
       onSubmit={onSubmit}
       disabled={!isHydrated || signInMutation.isPending}
-      className="max-w-lg space-y-4"
+      className="w-full max-w-lg min-w-0 space-y-4"
     >
       <FormField
         control={form.control}
@@ -113,7 +113,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
           name="password"
           render={({ field }) => (
             <FormItem className="flex-1">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <FormLabel>{t("auth.form.password")}</FormLabel>
                 <Link
                   href="/auth/forget-password"
@@ -134,7 +134,7 @@ export const SignInCredentialsAndMagicLinkForm = (props: {
       <LoadingButton
         loading={signInMutation.isPending}
         type="submit"
-        className="ring-offset-card w-full ring-offset-2 disabled:bg-gray-100! disabled:text-gray-700! disabled:opacity-100! dark:disabled:bg-gray-900! dark:disabled:text-gray-300!"
+        className="ring-offset-card disabled:bg-muted! disabled:text-muted-foreground! w-full ring-offset-2 disabled:opacity-100!"
       >
         {isUsingCredentials
           ? t("auth.signIn.submit")

@@ -1,14 +1,14 @@
-import type { MedicationDto } from "@moodday/contracts";
+import Constants from "expo-constants";
+import * as Crypto from "expo-crypto";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
-import {
-  defaultLocalReminderPreferences,
-  planLocalNotifications,
-  type LocalReminderPreferences,
-} from "./notification-planner";
+import { Platform } from "react-native";
+import { api } from "./api";
+import { routeForNotificationUrl, type NotificationRoute } from "./navigation";
+import { ownerStorageKey } from "./offline-queue";
 
-const preferencesKey = "moodday.local-reminder-preferences.v1";
-const identifierPrefix = "moodday-reminder-";
+// Remote push only: partner check-ins, gestures and "merci". The permission
+// is requested after the duo is formed or from the settings, never at launch.
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -19,109 +19,136 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export const getLocalReminderPreferences = async () => {
-  const stored = await SecureStore.getItemAsync(preferencesKey);
-  if (!stored) return defaultLocalReminderPreferences;
-  try {
-    const value = JSON.parse(stored) as Partial<LocalReminderPreferences>;
-    return { ...defaultLocalReminderPreferences, ...value };
-  } catch {
-    return defaultLocalReminderPreferences;
-  }
+const devicePublicIdKey = "moodday.device-public-id";
+
+export const getDevicePublicId = async () => {
+  const existing = await SecureStore.getItemAsync(devicePublicIdKey);
+  if (existing && existing.length >= 8) return existing;
+  const created = Crypto.randomUUID();
+  await SecureStore.setItemAsync(devicePublicIdKey, created, {
+    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+  });
+  return created;
 };
 
-const hasNotificationPermission = (
+export type PushPermission = "granted" | "denied" | "undetermined";
+
+const toPermission = (
   status: Notifications.NotificationPermissionsStatus,
-) =>
-  status.granted ||
-  status.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL ||
-  status.ios?.status === Notifications.IosAuthorizationStatus.EPHEMERAL;
-
-export const getLocalNotificationPermission = async () =>
-  hasNotificationPermission(await Notifications.getPermissionsAsync());
-
-const cancelMoodDayNotifications = async () => {
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  await Promise.all(
-    scheduled
-      .filter((notification) =>
-        notification.identifier.startsWith(identifierPrefix),
-      )
-      .map(async (notification) => {
-        await Notifications.cancelScheduledNotificationAsync(
-          notification.identifier,
-        );
-      }),
-  );
+): PushPermission => {
+  if (
+    status.granted ||
+    status.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL ||
+    status.ios?.status === Notifications.IosAuthorizationStatus.EPHEMERAL
+  )
+    return "granted";
+  return status.canAskAgain ? "undetermined" : "denied";
 };
 
-export const updateLocalNotificationSchedule = async ({
-  medications,
-  preferences,
-  requestPermission = false,
+export const getPushPermission = async () =>
+  toPermission(await Notifications.getPermissionsAsync());
+
+const projectId = () => {
+  const fromExtra = (
+    Constants.expoConfig?.extra as { eas?: { projectId?: unknown } } | undefined
+  )?.eas?.projectId;
+  const value =
+    typeof fromExtra === "string" ? fromExtra : Constants.easConfig?.projectId;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+};
+
+const platform = () => (Platform.OS === "ios" ? "ios" : "android");
+
+/**
+ * Registers this device for partner notifications. With `prompt`, asks the
+ * system permission first; without it, only refreshes an already granted
+ * token so a launch never shows a permission dialog.
+ */
+const optOutKey = "moodday.push-opt-out";
+
+/** Set from the settings: launches then stop re-registering the token. */
+export const isPushOptedOut = async () =>
+  (await SecureStore.getItemAsync(optOutKey)) === "1";
+
+export const ensurePushRegistration = async ({
+  prompt,
 }: {
-  medications: MedicationDto[];
-  preferences: LocalReminderPreferences;
-  requestPermission?: boolean;
-}) => {
-  let permission = await Notifications.getPermissionsAsync();
-  if (
-    preferences.enabled &&
-    requestPermission &&
-    !hasNotificationPermission(permission)
-  ) {
-    permission = await Notifications.requestPermissionsAsync({
-      ios: { allowAlert: true, allowBadge: false, allowSound: false },
+  prompt: boolean;
+}): Promise<PushPermission> => {
+  if (prompt) await SecureStore.deleteItemAsync(optOutKey);
+  else if (await isPushOptedOut()) return "denied";
+  let permission = await getPushPermission();
+  if (permission === "undetermined" && prompt) {
+    permission = toPermission(
+      await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowBadge: false, allowSound: true },
+      }),
+    );
+  }
+  if (permission !== "granted") return permission;
+
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "Moodday",
+      importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
-  const permitted = hasNotificationPermission(permission);
-  const persisted = {
-    ...preferences,
-    enabled: preferences.enabled && permitted,
-  };
-  await SecureStore.setItemAsync(preferencesKey, JSON.stringify(persisted));
-  await cancelMoodDayNotifications();
-  if (!persisted.enabled) return { permitted, scheduled: 0 };
-
-  const plan = planLocalNotifications({
-    medications,
-    now: new Date(),
-    preferences: persisted,
-  });
-  await Promise.all(
-    plan.map(async (item) => {
-      await Notifications.scheduleNotificationAsync({
-        identifier: item.identifier,
-        content: {
-          title: "Mood Day",
-          body:
-            item.kind === "daily_check_in"
-              ? "Un repère doux t’attend dans Mood Day."
-              : "Un rappel de traitement t’attend dans Mood Day.",
-          data: { route: item.route },
-        },
-        trigger: item.date
-          ? {
-              type: Notifications.SchedulableTriggerInputTypes.DATE,
-              date: item.date,
-            }
-          : {
-              type: Notifications.SchedulableTriggerInputTypes.DAILY,
-              hour: item.hour,
-              minute: item.minute,
-            },
-      });
-    }),
+  const id = projectId();
+  const token = await Notifications.getExpoPushTokenAsync(
+    id ? { projectId: id } : undefined,
   );
-  return { permitted, scheduled: plan.length };
+  await api.registerDevice({
+    publicId: await getDevicePublicId(),
+    platform: platform(),
+    displayName: null,
+    pushToken: token.data,
+  });
+  return permission;
 };
 
-export const addNotificationNavigationListener = (
-  navigate: (route: "/" | "/(tabs)/soin") => void,
-) =>
-  Notifications.addNotificationResponseReceivedListener((response) => {
-    const route = response.notification.request.content.data?.route;
-    if (route === "/" || route === "/(tabs)/soin") {
-      navigate(route);
-    }
+/**
+ * Stops partner notifications on this device. `optOut` (settings) also keeps
+ * later launches from registering again; sign-out leaves the choice intact.
+ */
+export const unregisterPush = async ({ optOut = false } = {}) => {
+  await api.registerDevice({
+    publicId: await getDevicePublicId(),
+    platform: platform(),
+    displayName: null,
+    pushToken: null,
   });
+  if (optOut) await SecureStore.setItemAsync(optOutKey, "1");
+};
+
+const dismissedKey = async (ownerId: string) =>
+  ownerStorageKey("moodday.push-invite-dismissed", ownerId);
+
+export const isPushInviteDismissed = async (ownerId: string) =>
+  (await SecureStore.getItemAsync(await dismissedKey(ownerId))) === "1";
+
+export const dismissPushInvite = async (ownerId: string) =>
+  SecureStore.setItemAsync(await dismissedKey(ownerId), "1");
+
+const routeFromResponse = (response: Notifications.NotificationResponse) =>
+  routeForNotificationUrl(response.notification.request.content.data?.url);
+
+export const addNotificationNavigationListener = (
+  navigate: (route: NotificationRoute) => void,
+) => {
+  const subscription = Notifications.addNotificationResponseReceivedListener(
+    (response) => navigate(routeFromResponse(response)),
+  );
+  // A tap that cold-started the app is delivered before the listener exists.
+  void Notifications.getLastNotificationResponseAsync()
+    .then((response) => {
+      if (response) {
+        navigate(routeFromResponse(response));
+        Notifications.clearLastNotificationResponse();
+      }
+    })
+    .catch(() => undefined);
+  return subscription;
+};
+
+export const addNotificationReceivedListener = (listener: () => void) =>
+  Notifications.addNotificationReceivedListener(() => listener());

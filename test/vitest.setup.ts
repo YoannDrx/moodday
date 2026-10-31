@@ -125,6 +125,9 @@ const authClient = mockDeep<AuthClientType>();
 const resend = mockDeep<Resend>();
 global.fetch = fetch;
 
+// Server modules guard themselves with "server-only"; unit tests import them
+// directly, so the guard is neutralised for the whole suite.
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/stripe", () => ({ stripe }));
 vi.mock("@/lib/auth-client", () => ({ authClient }));
@@ -166,6 +169,16 @@ vi.mock("@/i18n/provider", () => {
         or: "or",
         lastUsed: "Last used",
         provider: "Continue with {provider}",
+        providerErrors: {
+          accessDenied: "Sign-in cancelled. Try again or use your email.",
+          signupClosed:
+            "No Moodday account is linked to this address. Registration is closed during the private beta: join the waitlist to hear when it opens.",
+          signupInviteRequired:
+            "This address has not been invited to the private beta yet. Use the invited address, or join the waitlist.",
+          generic:
+            "The provider could not complete sign-in. Try again or use your email.",
+          joinWaitlist: "Join the waitlist",
+        },
       },
       signUp: {
         title: "Create your {app} account",

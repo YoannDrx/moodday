@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": [],
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "apps/mobile/expo-env.d.ts",
+    "apps/mobile/assets.d.ts",
+    "apps/mobile/.expo/types/**/*.ts",
+    "__tests__/mobile-auth-screens.test.tsx",
+    "__tests__/mobile-account-access-gate.test.tsx",
+    "__tests__/mobile-today-screen.test.tsx",
+    "__tests__/mobile-offline-queue.test.ts",
+    "__tests__/mobile-navigation.test.ts",
+    "__tests__/mobile-couple-view.test.ts",
+    "__tests__/mobile-lesson-markdown.test.ts"
+  ],
+  "exclude": ["node_modules", "apps/mobile/node_modules"]
+}

@@ -1,5 +1,8 @@
 export const SiteConfig = {
   title: "Moodday",
+  tagline: "Le SPM, ça se traverse à deux.",
+  description:
+    "Moodday aide les couples à traverser le SPM et le TDPM : elle fait son point en dix secondes, son ou sa partenaire répond par un geste. Journal de bien-être sans diagnostic.",
   prodUrl: "https://www.moodday.app",
   appId: "moodday",
   domain: "www.moodday.app",
@@ -12,7 +15,10 @@ export const SiteConfig = {
     email: "hello@moodday.app",
   },
   brand: {
-    primary: "#1E7775",
+    /** Aubergine ink of the « Chaud devant » palette (see app/globals.css). */
+    primary: "#2b1b30",
+    /** Honey accent, readable on dark backgrounds (OG images). */
+    accent: "#f2b84b",
   },
   team: {
     image: "https://github.com/YoannDrx.png",

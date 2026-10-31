@@ -20,9 +20,9 @@ type DistributiveOmit<T, TOmitted extends PropertyKey> = T extends any
 export const typographyVariants = cva("", {
   variants: {
     variant: {
-      h1: "font-caption scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl",
-      h2: "font-caption scroll-m-20 text-3xl font-semibold tracking-tight transition-colors",
-      h3: "font-caption scroll-m-20 text-xl font-semibold tracking-tight",
+      h1: "font-display scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl",
+      h2: "font-display scroll-m-20 text-3xl font-extrabold tracking-tight transition-colors",
+      h3: "font-display scroll-m-20 text-xl font-extrabold tracking-tight",
       p: "leading-7 [&:not(:first-child)]:mt-6",
       default: "",
       quote: "mt-6 border-l-2 pl-6 italic",

@@ -6,7 +6,7 @@ import { invalidateMobileSession } from "./session-security";
 const apiUrl = Constants.expoConfig?.extra?.apiUrl;
 
 if (typeof apiUrl !== "string") {
-  throw new Error("Mood Day mobile API configuration is incomplete");
+  throw new Error("Moodday mobile API configuration is incomplete");
 }
 
 export const appBaseUrl = apiUrl.replace(/\/$/, "");

@@ -40,7 +40,7 @@ export function TwoFactorChallenge() {
       return;
     }
 
-    router.replace("/dashboard");
+    router.replace("/today");
     router.refresh();
   };
 

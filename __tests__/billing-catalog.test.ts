@@ -10,16 +10,16 @@ function makePrice(overrides: Record<string, unknown> = {}) {
     id: "price_monthly",
     active: true,
     currency: "eur",
-    unit_amount: 799,
+    unit_amount: 499,
     recurring: { interval: "month" },
     tax_behavior: "inclusive",
-    lookup_key: "moodday_plus_monthly_eur_v1",
+    lookup_key: "moodday_duo_monthly_eur_v1",
     metadata: { app: "moodday", plan: "plus", catalog_version: "1" },
     product: {
       id: "prod_moodday",
       object: "product",
       active: true,
-      name: "Moodday Plus",
+      name: "Moodday Duo",
       metadata: {
         app: "moodday",
         plan: "plus",
@@ -46,7 +46,7 @@ describe("Moodday Stripe catalogue", () => {
       {
         product: {
           active: true,
-          name: "Moodday Plus",
+          name: "Moodday Duo",
           metadata: {
             app: "another-app",
             plan: "plus",

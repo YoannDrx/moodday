@@ -3,9 +3,9 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 type AppVariant = "development" | "preview" | "production";
 
 const variantNames: Record<AppVariant, string> = {
-  development: "Mood Day Dev",
-  preview: "Mood Day Preview",
-  production: "Mood Day",
+  development: "Moodday Dev",
+  preview: "Moodday Preview",
+  production: "Moodday",
 };
 
 const getVariant = (): AppVariant => {
@@ -63,24 +63,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme,
     plugins: [
       ...(config.plugins ?? []),
-      [
-        "@kingstinct/react-native-healthkit",
-        {
-          NSHealthShareUsageDescription:
-            "Mood Day lit uniquement les données Santé que tu choisis afin de créer des repères journaliers sur ton appareil.",
-          NSHealthUpdateUsageDescription:
-            "Mood Day n’écrit aucune donnée dans Santé.",
-          background: false,
-        },
-      ],
-      [
-        "expo-calendar",
-        {
-          calendarPermission:
-            "Mood Day accède au calendrier uniquement lorsque tu choisis d’ajouter ou d’importer un rendez-vous.",
-          remindersPermission: false,
-        },
-      ],
       [
         "expo-notifications",
         {

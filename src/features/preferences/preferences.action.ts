@@ -19,31 +19,6 @@ export const getUserPreferences = authAction.action(
   },
 );
 
-// Update onboarding step
-const updateOnboardingSchema = z.object({
-  step: z.number().min(0).max(4),
-  completed: z.boolean().optional(),
-});
-
-export const updateOnboardingProgress = authAction
-  .inputSchema(updateOnboardingSchema)
-  .action(async ({ parsedInput: { step, completed }, ctx: { user } }) => {
-    const preferences = await prisma.userPreferences.upsert({
-      where: { userId: user.id },
-      update: {
-        onboardingStep: step,
-        hasCompletedOnboarding: completed ?? false,
-      },
-      create: {
-        userId: user.id,
-        onboardingStep: step,
-        hasCompletedOnboarding: completed ?? false,
-      },
-    });
-
-    return preferences;
-  });
-
 // Complete onboarding
 export const completeOnboarding = authAction.action(
   async ({ ctx: { user } }) => {
@@ -64,11 +39,9 @@ export const completeOnboarding = authAction.action(
 
 // Update display preferences
 const updateDisplayPreferencesSchema = z.object({
-  defaultChartPeriod: z.number().optional(),
-  theme: z.enum(["light", "dark", "system", "zen"]).optional(),
+  theme: z.enum(["light", "dark", "system"]).optional(),
   locale: z.enum(["fr", "en"]).optional(),
   reducedMotion: z.boolean().optional(),
-  preferredTextScale: z.enum(["system", "large", "extra_large"]).optional(),
 });
 
 export const updateDisplayPreferences = authAction
@@ -93,8 +66,8 @@ const updateNotificationPreferencesSchema = z.object({
   notificationsEnabled: z.boolean().optional(),
   dailyCheckInReminder: z.boolean().optional(),
   dailyCheckInTime: timePreferenceSchema.optional(),
-  medicationReminders: z.boolean().optional(),
-  medicationReminderTime: timePreferenceSchema.optional(),
+  quietHoursStart: timePreferenceSchema.optional(),
+  quietHoursEnd: timePreferenceSchema.optional(),
 });
 
 export const updateNotificationPreferences = authAction

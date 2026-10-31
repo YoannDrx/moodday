@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Mood Day",
+    "name": "Moodday",
     "slug": "mood-day",
     "version": "0.1.0",
     "icon": "./assets/app-icon.png",
@@ -14,7 +14,7 @@
     "android": {
       "package": "fr.yodev.moodday",
       "adaptiveIcon": {
-        "backgroundColor": "#F6F3EC"
+        "backgroundColor": "#FBF4EA"
       }
     },
     "plugins": [
@@ -26,18 +26,16 @@
         }
       ],
       [
-        "expo-sqlite",
-        {
-          "useSQLCipher": true
-        }
-      ],
-      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F3EC",
+          "backgroundColor": "#FBF4EA",
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#1E1322",
+            "image": "./assets/splash-icon.png"
+          }
         }
       ]
     ],
@@ -50,6 +48,7 @@
         "projectId": "973b3a37-c1d3-4dac-a327-20d4b9bbd18e"
       }
     },
-    "owner": "yoanndrx"
+    "owner": "yoanndrx",
+    "description": "Moodday aide les couples à traverser le SPM : elle fait son point du jour, son ou sa partenaire reçoit des idées de gestes."
   }
 }

@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   } | null,
   setOwner: vi.fn(),
   compact: vi.fn(),
-  syncMood: vi.fn(),
   syncActions: vi.fn(),
   unsubscribe: vi.fn(),
   getContentMode: vi.fn(),
@@ -34,9 +33,6 @@ vi.mock("@/features/pwa/offline-store", () => ({
   compactOfflineOperations: mocks.compact,
   setActiveOfflineOwner: mocks.setOwner,
 }));
-vi.mock("@/features/pwa/offline-queue", () => ({
-  syncQueuedMoodEntries: mocks.syncMood,
-}));
 vi.mock("@/features/pwa/offline-actions", () => ({
   syncQueuedActions: mocks.syncActions,
 }));
@@ -57,7 +53,6 @@ describe("PWA manager", () => {
     mocks.preferences = { notificationsEnabled: true, locale: "fr" };
     mocks.getContentMode.mockReturnValue("generic");
     mocks.compact.mockResolvedValue(undefined);
-    mocks.syncMood.mockResolvedValue(undefined);
     mocks.syncActions.mockResolvedValue(undefined);
     mocks.unsubscribe.mockResolvedValue(undefined);
     mocks.update.mockResolvedValue(undefined);
@@ -112,7 +107,6 @@ describe("PWA manager", () => {
     await waitFor(() =>
       expect(mocks.compact).toHaveBeenCalledWith("user-alice"),
     );
-    expect(mocks.syncMood).toHaveBeenCalledWith("user-alice");
     expect(mocks.syncActions).toHaveBeenCalledWith("user-alice");
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
     const firstRequest = vi.mocked(globalThis.fetch).mock.calls[0]?.[1];

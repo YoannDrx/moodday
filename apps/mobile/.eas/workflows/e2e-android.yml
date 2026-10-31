@@ -1,4 +1,4 @@
-name: Mood Day mobile E2E — Android
+name: Moodday mobile E2E — Android
 
 on:
   workflow_dispatch: {}

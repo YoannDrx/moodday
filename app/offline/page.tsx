@@ -15,12 +15,10 @@ export default async function OfflinePage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-lg items-center px-4">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+      <div className="bg-card rounded-3xl border border-[var(--ink)]/25 p-8 text-center shadow-sm">
         <h1 className="text-2xl font-bold">{t("offline.title")}</h1>
-        <p className="text-muted-foreground mt-3">
-          {t("offline.description")}
-        </p>
-        <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-50 p-5 text-left text-gray-900">
+        <p className="text-muted-foreground mt-3">{t("offline.description")}</p>
+        <div className="text-foreground mt-8 rounded-2xl border border-amber-500/30 bg-amber-50 p-5 text-left">
           <h2 className="font-semibold">Aide immédiate en France</h2>
           <p className="mt-2 text-sm">
             Moodday n’est pas un service d’urgence et ne contacte personne

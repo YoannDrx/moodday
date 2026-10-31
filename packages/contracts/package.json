@@ -4,10 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./openapi": "./src/openapi.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
-    "zod": "4.1.8"
+    "zod": "4.6.7"
   }
 }

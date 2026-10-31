@@ -1,0 +1,2 @@
+{"test":"same-operation-concurrent","accepted":1,"errors":["P2002","P2002","P2002","P2002","P2002","P2002","P2002","P2002","P2002","P2002","P2002"],"rows":1}
+{"test":"same-operation-different-payload","sent":9,"returned":5}

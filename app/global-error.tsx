@@ -1,6 +1,6 @@
 "use client";
 
-import { HeaderBaseClient } from "@/features/layout/header-base-client";
+import { SiteHeader } from "@/features/site/site-header";
 import { Page400Client } from "@/features/page/page-400-client";
 
 export default function ErrorPage() {
@@ -8,7 +8,7 @@ export default function ErrorPage() {
     <html>
       <body>
         <div className="relative flex min-h-screen flex-col">
-          <HeaderBaseClient />
+          <SiteHeader />
           <div className="flex flex-1 items-center justify-center">
             <Page400Client />
           </div>

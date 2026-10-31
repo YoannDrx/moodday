@@ -41,7 +41,7 @@ const LastUsedProvider = () => {
 
     // Session is loaded - redirect now with cache-busting parameter
     hasRedirected.current = true;
-    const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+    const callbackUrl = searchParams.get("callbackUrl") ?? "/today";
     // Add timestamp to bypass any browser/Next.js caching
     const separator = callbackUrl.includes("?") ? "&" : "?";
     window.location.replace(`${callbackUrl}${separator}_t=${Date.now()}`);

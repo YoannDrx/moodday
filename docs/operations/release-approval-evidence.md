@@ -48,3 +48,13 @@ La gate ne peut devenir verte que si le candidat existe dans Git, est un
 ancêtre du HEAD, correspond aux 21 approbations et que le worktree est propre.
 Après le candidat, seuls les deux registres JSON de preuves sont autorisés à
 changer ; toute modification de code ou de documentation invalide la release.
+
+## Profils de publication (octobre 2026)
+
+`releaseScope` accepte désormais `core-beta`, `commercial`, `ai` et `native`, en plus du registre historique complet. Tous conservent notamment les exigences HDS, AIPD, consentement, sécurité clinique, rotation et go/no-go. `commercial` ajoute fiscalité et Stripe ; `ai` ajoute le traitement OpenAI ; `native` ajoute validation appareil et revue store. Une publication combinant les modules doit réunir leurs preuves : ne pas utiliser un profil plus étroit pour les activer.
+
+Pour préparer la bêta gratuite : `RELEASE_APPROVAL_EVIDENCE_PATH=docs/operations/evidence/release-approvals-core-beta-2026-10.json pnpm verify:release-approvals`. Toutes les entrées de ce nouveau registre restent en attente. Le script refuse facturation, IA ou livraison native activées en dehors de son périmètre (`BILLING_ENABLED`, `AI_INSIGHTS_ENABLED`, `NATIVE_RELEASE_ENABLED`). Utiliser les valeurs réelles du candidat lors du contrôle ; l’absence d’une variable dans le terminal ne démontre pas la configuration de production.
+
+Les fournisseurs OAuth exigent désormais leur flag serveur `OAUTH_GOOGLE_ENABLED`, `OAUTH_APPLE_ENABLED` ou `OAUTH_GITHUB_ENABLED`, désactivé par défaut, en plus des clés. Les builds natifs doivent aligner `EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED` et `EXPO_PUBLIC_OAUTH_APPLE_ENABLED` avec les fournisseurs réellement validés du serveur. Conserver une preuve de connexion, annulation, retour mobile et refus d’inscription avant activation. Les variables publiques ne contiennent aucun secret.
+
+Pour auditer les variables réelles de la bêta : `pnpm verify:vercel-environment -- --profile=core-beta --compare-values`. Le profil déclenche une lecture sécurisée des valeurs Vercel ; les secrets ne sont pas affichés. Seul un flag explicitement `false` rend les clés de son module facultatives. Les exigences d’isolation des secrets présents continuent de s’appliquer, même si leur module est fermé. Sans `--profile`, l’inventaire historique complet est conservé.

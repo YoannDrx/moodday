@@ -96,7 +96,13 @@ export async function POST(req: NextRequest) {
   if (isMaintenanceMode()) return maintenanceApiResponse();
   const signature = req.headers.get("stripe-signature");
   if (!env.BILLING_ENABLED) {
-    return NextResponse.json({ ok: true, disabled: true });
+    // Never acknowledge a delivery that has not been durably recorded.
+    // Stripe retries non-2xx responses; a 200 here silently lost events while
+    // the rollout switch was closed. Retries are finite: reconcile before reopening.
+    return NextResponse.json(
+      { error: "Webhook unavailable" },
+      { status: 503, headers: { "Retry-After": "300" } },
+    );
   }
   if (!env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Webhook unavailable" }, { status: 503 });

@@ -14,7 +14,6 @@ import {
   getUserPreferences,
   updateDisplayPreferences,
   updateNotificationPreferences,
-  updateOnboardingProgress,
 } from "@/features/preferences/preferences.action";
 
 const user = { id: "preferences-user", email: "patient@moodday.invalid" };
@@ -50,26 +49,6 @@ describe("user preferences actions", () => {
     });
   });
 
-  it("persists onboarding progress with an explicit and default completion state", async () => {
-    vi.mocked(prisma.userPreferences.upsert).mockResolvedValue({
-      userId: user.id,
-    } as never);
-    await invoke(updateOnboardingProgress, { step: 2, completed: true });
-    await invoke(updateOnboardingProgress, { step: 3 });
-    expect(prisma.userPreferences.upsert).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        update: { onboardingStep: 2, hasCompletedOnboarding: true },
-      }),
-    );
-    expect(prisma.userPreferences.upsert).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        update: { onboardingStep: 3, hasCompletedOnboarding: false },
-      }),
-    );
-  });
-
   it("completes onboarding idempotently", async () => {
     vi.mocked(prisma.userPreferences.upsert).mockResolvedValue({
       hasCompletedOnboarding: true,
@@ -86,24 +65,17 @@ describe("user preferences actions", () => {
     vi.mocked(prisma.userPreferences.upsert).mockResolvedValue({
       userId: user.id,
     } as never);
-    await invoke(updateDisplayPreferences, {
-      defaultChartPeriod: 30,
-      theme: "zen",
-    });
+    await invoke(updateDisplayPreferences, { theme: "dark" });
     await invoke(updateNotificationPreferences, {
       notificationsEnabled: true,
       dailyCheckInReminder: true,
       dailyCheckInTime: "09:30",
-      medicationReminders: false,
+      quietHoursStart: "22:30",
     });
     expect(prisma.userPreferences.upsert).toHaveBeenNthCalledWith(1, {
       where: { userId: user.id },
-      update: { defaultChartPeriod: 30, theme: "zen" },
-      create: {
-        userId: user.id,
-        defaultChartPeriod: 30,
-        theme: "zen",
-      },
+      update: { theme: "dark" },
+      create: { userId: user.id, theme: "dark" },
     });
     expect(prisma.userPreferences.upsert).toHaveBeenNthCalledWith(
       2,

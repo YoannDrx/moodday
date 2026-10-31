@@ -1,29 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { getDateKeyForTimeZone } from "@/features/medication/schedule";
 import { expect, test } from "@playwright/test";
 import { createTestAccount } from "./utils/auth-test";
 import { retry } from "./utils/retry";
 
-test("exports complete user data without authentication or notification secrets", async ({
+test("exports her cycle, check-ins and duo without secrets", async ({
   page,
 }) => {
   test.setTimeout(180_000);
-  const browserErrors: string[] = [];
-  page.on("pageerror", (error) => browserErrors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") {
-      browserErrors.push(
-        message
-          .text()
-          .replace(/data:[^\s'"]+/g, "data:[redacted]")
-          .slice(0, 1_000),
-      );
-    }
-  });
-  const userData = await createTestAccount({
-    page,
-    callbackURL: "/dashboard",
-  });
+  const userData = await createTestAccount({ page, callbackURL: "/today" });
   const user = await retry(
     async () =>
       prisma.user.findUniqueOrThrow({
@@ -32,226 +16,62 @@ test("exports complete user data without authentication or notification secrets"
       }),
     { maxAttempts: 5, delayMs: 250, backoff: true },
   );
-  await prisma.userPreferences.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, timezone: "Europe/Paris" },
-    update: { timezone: "Europe/Paris" },
-  });
 
-  const medication = await prisma.medication.create({
+  await prisma.period.create({
+    data: { userId: user.id, startDate: new Date("2026-10-01T00:00:00.000Z") },
+  });
+  await prisma.dailyCheckIn.create({
     data: {
       userId: user.id,
-      name: "Test treatment",
-      dosage: "10 mg",
-      frequency: "daily",
-      scheduleTimes: ["08:00", "20:00"],
+      operationId: `e2e-export-check-in-${user.id}`,
+      localDate: new Date("2026-10-26T00:00:00.000Z"),
+      timezone: "Europe/Paris",
+      state: "fragile",
+      needs: ["calm"],
+      privateNote: "Private portability note",
     },
   });
-  const exportDateKey = getDateKeyForTimeZone(new Date(), "Europe/Paris");
-  await prisma.medIntake.create({
+  await prisma.coupleLink.create({
     data: {
-      medicationId: medication.id,
-      scheduledForDate: exportDateKey,
-      doseIndex: 0,
-      doseKey: `${medication.id}:${exportDateKey}:0`,
+      ownerId: user.id,
+      invitedByRole: "cycle_owner",
+      inviteCodeDigest: `e2e-digest-${user.id}`,
+      inviteExpiresAt: new Date(Date.now() + 60_000),
     },
-  });
-  await prisma.moodEntry.create({
-    data: {
-      userId: user.id,
-      value: 6,
-      energy: 4,
-      note: "Private test note",
-    },
-  });
-  await prisma.therapySession.create({
-    data: {
-      userId: user.id,
-      notes: "Private therapy test note",
-      benefitRating: 3,
-    },
-  });
-  const exercise = await prisma.exercise.create({
-    data: {
-      userId: user.id,
-      name: "Breathing test",
-    },
-  });
-  await prisma.exerciseLog.create({
-    data: {
-      exerciseId: exercise.id,
-      note: "Completed",
-    },
-  });
-  const observer = await prisma.user.create({
-    data: {
-      id: `e2e-observer-${user.id}`,
-      name: "Caregiver export fixture",
-      email: `playwright-test-observer-${user.id}@example.test`,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  });
-  await prisma.caregiverObservation.createMany({
-    data: [
-      {
-        observerId: observer.id,
-        subjectId: user.id,
-        notes: "Visible caregiver contribution",
-        visibleToPatient: true,
-      },
-      {
-        observerId: observer.id,
-        subjectId: user.id,
-        notes: "HIDDEN_CAREGIVER_CONTRIBUTION",
-        visibleToPatient: false,
-      },
-    ],
   });
 
   await page.goto("/settings/privacy");
   await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: /Privacy|Confidentialité/i,
-    }),
+    page.getByRole("heading", { level: 1, name: "Tes données" }),
   ).toBeVisible();
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await page
-    .getByRole("link", { name: /Export JSON|Exporter JSON/i })
+    .getByRole("link", { name: /Exporter toutes mes données/i })
     .click();
   const download = await downloadPromise;
-  const stream = await download.createReadStream();
   const chunks: Buffer[] = [];
-
-  for await (const chunk of stream) {
+  for await (const chunk of await download.createReadStream()) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-
   const rawExport = Buffer.concat(chunks).toString("utf8");
   const exported = JSON.parse(rawExport) as {
-    exportMetadata: { dataVersion: string; excludedSecurityData: string[] };
-    preferences: unknown;
-    consents: unknown[];
-    moodTags: unknown[];
-    consultationPreparations: unknown[];
-    safetyPlan: unknown;
-    moodEntries: unknown[];
-    medications: { intakes: unknown[] }[];
-    therapySessions: unknown[];
-    exercises: { logs: unknown[] }[];
-    caregiverCircle: {
-      relationships: unknown[];
-      observations: unknown[];
-      events: unknown[];
-      accessLog: unknown[];
-    };
+    exportMetadata: { dataVersion: string };
+    profile: { role: string };
+    cycle: { periods: unknown[] };
+    checkIns: { privateNote: string | null }[];
+    couple: { links: unknown[] };
   };
 
   expect(download.suggestedFilename()).toMatch(/^moodday-export-.*\.json$/);
-  expect(exported.exportMetadata).toMatchObject({ dataVersion: "2.5" });
-  expect(exported.exportMetadata.excludedSecurityData).toContain(
-    "authentication sessions and credentials",
-  );
-  expect(exported.preferences).not.toBeNull();
-  expect(exported.consents.length).toBeGreaterThanOrEqual(3);
-  expect(exported.moodTags).toEqual([]);
-  expect(exported.consultationPreparations).toEqual([]);
-  expect(exported.safetyPlan).toBeNull();
-  expect(exported.moodEntries).toHaveLength(1);
-  expect(exported.medications[0]?.intakes).toHaveLength(1);
-  expect(exported.therapySessions).toHaveLength(1);
-  expect(exported.exercises[0]?.logs).toHaveLength(1);
-  expect(exported.caregiverCircle.relationships).toEqual([]);
-  expect(exported.caregiverCircle.observations).toEqual([
-    expect.objectContaining({
-      notes: "Visible caregiver contribution",
-      visibleToPatient: true,
-    }),
+  expect(exported.exportMetadata.dataVersion).toBe("3.0");
+  expect(exported.profile.role).toBe("cycle_owner");
+  expect(exported.cycle.periods).toHaveLength(1);
+  // Portability includes her own private note; partners never receive it.
+  expect(exported.checkIns).toEqual([
+    expect.objectContaining({ privateNote: "Private portability note" }),
   ]);
-  expect(exported.caregiverCircle.events).toEqual([]);
-  expect(exported.caregiverCircle.accessLog).toEqual([]);
-  expect(rawExport).not.toContain("HIDDEN_CAREGIVER_CONTRIBUTION");
-  expect(rawExport).not.toContain("clientOperationId");
-  expect(rawExport).not.toContain("inviteToken");
+  expect(exported.couple.links).toHaveLength(1);
+  expect(rawExport).not.toContain(`e2e-export-check-in-${user.id}`);
+  expect(rawExport).not.toContain(`e2e-digest-${user.id}`);
   expect(rawExport).not.toContain("p256dh");
-
-  await page.goto("/export");
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: /Personal export|Export personnel/i,
-    }),
-  ).toBeVisible();
-
-  const csvButton = page.getByRole("button", {
-    name: /Download CSV|Télécharger CSV/i,
-  });
-  await expect(csvButton).toBeEnabled({ timeout: 15000 });
-  const csvDownloadPromise = page.waitForEvent("download", {
-    timeout: 60_000,
-  });
-  await csvButton.click();
-  const csvDownload = await csvDownloadPromise;
-  const csvStream = await csvDownload.createReadStream();
-  const csvChunks: Buffer[] = [];
-  for await (const chunk of csvStream) {
-    csvChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  const csv = Buffer.concat(csvChunks).toString("utf8");
-
-  expect(csvDownload.suggestedFilename()).toMatch(
-    /^moodday-export-.*-.*\.csv$/,
-  );
-  expect(csv.startsWith("\uFEFFrecord_type,")).toBe(true);
-  expect(csv).toContain("mood");
-  expect(csv).toContain("medication_intake");
-  expect(csv).toContain("therapy_session");
-  expect(csv).toContain("exercise");
-  expect(csv).toContain("Europe/Paris");
-
-  let pdfButton = page.getByRole("button", {
-    name: /Download PDF|Télécharger PDF/i,
-  });
-  await expect(pdfButton).toBeDisabled();
-
-  await prisma.subscription.create({
-    data: {
-      id: `e2e-plus-${user.id}`,
-      referenceId: user.id,
-      plan: "plus",
-      status: "active",
-      periodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    },
-  });
-  await page.reload();
-  pdfButton = page.getByRole("button", {
-    name: /Download PDF|Télécharger PDF/i,
-  });
-  await expect(pdfButton).toBeEnabled({ timeout: 15000 });
-  const pdfDownloadPromise = page.waitForEvent("download", {
-    timeout: 60_000,
-  });
-  await pdfButton.click();
-  const pdfDownload = await pdfDownloadPromise.catch((error: unknown) => {
-    const diagnostic = browserErrors.length
-      ? ` Browser errors: ${browserErrors.join(" | ")}`
-      : " No browser error was captured.";
-    throw new Error(
-      `${error instanceof Error ? error.message : "PDF download failed."}${diagnostic}`,
-    );
-  });
-  const pdfStream = await pdfDownload.createReadStream();
-  const pdfChunks: Buffer[] = [];
-  for await (const chunk of pdfStream) {
-    pdfChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  expect(pdfDownload.suggestedFilename()).toMatch(
-    /^moodday-export-.*-.*\.pdf$/,
-  );
-  expect(Buffer.concat(pdfChunks).subarray(0, 4).toString("ascii")).toBe(
-    "%PDF",
-  );
 });

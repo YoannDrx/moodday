@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { getEffectivePlan } from "@/lib/billing/entitlements";
-import { getV2PlusEntitlement } from "@/features/v2/entitlements/service";
+import { getDuoEntitlement } from "@/features/couple/entitlement.service";
 import type { CurrentUserPayload } from "./get-user";
 import { getCurrentUser } from "./get-user";
 
@@ -11,7 +11,7 @@ export const getUserActiveSubscription = async () => {
     return null;
   }
 
-  const entitlement = await getV2PlusEntitlement(user.id);
+  const entitlement = await getDuoEntitlement(user.id);
   if (!user.subscription) return null;
   const legacyActive = getEffectivePlan(user.subscription) === "plus";
   if (!entitlement.active && !legacyActive) return null;

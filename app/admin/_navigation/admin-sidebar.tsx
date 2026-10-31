@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarNavigationMenu } from "@/components/ui/sidebar-utils";
 import type { NavigationGroup } from "@/features/navigation/navigation.type";
-import { SidebarUserButton } from "@/features/sidebar/sidebar-user-button";
 import { useI18n } from "@/i18n/provider";
 import { ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -61,9 +60,7 @@ export function AdminSidebar() {
           </ItemCollapsing>
         ))}
       </SidebarContent>
-      <SidebarFooter className="flex flex-col gap-2">
-        <SidebarUserButton />
-      </SidebarFooter>
+      <SidebarFooter className="flex flex-col gap-2"></SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

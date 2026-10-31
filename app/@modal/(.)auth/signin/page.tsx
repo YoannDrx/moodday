@@ -1,4 +1,4 @@
-import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
 import { DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { InterceptDialog } from "@/components/utils/intercept-dialog";
 import { getI18n } from "@/i18n/server";

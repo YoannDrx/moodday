@@ -2,6 +2,46 @@ import { createApiClient } from "../packages/api-client/src";
 import { describe, expect, it, vi } from "vitest";
 
 describe("shared API client authentication invalidation", () => {
+  it.each(["<html>Unauthorized</html>", "null", '{"error":"Unauthorized"}'])(
+    "invalidates a 401 even with a non-contract body: %s",
+    async (body) => {
+      const onAuthenticationRequired = vi.fn();
+      const client = createApiClient({
+        baseUrl: "https://moodday.example",
+        onAuthenticationRequired,
+        fetchImplementation: vi.fn<typeof fetch>(
+          async () => new Response(body, { status: 401 }),
+        ),
+      });
+      await expect(client.getEntitlements()).rejects.toMatchObject({
+        code: "authentication_required",
+      });
+      expect(onAuthenticationRequired).toHaveBeenCalledOnce();
+    },
+  );
+  it.each(["<html>Unavailable</html>", "null", '{"error":"Unavailable"}'])(
+    "normalizes non-contract upstream failures without losing the session: %s",
+    async (body) => {
+      const onAuthenticationRequired = vi.fn();
+      const client = createApiClient({
+        baseUrl: "https://moodday.example",
+        onAuthenticationRequired,
+        fetchImplementation: vi.fn<typeof fetch>(
+          async () =>
+            new Response(body, {
+              status: 503,
+              headers: { "x-request-id": "proxy-failure" },
+            }),
+        ),
+      });
+      await expect(client.getEntitlements()).rejects.toMatchObject({
+        code: "unexpected_response",
+        recoverable: true,
+        requestId: "proxy-failure",
+      });
+      expect(onAuthenticationRequired).not.toHaveBeenCalled();
+    },
+  );
   it("invalidates the native session on a structured authentication error", async () => {
     const onAuthenticationRequired = vi.fn();
     const fetchImplementation = vi.fn<typeof fetch>(async () =>

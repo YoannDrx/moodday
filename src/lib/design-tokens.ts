@@ -491,6 +491,21 @@ export const crisisResources: CrisisResource[] = [
     category: "emergency",
   },
   {
+    nameKey: "crisis.resources.europeanEmergency.name",
+    descriptionKey: "crisis.resources.europeanEmergency.description",
+    availabilityKey: "crisis.resources.europeanEmergency.availability",
+    phone: "112",
+    category: "emergency",
+  },
+  {
+    nameKey: "crisis.resources.deafEmergency.name",
+    descriptionKey: "crisis.resources.deafEmergency.description",
+    availabilityKey: "crisis.resources.deafEmergency.availability",
+    sms: "114",
+    url: "https://www.info.urgence114.fr",
+    category: "emergency",
+  },
+  {
     nameKey: "crisis.resources.suicideEcoute.name",
     descriptionKey: "crisis.resources.suicideEcoute.description",
     availabilityKey: "crisis.resources.suicideEcoute.availability",

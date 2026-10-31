@@ -83,7 +83,7 @@ test.describe("account", () => {
       data: {
         email: userData.email,
         password: userData.password,
-        callbackURL: "/dashboard",
+        callbackURL: "/today",
       },
       headers: authHeaders,
     });
@@ -125,7 +125,7 @@ test.describe("account", () => {
   }) => {
     const userData = await createTestAccount({
       page,
-      callbackURL: "/dashboard",
+      callbackURL: "/today",
     });
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: userData.email },
@@ -133,7 +133,7 @@ test.describe("account", () => {
     });
     await prisma.userConsent.deleteMany({ where: { userId: user.id } });
 
-    await page.goto("/dashboard");
+    await page.goto("/today");
     await page.waitForURL((url) => url.pathname === "/auth/consent");
     const requiredConsents = page.getByRole("checkbox");
     await expect(requiredConsents).toHaveCount(4);
@@ -147,7 +147,7 @@ test.describe("account", () => {
         name: /Accept and continue|Accepter et continuer/i,
       })
       .click();
-    await page.waitForURL((url) => url.pathname === "/dashboard");
+    await page.waitForURL((url) => url.pathname === "/today");
 
     const accepted = await prisma.userConsent.findMany({
       where: { userId: user.id, revokedAt: null },
@@ -226,8 +226,15 @@ test.describe("account", () => {
     );
 
     await prisma.$transaction([
-      prisma.feedback.create({
-        data: { review: 5, message: "Private feedback", userId: user.id },
+      prisma.dailyCheckIn.create({
+        data: {
+          userId: user.id,
+          operationId: `e2e-delete-${user.id}`,
+          localDate: new Date("2026-10-26T00:00:00.000Z"),
+          timezone: "Europe/Paris",
+          state: "hard",
+          privateNote: "Private note to delete",
+        },
       }),
       prisma.emailLog.create({
         data: {
@@ -257,8 +264,11 @@ test.describe("account", () => {
           auth: "e2e-auth",
         },
       }),
-      prisma.moodEntry.create({
-        data: { userId: user.id, value: 5, note: "Private mood note" },
+      prisma.period.create({
+        data: {
+          userId: user.id,
+          startDate: new Date("2026-10-01T00:00:00.000Z"),
+        },
       }),
       prisma.notificationDelivery.create({
         data: {
@@ -325,17 +335,28 @@ test.describe("account", () => {
     // This button stays disabled until the client is hydrated. Waiting for the
     // actual interactive state avoids WebKit occasionally dispatching the
     // click while the server-rendered button is being replaced.
-    await expect(confirmDeleteButton).toBeEnabled();
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === "/auth/goodbye", {
-        timeout: 30000,
+    // WebKit can still swap the confirmation page right after it loads and
+    // drop the first click (CI video: page blanks, re-renders, button stays
+    // idle). Only retry while no deletion request has left the browser, so a
+    // consumed token is never replayed.
+    let deletionRequested = false;
+    page.on("request", (request) => {
+      if (request.url().includes("/api/auth/delete-user"))
+        deletionRequested = true;
+    });
+    await expect(async () => {
+      if (!deletionRequested) {
+        await expect(confirmDeleteButton).toBeEnabled({ timeout: 5000 });
+        await confirmDeleteButton.click({ timeout: 5000 });
+      }
+      await page.waitForURL((url) => url.pathname === "/auth/goodbye", {
+        timeout: 8000,
         waitUntil: "commit",
-      }),
-      confirmDeleteButton.click(),
-    ]);
-    // i18n: page title is "You're signed out" (EN) / "Vous êtes déconnecté" (FR)
+      });
+    }).toPass({ timeout: 45000 });
+    // i18n: page title is "You're signed out" (EN) / "Tu es déconnecté·e" (FR)
     await expect(
-      page.getByText(/You're signed out|Vous êtes déconnecté/i).first(),
+      page.getByText(/You're signed out|Tu es déconnecté·e/i).first(),
     ).toBeVisible();
 
     const deletedUser = await prisma.user.findUnique({
@@ -346,15 +367,15 @@ test.describe("account", () => {
 
     expect(deletedUser).toBeNull();
     const [
-      feedbackCount,
+      checkInCount,
       emailLogCount,
       newsletterCount,
       pushCount,
-      moodCount,
+      periodCount,
       deliveryCount,
       preferenceCount,
     ] = await Promise.all([
-      prisma.feedback.count({ where: { userId: user.id } }),
+      prisma.dailyCheckIn.count({ where: { userId: user.id } }),
       prisma.emailLog.count({
         where: { OR: [{ userId: user.id }, { to: userData.email }] },
       }),
@@ -362,25 +383,25 @@ test.describe("account", () => {
         where: { email: userData.email },
       }),
       prisma.pushSubscription.count({ where: { userId: user.id } }),
-      prisma.moodEntry.count({ where: { userId: user.id } }),
+      prisma.period.count({ where: { userId: user.id } }),
       prisma.notificationDelivery.count({ where: { userId: user.id } }),
       prisma.userPreferences.count({ where: { userId: user.id } }),
     ]);
 
     expect({
-      feedbackCount,
+      checkInCount,
       emailLogCount,
       newsletterCount,
       pushCount,
-      moodCount,
+      periodCount,
       deliveryCount,
       preferenceCount,
     }).toEqual({
-      feedbackCount: 0,
+      checkInCount: 0,
       emailLogCount: 0,
       newsletterCount: 0,
       pushCount: 0,
-      moodCount: 0,
+      periodCount: 0,
       deliveryCount: 0,
       preferenceCount: 0,
     });
@@ -445,13 +466,9 @@ test.describe("account", () => {
       length: 12,
       memorable: true,
     });
-    const currentPasswordInput = page.locator(
-      'input[name="currentPassword"]',
-    );
+    const currentPasswordInput = page.locator('input[name="currentPassword"]');
     const newPasswordInput = page.locator('input[name="newPassword"]');
-    const confirmPasswordInput = page.locator(
-      'input[name="confirmPassword"]',
-    );
+    const confirmPasswordInput = page.locator('input[name="confirmPassword"]');
     await expect(currentPasswordInput).toBeVisible();
     await currentPasswordInput.fill(userData.password);
     await newPasswordInput.fill(newPassword);
@@ -480,7 +497,7 @@ test.describe("account", () => {
       callbackURL: "/app",
     });
 
-    await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForURL(/\/today/, { timeout: 10000 });
 
     const user = await prisma.user.findUnique({
       where: { email: userData.email },

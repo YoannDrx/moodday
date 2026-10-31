@@ -14,6 +14,16 @@ import {
   type VercelEnvironmentEntry,
 } from "@/lib/operations/vercel-environment-audit";
 
+import {
+  releaseScopeSchema,
+  releaseScopeConfigurationErrors,
+} from "@/lib/operations/release-approval-evidence";
+const requestedProfile = process.argv
+  .find((argument) => argument.startsWith("--profile="))
+  ?.split("=")[1];
+const profile = requestedProfile
+  ? releaseScopeSchema.parse(requestedProfile)
+  : undefined;
 const requestedEnvironment = process.argv
   .find((argument) => argument.startsWith("--environment="))
   ?.split("=")[1];
@@ -43,7 +53,22 @@ for (const environment of environments) {
     { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
   );
   const parsed = JSON.parse(output) as { envs?: VercelEnvironmentEntry[] };
-  const result = auditVercelEnvironmentEntries(parsed.envs ?? [], environment);
+  const values = profile ? loadVercelEnvironmentValues(environment) : undefined;
+  if (profile && values) {
+    for (const code of releaseScopeConfigurationErrors(profile, {
+      billing: values.BILLING_ENABLED === "true",
+      ai: values.AI_INSIGHTS_ENABLED === "true",
+      native: values.NATIVE_RELEASE_ENABLED === "true",
+    })) {
+      console.log(`[ERROR] ${environment}:${code}`);
+      failed = true;
+    }
+  }
+  const result = auditVercelEnvironmentEntries(
+    parsed.envs ?? [],
+    environment,
+    values,
+  );
 
   console.log(
     `[${result.findings.length === 0 ? "OK" : "ERROR"}] Vercel ${environment}: ${result.configuredKeys} clés configurées`,

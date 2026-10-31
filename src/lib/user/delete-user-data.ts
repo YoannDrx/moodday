@@ -21,9 +21,6 @@ const getNonCascadingDeletionQueries = (
   client.pushSubscription.deleteMany({
     where: { userId: user.id },
   }),
-  client.feedback.deleteMany({
-    where: { userId: user.id },
-  }),
   client.emailLog.deleteMany({
     where: {
       OR: [{ userId: user.id }, { to: user.email }],
@@ -91,24 +88,7 @@ export const deleteUserAccountAtomically = async (
       user.id,
       current.image,
     );
-    await Promise.all([
-      transaction.caregiverRelationship.deleteMany({
-        where: {
-          OR: [{ patientId: user.id }, { caregiverId: user.id }],
-        },
-      }),
-      transaction.caregiverObservation.deleteMany({
-        where: {
-          OR: [{ observerId: user.id }, { subjectId: user.id }],
-        },
-      }),
-      transaction.caregiverEvent.deleteMany({
-        where: {
-          OR: [{ reporterId: user.id }, { subjectId: user.id }],
-        },
-      }),
-      ...getNonCascadingDeletionQueries(transaction, user),
-    ]);
+    await Promise.all([...getNonCascadingDeletionQueries(transaction, user)]);
     await transaction.user.delete({ where: { id: user.id } });
   });
 };

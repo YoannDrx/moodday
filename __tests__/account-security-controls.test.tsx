@@ -143,7 +143,7 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
-import { AccountSecurityControls } from "@app/(logged-in)/(patient-layout)/settings/security/_components/account-security-controls";
+import { AccountSecurityControls } from "@app/(logged-in)/(app)/settings/security/_components/account-security-controls";
 
 describe("account security controls", () => {
   beforeEach(() => {
@@ -179,6 +179,7 @@ describe("account security controls", () => {
     mocks.deletePasskey.mockResolvedValue({ data: { success: true } });
     mocks.enableTwoFactor.mockResolvedValue({
       data: {
+        method: "totp",
         totpURI: "otpauth://totp/Moodday",
         backupCodes: ["backup-1", "backup-2"],
       },

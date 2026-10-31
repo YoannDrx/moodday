@@ -1,18 +1,16 @@
-import GridBackground from "@/components/nowts/grid-background";
-import { Typography } from "@/components/nowts/typography";
-import { SectionLayout } from "@/features/landing/section-layout";
+import { Bouyotte } from "@/components/brand/bouyotte";
+import { buttonVariants } from "@/components/ui/button";
 import { getI18n } from "@/i18n/server";
+import { cn } from "@/lib/utils";
 import { SiteConfig } from "@/site-config";
 import type { Metadata } from "next";
 import {
-  Heart,
+  Ban,
+  HandHeart,
+  HeartHandshake,
   Lock,
-  Microscope,
-  Shield,
-  Sparkles,
+  MessageCircleHeart,
   Stethoscope,
-  Target,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,11 +21,12 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t("about.metaTitle", { app: SiteConfig.title }),
     description: t("about.metaDescription"),
     keywords: [
-      "about",
-      "mental health",
-      "mood tracking",
-      "psychiatry",
-      "mission",
+      "SPM",
+      "TDPM",
+      "syndrome prémenstruel",
+      "couple",
+      "partenaire",
+      "Moodday",
     ],
     openGraph: {
       title: t("about.metaTitle", { app: SiteConfig.title }),
@@ -42,201 +41,142 @@ export default async function AboutPage() {
   const { t } = await getI18n();
   const values = [
     {
-      icon: Heart,
-      title: t("about.values.items.kindness.title"),
-      description: t("about.values.items.kindness.description"),
-      color: "text-rose-500",
-      bg: "bg-rose-500/10",
-    },
-    {
       icon: Lock,
-      title: t("about.values.items.privacy.title"),
-      description: t("about.values.items.privacy.description"),
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
+      title: t("about.values.items.control.title"),
+      description: t("about.values.items.control.description"),
+      tone: "bg-mint",
     },
     {
-      icon: Microscope,
-      title: t("about.values.items.science.title"),
-      description: t("about.values.items.science.description"),
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
+      icon: HandHeart,
+      title: t("about.values.items.together.title"),
+      description: t("about.values.items.together.description"),
+      tone: "bg-honey",
+    },
+    {
+      icon: Stethoscope,
+      title: t("about.values.items.sober.title"),
+      description: t("about.values.items.sober.description"),
+      tone: "bg-apricot-soft",
     },
   ];
+
   return (
-    <div className="relative">
-      <GridBackground
-        color="color-mix(in srgb, var(--muted) 50%, transparent)"
-        size={20}
-      />
-
-      {/* Hero Section */}
-      <SectionLayout variant="transparent">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="bg-primary/10 text-primary mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl">
-            <Sparkles className="size-8" />
+    <div className="flex flex-col">
+      {/* Hero */}
+      <section className="knit border-b-2 border-[var(--ink)]">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.4fr_1fr] lg:py-20">
+          <div className="flex flex-col gap-5">
+            <p className="bg-mint inline-flex w-fit items-center rounded-full border-2 border-[var(--ink)] px-3 py-1 text-xs font-bold tracking-wide uppercase">
+              {t("about.hero.kicker")}
+            </p>
+            <h1 className="font-display text-4xl leading-[1.02] font-extrabold sm:text-5xl lg:text-6xl">
+              {t("about.hero.titlePrefix")}{" "}
+              <span className="bg-honey shadow-sticker inline-block -rotate-1 rounded-2xl border-2 border-[var(--ink)] px-3">
+                {t("about.hero.titleHighlight")}
+              </span>
+            </h1>
+            <p className="text-muted-foreground max-w-2xl text-lg">
+              {t("about.hero.description")}
+            </p>
           </div>
-          <Typography
-            variant="p"
-            className="text-primary mb-2 text-sm font-semibold tracking-widest uppercase"
-          >
-            {t("about.hero.kicker")}
-          </Typography>
-          <Typography
-            variant="h1"
-            className="text-foreground mt-2 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
-          >
-            {t("about.hero.titlePrefix")}{" "}
-            <span className="bg-gradient-to-r from-[#1D7680] to-[#2BA09F] bg-clip-text text-transparent">
-              {t("about.hero.titleHighlight")}
+          <div className="flex justify-center">
+            <Bouyotte mood="happy" steam className="animate-float size-40" />
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 py-16 sm:px-6">
+        {/* Mission & limits */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="sticker flex flex-col gap-4 p-6 sm:p-8">
+            <span className="bg-honey flex size-12 items-center justify-center rounded-full border-2 border-[var(--ink)]">
+              <HeartHandshake className="size-6" aria-hidden />
             </span>
-          </Typography>
-          <Typography
-            variant="p"
-            className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg"
-          >
-            {t("about.hero.description")}
-          </Typography>
-        </div>
-      </SectionLayout>
+            <h2 className="font-display text-2xl font-extrabold">
+              {t("about.mission.title")}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("about.mission.paragraphOne")}
+            </p>
+            <p className="text-muted-foreground">
+              {t("about.mission.paragraphTwo")}
+            </p>
+          </article>
+          <article className="sticker bg-plum-soft/40 flex flex-col gap-4 p-6 sm:p-8">
+            <span className="bg-paper flex size-12 items-center justify-center rounded-full border-2 border-[var(--ink)]">
+              <Ban className="size-6" aria-hidden />
+            </span>
+            <h2 className="font-display text-2xl font-extrabold">
+              {t("about.vision.title")}
+            </h2>
+            <p>{t("about.vision.paragraphOne")}</p>
+            <p>{t("about.vision.paragraphTwo")}</p>
+          </article>
+        </section>
 
-      {/* Mission Section */}
-      <SectionLayout size="lg" variant="transparent" className="pt-0 lg:pt-0">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Mission */}
-            <div className="border-border bg-card rounded-2xl border p-8">
-              <div className="bg-primary/10 mb-4 flex size-12 items-center justify-center rounded-xl">
-                <Target className="text-primary size-6" />
-              </div>
-              <Typography
-                variant="h2"
-                className="text-foreground mb-4 text-2xl font-bold"
-              >
-                {t("about.mission.title")}
-              </Typography>
-              <Typography variant="p" className="text-muted-foreground mb-4">
-                {t("about.mission.paragraphOne")}
-              </Typography>
-              <Typography variant="p" className="text-muted-foreground">
-                {t("about.mission.paragraphTwo")}
-              </Typography>
-            </div>
-
-            {/* Vision */}
-            <div className="border-border bg-card rounded-2xl border p-8">
-              <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-purple-500/10">
-                <Stethoscope className="size-6 text-purple-500" />
-              </div>
-              <Typography
-                variant="h2"
-                className="text-foreground mb-4 text-2xl font-bold"
-              >
-                {t("about.vision.title")}
-              </Typography>
-              <Typography variant="p" className="text-muted-foreground mb-4">
-                {t("about.vision.paragraphOne")}
-              </Typography>
-              <Typography variant="p" className="text-muted-foreground">
-                {t("about.vision.paragraphTwo")}
-              </Typography>
-            </div>
-          </div>
-
-          {/* Values */}
-          <div className="mt-16">
-            <Typography
-              variant="h2"
-              className="text-foreground mb-8 text-center text-2xl font-bold"
-            >
-              {t("about.values.title")}
-            </Typography>
-            <div className="grid gap-6 md:grid-cols-3">
-              {values.map((value) => {
-                const Icon = value.icon;
-                return (
-                  <div
-                    key={value.title}
-                    className="border-border bg-card rounded-2xl border p-6"
-                  >
-                    <div
-                      className={`mb-4 flex size-12 items-center justify-center rounded-xl ${value.bg}`}
-                    >
-                      <Icon className={`size-6 ${value.color}`} />
-                    </div>
-                    <Typography
-                      variant="h3"
-                      className="text-foreground mb-2 text-lg font-bold"
-                    >
-                      {value.title}
-                    </Typography>
-                    <Typography
-                      variant="p"
-                      className="text-muted-foreground text-sm"
-                    >
-                      {value.description}
-                    </Typography>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Team Section */}
-          <div className="mt-16">
-            <div className="border-border bg-card rounded-2xl border p-8 text-center">
-              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-amber-500/10">
-                <Users className="size-6 text-amber-500" />
-              </div>
-              <Typography
-                variant="h2"
-                className="text-foreground mb-4 text-2xl font-bold"
-              >
-                {t("about.team.title")}
-              </Typography>
-              <Typography
-                variant="p"
-                className="text-muted-foreground mx-auto mb-6 max-w-2xl"
-              >
-                {t("about.team.description")}
-              </Typography>
-              <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link
-                  href="/contact"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-lg px-6 py-3 font-semibold transition-colors"
+        {/* Values */}
+        <section className="flex flex-col gap-8">
+          <h2 className="font-display text-center text-3xl font-extrabold sm:text-4xl">
+            {t("about.values.title")}
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            {values.map((value, index) => {
+              const Icon = value.icon;
+              return (
+                <article
+                  key={value.title}
+                  className={cn(
+                    "sticker flex flex-col gap-3 p-6",
+                    index === 1 ? "md:-rotate-1" : "md:rotate-1",
+                  )}
                 >
-                  {t("about.team.contactCta")}
-                </Link>
-              </div>
-            </div>
+                  <span
+                    className={cn(
+                      "flex size-11 items-center justify-center rounded-full border-2 border-[var(--ink)]",
+                      value.tone,
+                    )}
+                  >
+                    <Icon className="size-5" aria-hidden />
+                  </span>
+                  <h3 className="font-display text-xl font-extrabold">
+                    {value.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    {value.description}
+                  </p>
+                </article>
+              );
+            })}
           </div>
+        </section>
 
-          {/* Privacy Promise */}
-          <div className="mt-16">
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-8">
-              <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20">
-                  <Shield className="size-8 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <Typography
-                    variant="h3"
-                    className="mb-2 text-xl font-bold text-emerald-700 dark:text-emerald-400"
-                  >
-                    {t("about.privacyPromise.title")}
-                  </Typography>
-                  <Typography
-                    variant="p"
-                    className="text-emerald-700 dark:text-emerald-300"
-                  >
-                    {t("about.privacyPromise.description")}
-                  </Typography>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </SectionLayout>
+        {/* Free promise */}
+        <section className="sticker bg-honey-soft flex flex-col gap-3 p-6 sm:p-8">
+          <h2 className="font-display text-2xl font-extrabold">
+            {t("about.privacyPromise.title")}
+          </h2>
+          <p>{t("about.privacyPromise.description")}</p>
+        </section>
+
+        {/* Team */}
+        <section className="flex flex-col items-center gap-4 text-center">
+          <span className="bg-mint flex size-12 items-center justify-center rounded-full border-2 border-[var(--ink)]">
+            <MessageCircleHeart className="size-6" aria-hidden />
+          </span>
+          <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+            {t("about.team.title")}
+          </h2>
+          <p className="text-muted-foreground max-w-2xl">
+            {t("about.team.description")}
+          </p>
+          <Link
+            href="/contact"
+            className={buttonVariants({ variant: "honey" })}
+          >
+            {t("about.team.contactCta")}
+          </Link>
+        </section>
+      </div>
     </div>
   );
 }

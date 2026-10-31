@@ -31,7 +31,7 @@ export const getUser = async () => {
   return user;
 };
 
-const hasCurrentRequiredConsents = async (userId: string) => {
+export const hasCurrentRequiredConsents = async (userId: string) => {
   const requiredConsents = await prisma.userConsent.findMany({
     where: {
       userId,

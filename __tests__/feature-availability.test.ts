@@ -7,7 +7,6 @@ import {
   assertFeatureAvailable,
   getClientVisibleFeatures,
   getFeatureAvailability,
-  isAiInsightsAvailableForUser,
 } from "@/lib/features/availability";
 
 const mutableEnv = env as unknown as Record<
@@ -36,86 +35,32 @@ const pushConfiguration = {
 describe("runtime feature availability", () => {
   beforeEach(() => {
     for (const key of [
-      "ACCOUNT_IMPORT_ENABLED",
       "ADMIN_ENABLED",
-      "AI_INSIGHTS_ENABLED",
       "BILLING_ENABLED",
-      "CAREGIVER_SHARING_ENABLED",
-      "GOOGLE_CALENDAR_ENABLED",
-      "HEALTHKIT_ENABLED",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
       "PUSH_NOTIFICATIONS_ENABLED",
-      "OPENAI_API_KEY",
-      "AI_SAFETY_HMAC_SECRET",
-      "AI_INTERNAL_USER_IDS",
       "STRIPE_PRODUCT_TAX_CODE",
       ...Object.keys(billingConfiguration),
       ...Object.keys(pushConfiguration),
     ]) {
       mutableEnv[key] = undefined;
     }
-    mutableEnv.AI_ROLLOUT_MODE = "internal";
     mutableEnv.STRIPE_TAX_ENABLED = false;
   });
 
-  it.each([
-    ["accountImport", "ACCOUNT_IMPORT_ENABLED"],
-    ["admin", "ADMIN_ENABLED"],
-  ] as const)("honors the %s flag", (feature, flag) => {
-    expect(getFeatureAvailability(feature)).toEqual({
-      enabled: false,
-      reason: "disabled_by_flag",
-    });
-    mutableEnv[flag] = true;
-    expect(getFeatureAvailability(feature)).toEqual({
-      enabled: true,
-      reason: "available",
-    });
-  });
-
-  it("requires caregiver email and cron configuration after its flag is enabled", () => {
-    mutableEnv.CAREGIVER_SHARING_ENABLED = true;
-    expect(getFeatureAvailability("caregiverSharing")).toEqual({
-      enabled: false,
-      reason: "incomplete_configuration",
-    });
-
-    mutableEnv.RESEND_API_KEY = "resend";
-    mutableEnv.CRON_SECRET = "cron";
-    expect(getFeatureAvailability("caregiverSharing")).toEqual({
-      enabled: true,
-      reason: "available",
-    });
-  });
-
-  it("requires both AI secrets after the AI flag is enabled", () => {
-    mutableEnv.AI_INSIGHTS_ENABLED = true;
-    mutableEnv.OPENAI_API_KEY = "   ";
-    expect(getFeatureAvailability("aiInsights")).toEqual({
-      enabled: false,
-      reason: "incomplete_configuration",
-    });
-
-    mutableEnv.OPENAI_API_KEY = "openai";
-    mutableEnv.AI_SAFETY_HMAC_SECRET = "hmac";
-    expect(getFeatureAvailability("aiInsights")).toEqual({
-      enabled: true,
-      reason: "available",
-    });
-  });
-
-  it("keeps AI restricted to the internal allowlist until public rollout", () => {
-    mutableEnv.AI_INSIGHTS_ENABLED = true;
-    mutableEnv.OPENAI_API_KEY = "openai";
-    mutableEnv.AI_SAFETY_HMAC_SECRET = "hmac";
-    mutableEnv.AI_INTERNAL_USER_IDS = "internal-1, internal-2";
-
-    expect(isAiInsightsAvailableForUser("internal-2")).toBe(true);
-    expect(isAiInsightsAvailableForUser("external")).toBe(false);
-    mutableEnv.AI_ROLLOUT_MODE = "public";
-    expect(isAiInsightsAvailableForUser("external")).toBe(true);
-  });
+  it.each([["admin", "ADMIN_ENABLED"]] as const)(
+    "honors the %s flag",
+    (feature, flag) => {
+      expect(getFeatureAvailability(feature)).toEqual({
+        enabled: false,
+        reason: "disabled_by_flag",
+      });
+      mutableEnv[flag] = true;
+      expect(getFeatureAvailability(feature)).toEqual({
+        enabled: true,
+        reason: "available",
+      });
+    },
+  );
 
   it("requires the server-owned Stripe catalog and webhook configuration", () => {
     mutableEnv.BILLING_ENABLED = true;
@@ -158,47 +103,16 @@ describe("runtime feature availability", () => {
     });
   });
 
-  it("requires the calendar flag and Google OAuth configuration together", () => {
-    mutableEnv.GOOGLE_CALENDAR_ENABLED = true;
-    expect(getFeatureAvailability("googleCalendar").reason).toBe(
-      "incomplete_configuration",
-    );
-    mutableEnv.GOOGLE_CLIENT_ID = "google-client";
-    mutableEnv.GOOGLE_CLIENT_SECRET = "google-secret";
-    mutableEnv.CRON_SECRET = "cron";
-    expect(getFeatureAvailability("googleCalendar")).toEqual({
-      enabled: true,
-      reason: "available",
-    });
-  });
-
-  it("keeps HealthKit behind its independent server gate", () => {
-    expect(getFeatureAvailability("healthKit")).toEqual({
-      enabled: false,
-      reason: "disabled_by_flag",
-    });
-    mutableEnv.HEALTHKIT_ENABLED = true;
-    expect(getFeatureAvailability("healthKit")).toEqual({
-      enabled: true,
-      reason: "available",
-    });
-  });
-
   it("exposes only safe booleans to the browser and rejects disabled actions", () => {
-    mutableEnv.CAREGIVER_SHARING_ENABLED = true;
-    mutableEnv.RESEND_API_KEY = "resend";
-    mutableEnv.CRON_SECRET = "cron";
-
     expect(getClientVisibleFeatures()).toEqual({
       billing: false,
-      caregiverSharing: true,
-      googleCalendar: false,
-      healthKit: false,
+      coupleSharing: true,
       pushNotifications: false,
     });
     expect(() => assertFeatureAvailable("billing")).toThrow(
       "Feature unavailable: disabled_by_flag",
     );
-    expect(() => assertFeatureAvailable("caregiverSharing")).not.toThrow();
+    mutableEnv.ADMIN_ENABLED = true;
+    expect(() => assertFeatureAvailable("admin")).not.toThrow();
   });
 });

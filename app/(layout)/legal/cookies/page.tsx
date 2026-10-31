@@ -98,20 +98,20 @@ export default async function CookiesPage() {
         <div className="mx-auto max-w-4xl">
           {/* Introduction */}
           <div className="border-border bg-card mb-8 rounded-2xl border p-6">
-          <Typography
-            variant="h2"
-            className="text-foreground mb-4 text-xl font-bold"
-          >
-            {t("legal.cookies.intro.title")}
-          </Typography>
-          <Typography variant="p" className="text-muted-foreground">
-            {t("legal.cookies.intro.descriptionPrefix")}{" "}
-            <span className="text-primary font-semibold">
-              {t("legal.cookies.intro.descriptionHighlight")}
-            </span>{" "}
-            {t("legal.cookies.intro.descriptionSuffix")}
-          </Typography>
-        </div>
+            <Typography
+              variant="h2"
+              className="text-foreground mb-4 text-xl font-bold"
+            >
+              {t("legal.cookies.intro.title")}
+            </Typography>
+            <Typography variant="p" className="text-muted-foreground">
+              {t("legal.cookies.intro.descriptionPrefix")}{" "}
+              <span className="text-primary font-semibold">
+                {t("legal.cookies.intro.descriptionHighlight")}
+              </span>{" "}
+              {t("legal.cookies.intro.descriptionSuffix")}
+            </Typography>
+          </div>
 
           {/* What we DON'T use - Highlight */}
           <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
@@ -128,7 +128,7 @@ export default async function CookiesPage() {
               {notUsed.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-3 rounded-lg bg-white/50 p-3 dark:bg-black/20"
+                  className="bg-card flex items-center gap-3 rounded-lg p-3 dark:bg-black/20"
                 >
                   <XCircle className="size-5 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-emerald-700 dark:text-emerald-300">

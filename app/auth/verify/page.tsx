@@ -9,6 +9,7 @@ import {
 import { getI18n } from "@/i18n/server";
 import { SiteConfig } from "@/site-config";
 import { Mail } from "lucide-react";
+import { ResendVerificationForm } from "./resend-verification-form";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,6 +43,7 @@ export default async function VerificationCard() {
         <div className="text-muted-foreground text-sm">
           <p>{t("auth.verify.spamHelp")}</p>
         </div>
+        <ResendVerificationForm />
       </CardContent>
       <CardFooter className="flex justify-center border-t pt-6">
         <p className="text-muted-foreground text-center text-xs">

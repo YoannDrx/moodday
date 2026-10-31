@@ -1,10 +1,10 @@
-import { BaseNavigation } from "@/features/navigation/base-navigation";
+import { BaseLayout } from "@/features/layout/base-layout";
 import { Page404 } from "@/features/page/page-404";
 
 export default function NotFoundPage() {
   return (
-    <BaseNavigation>
+    <BaseLayout>
       <Page404 />
-    </BaseNavigation>
+    </BaseLayout>
   );
 }

@@ -35,22 +35,15 @@ export default async function PrivacyPage() {
             "Contract performance (Article 6(1)(b)); explicit consent for health data (Article 9(2)(a))",
         },
         {
-          purpose: "Caregiver sharing",
+          purpose: "Sharing with your partner (duo)",
           data: "Only categories, permissions and periods selected by you",
           basis:
             "Consent (Article 6(1)(a)) and explicit consent where health data is involved (Article 9(2)(a))",
         },
         {
-          purpose: "Optional AI insights",
-          data: "Minimized metrics; journal note only after separate consent",
-          basis:
-            "Consent (Article 6(1)(a)) and explicit consent for health data (Article 9(2)(a))",
-        },
-        {
-          purpose: "Optional Google Calendar synchronization",
-          data: "Appointment date, time and time zone; title and location only if you select detailed mode",
-          basis:
-            "Consent (Article 6(1)(a)) and explicit consent where appointment data reveals health information (Article 9(2)(a))",
+          purpose: "Notifications to you and your partner",
+          data: "Neutral text by default; details only if the person sharing enables them",
+          basis: "Consent (Article 6(1)(a)), withdrawable at any time",
         },
         {
           purpose: "Security, abuse prevention and service operations",
@@ -59,7 +52,7 @@ export default async function PrivacyPage() {
             "Legitimate interests in securing the service (Article 6(1)(f)); legal obligations where applicable",
         },
         {
-          purpose: "Moodday Plus billing and accounting",
+          purpose: "Moodday Duo billing and accounting",
           data: "Subscription identifiers and legally required billing records",
           basis:
             "Contract performance and legal obligations (Articles 6(1)(b) and 6(1)(c))",
@@ -73,22 +66,16 @@ export default async function PrivacyPage() {
             "Exécution du contrat (article 6.1.b) ; consentement explicite pour les données de santé (article 9.2.a)",
         },
         {
-          purpose: "Partage avec un aidant",
-          data: "Uniquement les catégories, permissions et périodes choisies",
+          purpose: "Partage avec votre partenaire (duo)",
+          data: "Uniquement ce que votre niveau de partage autorise : phase du cycle, état du jour, besoins, symptômes si activés. Jamais la note privée",
           basis:
             "Consentement (article 6.1.a) et consentement explicite lorsque des données de santé sont concernées (article 9.2.a)",
         },
         {
-          purpose: "Insights IA facultatifs",
-          data: "Métriques minimisées ; note uniquement après accord séparé",
+          purpose: "Notifications à vous et à votre partenaire",
+          data: "Texte neutre par défaut (« a partagé son point du jour ») ; détail uniquement si la personne qui partage l’active",
           basis:
-            "Consentement (article 6.1.a) et consentement explicite pour les données de santé (article 9.2.a)",
-        },
-        {
-          purpose: "Synchronisation Google Agenda facultative",
-          data: "Date, heure et fuseau du rendez-vous ; titre et lieu uniquement si vous choisissez le mode détaillé",
-          basis:
-            "Consentement (article 6.1.a) et consentement explicite lorsque le rendez-vous révèle une donnée de santé (article 9.2.a)",
+            "Consentement (article 6.1.a), retirable à tout moment dans les réglages de l’appareil et de Moodday",
         },
         {
           purpose: "Sécurité, prévention des abus et exploitation",
@@ -97,7 +84,7 @@ export default async function PrivacyPage() {
             "Intérêt légitime à sécuriser le service (article 6.1.f) ; obligations légales lorsqu’elles s’appliquent",
         },
         {
-          purpose: "Facturation Moodday Plus et comptabilité",
+          purpose: "Facturation Moodday Duo et comptabilité",
           data: "Identifiants d’abonnement et pièces imposées par la loi",
           basis:
             "Exécution du contrat et obligations légales (articles 6.1.b et 6.1.c)",
@@ -316,8 +303,8 @@ export default async function PrivacyPage() {
               className="text-muted-foreground mt-2 text-sm"
             >
               {isEnglish
-                ? "Health-data consent is requested separately from acceptance of the Terms and this policy. Optional AI and caregiver processing remain disabled until their own consent is recorded."
-                : "Le consentement aux données de santé est demandé séparément de l’acceptation des CGU et de cette politique. Les traitements facultatifs IA et aidant restent désactivés tant que leur accord propre n’est pas enregistré."}
+                ? "Health-data consent is requested separately from acceptance of the Terms and this policy. Sharing with a partner stays off until you create a duo and choose what they see."
+                : "Le consentement aux données de santé est demandé séparément de l’acceptation des CGU et de cette politique. Le partage avec votre partenaire reste désactivé tant que vous n’avez pas formé un duo et choisi ce qu’il ou elle voit."}
             </Typography>
             <div
               className="mt-5 overflow-x-auto"

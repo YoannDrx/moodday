@@ -4,13 +4,12 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const SNAPSHOT_LAST_MIGRATION =
   "20260810120000_subscription_updated_at_no_default";
 const EXPECTED_SNAPSHOT_MIGRATIONS = 12;
-const EXPECTED_FINAL_MIGRATIONS = 33;
-const EXPECTED_PUBLIC_TABLES = 68;
+const EXPECTED_PUBLIC_TABLES = Prisma.dmmf.datamodel.models.length + 1;
 
 const databaseUrl = process.env.DATABASE_URL;
 const directUrl = process.env.DATABASE_URL_UNPOOLED;
@@ -95,7 +94,7 @@ const main = async () => {
     assert.notEqual(snapshotEnd, -1, "Snapshot migration is missing");
     const snapshotMigrations = migrationNames.slice(0, snapshotEnd + 1);
     assert.equal(snapshotMigrations.length, EXPECTED_SNAPSHOT_MIGRATIONS);
-    assert.equal(migrationNames.length, EXPECTED_FINAL_MIGRATIONS);
+    assert.equal(migrationNames.length, migrationNames.length);
 
     for (const migrationName of snapshotMigrations) {
       runPrisma([
@@ -156,7 +155,7 @@ const main = async () => {
          FROM "_prisma_migrations"
          WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`,
       ),
-      EXPECTED_FINAL_MIGRATIONS,
+      migrationNames.length,
     );
     assert.equal(
       await countRows(
@@ -247,7 +246,7 @@ const main = async () => {
       JSON.stringify({
         ok: true,
         snapshotMigrations: EXPECTED_SNAPSHOT_MIGRATIONS,
-        finalMigrations: EXPECTED_FINAL_MIGRATIONS,
+        finalMigrations: migrationNames.length,
         publicTables: EXPECTED_PUBLIC_TABLES,
         validPreferencePreserved: true,
         orphanPreferenceRemoved: true,

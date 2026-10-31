@@ -2,6 +2,32 @@ import { apiError, withApiV2Route } from "@/lib/api-v2/responses";
 import { describe, expect, it } from "vitest";
 
 describe("V2 API response envelope", () => {
+  it("preserves retry timing and rejects oversized mutations before the handler", async () => {
+    const limited = withApiV2Route(async () =>
+      Response.json(
+        { message: "limit" },
+        { status: 429, headers: { "Retry-After": "30" } },
+      ),
+    );
+    const response = await limited(new Request("https://example.test"));
+    expect(response.headers.get("Retry-After")).toBe("30");
+    expect(await response.json()).toMatchObject({
+      error: { code: "rate_limited" },
+    });
+    const handler = withApiV2Route(async () => {
+      throw new Error("must not execute");
+    });
+    expect(
+      (
+        await handler(
+          new Request("https://example.test", {
+            method: "POST",
+            body: "x".repeat(1024 * 1024 + 1),
+          }),
+        )
+      ).status,
+    ).toBe(413);
+  });
   it("normalizes validator errors before they reach shared clients", async () => {
     const handler = withApiV2Route(async () =>
       Response.json({ message: "Invalid body", errors: [] }, { status: 400 }),

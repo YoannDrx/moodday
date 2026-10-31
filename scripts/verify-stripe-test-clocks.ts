@@ -14,7 +14,7 @@ if (!secretKey?.startsWith("sk_test_") && !secretKey?.startsWith("rk_test_")) {
   throw new Error("Test Clocks require a Stripe test-mode key");
 }
 if (!monthlyPriceId || !yearlyPriceId) {
-  throw new Error("Both Moodday Plus test price IDs are required");
+  throw new Error("Both Moodday Duo test price IDs are required");
 }
 const verifiedMonthlyPriceId = monthlyPriceId;
 const verifiedYearlyPriceId = yearlyPriceId;

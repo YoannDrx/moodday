@@ -81,9 +81,6 @@ describe("user data deletion", () => {
     expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({
       where: { userId: user.id },
     });
-    expect(prisma.feedback.deleteMany).toHaveBeenCalledWith({
-      where: { userId: user.id },
-    });
     expect(prisma.emailLog.deleteMany).toHaveBeenCalledWith({
       where: { OR: [{ userId: user.id }, { to: user.email }] },
     });
@@ -101,21 +98,16 @@ describe("user data deletion", () => {
     expect(prisma.userPreferences.deleteMany).toHaveBeenCalledTimes(1);
   });
 
-  it("deletes caregiver records and the account in the same transaction", async () => {
+  it("deletes the account in one transaction, cascading the couple data", async () => {
     vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({
       image: managedImage,
     } as never);
 
     await deleteUserAccountAtomically(user);
 
-    expect(prisma.caregiverRelationship.deleteMany).toHaveBeenCalledWith({
-      where: { OR: [{ patientId: user.id }, { caregiverId: user.id }] },
-    });
-    expect(prisma.caregiverObservation.deleteMany).toHaveBeenCalledWith({
-      where: { OR: [{ observerId: user.id }, { subjectId: user.id }] },
-    });
-    expect(prisma.caregiverEvent.deleteMany).toHaveBeenCalledWith({
-      where: { OR: [{ reporterId: user.id }, { subjectId: user.id }] },
+    expect(prisma.externalDeletionJob.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.newsletterSubscriber.deleteMany).toHaveBeenCalledWith({
+      where: { email: user.email },
     });
     expect(prisma.user.delete).toHaveBeenCalledWith({
       where: { id: user.id },
@@ -127,7 +119,7 @@ describe("user data deletion", () => {
     vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({
       image: null,
     } as never);
-    vi.mocked(prisma.feedback.deleteMany).mockRejectedValue(failure);
+    vi.mocked(prisma.emailLog.deleteMany).mockRejectedValue(failure);
 
     await expect(deleteUserAccountAtomically(user)).rejects.toBe(failure);
     expect(prisma.user.delete).not.toHaveBeenCalled();

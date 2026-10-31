@@ -15,7 +15,9 @@ export function RegulatoryExportDownload({
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
-    tokenRef.current = fragment.get("token");
+    // Effects can run twice (React strict mode): never forget a token already
+    // read once the fragment has been removed from the address bar.
+    tokenRef.current = fragment.get("token") ?? tokenRef.current;
     window.history.replaceState(null, "", window.location.pathname);
     if (!tokenRef.current) setState("missing");
   }, []);

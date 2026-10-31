@@ -144,7 +144,7 @@ describe("Better Auth route security gates", () => {
 
   it("claims verification links once before forwarding them", async () => {
     const firstRequest = request(
-      "/api/auth/verify-email?token=signed-token&callbackURL=/dashboard",
+      "/api/auth/verify-email?token=signed-token&callbackURL=/today",
       "GET",
     );
     expect((await GET(firstRequest)).status).toBe(200);
@@ -164,5 +164,19 @@ describe("Better Auth route security gates", () => {
       200,
     );
     expect(claimEmailVerificationToken).not.toHaveBeenCalled();
+  });
+  it("rejects malformed signup bodies and missing verification tokens", async () => {
+    getSignupAccess.mockReturnValue({
+      allowed: false,
+      mode: "invite",
+      code: "INVITATION_REQUIRED",
+    });
+    expect((await POST(request("/api/auth/sign-up/email"))).status).toBe(403);
+    expect(getSignupAccess).toHaveBeenCalledWith(undefined);
+    claimEmailVerificationToken.mockResolvedValue(false);
+    expect((await GET(request("/api/auth/verify-email", "GET"))).status).toBe(
+      400,
+    );
+    expect(claimEmailVerificationToken).toHaveBeenCalledWith("");
   });
 });

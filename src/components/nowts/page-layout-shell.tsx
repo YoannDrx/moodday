@@ -41,48 +41,26 @@ export function PageLayoutShell({
   action,
   headerRight,
   maxWidth = "7xl",
-  showBlobs = true,
-  blobVariant = "lavender",
   className,
 }: PageLayoutShellProps) {
   const ActionIcon = action?.icon;
 
   return (
-    <div
-      className={cn(
-        "mx-auto px-4 pb-8 lg:px-6",
-        maxWidthClasses[maxWidth],
-        className,
-      )}
-    >
-      {showBlobs && (
-        <>
-          <div className="blob blob-primary -top-[200px] -left-[100px]" />
-          <div
-            className={cn(
-              "blob -right-[100px] -bottom-[200px]",
-              blobVariant === "lavender" ? "blob-lavender" : "blob-sage",
-            )}
-          />
-        </>
-      )}
-
-      <header className="mb-10 flex items-center justify-between">
+    <div className={cn("mx-auto pb-8", maxWidthClasses[maxWidth], className)}>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-            {title}
-          </h1>
-          {subtitle && <p className="text-gray-600">{subtitle}</p>}
+          <h1 className="text-4xl font-extrabold sm:text-5xl">{title}</h1>
+          {subtitle && (
+            <p className="text-muted-foreground mt-1 font-semibold">
+              {subtitle}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
           {headerRight}
           {action && (
-            <Button
-              asChild={!!action.href}
-              onClick={action.onClick}
-              className="shadow-soft rounded-2xl bg-[var(--primary)] px-6 font-bold text-white transition-all hover:bg-[var(--primary-dark)]"
-            >
+            <Button asChild={!!action.href} onClick={action.onClick}>
               {action.href ? (
                 <Link href={action.href}>
                   {ActionIcon && <ActionIcon className="mr-2 size-4" />}

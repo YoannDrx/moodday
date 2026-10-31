@@ -1,5 +1,11 @@
-import { MooddayLogo } from "@/components/nowts/moodday-logo";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getI18n } from "@/i18n/server";
 import { getRequiredVerifiedUser } from "@/lib/auth/auth-user";
 import { ConsentForm } from "./consent-form";

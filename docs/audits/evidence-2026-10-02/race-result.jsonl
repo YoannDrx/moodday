@@ -1,0 +1,1 @@
+{"test":"source-function-refresh-race","result":{"payload":"{\"id\":\"draft\",\"updatedAt\":\"2026-10-01\",\"note\":\"OLD SERVER DRAFT\"}","state":"synced"},"expected":"NEW LOCAL DRAFT remains dirty"}

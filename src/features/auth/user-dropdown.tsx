@@ -98,7 +98,7 @@ export const UserDropdown = ({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/dashboard">
+            <Link href="/today">
               <LayoutDashboard className="mr-2 size-4" />
               {t("nav.dashboard")}
             </Link>

@@ -88,13 +88,13 @@ describe("mobile delivery configuration", () => {
         },
         info: {
           "fr-FR": {
-            title: "Mood Day",
+            title: "Moodday",
             supportUrl: "https://www.moodday.app/help",
             privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
             privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
           },
           "en-US": {
-            title: "Mood Day",
+            title: "Moodday: PMS for couples",
             supportUrl: "https://www.moodday.app/help",
             privacyPolicyUrl: "https://www.moodday.app/legal/privacy",
             privacyChoicesUrl: "https://www.moodday.app/privacy-choices",
@@ -105,6 +105,27 @@ describe("mobile delivery configuration", () => {
     expect(storeConfig.apple.review).toBeUndefined();
     expect(JSON.stringify(storeConfig)).toContain("non médical");
     expect(JSON.stringify(storeConfig)).toContain("non-medical");
+  });
+
+  it("describes the couple and PMS product, aligned with the binary version", () => {
+    const listing = JSON.stringify(storeConfig.apple.info);
+    for (const removed of [
+      "TDAH",
+      "ADHD",
+      "bipolar",
+      "HealthKit",
+      "rendez-vous",
+      "medication",
+    ]) {
+      expect(listing).not.toContain(removed);
+    }
+    expect(storeConfig.apple.info["fr-FR"].keywords).toEqual(
+      expect.arrayContaining(["SPM", "couple", "cycle", "partenaire"]),
+    );
+    expect((storeConfig.apple as { version?: string }).version).toBe(
+      (appConfig.expo as { version?: string }).version,
+    );
+    expect(appConfig.expo.name).toBe("Moodday");
   });
 
   it("keeps the EAS build CLI outside the application dependency graph", () => {
@@ -133,7 +154,7 @@ describe("mobile delivery configuration", () => {
     );
   });
 
-  it("ships private local reminders and native account-data handoff", () => {
+  it("ships remote push registration and native account-data handoff", () => {
     const mobilePackage = JSON.parse(
       fs.readFileSync(path.join(mobileRoot, "package.json"), "utf8"),
     ) as { dependencies: Record<string, string> };
@@ -150,10 +171,19 @@ describe("mobile delivery configuration", () => {
       "expo-file-system": "~55.0.25",
       "expo-notifications": "~55.0.26",
       "expo-sharing": "~55.0.23",
+      "@moodday/domain": "workspace:*",
     });
-    expect(notifications).toContain("SchedulableTriggerInputTypes.DATE");
-    expect(notifications).toContain("Un rappel de traitement t’attend");
-    expect(notifications).not.toContain("medication.name");
+    for (const removed of [
+      "@kingstinct/react-native-healthkit",
+      "expo-calendar",
+      "expo-sqlite",
+      "react-native-nitro-modules",
+    ]) {
+      expect(mobilePackage.dependencies).not.toHaveProperty(removed);
+    }
+    expect(notifications).toContain("getExpoPushTokenAsync");
+    expect(notifications).toContain("api.registerDevice");
+    expect(notifications).toContain("prompt: boolean");
     expect(accountData).toContain("/api/export/json");
     expect(accountData).toContain("if (file.exists) file.delete()");
   });
@@ -201,7 +231,7 @@ describe("mobile delivery configuration", () => {
     {
       variant: "development",
       apiUrl: undefined,
-      name: "Mood Day Dev",
+      name: "Moodday Dev",
       scheme: "moodday-dev",
       identifier: "fr.yodev.moodday.dev",
       resolvedApiUrl: "http://localhost:3000",
@@ -209,7 +239,7 @@ describe("mobile delivery configuration", () => {
     {
       variant: "preview",
       apiUrl: "https://preview.moodday.invalid",
-      name: "Mood Day Preview",
+      name: "Moodday Preview",
       scheme: "moodday-preview",
       identifier: "fr.yodev.moodday.preview",
       resolvedApiUrl: "https://preview.moodday.invalid",
@@ -217,7 +247,7 @@ describe("mobile delivery configuration", () => {
     {
       variant: "production",
       apiUrl: "https://www.moodday.app",
-      name: "Mood Day",
+      name: "Moodday",
       scheme: "moodday",
       identifier: "fr.yodev.moodday",
       resolvedApiUrl: "https://www.moodday.app",
@@ -229,7 +259,7 @@ describe("mobile delivery configuration", () => {
       vi.stubEnv("EXPO_PUBLIC_API_URL", apiUrl ?? "");
 
       const resolved = resolveExpoConfig({
-        config: { name: "Mood Day", slug: "mood-day" },
+        config: { name: "Moodday", slug: "mood-day" },
       } as never);
 
       expect(resolved).toMatchObject({
@@ -240,8 +270,8 @@ describe("mobile delivery configuration", () => {
         extra: { appVariant: variant, apiUrl: resolvedApiUrl },
       });
       expect(JSON.stringify(resolved.plugins)).toContain("expo-notifications");
-      expect(JSON.stringify(resolved.plugins)).toContain(
-        '"remindersPermission":false',
+      expect(JSON.stringify(resolved.plugins)).not.toMatch(
+        /healthkit|expo-calendar|expo-sqlite/iu,
       );
     },
   );
@@ -251,14 +281,14 @@ describe("mobile delivery configuration", () => {
     vi.stubEnv("EXPO_PUBLIC_API_URL", "");
     expect(() =>
       resolveExpoConfig({
-        config: { name: "Mood Day", slug: "mood-day" },
+        config: { name: "Moodday", slug: "mood-day" },
       } as never),
     ).toThrow("EXPO_PUBLIC_API_URL is required for the preview");
 
     vi.stubEnv("EXPO_PUBLIC_API_URL", "http://preview.moodday.invalid");
     expect(() =>
       resolveExpoConfig({
-        config: { name: "Mood Day", slug: "mood-day" },
+        config: { name: "Moodday", slug: "mood-day" },
       } as never),
     ).toThrow("EXPO_PUBLIC_API_URL must use HTTPS for the preview");
   });
@@ -271,7 +301,7 @@ describe("mobile delivery configuration", () => {
     vi.stubEnv("EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY", "");
 
     const resolved = resolveExpoConfig({
-      config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+      config: { name: "Moodday", slug: "mood-day", plugins: [] },
     } as never);
 
     expect(resolved.extra).toMatchObject({
@@ -289,7 +319,7 @@ describe("mobile delivery configuration", () => {
 
     expect(() =>
       resolveExpoConfig({
-        config: { name: "Mood Day", slug: "mood-day", plugins: [] },
+        config: { name: "Moodday", slug: "mood-day", plugins: [] },
       } as never),
     ).toThrow("RevenueCat iOS public API key is required");
   });

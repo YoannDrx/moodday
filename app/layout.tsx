@@ -1,3 +1,4 @@
+import { CrisisNumbersBar } from "@/components/crisis/crisis-numbers-bar";
 import { TailwindIndicator } from "@/components/utils/tailwind-indicator";
 import { NextTopLoader } from "@/features/page/next-top-loader";
 import { ServerToaster } from "@/features/server-sonner/server-toaster";
@@ -5,6 +6,7 @@ import { getI18n } from "@/i18n/server";
 import { SiteConfig } from "@/site-config";
 import type { LayoutParams } from "@/types/next";
 import type { Metadata, Viewport } from "next";
+import { Atkinson_Hyperlegible, Bricolage_Grotesque } from "next/font/google";
 import { headers } from "next/headers";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { type ReactNode, Suspense } from "react";
@@ -13,15 +15,31 @@ import { Providers } from "./providers";
 import { getClientVisibleFeatures } from "@/lib/features/availability";
 import { env } from "@/lib/env";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
+const headingFont = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-heading",
+  display: "swap",
+});
 
+const bodyFont = Atkinson_Hyperlegible({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const title = "Moodday · Le SPM, ça se traverse à deux";
+const description =
+  "Elle dit comment elle va en dix secondes. Son ou sa partenaire sait enfin quoi faire. Moodday aide les couples à traverser le syndrome prémenstruel, sans diagnostic et sans exposer ses données.";
+
+export function generateMetadata(): Metadata {
   return {
     title: {
-      default: t("meta.title"),
+      default: title,
       template: `%s · Moodday`,
     },
-    description: t("meta.description"),
+    description,
     metadataBase: new URL(SiteConfig.prodUrl),
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
@@ -32,29 +50,33 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       siteName: "Moodday",
-      title: t("meta.title"),
-      description: t("meta.description"),
+      locale: "fr_FR",
+      title,
+      description,
       url: "/",
       images: [
         {
           url: "/images/moodday-og.png",
           width: 1200,
           height: 630,
-          alt: "Moodday — comprendre ses journées et préparer ses consultations",
+          alt: "Moodday : le SPM, ça se traverse à deux",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: t("meta.title"),
-      description: t("meta.description"),
+      title,
+      description,
       images: ["/images/moodday-og.png"],
     },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: "#1E7775",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbf4ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#1e1322" },
+  ],
 };
 
 export default async function RootLayout({
@@ -66,7 +88,11 @@ export default async function RootLayout({
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang={locale} className="h-full" suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={`h-full ${headingFont.variable} ${bodyFont.variable}`}
+      suppressHydrationWarning
+    >
       <body
         suppressHydrationWarning
         className="bg-background h-full font-sans antialiased"
@@ -85,6 +111,7 @@ export default async function RootLayout({
               color="var(--primary)"
             />
             {children}
+            <CrisisNumbersBar locale={locale} />
             {modal}
             <TailwindIndicator />
             <Suspense>

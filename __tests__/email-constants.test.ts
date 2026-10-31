@@ -7,13 +7,15 @@ describe("email URLs", () => {
     expect(EMAIL_URLS.logo()).toBe(
       "https://www.moodday.app/icons/android-chrome-512x512.png",
     );
-    expect(EMAIL_URLS.dashboard()).toBe("https://www.moodday.app/dashboard");
+    expect(EMAIL_URLS.dashboard()).toBe("https://www.moodday.app/today");
     expect(EMAIL_URLS.billing()).toBe(
       "https://www.moodday.app/account/billing",
     );
     expect(
       Object.values(EMAIL_URLS).every((url) =>
-        url().startsWith("https://www.moodday.app/"),
+        (url as (value: string) => string)("token").startsWith(
+          "https://www.moodday.app/",
+        ),
       ),
     ).toBe(true);
   });

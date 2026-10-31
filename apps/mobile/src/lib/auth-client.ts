@@ -2,12 +2,13 @@ import { expoClient } from "@better-auth/expo/client";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import { createAuthClient } from "better-auth/react";
+import { twoFactorClient } from "better-auth/client/plugins";
 
 const apiUrl = Constants.expoConfig?.extra?.apiUrl;
 const scheme = Constants.expoConfig?.scheme;
 
 if (typeof apiUrl !== "string" || typeof scheme !== "string") {
-  throw new Error("Mood Day mobile auth configuration is incomplete");
+  throw new Error("Moodday mobile auth configuration is incomplete");
 }
 
 // Better Auth 1.6.27 and its Expo package expose the same runtime plugin but
@@ -16,6 +17,7 @@ if (typeof apiUrl !== "string" || typeof scheme !== "string") {
 const client = createAuthClient({
   baseURL: apiUrl,
   plugins: [
+    twoFactorClient(),
     expoClient({
       scheme,
       storagePrefix: "moodday",

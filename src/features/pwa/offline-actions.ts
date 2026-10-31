@@ -2,16 +2,8 @@
 "use client";
 
 import { nanoid } from "nanoid";
-import {
-  logMedIntake,
-  logPRNIntake,
-  skipMedIntake,
-} from "@/features/medication/medication.action";
-import { logExerciseCompletion } from "@/features/exercise/exercise.action";
-import { createTherapySession } from "@/features/therapy/therapy.action";
-import { createV2CheckIn } from "@/features/v2/check-ins/check-in.action";
-import { createV2RoutineOccurrence } from "@/features/v2/routines/routine-occurrence.action";
-import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+import { saveCheckInAction } from "@/features/couple/couple.action";
+import { civilDateInTimeZone } from "@moodday/domain";
 import { notifyOfflineQueueChanged } from "./offline-events";
 import {
   addOfflineOperation,
@@ -27,71 +19,18 @@ import {
   type OfflineOperation,
 } from "./offline-store";
 
-export type OfflineActionType =
-  | "med_intake"
-  | "med_skip"
-  | "med_prn_intake"
-  | "exercise_log"
-  | "therapy_create"
-  | "v2_check_in"
-  | "v2_routine_occurrence";
+export type OfflineActionType = "check_in";
 
-export type OfflineActionPayload =
-  | {
-      type: "med_intake";
-      medicationId: string;
-      doseIndex?: number;
-      scheduledForDate?: string;
-      takenAt?: string;
-    }
-  | {
-      type: "med_skip";
-      medicationId: string;
-      doseIndex?: number;
-      scheduledForDate?: string;
-      takenAt?: string;
-      reason?: string;
-    }
-  | {
-      type: "med_prn_intake";
-      medicationId: string;
-      reason?: string;
-      takenAt?: string;
-    }
-  | {
-      type: "exercise_log";
-      exerciseId: string;
-      note?: string;
-      completedAt?: string;
-    }
-  | {
-      type: "therapy_create";
-      date: string;
-      notes: string;
-      benefitRating?: number;
-    }
-  | {
-      type: "v2_check_in";
-      depth: "presence" | "quick" | "complete";
-      localDate: string;
-      timezone: string;
-      valence?: number;
-      activation?: number;
-      irritability?: number;
-      anxiety?: number;
-      contexts: readonly string[];
-      note?: string;
-    }
-  | {
-      type: "v2_routine_occurrence";
-      entityId: string;
-      routineId: string;
-      localDate: string;
-      timezone: string;
-      status: "completed" | "skipped";
-      completedAt?: string;
-      note?: string;
-    };
+/** "Mon point" saved while offline. The private note stays on this device. */
+export type OfflineActionPayload = {
+  type: "check_in";
+  localDate: string;
+  timezone: string;
+  state: "ok" | "fragile" | "hard" | "very_hard";
+  symptoms: readonly string[];
+  needs: readonly string[];
+  privateNote?: string;
+};
 
 export type OfflineActionEntry = {
   id: string;
@@ -101,33 +40,6 @@ export type OfflineActionEntry = {
   createdAt: string;
   localDateAtCreation: string;
   timeZoneAtCreation: string;
-};
-
-const preserveOfflineActionTime = (
-  payload: OfflineActionPayload,
-  createdAt: Date,
-  timeZone: string,
-): OfflineActionPayload => {
-  const instant = createdAt.toISOString();
-  switch (payload.type) {
-    case "med_intake":
-    case "med_skip":
-      return {
-        ...payload,
-        takenAt: payload.takenAt ?? instant,
-        scheduledForDate:
-          payload.scheduledForDate ??
-          getDateKeyForTimeZone(createdAt, timeZone),
-      };
-    case "med_prn_intake":
-      return { ...payload, takenAt: payload.takenAt ?? instant };
-    case "exercise_log":
-      return { ...payload, completedAt: payload.completedAt ?? instant };
-    case "therapy_create":
-    case "v2_check_in":
-    case "v2_routine_occurrence":
-      return payload;
-  }
 };
 
 export const queueAction = async (
@@ -146,9 +58,9 @@ export const queueAction = async (
     id: `action:${nanoid(10)}`,
     ownerId,
     schemaVersion: 2,
-    payload: preserveOfflineActionTime(payload, createdAt, timeZoneAtCreation),
+    payload,
     createdAt: now,
-    localDateAtCreation: getDateKeyForTimeZone(createdAt, timeZoneAtCreation),
+    localDateAtCreation: civilDateInTimeZone(createdAt, timeZoneAtCreation),
     timeZoneAtCreation,
   };
   await addOfflineOperation({
@@ -192,93 +104,17 @@ const runQueuedActionSync = async (ownerId: string) => {
     try {
       await updateOfflineOperation(ownerId, item.id, { status: "syncing" });
       const payload = item.payload;
-      switch (payload.type) {
-        case "med_intake": {
-          const result = await logMedIntake({
-            medicationId: payload.medicationId,
-            operationId: item.id,
-            doseIndex: payload.doseIndex,
-            scheduledForDate: payload.scheduledForDate,
-            takenAt: payload.takenAt,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "med_skip": {
-          const result = await skipMedIntake({
-            medicationId: payload.medicationId,
-            operationId: item.id,
-            doseIndex: payload.doseIndex,
-            scheduledForDate: payload.scheduledForDate,
-            takenAt: payload.takenAt,
-            reason: payload.reason,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "med_prn_intake": {
-          const result = await logPRNIntake({
-            medicationId: payload.medicationId,
-            reason: payload.reason,
-            operationId: item.id,
-            takenAt: payload.takenAt,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "exercise_log": {
-          const result = await logExerciseCompletion({
-            exerciseId: payload.exerciseId,
-            note: payload.note,
-            operationId: item.id,
-            completedAt: payload.completedAt,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "therapy_create": {
-          const result = await createTherapySession({
-            operationId: item.id,
-            date: payload.date,
-            notes: payload.notes,
-            benefitRating: payload.benefitRating,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "v2_check_in": {
-          const result = await createV2CheckIn({
-            operationId: item.id,
-            depth: payload.depth,
-            localDate: payload.localDate,
-            timezone: payload.timezone,
-            valence: payload.valence,
-            activation: payload.activation,
-            irritability: payload.irritability,
-            anxiety: payload.anxiety,
-            contexts: [...payload.contexts],
-            note: payload.note,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        case "v2_routine_occurrence": {
-          const result = await createV2RoutineOccurrence({
-            operationId: item.id,
-            entityId: payload.entityId,
-            routineId: payload.routineId,
-            localDate: payload.localDate,
-            timezone: payload.timezone,
-            status: payload.status,
-            completedAt: payload.completedAt,
-            note: payload.note,
-          });
-          if (result.serverError) throw new Error(result.serverError);
-          break;
-        }
-        default:
-          throw new Error("Unknown offline action");
-      }
+      const result = await saveCheckInAction({
+        operationId: item.id,
+        localDate: payload.localDate,
+        timezone: payload.timezone,
+        state: payload.state,
+        symptoms: [...payload.symptoms],
+        needs: [...payload.needs],
+        privateNote: payload.privateNote ?? null,
+      });
+      if (result.serverError) throw new Error(result.serverError);
+      if (result.validationErrors) throw new Error("validation_failed");
       await removeOfflineOperation(ownerId, item.id);
       synced += 1;
     } catch (error) {

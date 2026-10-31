@@ -1,13 +1,15 @@
-import { FooterDark } from "@/features/landing/footer-dark";
-import { NavbarDark } from "@/features/landing/navbar-dark";
+import { SiteFooter } from "@/features/site/site-footer";
+import { SiteHeader } from "@/features/site/site-header";
 import type { PropsWithChildren } from "react";
 
 export function BaseLayout(props: PropsWithChildren) {
   return (
     <div className="bg-background relative flex min-h-full flex-col">
-      <NavbarDark />
-      <div className="min-h-full flex-1 pt-24">{props.children}</div>
-      <FooterDark />
+      <SiteHeader />
+      <main id="contenu" className="flex-1">
+        {props.children}
+      </main>
+      <SiteFooter />
     </div>
   );
 }

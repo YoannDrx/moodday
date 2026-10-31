@@ -54,6 +54,7 @@ process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED = "true";
 
 const isolatedServiceEnv = {
   PLAYWRIGHT_DATABASE_GUARD_CONFIGURED: "true",
+  MOODDAY_TEST_MAIL_TRANSPORT: "isolated",
   // Satisfy fail-closed feature configuration without contacting Resend: all
   // browser-test recipients use the reserved playwright-test-* prefix and are
   // short-circuited by sendEmail.
@@ -101,6 +102,9 @@ const config: PlaywrightTestConfig = {
     {
       name: "webkit",
       testIgnore: chromiumOnlyPasskeySpec,
+      // WebKit on CI runners completes the multi-context account and caregiver
+      // journeys in about 60-66s, too close to the shared 70s budget.
+      timeout: 120 * 1000,
       use: { ...devices["Desktop Safari"] },
     },
     {
@@ -111,6 +115,7 @@ const config: PlaywrightTestConfig = {
     {
       name: "mobile-webkit",
       testIgnore: chromiumOnlyPasskeySpec,
+      timeout: 120 * 1000,
       use: { ...devices["iPhone 15"] },
     },
   ],
@@ -149,7 +154,8 @@ const config: PlaywrightTestConfig = {
         webServer: {
           command: `pnpm run build && pnpm run start -H 127.0.0.1 -p ${playwrightPort}`,
           url: serverUrl,
-          timeout: 120 * 1000,
+          // Includes the optimized build; measured cold builds exceed 2 min.
+          timeout: 300 * 1000,
           reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
           env: {
             DATABASE_URL: effectivePlaywrightDatabaseUrl,

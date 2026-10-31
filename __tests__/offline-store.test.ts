@@ -26,12 +26,19 @@ import {
   updateOfflineOperation,
 } from "@/features/pwa/offline-store";
 import { getQueuedActions, queueAction } from "@/features/pwa/offline-actions";
-import {
-  discardQueuedMoodEntry,
-  getQueuedMoodEntries,
-  queueMoodEntry,
-} from "@/features/pwa/offline-queue";
-import { getDateKeyForTimeZone } from "@/features/medication/schedule";
+import type { OfflineActionPayload } from "@/features/pwa/offline-actions";
+
+const checkIn = (
+  state: "ok" | "fragile" | "hard" | "very_hard",
+  localDate = "2026-07-01",
+): OfflineActionPayload => ({
+  type: "check_in",
+  localDate,
+  timezone: "Europe/Paris",
+  state,
+  symptoms: [],
+  needs: [],
+});
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const OWNER_ID = "user-alice";
@@ -287,34 +294,27 @@ describe("offline IndexedDB store", () => {
     expect(await countOfflineOperations(OWNER_ID)).toBe(1);
   });
 
-  it("durably queues a quick mood and energy check-in", async () => {
-    const entry = await queueMoodEntry(OWNER_ID, {
-      value: 7,
-      energy: 4,
-    });
+  it("durably queues a check-in", async () => {
+    const entry = await queueAction(OWNER_ID, checkIn("fragile"));
 
-    expect(entry.id).toMatch(/^mood:/);
-    expect(await getQueuedMoodEntries(OWNER_ID)).toEqual([
+    expect(entry.id).toMatch(/^action:/);
+    expect(await getQueuedActions(OWNER_ID)).toEqual([
       expect.objectContaining({
         id: entry.id,
-        kind: "mood",
+        kind: "action",
         status: "pending",
         retryCount: 0,
-        payload: expect.objectContaining({
-          value: 7,
-          energy: 4,
-          recordedAt: expect.any(String),
-        }),
+        payload: expect.objectContaining({ state: "fragile" }),
       }),
     ]);
   });
 
-  it("can undo a queued mood entry before synchronization", async () => {
-    const entry = await queueMoodEntry(OWNER_ID, { value: 6, energy: 3 });
+  it("can undo a queued check-in before synchronization", async () => {
+    const entry = await queueAction(OWNER_ID, checkIn("ok"));
 
-    await discardQueuedMoodEntry(OWNER_ID, entry.id);
+    await removeOfflineOperation(OWNER_ID, entry.id);
 
-    expect(await getQueuedMoodEntries(OWNER_ID)).toEqual([]);
+    expect(await getQueuedActions(OWNER_ID)).toEqual([]);
   });
 
   it("caps exponential retry delays at one hour", () => {
@@ -330,90 +330,71 @@ describe("offline IndexedDB store", () => {
       const createdAt = new Date(
         firstDay.getTime() + day * 24 * 60 * 60 * 1000,
       );
-      return queueMoodEntry(
+      return queueAction(
         OWNER_ID,
-        { value: day + 2, energy: day + 1 },
+        checkIn(
+          day % 2 === 0 ? "ok" : "hard",
+          createdAt.toISOString().slice(0, 10),
+        ),
         { createdAt },
       );
     });
     await Promise.all(queuedDays);
 
     await closeOfflineDatabase();
-    const reopenedQueue = await getQueuedMoodEntries(OWNER_ID);
+    const reopenedQueue = await getQueuedActions(OWNER_ID);
 
     expect(reopenedQueue).toHaveLength(7);
     expect(new Set(reopenedQueue.map((operation) => operation.id)).size).toBe(
       7,
     );
-    expect(reopenedQueue.map((operation) => operation.payload.value)).toEqual([
-      2, 3, 4, 5, 6, 7, 8,
+    expect(
+      reopenedQueue.map((operation) => operation.payload.localDate),
+    ).toEqual([
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03",
+      "2026-07-04",
+      "2026-07-05",
+      "2026-07-06",
+      "2026-07-07",
     ]);
     expect(
       reopenedQueue.every((operation) => operation.status === "pending"),
     ).toBe(true);
   });
 
-  it("preserves the original instant and time zone when the device time zone changes", async () => {
+  it("keeps the creation time zone and civil date across a DST change", async () => {
     const createdAt = new Date("2026-03-28T23:30:00.000Z");
-    const mood = await queueMoodEntry(
+    const entry = await queueAction(
       OWNER_ID,
-      { value: 6, energy: 5 },
-      { createdAt, timeZone: "Europe/Paris" },
-    );
-    const intake = await queueAction(
-      OWNER_ID,
-      { type: "med_intake", medicationId: "medication-1", doseIndex: 0 },
-      { createdAt, timeZone: "Europe/Paris" },
+      checkIn("fragile", "2026-03-29"),
+      {
+        createdAt,
+        timeZone: "Europe/Paris",
+      },
     );
 
-    const [moodOperation] = await getQueuedMoodEntries(OWNER_ID);
-    const [intakeOperation] = await getQueuedActions(OWNER_ID);
+    const [operation] = await getQueuedActions(OWNER_ID);
 
-    expect(moodOperation).toMatchObject({
-      id: mood.id,
+    expect(operation).toMatchObject({
+      id: entry.id,
       createdAt: createdAt.toISOString(),
       timeZoneAtCreation: "Europe/Paris",
-      payload: { recordedAt: createdAt.toISOString() },
+      localDateAtCreation: "2026-03-29",
+      payload: { localDate: "2026-03-29" },
     });
-    expect(intakeOperation).toMatchObject({
-      id: intake.id,
-      timeZoneAtCreation: "Europe/Paris",
-      payload: {
-        takenAt: createdAt.toISOString(),
-        scheduledForDate: "2026-03-29",
-      },
-    });
-
-    const intakePayload = intakeOperation.payload;
-    if (intakePayload.type !== "med_intake") {
-      throw new Error("Expected a medication intake operation");
-    }
-    expect(
-      getDateKeyForTimeZone(
-        new Date(intakePayload.takenAt ?? ""),
-        "America/New_York",
-      ),
-    ).toBe("2026-03-28");
-    expect(intakePayload.scheduledForDate).toBe("2026-03-29");
   });
 
-  it("preserves PRN and exercise timestamps until synchronization", async () => {
+  it("keeps queue order for several check-ins", async () => {
     const createdAt = new Date("2026-10-25T01:30:00.000Z");
-    await queueAction(
-      OWNER_ID,
-      { type: "med_prn_intake", medicationId: "prn-1" },
-      { createdAt, timeZone: "Europe/Paris" },
-    );
-    await queueAction(
-      OWNER_ID,
-      { type: "exercise_log", exerciseId: "exercise-1" },
-      { createdAt, timeZone: "Europe/Paris" },
-    );
+    await queueAction(OWNER_ID, checkIn("ok", "2026-10-24"), { createdAt });
+    await queueAction(OWNER_ID, checkIn("hard", "2026-10-25"), { createdAt });
 
     const operations = await getQueuedActions(OWNER_ID);
-    expect(operations.map((operation) => operation.payload)).toEqual([
-      expect.objectContaining({ takenAt: createdAt.toISOString() }),
-      expect.objectContaining({ completedAt: createdAt.toISOString() }),
+    expect(operations.map((operation) => operation.payload.state)).toEqual([
+      "ok",
+      "hard",
     ]);
     expect(operations.map((operation) => operation.queuePosition)).toEqual([
       1, 2,
@@ -566,14 +547,14 @@ describe("offline IndexedDB store", () => {
   });
 
   it("purges one owner's ciphertext and key without touching another owner", async () => {
-    await queueMoodEntry(OWNER_ID, { value: 2 });
-    await queueMoodEntry(OTHER_OWNER_ID, { value: 8 });
+    await queueAction(OWNER_ID, checkIn("ok"));
+    await queueAction(OTHER_OWNER_ID, checkIn("hard"));
     setActiveOfflineOwner(OWNER_ID);
 
     await purgeOfflineDataForOwner(OWNER_ID);
 
-    expect(await getQueuedMoodEntries(OWNER_ID)).toEqual([]);
-    expect(await getQueuedMoodEntries(OTHER_OWNER_ID)).toHaveLength(1);
+    expect(await getQueuedActions(OWNER_ID)).toEqual([]);
+    expect(await getQueuedActions(OTHER_OWNER_ID)).toHaveLength(1);
     expect(mayHaveOfflineOperations(OWNER_ID)).toBe(false);
     expect(getActiveOfflineOwner()).toBeNull();
   });
@@ -608,16 +589,19 @@ describe("offline IndexedDB store", () => {
   });
 
   it("isolates and encrypts queues belonging to different accounts", async () => {
-    await queueMoodEntry(OWNER_ID, {
-      value: 2,
-      note: "alice private journal content",
+    await queueAction(OWNER_ID, {
+      ...checkIn("fragile"),
+      privateNote: "alice private journal content",
     });
-    await queueMoodEntry(OTHER_OWNER_ID, { value: 8, note: "bob private" });
+    await queueAction(OTHER_OWNER_ID, {
+      ...checkIn("ok"),
+      privateNote: "bob private",
+    });
 
-    expect(await getQueuedMoodEntries(OWNER_ID)).toHaveLength(1);
-    expect(await getQueuedMoodEntries(OTHER_OWNER_ID)).toHaveLength(1);
+    expect(await getQueuedActions(OWNER_ID)).toHaveLength(1);
+    expect(await getQueuedActions(OTHER_OWNER_ID)).toHaveLength(1);
     expect(
-      JSON.stringify(await getQueuedMoodEntries(OTHER_OWNER_ID)),
+      JSON.stringify(await getQueuedActions(OTHER_OWNER_ID)),
     ).not.toContain("alice private journal content");
 
     const database = await new Promise<IDBDatabase>((resolve, reject) => {

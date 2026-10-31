@@ -36,7 +36,7 @@ export const exportAndShareAccountData = async () => {
     await Sharing.shareAsync(file.uri, {
       UTI: "public.json",
       mimeType: "application/json",
-      dialogTitle: "Exporter mes données Mood Day",
+      dialogTitle: "Exporter mes données Moodday",
     });
   } finally {
     if (file.exists) file.delete();

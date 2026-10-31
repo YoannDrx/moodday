@@ -114,13 +114,13 @@ describe("SidebarSubButtonLink", () => {
 describe("SidebarNavigationMenu", () => {
   it("renders navigation links correctly", async () => {
     const { usePathname } = await import("next/navigation");
-    vi.mocked(usePathname).mockReturnValue("/dashboard");
+    vi.mocked(usePathname).mockReturnValue("/today");
 
     const navigationGroup: NavigationGroup = {
       title: "Main",
       links: [
         {
-          href: "/dashboard",
+          href: "/today",
           Icon: Home,
           label: "Dashboard",
         },

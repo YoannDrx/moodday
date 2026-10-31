@@ -11,7 +11,7 @@ const before = (now: Date, days: number) =>
  */
 export const applyOperationalRetention = async (now = new Date()) => {
   const emailCutoff = before(now, 90);
-  const caregiverAndAiCutoff = before(now, 365);
+  const accessLogCutoff = before(now, 365);
   const stripeCutoff = before(now, 395);
   const completedJobCutoff = before(now, 30);
   const regulatoryAuditCutoff = before(now, 365);
@@ -20,15 +20,14 @@ export const applyOperationalRetention = async (now = new Date()) => {
     expiredRegulatoryExports,
     emailLogs,
     emailWebhookEvents,
-    caregiverAccessLogs,
-    aiUsage,
+    accessLogs,
     stripeWebhookEvents,
     externalDeletionJobs,
     operationalJobRuns,
     notificationDeliveries,
-    medicationMutationReceipts,
     expiredVerifications,
     regulatoryExportAudits,
+    rateLimitCounters,
   ] = await prisma.$transaction([
     prisma.regulatoryExportAudit.updateMany({
       where: {
@@ -41,11 +40,8 @@ export const applyOperationalRetention = async (now = new Date()) => {
     prisma.emailWebhookEvent.deleteMany({
       where: { createdAt: { lt: emailCutoff } },
     }),
-    prisma.caregiverAccessLog.deleteMany({
-      where: { accessedAt: { lt: caregiverAndAiCutoff } },
-    }),
-    prisma.aIUsage.deleteMany({
-      where: { createdAt: { lt: caregiverAndAiCutoff } },
+    prisma.accessLog.deleteMany({
+      where: { createdAt: { lt: accessLogCutoff } },
     }),
     prisma.stripeWebhookEvent.deleteMany({
       where: { createdAt: { lt: stripeCutoff } },
@@ -68,15 +64,17 @@ export const applyOperationalRetention = async (now = new Date()) => {
         updatedAt: { lt: emailCutoff },
       },
     }),
-    prisma.medicationMutationReceipt.deleteMany({
-      where: { createdAt: { lt: completedJobCutoff } },
-    }),
     prisma.verification.deleteMany({ where: { expiresAt: { lt: now } } }),
     prisma.regulatoryExportAudit.deleteMany({
       where: {
         status: { in: ["delivered", "expired", "failed"] },
         updatedAt: { lt: regulatoryAuditCutoff },
       },
+    }),
+    // All configured auth/app windows are at most one hour. Keep a full day
+    // to avoid resetting an active limit; only expired technical counters leave.
+    prisma.rateLimit.deleteMany({
+      where: { lastRequest: { lt: BigInt(before(now, 1).getTime()) } },
     }),
   ]);
 
@@ -87,15 +85,14 @@ export const applyOperationalRetention = async (now = new Date()) => {
     deleted: {
       emailLogs: emailLogs.count,
       emailWebhookEvents: emailWebhookEvents.count,
-      caregiverAccessLogs: caregiverAccessLogs.count,
-      aiUsage: aiUsage.count,
+      accessLogs: accessLogs.count,
       stripeWebhookEvents: stripeWebhookEvents.count,
       externalDeletionJobs: externalDeletionJobs.count,
       operationalJobRuns: operationalJobRuns.count,
       notificationDeliveries: notificationDeliveries.count,
-      medicationMutationReceipts: medicationMutationReceipts.count,
       expiredVerifications: expiredVerifications.count,
       regulatoryExportAudits: regulatoryExportAudits.count,
+      rateLimitCounters: rateLimitCounters.count,
     },
   };
 };

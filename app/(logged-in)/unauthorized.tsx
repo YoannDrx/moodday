@@ -1,13 +1,13 @@
-import { BaseNavigation } from "@/features/navigation/base-navigation";
+import { BaseLayout } from "@/features/layout/base-layout";
 import { Error401 } from "@/features/page/error-401";
 import { Layout } from "@/features/page/layout";
 
-export default async function RoutePage() {
+export default function RoutePage() {
   return (
-    <BaseNavigation>
+    <BaseLayout>
       <Layout>
         <Error401 />
       </Layout>
-    </BaseNavigation>
+    </BaseLayout>
   );
 }

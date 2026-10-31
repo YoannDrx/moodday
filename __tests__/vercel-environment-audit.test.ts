@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   auditVercelDatabaseTopology,
+  requiredEnvironmentKeysFor,
   auditVercelEnvironmentEntries,
   auditVercelSensitiveValueIsolation,
   REQUIRED_RELEASE_ENVIRONMENT_KEYS,
@@ -17,6 +18,42 @@ const completeEnvironment = (target: "production" | "preview") =>
   }));
 
 describe("Vercel release environment audit", () => {
+  it("keeps redacted values unverified without inventing shared secrets or broken URLs", () => {
+    expect(
+      auditVercelSensitiveValueIsolation(
+        { DATABASE_URL: "[SENSITIVE]", CRON_SECRET: "[SENSITIVE]" },
+        { DATABASE_URL: "[SENSITIVE]", CRON_SECRET: "different-secret" },
+      ),
+    ).toEqual([
+      {
+        code: "sensitive_value_unavailable",
+        key: "CRON_SECRET",
+        severity: "error",
+      },
+      {
+        code: "sensitive_value_unavailable",
+        key: "DATABASE_URL",
+        severity: "error",
+      },
+    ]);
+    expect(
+      auditVercelDatabaseTopology({
+        DATABASE_URL: "[SENSITIVE]",
+        DATABASE_URL_UNPOOLED: "[SENSITIVE]",
+      }),
+    ).toEqual([
+      {
+        code: "sensitive_value_unavailable",
+        key: "DATABASE_URL",
+        severity: "error",
+      },
+      {
+        code: "sensitive_value_unavailable",
+        key: "DATABASE_URL_UNPOOLED",
+        severity: "error",
+      },
+    ]);
+  });
   it("documents every required release key in the environment template", () => {
     const template = fs.readFileSync(".env-template", "utf8");
     const documentedKeys = new Set(
@@ -200,4 +237,57 @@ describe("Vercel release environment audit", () => {
       "database_tls_missing",
     ]);
   });
+});
+
+it("requires core production safeguards and only the secrets of explicitly enabled modules", () => {
+  const values = Object.fromEntries(
+    [
+      "BILLING_ENABLED",
+      "AI_INSIGHTS_ENABLED",
+      "PUSH_NOTIFICATIONS_ENABLED",
+      "GOOGLE_CALENDAR_ENABLED",
+      "OAUTH_GOOGLE_ENABLED",
+      "OAUTH_APPLE_ENABLED",
+      "OAUTH_GITHUB_ENABLED",
+    ].map((key) => [key, "false"]),
+  );
+  const keys = requiredEnvironmentKeysFor(values);
+  expect(keys).toContain("DSAR_EXPORT_ENCRYPTION_KEY");
+  expect(keys).toContain("HEALTH_DATA_CONSENT_VERSION");
+  expect(keys).not.toContain("STRIPE_SECRET_KEY");
+  expect(keys).not.toContain("OPENAI_API_KEY");
+  expect(keys).not.toContain("GOOGLE_CLIENT_SECRET");
+  expect(keys).not.toContain("APPLE_PRIVATE_KEY");
+  const enabled = requiredEnvironmentKeysFor({
+    ...values,
+    OAUTH_GOOGLE_ENABLED: "true",
+    OAUTH_GITHUB_ENABLED: "true",
+    AI_INSIGHTS_ENABLED: "true",
+    BILLING_ENABLED: "true",
+  });
+  expect(enabled).toContain("GITHUB_CLIENT_SECRET");
+  expect(enabled).toContain("GOOGLE_CLIENT_SECRET");
+  expect(enabled).toContain("OPENAI_API_KEY");
+  expect(enabled).toContain("STRIPE_SECRET_KEY");
+  const entries = keys.map((key) => ({
+    key,
+    target: ["production"],
+    type: "sensitive",
+  }));
+  expect(
+    auditVercelEnvironmentEntries(entries, "production", values).findings,
+  ).toEqual([]);
+  expect(
+    auditVercelEnvironmentEntries(entries, "production", {
+      ...values,
+      AI_INSIGHTS_ENABLED: "[SENSITIVE]",
+    }).findings,
+  ).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        code: "invalid_feature_flag",
+        key: "AI_INSIGHTS_ENABLED",
+      }),
+    ]),
+  );
 });

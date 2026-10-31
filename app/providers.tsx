@@ -2,7 +2,6 @@
 
 import { Toaster } from "@/components/ui/sonner";
 import { DialogManagerRenderer } from "@/features/dialog-manager/dialog-manager-renderer";
-import { GlobalDialogLazy } from "@/features/global-dialog/global-dialog-lazy";
 import { PwaManager } from "@/features/pwa/pwa-manager";
 import { I18nProvider } from "@/i18n/provider";
 import type { Locale } from "@/i18n/config";
@@ -41,7 +40,6 @@ export const Providers = ({
         <I18nProvider locale={locale} messages={messages}>
           <Toaster />
           <DialogManagerRenderer />
-          <GlobalDialogLazy />
           <PwaManager
             pushNotificationsEnabled={pushNotificationsEnabled}
             vapidPublicKey={vapidPublicKey}
