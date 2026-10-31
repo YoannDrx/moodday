@@ -36,10 +36,10 @@ export const SignInProviders = ({
   const { t } = useI18n();
   const providerErrorKey = getProviderErrorKey(searchParams.get("error"));
 
-  // Default to /dashboard if no callback URL is provided or if it's the landing page
+  // Default to /today if no callback URL is provided or if it's the landing page
   const rawCallbackUrl = callbackUrl ?? callbackUrlParams;
   const finalCallbackUrl =
-    !rawCallbackUrl || rawCallbackUrl === "/" ? "/dashboard" : rawCallbackUrl;
+    !rawCallbackUrl || rawCallbackUrl === "/" ? "/today" : rawCallbackUrl;
 
   const activeProviders = SUPPORTED_PROVIDERS.filter((p) =>
     providers.includes(p),

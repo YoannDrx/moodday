@@ -1,6 +1,6 @@
 import "server-only";
 
-import { projectPlusEntitlement } from "@moodday/domain";
+import { projectDuoEntitlement } from "@moodday/domain";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -15,7 +15,7 @@ export async function refreshUnifiedEntitlementProjection(
     where: { userId },
     select: { provider: true, status: true, currentPeriodEndsAt: true },
   });
-  const entitlement = projectPlusEntitlement(sources, calculatedAt);
+  const entitlement = projectDuoEntitlement(sources, calculatedAt);
 
   await prisma.$transaction([
     prisma.entitlementSnapshot.create({

@@ -27,8 +27,9 @@ export const CTAButton = ({
         };
       default:
         return {
-          backgroundColor: EMAIL_COLORS.primary,
-          color: "#FFFFFF",
+          backgroundColor: EMAIL_COLORS.accent,
+          color: EMAIL_COLORS.primary,
+          border: `2px solid ${EMAIL_COLORS.border}`,
         };
     }
   };
@@ -41,8 +42,8 @@ export const CTAButton = ({
       style={{
         display: "inline-block",
         padding: "14px 28px",
-        borderRadius: "8px",
-        fontWeight: 600,
+        borderRadius: "999px",
+        fontWeight: 700,
         fontSize: "16px",
         textDecoration: "none",
         textAlign: "center",

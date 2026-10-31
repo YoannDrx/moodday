@@ -20,9 +20,9 @@ const paddingClasses = {
 };
 
 const variantClasses = {
-  default: "glass-card shadow-glass",
-  elevated: "glass-card shadow-soft",
-  subtle: "bg-white/50 backdrop-blur-sm border border-white/40",
+  default: "sticker",
+  elevated: "sticker",
+  subtle: "bg-card border-2 border-dashed border-[var(--ink)]/40",
 };
 
 /**
@@ -52,7 +52,7 @@ export function GlassCard({
   return (
     <div
       className={cn(
-        "rounded-[32px]",
+        "rounded-[28px]",
         variantClasses[variant],
         paddingClasses[padding],
         onClick && "cursor-pointer",
@@ -102,7 +102,12 @@ export function GlassCardTitle({
   className,
 }: GlassCardTitleProps) {
   return (
-    <h3 className={cn("flex items-center gap-2 font-bold", className)}>
+    <h3
+      className={cn(
+        "font-display flex items-center gap-2 text-xl font-extrabold",
+        className,
+      )}
+    >
       {icon}
       {children}
     </h3>
@@ -116,10 +121,10 @@ type GlassCardBadgeProps = {
 };
 
 const badgeVariantClasses = {
-  primary: "bg-primary/10 text-primary-dark",
-  sage: "bg-sage-soft text-sage-dark",
-  lavender: "bg-lavender-soft text-lavender-dark",
-  danger: "bg-red-50 text-red-600",
+  primary: "bg-honey-soft text-foreground",
+  sage: "bg-mint-soft text-foreground",
+  lavender: "bg-plum-soft/50 text-foreground",
+  danger: "bg-destructive/10 text-destructive",
 };
 
 export function GlassCardBadge({
@@ -130,7 +135,7 @@ export function GlassCardBadge({
   return (
     <span
       className={cn(
-        "rounded-lg px-3 py-1 text-xs font-bold",
+        "rounded-full border-2 border-[var(--ink)] px-3 py-1 text-xs font-bold",
         badgeVariantClasses[variant],
         className,
       )}

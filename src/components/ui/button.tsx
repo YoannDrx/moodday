@@ -5,30 +5,32 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-[box-shadow,transform] focus-visible:ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-100 disabled:transition-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 cursor-pointer",
+  "focus-visible:ring-ring/60 aria-invalid:border-destructive inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full text-sm font-bold whitespace-nowrap outline-none transition-[transform,box-shadow,background-color] focus-visible:ring-4 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-100 disabled:transition-none disabled:translate-0 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 focus-visible:ring-primary",
+          "bg-primary text-primary-foreground border-2 border-[var(--ink)] shadow-[3px_3px_0_0_var(--honey)] hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--honey)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:bg-muted disabled:text-muted-foreground",
+        honey:
+          "bg-honey border-2 border-[var(--ink)] text-[#2b1b30] shadow-sticker hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--ink)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:bg-muted disabled:text-muted-foreground",
+        mint: "bg-mint border-2 border-[var(--ink)] text-[#2b1b30] shadow-sticker hover:-translate-x-px hover:-translate-y-px active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:bg-muted disabled:text-muted-foreground",
         destructive:
-          "bg-destructive shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 text-white",
+          "bg-destructive text-destructive-foreground border-2 border-[var(--ink)] hover:opacity-90",
         outline:
-          "border bg-white text-gray-900 shadow-xs hover:bg-accent hover:text-accent-foreground disabled:bg-gray-100! disabled:text-gray-700! disabled:opacity-100! dark:border-input dark:bg-gray-950 dark:text-white dark:hover:bg-input/50 dark:disabled:bg-gray-900! dark:disabled:text-gray-300!",
+          "bg-card border-2 border-[var(--ink)] text-foreground hover:bg-accent disabled:bg-muted! disabled:text-muted-foreground! disabled:opacity-100!",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
-        invert: "bg-foreground text-background hover:bg-foreground/90",
-        success: "bg-success text-success-foreground hover:bg-success/90",
-        warning: "bg-warning text-warning-foreground hover:bg-warning/90",
+          "bg-secondary text-secondary-foreground border-2 border-transparent hover:border-[var(--ink)]",
+        ghost: "hover:bg-accent text-foreground",
+        link: "text-foreground rounded-none underline decoration-2 underline-offset-4 hover:decoration-[var(--honey)]",
+        invert: "bg-foreground text-background hover:opacity-90",
+        success: "bg-success text-success-foreground hover:opacity-90",
+        warning: "bg-warning text-warning-foreground hover:opacity-90",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        default: "h-11 px-5 has-[>svg]:px-4",
+        sm: "h-9 gap-1.5 px-4 text-[13px] has-[>svg]:px-3",
+        lg: "h-13 px-7 text-base has-[>svg]:px-6",
+        icon: "size-11",
       },
     },
     defaultVariants: {

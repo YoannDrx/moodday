@@ -27,7 +27,7 @@ export function LanguageToggle() {
 
   return (
     <div
-      className="flex items-center rounded-lg bg-gray-100 p-0.5 dark:bg-gray-800"
+      className="bg-muted flex items-center rounded-lg p-0.5"
       role="group"
       aria-label={t("language.toggleLabel")}
     >
@@ -38,8 +38,8 @@ export function LanguageToggle() {
         className={cn(
           "h-7 px-2.5 text-xs font-medium",
           locale === "fr"
-            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-            : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white",
+            ? "bg-card text-foreground shadow-sm dark:text-white"
+            : "text-muted-foreground hover:text-foreground dark:hover:text-white",
         )}
       >
         FR
@@ -51,8 +51,8 @@ export function LanguageToggle() {
         className={cn(
           "h-7 px-2.5 text-xs font-medium",
           locale === "en"
-            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-            : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white",
+            ? "bg-card text-foreground shadow-sm dark:text-white"
+            : "text-muted-foreground hover:text-foreground dark:hover:text-white",
         )}
       >
         EN

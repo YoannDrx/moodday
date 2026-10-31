@@ -5,7 +5,7 @@ import { createTestAccount } from "./utils/auth-test";
 test("a session can accept current consent before health access, without duplicates or revoked-consent replay", async ({
   page,
 }) => {
-  const account = await createTestAccount({ page, callbackURL: "/dashboard" });
+  const account = await createTestAccount({ page, callbackURL: "/today" });
   const user = await prisma.user.findUniqueOrThrow({
     where: { email: account.email },
     select: { id: true },

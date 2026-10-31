@@ -144,7 +144,7 @@ describe("Better Auth route security gates", () => {
 
   it("claims verification links once before forwarding them", async () => {
     const firstRequest = request(
-      "/api/auth/verify-email?token=signed-token&callbackURL=/dashboard",
+      "/api/auth/verify-email?token=signed-token&callbackURL=/today",
       "GET",
     );
     expect((await GET(firstRequest)).status).toBe(200);

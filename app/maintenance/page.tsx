@@ -1,4 +1,4 @@
-import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
 import { getI18n } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";

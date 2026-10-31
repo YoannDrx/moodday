@@ -199,12 +199,8 @@ const main = async () => {
         createdAt: fixtureCreatedAt,
         updatedAt: fixtureCreatedAt,
         preferences: { create: { locale: "fr" } },
-        moodEntries: {
-          create: {
-            value: 0,
-            createdAt: fixtureCreatedAt,
-            updatedAt: fixtureCreatedAt,
-          },
+        periods: {
+          create: { startDate: new Date("2026-01-01T00:00:00.000Z") },
         },
       },
     });
@@ -257,13 +253,13 @@ const main = async () => {
       select: {
         emailVerified: true,
         preferences: { select: { locale: true } },
-        moodEntries: { select: { value: true } },
+        periods: { select: { endDate: true } },
       },
     });
     assert.deepEqual(restoredFixture, {
       emailVerified: true,
       preferences: { locale: "fr" },
-      moodEntries: [{ value: 0 }],
+      periods: [{ endDate: null }],
     });
 
     const migrationStatus = runPrisma(

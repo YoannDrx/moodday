@@ -1,34 +1,37 @@
 import { SiteConfig } from "@/site-config";
 
-// MoodDay Brand Colors
+// Moodday « Chaud devant » palette, kept email-safe (no CSS variables).
 export const EMAIL_COLORS = {
-  // Primary brand color - Teal MoodDay
-  primary: "#2BA09F",
-  primaryHover: "#249190",
+  // Ink is the primary action colour; honey is the warm accent.
+  primary: "#2B1B30",
+  primaryHover: "#1E1322",
+  accent: "#F2B84B",
+  accentSoft: "#FDE9BF",
+  mintSoft: "#DCF3E9",
 
   // Background colors
-  background: "#F8F7F3", // Warm off-white
-  cardBackground: "#FFFFFF",
+  background: "#FBF4EA",
+  cardBackground: "#FFFAF3",
 
-  // Text colors
-  textPrimary: "#1F2937", // Dark gray
-  textSecondary: "#6B7280", // Medium gray
-  textMuted: "#9CA3AF", // Light gray
+  // Text colors (contrast on cream ≥ 7:1)
+  textPrimary: "#2B1B30",
+  textSecondary: "#5E4C63",
+  textMuted: "#6E5A75",
 
   // Accent colors
-  success: "#10B981",
-  warning: "#F59E0B",
-  error: "#EF4444",
+  success: "#2F7D5B",
+  warning: "#9A5B00",
+  error: "#B3261E",
 
   // Border colors
-  border: "#E5E7EB",
-  divider: "#D1D5DB",
+  border: "#2B1B30",
+  divider: "#E7D9C6",
 } as const;
 
 // Email Typography
 export const EMAIL_FONTS = {
   primary:
-    "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   fallback: "Arial, sans-serif",
 } as const;
 
@@ -42,11 +45,20 @@ export const getEmailBaseUrl = () => EMAIL_BASE_URL;
 // Email URLs
 export const EMAIL_URLS = {
   logo: () => "https://www.moodday.app/icons/android-chrome-512x512.png",
-  dashboard: () => "https://www.moodday.app/dashboard",
+  dashboard: () => "https://www.moodday.app/today",
   pricing: () => "https://www.moodday.app/pricing",
   billing: () => "https://www.moodday.app/account/billing",
   settings: () => "https://www.moodday.app/settings",
   unsubscribe: () => "https://www.moodday.app/settings/notifications",
+  today: () => "https://www.moodday.app/today",
+  duo: () => "https://www.moodday.app/duo",
+  ally: (slug?: string) =>
+    slug
+      ? `https://www.moodday.app/ally/${slug}`
+      : "https://www.moodday.app/ally",
+  crisis: () => "https://www.moodday.app/crisis",
+  lifecycleUnsubscribe: (token: string) =>
+    `https://www.moodday.app/emails/unsubscribe?token=${encodeURIComponent(token)}`,
 } as const;
 
 // Contact email

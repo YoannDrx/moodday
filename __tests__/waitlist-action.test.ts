@@ -9,6 +9,7 @@ const actionClient = vi.hoisted(() => {
 });
 const mocks = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
+  sendEmail: vi.fn(),
   headers: new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
 }));
 
@@ -17,17 +18,25 @@ vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: mocks.enforceRateLimit,
 }));
 vi.mock("next/headers", () => ({ headers: async () => mocks.headers }));
+vi.mock("@/lib/mail/send-email", () => ({ sendEmail: mocks.sendEmail }));
 
 import { joinWaitlistAction } from "@/features/landing/waitlist.action";
 
 const join = joinWaitlistAction as unknown as (input: {
-  parsedInput: { email: string; locale: "fr" | "en" };
+  parsedInput: {
+    email: string;
+    locale: "fr" | "en";
+    door?: "cycle" | "partner" | null;
+    consent?: true;
+  };
 }) => Promise<{ joined: boolean }>;
 
 describe("joinWaitlistAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.enforceRateLimit.mockResolvedValue(undefined);
+    mocks.sendEmail.mockResolvedValue({ error: null, data: { id: "email" } });
+    vi.mocked(prisma.newsletterSubscriber.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.newsletterSubscriber.upsert).mockResolvedValue(
       {} as never,
     );
@@ -40,7 +49,13 @@ describe("joinWaitlistAction", () => {
 
     expect(prisma.newsletterSubscriber.upsert).toHaveBeenCalledWith({
       where: { email: "future@example.com" },
-      create: { email: "future@example.com", locale: "en", source: "waitlist" },
+      create: {
+        email: "future@example.com",
+        locale: "en",
+        source: "waitlist",
+        door: undefined,
+        consentAt: expect.any(Date),
+      },
       update: {},
     });
   });
@@ -67,5 +82,24 @@ describe("joinWaitlistAction", () => {
       windowSeconds: 3600,
     });
     expect(prisma.newsletterSubscriber.upsert).not.toHaveBeenCalled();
+  });
+
+  it("confirms a new subscription by email, but not a repeated one", async () => {
+    await join({ parsedInput: { email: "new@example.com", locale: "fr" } });
+    expect(mocks.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "new@example.com",
+        tracking: { template: "waitlist-confirmation" },
+      }),
+    );
+
+    mocks.sendEmail.mockClear();
+    vi.mocked(prisma.newsletterSubscriber.findUnique).mockResolvedValue({
+      id: "known",
+    } as never);
+    await expect(
+      join({ parsedInput: { email: "new@example.com", locale: "fr" } }),
+    ).resolves.toEqual({ joined: true });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
   });
 });

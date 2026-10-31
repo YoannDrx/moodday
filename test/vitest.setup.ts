@@ -125,6 +125,9 @@ const authClient = mockDeep<AuthClientType>();
 const resend = mockDeep<Resend>();
 global.fetch = fetch;
 
+// Server modules guard themselves with "server-only"; unit tests import them
+// directly, so the guard is neutralised for the whole suite.
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/stripe", () => ({ stripe }));
 vi.mock("@/lib/auth-client", () => ({ authClient }));

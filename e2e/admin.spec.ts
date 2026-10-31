@@ -7,7 +7,7 @@ test.describe("admin", () => {
   }) => {
     await createTestAccount({
       page,
-      callbackURL: "/dashboard",
+      callbackURL: "/today",
     });
 
     const response = await page.goto("/admin");

@@ -143,7 +143,7 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
-import { AccountSecurityControls } from "@app/(logged-in)/(patient-layout)/settings/security/_components/account-security-controls";
+import { AccountSecurityControls } from "@app/(logged-in)/(app)/settings/security/_components/account-security-controls";
 
 describe("account security controls", () => {
   beforeEach(() => {

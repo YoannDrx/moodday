@@ -107,7 +107,7 @@ export function ConfirmDeletePage({
             disabled={
               !isHydrated || isLoading || confirmDeleteMutation.isPending
             }
-            className="flex-1 disabled:bg-gray-100! disabled:text-gray-700! disabled:opacity-100! dark:disabled:bg-gray-900! dark:disabled:text-gray-300!"
+            className="disabled:bg-muted! disabled:text-muted-foreground! flex-1 disabled:opacity-100!"
           >
             {t("auth.confirmDelete.confirm")}
           </LoadingButton>

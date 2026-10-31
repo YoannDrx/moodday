@@ -37,12 +37,12 @@ export const ProviderButton = (props: ProviderButtonProps) => {
     mutationFn: async () => {
       const query = new URLSearchParams({
         provider: props.providerId,
-        callbackUrl: props.callbackUrl ?? "/dashboard",
+        callbackUrl: props.callbackUrl ?? "/today",
       });
       const result = await authClient.signIn.social({
         provider: props.providerId,
         errorCallbackURL: getCallbackUrl(
-          `/auth/signin?${new URLSearchParams({ callbackUrl: props.callbackUrl ?? "/dashboard" }).toString()}`,
+          `/auth/signin?${new URLSearchParams({ callbackUrl: props.callbackUrl ?? "/today" }).toString()}`,
         ),
         callbackURL: getCallbackUrl(
           `/auth/last-used-provider?${query.toString()}`,
@@ -68,9 +68,9 @@ export const ProviderButton = (props: ProviderButtonProps) => {
       <LoadingButton
         loading={signInMutation.isPending}
         className={cn("h-auto min-h-11 w-full whitespace-normal", {
-          "border bg-white text-black hover:bg-white dark:border-neutral-700":
+          "bg-card hover:bg-card border text-black dark:border-neutral-700":
             data.name === "Google",
-          "border bg-black text-white hover:bg-gray-950 dark:border-neutral-700":
+          "hover:bg-accent border bg-black text-white dark:border-neutral-700":
             data.name === "Github" || data.name === "Apple",
         })}
         size="lg"

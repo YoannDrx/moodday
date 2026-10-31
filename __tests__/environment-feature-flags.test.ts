@@ -25,15 +25,10 @@ it.each(["true", "false"])(
       "OAUTH_APPLE_ENABLED",
       "OAUTH_GITHUB_ENABLED",
       "BILLING_ENABLED",
-      "CAREGIVER_SHARING_ENABLED",
-      "GOOGLE_CALENDAR_ENABLED",
-      "HEALTHKIT_ENABLED",
       "PUSH_NOTIFICATIONS_ENABLED",
-      "ACCOUNT_IMPORT_ENABLED",
       "ADMIN_ENABLED",
       "MAINTENANCE_MODE",
       "STRIPE_TAX_ENABLED",
-      "AI_INSIGHTS_ENABLED",
     ];
     variables.values = {
       NODE_ENV: "test",

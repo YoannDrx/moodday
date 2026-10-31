@@ -20,6 +20,8 @@ import {
 
 type EmailLayoutProps = PropsWithChildren<{
   disableTailwind?: boolean;
+  /** Onboarding emails carry a signed one-click opt-out link. */
+  unsubscribeUrl?: string;
 }>;
 
 /**
@@ -32,6 +34,7 @@ type EmailLayoutProps = PropsWithChildren<{
 export const EmailLayout = ({
   children,
   disableTailwind,
+  unsubscribeUrl,
 }: EmailLayoutProps) => {
   const logoUrl = EMAIL_URLS.logo();
 
@@ -57,8 +60,9 @@ export const EmailLayout = ({
           <div
             style={{
               backgroundColor: EMAIL_COLORS.cardBackground,
-              borderRadius: "12px",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+              borderRadius: "24px",
+              border: `2px solid ${EMAIL_COLORS.border}`,
+              boxShadow: `4px 4px 0 0 ${EMAIL_COLORS.border}`,
               overflow: "hidden",
             }}
           >
@@ -66,7 +70,8 @@ export const EmailLayout = ({
             <div
               style={{
                 padding: "32px 32px 24px",
-                borderBottom: `1px solid ${EMAIL_COLORS.border}`,
+                borderBottom: `2px solid ${EMAIL_COLORS.border}`,
+                backgroundColor: EMAIL_COLORS.accentSoft,
               }}
             >
               <table cellPadding={0} cellSpacing={0} style={{ width: "100%" }}>
@@ -92,7 +97,7 @@ export const EmailLayout = ({
                         letterSpacing: "-0.5px",
                       }}
                     >
-                      {SiteConfig.title}
+                      moodday
                     </Text>
                   </td>
                 </tr>
@@ -109,7 +114,7 @@ export const EmailLayout = ({
               style={{
                 padding: "24px 32px",
                 backgroundColor: EMAIL_COLORS.background,
-                borderTop: `1px solid ${EMAIL_COLORS.border}`,
+                borderTop: `2px solid ${EMAIL_COLORS.border}`,
               }}
             >
               <table cellPadding={0} cellSpacing={0} style={{ width: "100%" }}>
@@ -184,6 +189,26 @@ export const EmailLayout = ({
                 </Link>
                 .
               </Text>
+
+              {unsubscribeUrl && (
+                <Text
+                  style={{
+                    fontSize: "12px",
+                    color: EMAIL_COLORS.textMuted,
+                    margin: "12px 0 0 0",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  Tu reçois cet e-mail parce que tu viens de rejoindre Moodday.{" "}
+                  <Link
+                    href={unsubscribeUrl}
+                    style={{ color: EMAIL_COLORS.primary }}
+                  >
+                    Ne plus recevoir ces conseils
+                  </Link>
+                  . Les e-mails de sécurité de ton compte continuent d'arriver.
+                </Text>
+              )}
 
               {SiteConfig.company.address && (
                 <Text

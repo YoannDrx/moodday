@@ -1,4 +1,4 @@
-name: Mood Day mobile E2E — iOS
+name: Moodday mobile E2E — iOS
 
 on:
   workflow_dispatch: {}

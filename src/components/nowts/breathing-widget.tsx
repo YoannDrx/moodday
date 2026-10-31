@@ -27,11 +27,13 @@ const phaseLabelKeys: Record<BreathingPhase, string> = {
   rest: "breathing.phases.rest",
 };
 
+// Palette tokens that stay light in both themes (ink text on top). The phase
+// label is always shown, so colour is never the only cue.
 const phaseColors: Record<BreathingPhase, string> = {
-  inhale: "from-[var(--primary)] to-[var(--primary-light)]",
-  hold: "from-[var(--lavender)] to-[var(--lavender-dark)]",
-  exhale: "from-[var(--sage)] to-[var(--sage-dark)]",
-  rest: "from-gray-300 to-gray-400",
+  inhale: "bg-mint",
+  hold: "bg-honey",
+  exhale: "bg-apricot",
+  rest: "bg-mint",
 };
 
 /**
@@ -152,7 +154,7 @@ export function BreathingWidget({
         {/* Outer glow */}
         <div
           className={cn(
-            "absolute inset-0 rounded-full bg-gradient-to-br opacity-20 blur-2xl transition-all duration-1000",
+            "absolute inset-0 rounded-full opacity-40 blur-2xl transition-all duration-1000",
             phaseColors[phase],
           )}
           style={{
@@ -163,7 +165,7 @@ export function BreathingWidget({
         {/* Main circle */}
         <div
           className={cn(
-            "flex size-48 items-center justify-center rounded-full bg-gradient-to-br shadow-lg transition-all",
+            "shadow-sticker flex size-48 items-center justify-center rounded-full border-2 border-[var(--ink)] transition-all",
             phaseColors[phase],
           )}
           style={{
@@ -175,7 +177,7 @@ export function BreathingWidget({
                 : "linear",
           }}
         >
-          <div className="text-center text-white">
+          <div className="text-center text-[#2b1b30]">
             {isActive ? (
               <>
                 <p className="text-2xl font-bold">{timeLeft}</p>
@@ -193,10 +195,7 @@ export function BreathingWidget({
       {/* Controls */}
       <div className="flex items-center gap-4">
         {!isActive ? (
-          <Button
-            onClick={handleStart}
-            className="gap-2 rounded-2xl bg-[var(--primary)] px-8 py-3 text-white hover:bg-[var(--primary-dark)]"
-          >
+          <Button onClick={handleStart} className="gap-2 px-8">
             <Play className="size-5" />
             {t("breathing.start")}
           </Button>
@@ -204,7 +203,7 @@ export function BreathingWidget({
           <Button
             onClick={handlePause}
             variant="outline"
-            className="gap-2 rounded-2xl px-8 py-3"
+            className="gap-2 px-8"
           >
             <Pause className="size-5" />
             {t("breathing.pause")}
@@ -212,11 +211,7 @@ export function BreathingWidget({
         )}
 
         {cycleCount > 0 && (
-          <Button
-            onClick={handleReset}
-            variant="ghost"
-            className="gap-2 rounded-2xl"
-          >
+          <Button onClick={handleReset} variant="ghost" className="gap-2">
             <RotateCcw className="size-5" />
             {t("breathing.reset")}
           </Button>

@@ -25,17 +25,9 @@ describe("buildRegulatoryDataExport", () => {
       prisma.account,
       prisma.passkey,
       prisma.pushSubscription,
-      prisma.caregiverRelationship,
-      prisma.caregiverObservation,
-      prisma.caregiverEvent,
-      prisma.caregiverAccessLog,
-      prisma.medication,
-      prisma.moodTagDefinition,
-      prisma.consultationPreparation,
-      prisma.aIUsage,
+      prisma.device,
       prisma.notificationDelivery,
       prisma.emailLog,
-      prisma.feedback,
     ];
     for (const model of emptyFindMany) {
       vi.mocked(model.findMany).mockResolvedValue([] as never);
@@ -44,23 +36,19 @@ describe("buildRegulatoryDataExport", () => {
     vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
   });
 
-  it("includes hidden caregiver contributions only in the controlled export", async () => {
-    vi.mocked(prisma.caregiverObservation.findMany).mockResolvedValue([
-      { id: "hidden-observation", visibleToPatient: false },
+  it("wraps the product export with device metadata but never push tokens", async () => {
+    vi.mocked(prisma.device.findMany).mockResolvedValue([
+      { id: "device-1", platform: "ios" },
     ] as never);
 
     const result = await buildRegulatoryDataExport("subject-1");
 
     expect(buildUserDataExport).toHaveBeenCalledWith({ id: "subject-1" });
-    expect(prisma.caregiverObservation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          OR: [{ subjectId: "subject-1" }, { observerId: "subject-1" }],
-        },
-      }),
-    );
-    expect(result.regulatoryData.caregiverCircle.observations).toEqual([
-      expect.objectContaining({ id: "hidden-observation" }),
+    const select = vi.mocked(prisma.device.findMany).mock.calls[0]?.[0]
+      ?.select as Record<string, boolean>;
+    expect(select.pushToken).toBeUndefined();
+    expect(result.regulatoryData.devices).toEqual([
+      expect.objectContaining({ id: "device-1" }),
     ]);
     expect(result.regulatoryExportMetadata.scope).toBe(
       "controlled-regulatory-export",

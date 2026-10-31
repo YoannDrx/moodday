@@ -32,16 +32,12 @@ vi.mock("../apps/mobile/src/lib/session-security", () => ({
 vi.mock("../apps/mobile/src/lib/api", () => ({
   appBaseUrl: "https://moodday.example",
 }));
-vi.mock("../apps/mobile/src/components/brand-illustration", () => ({
-  BrandIllustration: () => null,
-}));
-vi.mock("../apps/mobile/src/components/moodday-mark", () => ({
-  MoodDayMark: () => null,
-}));
 vi.mock("../apps/mobile/node_modules/react-native", () => {
   const Box = ({ children }: PropsWithChildren) =>
     createElement("div", null, children);
   return {
+    useColorScheme: () => "light",
+    ActivityIndicator: () => createElement("span", null, "loading"),
     Platform: { OS: "ios" },
     Linking: { openURL: mocks.openURL },
     StyleSheet: { create: (value: unknown) => value },

@@ -1,29 +1,16 @@
 "use client";
 
 import {
-  Phone,
-  MessageCircle,
-  AlertTriangle,
   ExternalLink,
   Heart,
-  Wind,
-  Shield,
-  Sparkles,
-  ChevronRight,
+  MessageCircle,
+  Phone,
   PhoneCall,
+  Users,
+  Wind,
 } from "lucide-react";
-import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from "@/components/nowts/glass-card";
-import { PageLayout } from "@/components/nowts/page-layout";
 import { BreathingWidget } from "@/components/nowts/breathing-widget";
-import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/provider";
 
 type CrisisResource = {
@@ -37,331 +24,304 @@ type CrisisResource = {
 };
 
 type CrisisContentProps = {
+  featured?: CrisisResource;
   hotlines: CrisisResource[];
   emergency: CrisisResource[];
   support: CrisisResource[];
 };
 
+/**
+ * Public crisis page. Deliberately sober: no mascot, no humour, no
+ * decorative rotation. The 3114 is always shown first.
+ */
 export function CrisisContent({
+  featured,
   hotlines,
   emergency,
   support,
 }: CrisisContentProps) {
   const { t, tm } = useI18n();
-  const tips =
-    tm<{ title: string; description: string }[]>("crisis.tips.items") ?? [];
-  return (
-    <PageLayout
-      title={t("crisis.title")}
-      subtitle={t("crisis.subtitle")}
-      maxWidth="5xl"
-    >
-      {/* Emergency Banner */}
-      <GlassCard
-        padding="lg"
-        variant="elevated"
-        className="mb-8 border-red-200 bg-gradient-to-r from-red-50 to-orange-50"
-      >
-        <div className="flex flex-col items-center gap-6 sm:flex-row">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-red-500 text-white">
-            <AlertTriangle className="size-8" />
-          </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h2 className="mb-1 text-xl font-bold text-red-800">
-              {t("crisis.emergency.title")}
-            </h2>
-            <p className="text-red-700">
-              {t("crisis.emergency.call")}
-              <strong>{t("crisis.emergency.samu")}</strong>{" "}
-              {t("crisis.emergency.or")}{" "}
-              <strong>{t("crisis.emergency.eu")}</strong>
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <a
-              href="tel:15"
-              className="flex items-center gap-2 rounded-2xl bg-red-700 px-6 py-3 font-bold text-white transition-all hover:bg-red-800"
-            >
-              <PhoneCall className="size-5" />
-              15
-            </a>
-            <a
-              href="tel:112"
-              className="flex items-center gap-2 rounded-2xl border-2 border-red-700 bg-white px-6 py-3 font-bold text-red-700 transition-all hover:bg-red-50"
-            >
-              <PhoneCall className="size-5" />
-              112
-            </a>
-          </div>
-        </div>
-      </GlassCard>
-
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Main Column */}
-        <div className="space-y-8 lg:col-span-7">
-          {/* Breathing Exercise */}
-          <GlassCard padding="lg" variant="elevated">
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<Wind className="size-5 text-[var(--primary)]" />}
-              >
-                {t("crisis.breathing.title")}
-              </GlassCardTitle>
-              <span className="rounded-lg bg-[var(--primary)]/10 px-2 py-1 text-xs font-bold text-[var(--primary)]">
-                {t("crisis.breathing.badge")}
-              </span>
-            </GlassCardHeader>
-
-            <GlassCardContent>
-              <BreathingWidget />
-            </GlassCardContent>
-          </GlassCard>
-
-          {/* Main Hotlines */}
-          <GlassCard padding="md" variant="elevated">
-            <GlassCardHeader>
-              <GlassCardTitle icon={<Phone className="size-5 text-red-500" />}>
-                {t("crisis.sections.hotlines")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent className="space-y-3">
-              {hotlines.map((resource, index) => (
-                <ResourceCard
-                  key={index}
-                  resource={resource}
-                  variant="hotline"
-                />
-              ))}
-            </GlassCardContent>
-          </GlassCard>
-
-          {/* Emergency Services */}
-          <GlassCard padding="md" variant="elevated">
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<AlertTriangle className="size-5 text-orange-500" />}
-              >
-                {t("crisis.sections.emergency")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent className="space-y-3">
-              {emergency.map((resource, index) => (
-                <ResourceCard
-                  key={index}
-                  resource={resource}
-                  variant="emergency"
-                />
-              ))}
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-
-        {/* Side Column */}
-        <div className="space-y-6 lg:col-span-5">
-          {/* Support Organizations */}
-          <GlassCard padding="md" variant="elevated">
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<MessageCircle className="size-5 text-[var(--sage)]" />}
-              >
-                {t("crisis.sections.support")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent className="space-y-3">
-              {support.map((resource, index) => (
-                <ResourceCard
-                  key={index}
-                  resource={resource}
-                  variant="support"
-                  compact
-                />
-              ))}
-            </GlassCardContent>
-          </GlassCard>
-
-          {/* Safety Plan Quick Access */}
-          <GlassCard
-            padding="md"
-            variant="elevated"
-            className="border-[var(--lavender)]/30 bg-[var(--lavender)]/10"
-          >
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<Shield className="size-5 text-[var(--lavender-dark)]" />}
-              >
-                {t("crisis.safety.title")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent>
-              <p className="mb-4 text-sm text-gray-600">
-                {t("crisis.safety.description")}
-              </p>
-              <Link
-                href="/safety-plan"
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--lavender-dark)] bg-white py-3 text-sm font-bold text-[var(--lavender-dark)] transition-all hover:bg-[var(--lavender)]/20"
-              >
-                {t("crisis.safety.cta")}
-                <ChevronRight className="size-4" />
-              </Link>
-            </GlassCardContent>
-          </GlassCard>
-
-          {/* Reassurance Card */}
-          <GlassCard
-            padding="md"
-            variant="elevated"
-            className="border-[var(--sage)]/30 bg-[var(--sage)]/5"
-          >
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<Heart className="size-5 text-[var(--sage)]" />}
-              >
-                {t("crisis.reassurance.title")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent>
-              <p className="text-sm leading-relaxed text-gray-700">
-                <span className="font-bold text-[var(--sage-dark)]">
-                  {t("crisis.reassurance.emphasis")}
-                </span>{" "}
-                {t("crisis.reassurance.body")}
-              </p>
-            </GlassCardContent>
-          </GlassCard>
-
-          {/* Tips */}
-          <GlassCard padding="md" variant="elevated">
-            <GlassCardHeader>
-              <GlassCardTitle
-                icon={<Sparkles className="size-5 text-[var(--primary)]" />}
-              >
-                {t("crisis.tips.title")}
-              </GlassCardTitle>
-            </GlassCardHeader>
-
-            <GlassCardContent className="space-y-3">
-              {tips.map((tip) => (
-                <div
-                  key={tip.title}
-                  className="rounded-2xl border border-gray-100 bg-white p-4"
-                >
-                  <p className="mb-1 font-bold text-gray-800">{tip.title}</p>
-                  <p className="text-sm text-gray-600">{tip.description}</p>
-                </div>
-              ))}
-            </GlassCardContent>
-          </GlassCard>
-        </div>
-      </div>
-    </PageLayout>
-  );
-}
-
-function ResourceCard({
-  resource,
-  variant,
-  compact = false,
-}: {
-  resource: CrisisResource;
-  variant: "hotline" | "emergency" | "support";
-  compact?: boolean;
-}) {
-  const { t } = useI18n();
-  const variantStyles = {
-    hotline: {
-      bg: "bg-red-50 hover:bg-red-100/80",
-      border: "border-red-200",
-      iconBg: "bg-red-500",
-      button: "bg-red-700 hover:bg-red-800 text-white",
-    },
-    emergency: {
-      bg: "bg-orange-50 hover:bg-orange-100/80",
-      border: "border-orange-200",
-      iconBg: "bg-orange-500",
-      button: "bg-orange-700 hover:bg-orange-800 text-white",
-    },
-    support: {
-      bg: "bg-[var(--sage)]/5 hover:bg-[var(--sage)]/10",
-      border: "border-[var(--sage)]/20",
-      iconBg: "bg-[var(--sage)]",
-      button: "bg-emerald-800 hover:bg-emerald-900 text-white",
-    },
-  };
-
-  const style = variantStyles[variant];
+  const partnerItems = tm<string[]>("crisis.partner.items") ?? [];
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-4 transition-all",
-        style.bg,
-        style.border,
-      )}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-xl text-white",
-            style.iconBg,
-          )}
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-12 sm:px-6 lg:py-16">
+      <header className="flex max-w-3xl flex-col gap-3">
+        <h1 className="font-display text-4xl font-extrabold sm:text-5xl">
+          {t("crisis.title")}
+        </h1>
+        <p className="text-lg">{t("crisis.subtitle")}</p>
+      </header>
+
+      {/* 3114 first */}
+      {featured?.phone && (
+        <section
+          aria-labelledby="crisis-primary"
+          className="bg-card flex flex-col gap-4 rounded-[28px] border-4 border-[var(--crisis)] p-6 sm:p-8"
         >
-          <Phone className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-gray-800">{resource.name}</span>
-            {resource.available && (
-              <span className="rounded-lg bg-white/80 px-2 py-0.5 text-[10px] font-bold text-gray-500">
-                {resource.available}
+          <p className="text-crisis text-xs font-bold tracking-wide uppercase">
+            {t("crisis.primary.kicker")}
+          </p>
+          <h2
+            id="crisis-primary"
+            className="font-display text-2xl font-extrabold sm:text-3xl"
+          >
+            {t("crisis.primary.title")}
+          </h2>
+          <p className="max-w-2xl text-base sm:text-lg">
+            {t("crisis.primary.description")}
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <a
+              href={`tel:${featured.phone}`}
+              className="bg-crisis text-crisis-foreground inline-flex h-14 items-center justify-center gap-3 rounded-2xl border-2 border-[var(--ink)] px-7 text-lg font-extrabold"
+            >
+              <PhoneCall className="size-6" aria-hidden />
+              {t("crisis.primary.cta")}
+            </a>
+            {featured.url && (
+              <a
+                href={featured.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold underline underline-offset-4"
+              >
+                <ExternalLink className="size-4" aria-hidden />
+                {featured.url.replace(/^https?:\/\//u, "")}
+              </a>
+            )}
+            {featured.available && (
+              <span className="text-muted-foreground text-sm font-semibold">
+                {featured.available}
               </span>
             )}
           </div>
-          {!compact && resource.description && (
-            <p className="mt-1 text-sm text-gray-600">{resource.description}</p>
+        </section>
+      )}
+
+      {/* Immediate danger */}
+      <section
+        aria-labelledby="crisis-emergency"
+        className="sticker flex flex-col gap-4 p-6"
+      >
+        <div className="flex flex-col gap-1">
+          <h2
+            id="crisis-emergency"
+            className="font-display text-xl font-extrabold"
+          >
+            {t("crisis.emergency.title")}
+          </h2>
+          <p>{t("crisis.emergency.description")}</p>
+        </div>
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {emergency.map((resource) => (
+            <li key={resource.name}>
+              <EmergencyButton resource={resource} />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="grid gap-8 lg:grid-cols-12">
+        <div className="flex flex-col gap-8 lg:col-span-7">
+          {/* Breathing */}
+          <section
+            aria-labelledby="crisis-breathing"
+            className="sticker flex flex-col gap-4 p-6"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2
+                id="crisis-breathing"
+                className="font-display flex items-center gap-2 text-xl font-extrabold"
+              >
+                <Wind className="size-5" aria-hidden />
+                {t("crisis.breathing.title")}
+              </h2>
+              <span className="bg-mint-soft rounded-full border-2 border-[var(--ink)] px-3 py-0.5 text-xs font-bold">
+                {t("crisis.breathing.badge")}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              {t("crisis.breathing.description")}
+            </p>
+            <BreathingWidget />
+          </section>
+
+          {/* Other listening lines */}
+          {hotlines.length > 0 && (
+            <ResourceList
+              id="crisis-hotlines"
+              title={t("crisis.sections.hotlines")}
+              resources={hotlines}
+            />
           )}
+        </div>
+
+        <div className="flex flex-col gap-8 lg:col-span-5">
+          {/* Worried about a partner */}
+          <section
+            aria-labelledby="crisis-partner"
+            className="sticker flex flex-col gap-3 p-6"
+          >
+            <h2
+              id="crisis-partner"
+              className="font-display flex items-center gap-2 text-xl font-extrabold"
+            >
+              <Users className="size-5" aria-hidden />
+              {t("crisis.partner.title")}
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {partnerItems.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span
+                    aria-hidden
+                    className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--ink)]"
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {support.length > 0 && (
+            <ResourceList
+              id="crisis-support"
+              title={t("crisis.sections.support")}
+              resources={support}
+            />
+          )}
+
+          <section
+            aria-labelledby="crisis-reassurance"
+            className="bg-mint-soft flex flex-col gap-2 rounded-[28px] border-2 border-[var(--ink)] p-6"
+          >
+            <h2
+              id="crisis-reassurance"
+              className="font-display flex items-center gap-2 text-lg font-extrabold"
+            >
+              <Heart className="size-5" aria-hidden />
+              {t("crisis.reassurance.title")}
+            </h2>
+            <p>
+              <span className="font-bold">
+                {t("crisis.reassurance.emphasis")}
+              </span>{" "}
+              {t("crisis.reassurance.body")}
+            </p>
+          </section>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <p className="text-muted-foreground text-sm">{t("crisis.disclaimer")}</p>
+    </div>
+  );
+}
+
+function EmergencyButton({ resource }: { resource: CrisisResource }) {
+  const { t } = useI18n();
+  const number = resource.phone ?? resource.sms;
+  if (!number) return null;
+  const href = resource.phone ? `tel:${resource.phone}` : `sms:${resource.sms}`;
+  const Icon = resource.phone ? Phone : MessageCircle;
+
+  return (
+    <a
+      href={href}
+      className="bg-card flex h-full items-center gap-3 rounded-2xl border-2 border-[var(--crisis)] p-4"
+    >
+      <span className="bg-crisis text-crisis-foreground flex size-11 shrink-0 items-center justify-center rounded-full">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="font-display text-2xl leading-none font-extrabold">
+          {number}
+          {resource.sms && (
+            <span className="ml-2 align-middle text-xs font-bold uppercase">
+              {t("crisis.actions.sms")}
+            </span>
+          )}
+        </span>
+        <span className="text-muted-foreground text-sm">
+          {resource.description}
+        </span>
+      </span>
+    </a>
+  );
+}
+
+function ResourceList({
+  id,
+  title,
+  resources,
+}: {
+  id: string;
+  title: string;
+  resources: CrisisResource[];
+}) {
+  return (
+    <section aria-labelledby={id} className="sticker flex flex-col gap-4 p-6">
+      <h2 id={id} className="font-display text-xl font-extrabold">
+        {title}
+      </h2>
+      <ul className="flex flex-col gap-3">
+        {resources.map((resource) => (
+          <li key={resource.name}>
+            <ResourceCard resource={resource} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ResourceCard({ resource }: { resource: CrisisResource }) {
+  const { t } = useI18n();
+
+  return (
+    <div className="bg-background flex flex-col gap-3 rounded-2xl border-2 border-[var(--ink)] p-4">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold">{resource.name}</span>
+          {resource.available && (
+            <span className="bg-paper rounded-full border border-[var(--ink)] px-2 py-0.5 text-[11px] font-bold">
+              {resource.available}
+            </span>
+          )}
+        </div>
+        {resource.description && (
+          <p className="text-muted-foreground text-sm">
+            {resource.description}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
         {resource.phone && (
-          <Button asChild size="sm" className={cn("rounded-xl", style.button)}>
-            <a href={`tel:${resource.phone}`}>
-              <Phone className="mr-1.5 size-4" />
-              {resource.phone}
-            </a>
-          </Button>
+          <a
+            href={`tel:${resource.phone.replace(/\s/g, "")}`}
+            className="bg-primary text-primary-foreground inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--ink)] px-4 text-sm font-bold"
+          >
+            <Phone className="size-4" aria-hidden />
+            {resource.phone}
+          </a>
         )}
         {resource.sms && (
-          <Button
-            asChild
-            size="sm"
-            variant="outline"
-            className="rounded-xl border-gray-200 bg-white"
+          <a
+            href={`sms:${resource.sms}`}
+            className="bg-card inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--ink)] px-4 text-sm font-bold"
           >
-            <a href={`sms:${resource.sms}`}>
-              <MessageCircle className="mr-1.5 size-4" />
-              {t("crisis.actions.sms")}
-            </a>
-          </Button>
+            <MessageCircle className="size-4" aria-hidden />
+            {t("crisis.actions.sms")}
+          </a>
         )}
         {resource.url && (
-          <Button
-            asChild
-            size="sm"
-            variant="outline"
-            className="rounded-xl border-gray-200 bg-white"
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-card inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--ink)] px-4 text-sm font-bold"
           >
-            <a href={resource.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-1.5 size-4" />
-              {t("crisis.actions.website")}
-            </a>
-          </Button>
+            <ExternalLink className="size-4" aria-hidden />
+            {t("crisis.actions.website")}
+          </a>
         )}
       </div>
     </div>

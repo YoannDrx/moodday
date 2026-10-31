@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { CloudOff, CloudUpload } from "lucide-react";
 import Link from "next/link";
 
-import { getQueuedMoodCount } from "./offline-queue";
 import { getQueuedActionCount } from "./offline-actions";
 import { OFFLINE_QUEUE_CHANGED_EVENT } from "./offline-events";
 import { cn } from "@/lib/utils";
@@ -27,9 +26,7 @@ export function SyncIndicator() {
         return;
       }
       try {
-        const nextCount =
-          (await getQueuedMoodCount(ownerId)) +
-          (await getQueuedActionCount(ownerId));
+        const nextCount = await getQueuedActionCount(ownerId);
         if (active) setPendingCount(nextCount);
       } catch {
         if (active) setPendingCount(0);

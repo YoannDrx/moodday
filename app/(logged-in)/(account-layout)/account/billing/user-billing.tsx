@@ -341,8 +341,8 @@ const STATUS_CONFIG = {
   inactive: {
     labelKey: "account.billing.status.canceled",
     descriptionKey: "account.billing.status.canceledDescription",
-    color: "bg-gray-500",
-    textColor: "text-gray-500",
+    color: "bg-muted0",
+    textColor: "text-muted-foreground",
     icon: AlertCircle,
   },
 };

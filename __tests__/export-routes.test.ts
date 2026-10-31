@@ -5,10 +5,7 @@ const mocks = vi.hoisted(() => ({
   getRequiredUser: vi.fn(),
   createUserDataExportStream: vi.fn(),
   enforceRateLimit: vi.fn(),
-  getExportData: vi.fn(),
   getI18n: vi.fn(),
-  renderToBuffer: vi.fn(),
-  ExportPDFDocument: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/auth-user", () => ({
@@ -22,19 +19,9 @@ vi.mock("@/features/account/user-data-export", () => ({
 vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: mocks.enforceRateLimit,
 }));
-vi.mock("@/features/export/export.action", () => ({
-  getExportData: mocks.getExportData,
-}));
-vi.mock("@/features/export/pdf-document", () => ({
-  ExportPDFDocument: mocks.ExportPDFDocument,
-}));
 vi.mock("@/i18n/server", () => ({ getI18n: mocks.getI18n }));
-vi.mock("@react-pdf/renderer", () => ({
-  renderToBuffer: mocks.renderToBuffer,
-}));
 
 import { GET as getJsonExport } from "@app/api/export/json/route";
-import { GET as getPdfExport } from "@app/api/export/pdf/route";
 
 describe("export routes", () => {
   beforeEach(() => {
@@ -50,8 +37,6 @@ describe("export routes", () => {
         }),
     );
     mocks.getI18n.mockResolvedValue({ locale: "fr", t: vi.fn() });
-    mocks.ExportPDFDocument.mockReturnValue({ type: "pdf" });
-    mocks.renderToBuffer.mockResolvedValue(Buffer.from("pdf-body"));
   });
 
   it("rejects a JSON export without an authenticated session", async () => {
@@ -94,57 +79,5 @@ describe("export routes", () => {
       max: 3,
       windowSeconds: 60 * 60,
     });
-  });
-
-  it("rejects malformed or inverted PDF ranges", async () => {
-    const missing = await getPdfExport(
-      new Request("https://moodday.app/api/export/pdf"),
-    );
-    const inverted = await getPdfExport(
-      new Request(
-        "https://moodday.app/api/export/pdf?startDate=2026-08-19&endDate=2026-08-18",
-      ),
-    );
-    expect(missing.status).toBe(400);
-    expect(inverted.status).toBe(400);
-    expect(mocks.getExportData).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [{ serverError: "forbidden" }, "server error"],
-    [{ data: undefined }, "missing data"],
-  ])("fails closed when PDF data has a %s", async (result, _label) => {
-    mocks.getExportData.mockResolvedValue(result);
-    const response = await getPdfExport(
-      new Request(
-        "https://moodday.app/api/export/pdf?startDate=2026-08-01&endDate=2026-08-18",
-      ),
-    );
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({
-      code: "export_unavailable",
-    });
-  });
-
-  it("renders an accessible no-store PDF for a valid bounded range", async () => {
-    mocks.getExportData.mockResolvedValue({ data: { moodEntries: [] } });
-    const response = await getPdfExport(
-      new Request(
-        "https://moodday.app/api/export/pdf?startDate=2026-08-01&endDate=2026-08-18&preparationId=prep-1",
-      ),
-    );
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/pdf");
-    expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(response.headers.get("content-disposition")).toContain(
-      "moodday-export-2026-08-01-2026-08-18.pdf",
-    );
-    expect(mocks.getExportData).toHaveBeenCalledWith({
-      startDate: "2026-08-01",
-      endDate: "2026-08-18",
-      preparationId: "prep-1",
-      purpose: "consultation-report",
-    });
-    expect(mocks.renderToBuffer).toHaveBeenCalledTimes(1);
   });
 });

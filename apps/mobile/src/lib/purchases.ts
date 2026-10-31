@@ -5,6 +5,10 @@ import Purchases from "react-native-purchases";
 import RevenueCatUI from "react-native-purchases-ui";
 import { api } from "./api";
 
+// The "Duo" subscription, sold through RevenueCat behind a build flag. One
+// subscription covers both members of the couple; the server stays the
+// authority on the entitlement.
+
 const extra = Constants.expoConfig?.extra;
 const enabled = extra?.revenueCatEnabled === true;
 const apiKey =
@@ -35,11 +39,11 @@ export async function configureMobilePurchases(userId: string) {
   return true;
 }
 
-async function refreshServerEntitlement(): Promise<EntitlementDto> {
-  return api.refreshMobileEntitlements();
-}
+/** Asks the server to re-read RevenueCat after a purchase or a restore. */
+const refreshServerEntitlement = async (): Promise<EntitlementDto> =>
+  api.refreshMobileEntitlements();
 
-export async function presentPlusPaywall(userId: string) {
+export async function presentDuoPaywall(userId: string) {
   if (!(await configureMobilePurchases(userId))) {
     throw new Error("mobile_billing_unavailable");
   }
@@ -47,7 +51,7 @@ export async function presentPlusPaywall(userId: string) {
   return refreshServerEntitlement();
 }
 
-export async function restorePlusPurchases(userId: string) {
+export async function restoreDuoPurchases(userId: string) {
   if (!(await configureMobilePurchases(userId))) {
     throw new Error("mobile_billing_unavailable");
   }

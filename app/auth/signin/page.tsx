@@ -1,4 +1,4 @@
-import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
 import {
   Card,
   CardContent,
@@ -28,7 +28,7 @@ export default async function AuthSignInPage() {
   const user = await getUser();
 
   if (user) {
-    redirect("/dashboard");
+    redirect("/today");
   }
 
   const providers = Object.keys(SocialProviders ?? {});

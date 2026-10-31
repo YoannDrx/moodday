@@ -1,21 +1,29 @@
-import GridBackground from "@/components/nowts/grid-background";
-import { Typography } from "@/components/nowts/typography";
-import { SectionLayout } from "@/features/landing/section-layout";
 import { getI18n } from "@/i18n/server";
+import { cn } from "@/lib/utils";
 import { SiteConfig } from "@/site-config";
 import type { Metadata } from "next";
 import {
-  AlertTriangle,
   BookOpen,
   Building2,
+  CreditCard,
   FileText,
   Gavel,
+  HeartHandshake,
+  PhoneCall,
   Scale,
   Shield,
   UserCheck,
-  Users,
   XCircle,
+  type LucideIcon,
 } from "lucide-react";
+
+type TermsSection = {
+  icon: LucideIcon;
+  title: string;
+  content?: string;
+  items?: string[];
+  highlight?: string;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -27,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function TermsPage() {
   const { t } = await getI18n();
-  const sections = [
+  const sections: TermsSection[] = [
     {
       icon: Building2,
       title: t("legal.terms.sections.publisher.title"),
@@ -41,10 +49,7 @@ export default async function TermsPage() {
       icon: BookOpen,
       title: t("legal.terms.sections.service.title"),
       content: t("legal.terms.sections.service.content"),
-      highlight: {
-        type: "warning" as const,
-        text: t("legal.terms.sections.service.highlight"),
-      },
+      highlight: t("legal.terms.sections.service.highlight"),
     },
     {
       icon: UserCheck,
@@ -67,9 +72,14 @@ export default async function TermsPage() {
       ],
     },
     {
-      icon: Users,
-      title: t("legal.terms.sections.caregiver.title"),
-      content: t("legal.terms.sections.caregiver.content"),
+      icon: HeartHandshake,
+      title: t("legal.terms.sections.partner.title"),
+      content: t("legal.terms.sections.partner.content"),
+    },
+    {
+      icon: CreditCard,
+      title: t("legal.terms.sections.subscription.title"),
+      content: t("legal.terms.sections.subscription.content"),
     },
     {
       icon: FileText,
@@ -84,10 +94,7 @@ export default async function TermsPage() {
         t("legal.terms.sections.liability.items.interruptions"),
         t("legal.terms.sections.liability.items.losses"),
       ],
-      highlight: {
-        type: "info" as const,
-        text: t("legal.terms.sections.liability.highlight"),
-      },
+      highlight: t("legal.terms.sections.liability.highlight"),
     },
     {
       icon: XCircle,
@@ -102,157 +109,103 @@ export default async function TermsPage() {
   ];
 
   return (
-    <div className="relative">
-      <GridBackground
-        color="color-mix(in srgb, var(--muted) 50%, transparent)"
-        size={20}
-      />
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-14 sm:px-6 lg:py-20">
+      <header className="flex flex-col gap-4">
+        <span className="bg-honey shadow-sticker flex size-14 items-center justify-center rounded-2xl border-2 border-[var(--ink)]">
+          <FileText className="size-7" aria-hidden />
+        </span>
+        <h1 className="font-display text-4xl font-extrabold sm:text-5xl">
+          {t("legal.terms.title")}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl text-lg">
+          {t("legal.terms.subtitle")}
+        </p>
+        <p className="text-muted-foreground text-sm">
+          {t("legal.terms.lastUpdated")}
+        </p>
+      </header>
 
-      {/* Hero Section */}
-      <SectionLayout variant="transparent">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="bg-primary/10 text-primary mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl">
-            <FileText className="size-8" />
-          </div>
-          <Typography
-            variant="h1"
-            className="text-foreground mt-2 text-4xl font-bold tracking-tight sm:text-5xl"
-          >
-            {t("legal.terms.title")}
-          </Typography>
-          <Typography
-            variant="p"
-            className="text-muted-foreground mt-6 text-lg"
-          >
-            {t("legal.terms.subtitle")}
-          </Typography>
-          <Typography
-            variant="p"
-            className="text-muted-foreground mt-4 text-sm"
-          >
-            {t("legal.terms.lastUpdated")}
-          </Typography>
+      {/* Emergency: sober, always first */}
+      <aside className="flex items-start gap-4 rounded-2xl border-2 border-[var(--crisis)] p-5">
+        <PhoneCall className="text-crisis mt-0.5 size-5 shrink-0" aria-hidden />
+        <div className="flex flex-col gap-1">
+          <h2 className="text-crisis font-bold">
+            {t("legal.terms.emergency.title")}
+          </h2>
+          <p>
+            {t("legal.terms.emergency.descriptionPrefix")}
+            <a href="tel:3114" className="font-bold underline">
+              {t("legal.terms.emergency.phone")}
+            </a>
+            {t("legal.terms.emergency.descriptionSuffix")}
+          </p>
         </div>
-      </SectionLayout>
+      </aside>
 
-      {/* Emergency Banner */}
-      <SectionLayout size="lg" variant="transparent" className="pt-0 lg:pt-0">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-12 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20">
-                <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400" />
+      <ol className="flex flex-col gap-6">
+        {sections.map((section, index) => {
+          const Icon = section.icon;
+          return (
+            <li key={section.title} className="sticker flex flex-col gap-3 p-6">
+              <div className="flex items-center gap-3">
+                <span className="bg-paper font-display flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--ink)] text-sm font-extrabold">
+                  {index + 1}
+                </span>
+                <span
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--ink)]",
+                    index % 2 === 0 ? "bg-mint" : "bg-honey",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                </span>
+                <h2 className="font-display text-lg font-extrabold sm:text-xl">
+                  {section.title}
+                </h2>
               </div>
-              <div>
-                <Typography
-                  variant="h3"
-                  className="mb-2 font-bold text-amber-800 dark:text-amber-300"
-                >
-                  {t("legal.terms.emergency.title")}
-                </Typography>
-                <Typography
-                  variant="p"
-                  className="text-amber-800 dark:text-amber-200"
-                >
-                  {t("legal.terms.emergency.descriptionPrefix")}{" "}
-                  <span className="font-bold">
-                    {t("legal.terms.emergency.phone")}
-                  </span>{" "}
-                  {t("legal.terms.emergency.descriptionSuffix")}
-                </Typography>
-              </div>
-            </div>
-          </div>
 
-          {/* Main Sections */}
-          <div className="space-y-6">
-            {sections.map((section, idx) => {
-              const Icon = section.icon;
-              return (
-                <div
-                  key={section.title}
-                  className="border-border bg-card rounded-2xl border p-6"
-                >
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="bg-muted text-muted-foreground flex size-8 items-center justify-center rounded-lg text-sm font-bold">
-                      {idx + 1}
-                    </div>
-                    <div className="bg-primary/10 flex size-10 items-center justify-center rounded-xl">
-                      <Icon className="text-primary size-5" />
-                    </div>
-                    <Typography
-                      variant="h3"
-                      className="text-foreground text-lg font-bold"
-                    >
-                      {section.title}
-                    </Typography>
-                  </div>
+              {section.content && (
+                <p className="text-muted-foreground">{section.content}</p>
+              )}
 
-                  {section.content && (
-                    <Typography
-                      variant="p"
-                      className="text-muted-foreground ml-11"
-                    >
-                      {section.content}
-                    </Typography>
-                  )}
+              {section.items && (
+                <ul className="text-muted-foreground flex flex-col gap-2">
+                  {section.items.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span
+                        aria-hidden
+                        className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--ink)]"
+                      />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-                  {section.items && (
-                    <ul className="text-muted-foreground ml-11 space-y-2">
-                      {section.items.map((item) => (
-                        <li key={item} className="flex items-start gap-2">
-                          <span className="bg-primary mt-2 size-1.5 shrink-0 rounded-full" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+              {section.highlight && (
+                <p className="bg-honey-soft rounded-2xl border-2 border-dashed border-[var(--ink)] p-3 text-sm font-semibold">
+                  {section.highlight}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
 
-                  {section.highlight && (
-                    <div
-                      className={`mt-4 ml-11 rounded-lg p-3 ${
-                        section.highlight.type === "warning"
-                          ? "border border-amber-500/30 bg-amber-500/10"
-                          : "border border-blue-500/30 bg-blue-500/10"
-                      }`}
-                    >
-                      <Typography
-                        variant="p"
-                        className={`text-sm font-medium ${
-                          section.highlight.type === "warning"
-                            ? "text-amber-700 dark:text-amber-400"
-                            : "text-blue-700 dark:text-blue-400"
-                        }`}
-                      >
-                        {section.highlight.text}
-                      </Typography>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Contact */}
-          <div className="border-border bg-card mt-8 rounded-2xl border p-6 text-center">
-            <Typography
-              variant="h3"
-              className="text-foreground mb-2 text-lg font-bold"
-            >
-              {t("legal.terms.contact.title")}
-            </Typography>
-            <Typography variant="p" className="text-muted-foreground">
-              {t("legal.terms.contact.descriptionPrefix")}{" "}
-              <a
-                href="mailto:hello@moodday.app"
-                className="text-primary hover:underline"
-              >
-                hello@moodday.app
-              </a>
-            </Typography>
-          </div>
-        </div>
-      </SectionLayout>
+      <section className="sticker bg-paper flex flex-col items-center gap-2 p-6 text-center">
+        <h2 className="font-display text-lg font-extrabold">
+          {t("legal.terms.contact.title")}
+        </h2>
+        <p className="text-muted-foreground">
+          {t("legal.terms.contact.descriptionPrefix")}{" "}
+          <a
+            href={`mailto:${SiteConfig.company.email}`}
+            className="font-bold underline"
+          >
+            {SiteConfig.company.email}
+          </a>
+        </p>
+      </section>
     </div>
   );
 }

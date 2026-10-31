@@ -6,10 +6,21 @@ Guide pour Claude Code sur le projet Moodday.
 
 ## À propos de Moodday
 
-**Moodday** est un journal personnel PWA de santé mentale, confidentiel et non
-médical, destiné aux adultes en France. Il permet de conserver ses propres
-repères d'humeur, de traitements et de bien-être sans établir de diagnostic ni
-formuler de recommandation thérapeutique.
+**Moodday** aide les couples à traverser le SPM (syndrome prémenstruel) et le
+TDPM. Elle fait « Mon point » en dix secondes (état, symptômes, besoins, note
+privée) ; son ou sa partenaire reçoit une notification neutre et répond par un
+« geste ». Un Programme Allié de 7 leçons éduque le partenaire. Web (Next.js)
+et app Expo, adultes en France, sans diagnostic.
+
+Invariants produit (à ne jamais casser) :
+
+- La personne dont c'est le cycle est la seule source de ses données ; le
+  partenaire ne saisit rien sur elle (services `src/features/couple/*`).
+- Le partenaire ne lit que `readPartnerView()`, filtrée par le niveau de
+  partage ; la note privée n'est jamais sélectionnée.
+- Pas de point = pas de notification ; rien n'est déduit du calendrier.
+- Aucune donnée de santé dans les e-mails, notifications par défaut, logs ou URL.
+- Crise (3114, 15, 112, 114), partage de base et suppression : jamais payants.
 
 ### Services principaux
 

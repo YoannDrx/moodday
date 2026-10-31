@@ -41,7 +41,7 @@ describe("ResendVerificationForm", () => {
 
     expect(mocks.sendVerificationEmail).toHaveBeenCalledWith({
       email: "new@example.com",
-      callbackURL: expect.stringContaining("/dashboard"),
+      callbackURL: expect.stringContaining("/today"),
     });
     expect(await screen.findByRole("status")).toHaveTextContent(
       "auth.verify.resendSent",

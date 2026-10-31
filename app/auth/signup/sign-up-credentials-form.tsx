@@ -63,7 +63,7 @@ export const SignUpCredentialsForm = ({
           password: values.password,
           name: values.name,
           image: values.image,
-          callbackURL: getCallbackUrl("/dashboard"),
+          callbackURL: getCallbackUrl("/today"),
           age18Accepted: values.age18Accepted,
           termsVersionAccepted: termsVersion,
           privacyVersionAccepted: privacyVersion,

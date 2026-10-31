@@ -78,8 +78,8 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
     expect(html).toContain('type="password"');
     expect(html).toContain('name="password"');
     expect(html).toContain('<fieldset disabled=""');
-    expect(html).toContain("disabled:bg-gray-100");
-    expect(html).toContain("disabled:text-gray-700");
+    expect(html).toContain("disabled:bg-muted");
+    expect(html).toContain("disabled:text-muted-foreground");
     expect(html).toContain("disabled:opacity-100");
   });
 
@@ -106,7 +106,7 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
 
   it("should submit with credentials and redirect on success", async () => {
     const { user } = setup(
-      <SignInCredentialsAndMagicLinkForm callbackUrl="/dashboard" />,
+      <SignInCredentialsAndMagicLinkForm callbackUrl="/today" />,
     );
 
     // Fill in the form
@@ -126,7 +126,7 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
     });
 
     // Check if redirect happened
-    expect(window.location.href).toBe("http://localhost:3000/dashboard");
+    expect(window.location.href).toBe("http://localhost:3000/today");
   });
 
   it("should submit with magic link and redirect to verify page", async () => {
@@ -147,7 +147,7 @@ describe("SignInCredentialsAndMagicLinkForm", () => {
     await waitFor(() => {
       expect(authClient.signIn.magicLink).toHaveBeenCalledWith({
         email: "test@example.com",
-        callbackURL: "/dashboard",
+        callbackURL: "/today",
       });
     });
 
@@ -227,7 +227,7 @@ describe("SignInProvidersContainer", () => {
 
   it("offers passkey sign-in and redirects after successful WebAuthn", async () => {
     const { user } = setup(
-      <SignInProviders providers={[]} callbackUrl="/dashboard" />,
+      <SignInProviders providers={[]} callbackUrl="/today" />,
     );
 
     await user.click(
@@ -235,7 +235,7 @@ describe("SignInProvidersContainer", () => {
     );
 
     await waitFor(() => expect(authClient.signIn.passkey).toHaveBeenCalled());
-    expect(window.location.href).toBe("http://localhost:3000/dashboard");
+    expect(window.location.href).toBe("http://localhost:3000/today");
   });
 
   it("keeps the user on sign-in when WebAuthn is cancelled", async () => {

@@ -15,6 +15,14 @@ const mocks = vi.hoisted(() => ({
   shouldAttemptNotificationDelivery: vi.fn(),
   getLocalTime: vi.fn(),
   isReminderDue: vi.fn(),
+  deliverScheduledNotifications: vi.fn(),
+}));
+
+vi.mock("@/features/couple/lifecycle.service", () => ({
+  runLifecycleEmails: vi.fn(),
+}));
+vi.mock("@/features/couple/notify.service", () => ({
+  deliverScheduledNotifications: mocks.deliverScheduledNotifications,
 }));
 
 vi.mock("@/lib/cron", () => ({
@@ -81,35 +89,13 @@ beforeEach(() => {
   mocks.shouldAttemptNotificationDelivery.mockReturnValue(true);
   mocks.getLocalTime.mockReturnValue("08:00");
   mocks.isReminderDue.mockReturnValue(true);
+  mocks.deliverScheduledNotifications.mockResolvedValue({ due: 0, sent: 0 });
 });
 
 afterEach(() => vi.useRealTimers());
 
 describe("notification cron route", () => {
-  it("does not wake the database between maintenance slots when push is disabled", async () => {
-    vi.setSystemTime(new Date("2026-09-21T08:05:00Z"));
-    mocks.getFeatureAvailability.mockReturnValue({ enabled: false });
-    const response = await GET(request, {} as never);
-    expect(await response.json()).toEqual({
-      ok: true,
-      disabled: true,
-      skipped: true,
-    });
-    expect(mocks.runOperationalJob).not.toHaveBeenCalled();
-  });
-
-  it("still processes reminders between maintenance slots when push is enabled", async () => {
-    vi.setSystemTime(new Date("2026-09-21T08:05:00Z"));
-    vi.mocked(prisma.userPreferences.findMany).mockResolvedValue([]);
-    await GET(request, {} as never);
-    expect(mocks.runOperationalJob).toHaveBeenCalledWith(
-      expect.objectContaining({
-        jobName: "notifications",
-        intervalMs: 5 * 60 * 1000,
-      }),
-    );
-  });
-  it("runs deletion and retention jobs while push remains disabled", async () => {
+  it("delivers deferred partner notifications even when web push is disabled", async () => {
     mocks.getFeatureAvailability.mockReturnValue({
       enabled: false,
       reason: "disabled_by_flag",
@@ -121,112 +107,79 @@ describe("notification cron route", () => {
       disabled: true,
       externalDeletions: { processed: 0 },
       retention: { deleted: 0 },
+      partnerNotifications: { due: 0, sent: 0 },
+      // Without a mail provider the onboarding sequence stays idle.
+      lifecycleEmails: null,
     });
+    expect(mocks.deliverScheduledNotifications).toHaveBeenCalledTimes(1);
     expect(prisma.userPreferences.findMany).not.toHaveBeenCalled();
   });
 
-  it("claims and completes generic check-in and detailed medication deliveries", async () => {
+  it("only reminds cycle owners who have not checked in today", async () => {
     vi.mocked(prisma.userPreferences.findMany).mockResolvedValue([
       {
-        userId: "notification-user",
+        userId: "owner-1",
         timezone: "Europe/Paris",
         notificationsEnabled: true,
         dailyCheckInReminder: true,
-        dailyCheckInTime: "08:00",
-        medicationReminders: true,
-        medicationReminderTime: "08:00",
-        lastMedicationReminderSentDate: null,
-        lastMedicationReminderSentKeys: [],
+        dailyCheckInTime: "10:00",
+        lastDailyCheckInSentDate: null,
+      },
+      {
+        userId: "owner-2",
+        timezone: "Europe/Paris",
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        dailyCheckInTime: "10:00",
+        lastDailyCheckInSentDate: null,
       },
     ] as never);
+    vi.mocked(prisma.dailyCheckIn.count)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
     vi.mocked(prisma.pushSubscription.findMany).mockResolvedValue([
       {
-        endpoint: "https://push.moodday.invalid/fixture",
-        p256dh: "fixture-p256dh",
-        auth: "fixture-auth",
+        endpoint: "https://push.example/1",
+        p256dh: "k",
+        auth: "a",
         expirationTime: null,
-        locale: "fr",
-        contentMode: "detailed",
-        trustedDevice: true,
       },
     ] as never);
     vi.mocked(prisma.notificationDelivery.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.medication.findMany).mockResolvedValue([
-      {
-        id: "medication-1",
-        userId: "notification-user",
-        name: "Synthetic",
-        dosage: "fixture",
-        frequency: "daily",
-        isPRN: false,
-        isArchived: false,
-        scheduleTimes: ["08:00"],
-        weeklyDay: null,
-        startDate: null,
-        endDate: null,
-        intakes: [],
-      },
-    ] as never);
     vi.mocked(prisma.userPreferences.update).mockResolvedValue({} as never);
 
     const response = await GET(request, {} as never);
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      externalDeletions: { processed: 0 },
-      retention: { deleted: 0 },
-      notifications: {
-        ok: true,
-        usersChecked: 1,
-        checkInsSent: 1,
-        medsSent: 1,
+    const body = await response.json();
+
+    expect(prisma.userPreferences.findMany).toHaveBeenCalledWith({
+      where: {
+        notificationsEnabled: true,
+        dailyCheckInReminder: true,
+        user: { profile: { role: "cycle_owner" } },
       },
     });
-    expect(mocks.sendNotification).toHaveBeenCalledTimes(2);
-    expect(mocks.completeNotificationDeliveries).toHaveBeenCalledTimes(2);
+    expect(body.reminders).toEqual({ usersChecked: 2, sent: 1 });
+    expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
+    expect(mocks.buildPushPayload).toHaveBeenCalledWith(
+      expect.objectContaining({ url: "/today", tag: "daily-checkin" }),
+    );
+    // The reminder text never carries any health detail.
+    const payload = mocks.buildPushPayload.mock.calls[0]?.[0] as {
+      body: string;
+    };
+    expect(payload.body).not.toMatch(/fragile|difficile|règles|SPM/i);
     expect(prisma.userPreferences.update).toHaveBeenCalledWith({
-      where: { userId: "notification-user" },
-      data: expect.objectContaining({
-        lastMedicationReminderSentKeys: expect.any(Array),
-      }),
+      where: { userId: "owner-1" },
+      data: { lastDailyCheckInSentDate: "2026-09-21" },
     });
   });
 
-  it("removes an expired endpoint and records the failed delivery", async () => {
-    vi.mocked(prisma.userPreferences.findMany).mockResolvedValue([
-      {
-        userId: "notification-user",
-        timezone: "Europe/Paris",
-        notificationsEnabled: true,
-        dailyCheckInReminder: true,
-        dailyCheckInTime: "08:00",
-        medicationReminders: false,
-      },
-    ] as never);
-    vi.mocked(prisma.pushSubscription.findMany).mockResolvedValue([
-      {
-        endpoint: "https://push.moodday.invalid/expired",
-        p256dh: "fixture-p256dh",
-        auth: "fixture-auth",
-        expirationTime: null,
-        locale: "en",
-        contentMode: "generic",
-        trustedDevice: false,
-      },
-    ] as never);
-    vi.mocked(prisma.notificationDelivery.findMany).mockResolvedValue([]);
-    mocks.sendNotification.mockRejectedValueOnce({ statusCode: 410 });
-    vi.mocked(prisma.pushSubscription.delete).mockResolvedValue({} as never);
-
-    const response = await GET(request, {} as never);
-    expect(response.status).toBe(200);
-    expect(prisma.pushSubscription.delete).toHaveBeenCalledWith({
-      where: { endpoint: "https://push.moodday.invalid/expired" },
-    });
-    expect(mocks.completeNotificationDeliveries).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sent: false,
-        errorCode: "push_subscription_gone",
-      }),
+  it("rejects unauthenticated cron calls before touching any job", async () => {
+    mocks.validateCronRequest.mockReturnValue(
+      Response.json({ error: "unauthorized" }, { status: 401 }),
     );
+    const response = await GET(request, {} as never);
+    expect(response.status).toBe(401);
+    expect(mocks.runOperationalJob).not.toHaveBeenCalled();
   });
 });

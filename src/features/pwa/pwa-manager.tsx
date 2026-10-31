@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useSession } from "@/lib/auth-client";
 import { getUserPreferences } from "@/features/preferences/preferences.action";
-import { syncQueuedMoodEntries } from "./offline-queue";
 import { syncQueuedActions } from "./offline-actions";
 import {
   compactOfflineOperations,
@@ -165,10 +164,7 @@ export function PwaManager({
     const handleOnline = async () => {
       if (navigator.onLine) {
         await compactOfflineOperations(ownerId);
-        await Promise.all([
-          syncQueuedMoodEntries(ownerId),
-          syncQueuedActions(ownerId),
-        ]);
+        await Promise.all([syncQueuedActions(ownerId)]);
       }
     };
 

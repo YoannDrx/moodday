@@ -5,11 +5,13 @@ appId: fr.yodev.moodday.preview
 - openLink: moodday-preview://sign-in
 - assertVisible:
     id: sign-in-screen
-- assertVisible: "Retrouve ton fil."
+- assertVisible: "Le SPM, ça se vit mieux à deux."
 - assertVisible:
     id: sign-in-email
 - assertVisible:
     id: sign-in-password
 - assertVisible:
     id: sign-in-submit
+- assertVisible:
+    id: help-button
 - assertNotVisible: "Connexion impossible.*"

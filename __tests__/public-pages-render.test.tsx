@@ -43,7 +43,6 @@ import ContactPage, {
   generateMetadata as generateContactMetadata,
 } from "@app/(layout)/contact/page";
 import CrisisPage from "@app/(layout)/crisis/page";
-import GuidesPage from "@app/(layout)/guides/page";
 import HelpPage, {
   generateMetadata as generateHelpMetadata,
 } from "@app/(layout)/help/page";
@@ -72,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("public product pages", () => {
-  it("renders the factual about, contact and guides surfaces", async () => {
+  it("renders the factual about and contact surfaces", async () => {
     render(await AboutPage());
     expect(
       screen.getByRole("heading", {
@@ -87,23 +86,6 @@ describe("public product pages", () => {
       screen.getByRole("heading", { name: "contact.title", level: 1 }),
     ).toBeInTheDocument();
     expect((await generateContactMetadata()).title).toBe("contact.metaTitle");
-
-    render(await GuidesPage());
-    expect(
-      screen.getByRole("heading", { name: "guides.title", level: 1 }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("guides.items.caregivers.title"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("publishes the caregiver guide only when server availability allows it", async () => {
-    state.caregiverSharingEnabled = true;
-    render(await GuidesPage());
-
-    expect(
-      screen.getByText("guides.items.caregivers.title"),
-    ).toBeInTheDocument();
   });
 
   it("renders localized help and minimal status pages", async () => {
@@ -229,7 +211,7 @@ describe("public product pages", () => {
     state.locale = "en";
     render(await PrivacyPage());
     expect(
-      screen.getByText("Optional AI insights", { exact: true }),
+      screen.getByText("Sharing with your partner (duo)", { exact: true }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/Article 9\(2\)\(a\)/)).not.toHaveLength(0);
   });

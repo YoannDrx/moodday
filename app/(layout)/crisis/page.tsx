@@ -24,7 +24,12 @@ export default async function CrisisPage() {
     available: r.availabilityKey ? t(r.availabilityKey) : undefined,
   }));
 
-  const hotlines = localizedResources.filter((r) => r.category === "hotline");
+  // 3114 always comes first, on its own: it is the national line for
+  // suicidal thoughts and for people worried about someone.
+  const featured = localizedResources.find((r) => r.phone === "3114");
+  const hotlines = localizedResources.filter(
+    (r) => r.category === "hotline" && r !== featured,
+  );
   const emergency = localizedResources.filter(
     (r) => r.category === "emergency",
   );
@@ -32,6 +37,7 @@ export default async function CrisisPage() {
 
   return (
     <CrisisContent
+      featured={featured}
       hotlines={hotlines}
       emergency={emergency}
       support={support}

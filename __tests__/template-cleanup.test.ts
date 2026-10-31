@@ -53,7 +53,7 @@ describe("legacy template cleanup", () => {
 
   it("keeps fallback navigation scoped to real Moodday destinations", () => {
     const navigation = readFileSync(
-      resolve("src/features/navigation/base-navigation.tsx"),
+      resolve("src/features/app-shell/app-nav.tsx"),
       "utf8",
     );
     const userDropdown = readFileSync(
@@ -61,8 +61,8 @@ describe("legacy template cleanup", () => {
       "utf8",
     );
 
-    expect(navigation).toContain('href="/dashboard"');
-    expect(navigation).toContain('href="/settings/profile"');
+    expect(navigation).toContain('href: "/today"');
+    expect(navigation).toContain('href: "/duo"');
     expect(navigation).not.toMatch(/\/orgs|href="\/home"|settings\?tab=/u);
     expect(userDropdown).not.toContain("settings?tab=");
   });

@@ -30,7 +30,7 @@ export function ResendVerificationForm() {
     startTransition(async () => {
       const { error } = await authClient.sendVerificationEmail({
         email: sessionEmail ?? email,
-        callbackURL: getCallbackUrl("/dashboard"),
+        callbackURL: getCallbackUrl("/today"),
       });
       setStatus(error ? "failed" : "sent");
       if (!error) setCooldown(RESEND_COOLDOWN_SECONDS);

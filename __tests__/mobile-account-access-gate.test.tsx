@@ -10,18 +10,21 @@ const mocks = vi.hoisted(() => ({
   deleteItem: vi.fn(),
   signOut: vi.fn(),
   sendVerificationEmail: vi.fn(),
-  summary: vi.fn(),
-  closeDatabase: vi.fn(),
+  pendingCheckIns: vi.fn(),
+  signOutOfMoodday: vi.fn(),
   pathname: "/",
   userId: "owner-one",
   sessionId: "session-one",
 }));
-vi.mock("../apps/mobile/src/lib/local-database", () => ({
-  getLocalOperationSummary: mocks.summary,
-  closeOwnerLocalDatabase: mocks.closeDatabase,
+vi.mock("../apps/mobile/src/lib/offline-queue", () => ({
+  countOfflineCheckIns: mocks.pendingCheckIns,
+}));
+vi.mock("../apps/mobile/src/lib/sign-out", () => ({
+  signOutOfMoodday: mocks.signOutOfMoodday,
 }));
 vi.mock("../apps/mobile/node_modules/expo-router", () => ({
   usePathname: () => mocks.pathname,
+  useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock("../apps/mobile/node_modules/expo-crypto", () => ({
   CryptoDigestAlgorithm: { SHA256: "SHA256" },
@@ -57,6 +60,7 @@ vi.mock("../apps/mobile/node_modules/react-native", () => {
   const Box = ({ children }: PropsWithChildren) =>
     createElement("div", null, children);
   return {
+    useColorScheme: () => "light",
     Linking: { openURL: vi.fn() },
     StyleSheet: { create: (value: unknown) => value },
     View: Box,
@@ -114,8 +118,8 @@ describe("native consent boundary", () => {
     mocks.userId = "owner-one";
     mocks.sessionId = "session-one";
     mocks.getAccess.mockResolvedValue(initial);
-    mocks.summary.mockResolvedValue({ total: 0 });
-    mocks.signOut.mockResolvedValue({});
+    mocks.pendingCheckIns.mockResolvedValue(0);
+    mocks.signOutOfMoodday.mockResolvedValue(undefined);
   });
   it("does not run protected child effects before consent verification", async () => {
     const healthRead = vi.fn();
@@ -217,25 +221,28 @@ describe("native consent boundary", () => {
     await screen.findByText(/n’a pas pu être envoyé/);
     expect(screen.queryByText("private-product")).not.toBeInTheDocument();
   });
-  it("blocks sign-out when local operations have not synchronized", async () => {
-    mocks.summary.mockResolvedValue({ total: 1 });
+  it("blocks sign-out while an offline check-in still waits for the network", async () => {
+    mocks.pendingCheckIns.mockResolvedValue(1);
     renderGate();
     fireEvent.click(
       await screen.findByRole("button", { name: "Me déconnecter" }),
     );
-    await screen.findByText(/Des données restent à synchroniser/);
-    expect(mocks.signOut).not.toHaveBeenCalled();
-    expect(mocks.closeDatabase).not.toHaveBeenCalled();
+    await screen.findByText(/Un point fait hors ligne attend encore le réseau/);
+    expect(mocks.signOutOfMoodday).not.toHaveBeenCalled();
   });
-  it("locks the owner database before signing out an account without pending data", async () => {
+  it("signs out through the shared sign-out when nothing waits on the device", async () => {
     renderGate();
     fireEvent.click(
       await screen.findByRole("button", { name: "Me déconnecter" }),
     );
-    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledOnce());
-    expect(mocks.closeDatabase).toHaveBeenCalledWith("owner-one");
-    expect(mocks.closeDatabase.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.signOut.mock.invocationCallOrder[0],
+    await waitFor(() =>
+      expect(mocks.signOutOfMoodday).toHaveBeenCalledWith("owner-one"),
     );
+  });
+  it("keeps the help screen reachable before consent", async () => {
+    mocks.pathname = "/help";
+    renderGate();
+    expect(screen.getByText("private-product")).toBeInTheDocument();
+    expect(mocks.getAccess).not.toHaveBeenCalled();
   });
 });

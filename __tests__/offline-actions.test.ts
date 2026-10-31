@@ -12,32 +12,12 @@ const mocks = vi.hoisted(() => ({
   removeOfflineOperation: vi.fn(),
   updateOfflineOperation: vi.fn(),
   notifyOfflineQueueChanged: vi.fn(),
-  logMedIntake: vi.fn(),
-  logPRNIntake: vi.fn(),
-  skipMedIntake: vi.fn(),
-  logExerciseCompletion: vi.fn(),
-  createTherapySession: vi.fn(),
-  createV2CheckIn: vi.fn(),
-  createV2RoutineOccurrence: vi.fn(),
+  saveCheckInAction: vi.fn(),
 }));
 
 vi.mock("nanoid", () => ({ nanoid: () => "offline-id" }));
-vi.mock("@/features/medication/medication.action", () => ({
-  logMedIntake: mocks.logMedIntake,
-  logPRNIntake: mocks.logPRNIntake,
-  skipMedIntake: mocks.skipMedIntake,
-}));
-vi.mock("@/features/exercise/exercise.action", () => ({
-  logExerciseCompletion: mocks.logExerciseCompletion,
-}));
-vi.mock("@/features/therapy/therapy.action", () => ({
-  createTherapySession: mocks.createTherapySession,
-}));
-vi.mock("@/features/v2/check-ins/check-in.action", () => ({
-  createV2CheckIn: mocks.createV2CheckIn,
-}));
-vi.mock("@/features/v2/routines/routine-occurrence.action", () => ({
-  createV2RoutineOccurrence: mocks.createV2RoutineOccurrence,
+vi.mock("@/features/couple/couple.action", () => ({
+  saveCheckInAction: mocks.saveCheckInAction,
 }));
 vi.mock("@/features/pwa/offline-events", () => ({
   notifyOfflineQueueChanged: mocks.notifyOfflineQueueChanged,
@@ -57,20 +37,25 @@ vi.mock("@/features/pwa/offline-store", () => ({
 
 import {
   getQueuedActionCount,
-  getQueuedActions,
   queueAction,
   syncQueuedActions,
   type OfflineActionPayload,
 } from "@/features/pwa/offline-actions";
 
 const ownerId = "offline-owner";
-const createdAt = new Date("2026-08-18T08:30:00.000Z");
+const createdAt = new Date("2026-10-30T21:30:00.000Z");
+const payload: OfflineActionPayload = {
+  type: "check_in",
+  localDate: "2026-10-30",
+  timezone: "Europe/Paris",
+  state: "fragile",
+  symptoms: ["fatigue"],
+  needs: ["calm"],
+  privateNote: "rien que pour moi",
+};
 
-const operation = (
-  payload: OfflineActionPayload,
-  overrides: Record<string, unknown> = {},
-) => ({
-  id: `action:${payload.type}`,
+const operation = (overrides: Record<string, unknown> = {}) => ({
+  id: "action:offline-id",
   ownerId,
   schemaVersion: 2,
   kind: "action",
@@ -79,404 +64,106 @@ const operation = (
   retryCount: 0,
   createdAt: createdAt.toISOString(),
   updatedAt: createdAt.toISOString(),
-  localDateAtCreation: "2026-08-18",
-  timeZoneAtCreation: "Europe/Paris",
   ...overrides,
 });
 
-describe("offline actions", () => {
+describe("offline check-in queue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getSafeOfflineTimeZone.mockReturnValue("Europe/Paris");
+    mocks.getSafeOfflineTimeZone.mockImplementation(
+      (timeZone?: string) => timeZone ?? "Europe/Paris",
+    );
     mocks.isOfflineOperationDue.mockReturnValue(true);
     mocks.getOfflineFailureStatus.mockReturnValue("failed");
-    mocks.getOfflineErrorCategory.mockReturnValue("transient");
-    mocks.getOfflineRetryDelay.mockReturnValue(1_000);
-    mocks.countOfflineOperations.mockResolvedValue(2);
-    mocks.listOfflineOperations.mockResolvedValue([]);
-    mocks.logMedIntake.mockResolvedValue({});
-    mocks.skipMedIntake.mockResolvedValue({});
-    mocks.logPRNIntake.mockResolvedValue({});
-    mocks.logExerciseCompletion.mockResolvedValue({});
-    mocks.createTherapySession.mockResolvedValue({});
-    mocks.createV2CheckIn.mockResolvedValue({});
-    mocks.createV2RoutineOccurrence.mockResolvedValue({});
+    mocks.getOfflineErrorCategory.mockReturnValue("network");
+    mocks.getOfflineRetryDelay.mockReturnValue(60_000);
   });
 
-  it.each([
-    [
-      { type: "med_intake", medicationId: "med-1" },
-      {
-        type: "med_intake",
-        medicationId: "med-1",
-        takenAt: createdAt.toISOString(),
-        scheduledForDate: "2026-08-18",
-      },
-    ],
-    [
-      {
-        type: "med_skip",
-        medicationId: "med-1",
-        takenAt: "2026-08-17T12:00:00.000Z",
-        scheduledForDate: "2026-08-17",
-      },
-      {
-        type: "med_skip",
-        medicationId: "med-1",
-        takenAt: "2026-08-17T12:00:00.000Z",
-        scheduledForDate: "2026-08-17",
-      },
-    ],
-    [
-      {
-        type: "v2_routine_occurrence",
-        entityId: "occurrence-1",
-        routineId: "routine-1",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        status: "completed",
-        completedAt: createdAt.toISOString(),
-      },
-      {
-        type: "v2_routine_occurrence",
-        entityId: "occurrence-1",
-        routineId: "routine-1",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        status: "completed",
-        completedAt: createdAt.toISOString(),
-      },
-    ],
-    [
-      { type: "med_prn_intake", medicationId: "med-2" },
-      {
-        type: "med_prn_intake",
-        medicationId: "med-2",
-        takenAt: createdAt.toISOString(),
-      },
-    ],
-    [
-      {
-        type: "med_prn_intake",
-        medicationId: "med-2",
-        takenAt: "2026-08-17T12:00:00.000Z",
-      },
-      {
-        type: "med_prn_intake",
-        medicationId: "med-2",
-        takenAt: "2026-08-17T12:00:00.000Z",
-      },
-    ],
-    [
-      { type: "exercise_log", exerciseId: "exercise-1" },
-      {
-        type: "exercise_log",
-        exerciseId: "exercise-1",
-        completedAt: createdAt.toISOString(),
-      },
-    ],
-    [
-      {
-        type: "exercise_log",
-        exerciseId: "exercise-1",
-        completedAt: "2026-08-17T12:00:00.000Z",
-      },
-      {
-        type: "exercise_log",
-        exerciseId: "exercise-1",
-        completedAt: "2026-08-17T12:00:00.000Z",
-      },
-    ],
-    [
-      { type: "therapy_create", date: "2026-08-18", notes: "Notes" },
-      { type: "therapy_create", date: "2026-08-18", notes: "Notes" },
-    ],
-    [
-      {
-        type: "v2_check_in",
-        depth: "quick",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        valence: 8,
-        activation: 4,
-        irritability: 6,
-        contexts: [],
-      },
-      {
-        type: "v2_check_in",
-        depth: "quick",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        valence: 8,
-        activation: 4,
-        irritability: 6,
-        contexts: [],
-      },
-    ],
-  ] as const)("preserves creation time for %j", async (payload, expected) => {
+  it("stores the check-in with the civil date of its creation", async () => {
     const entry = await queueAction(ownerId, payload, {
       createdAt,
       timeZone: "Europe/Paris",
-      expectedVersion: "resource-v1",
     });
 
-    expect(entry).toMatchObject({
-      id: "action:offline-id",
-      ownerId,
-      payload: expected,
-      localDateAtCreation: "2026-08-18",
-      timeZoneAtCreation: "Europe/Paris",
-    });
+    expect(entry.localDateAtCreation).toBe("2026-10-30");
     expect(mocks.addOfflineOperation).toHaveBeenCalledWith(
       expect.objectContaining({
-        expectedVersion: "resource-v1",
+        id: "action:offline-id",
+        kind: "action",
         status: "pending",
+        payload,
       }),
     );
-    expect(mocks.notifyOfflineQueueChanged).toHaveBeenCalledTimes(1);
+    expect(mocks.notifyOfflineQueueChanged).toHaveBeenCalled();
   });
 
-  it("uses safe defaults and exposes bounded queue readers", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(createdAt);
-    await queueAction(ownerId, {
-      type: "therapy_create",
-      date: "2026-08-18",
-      notes: "Notes",
-    });
-    await expect(getQueuedActionCount(ownerId)).resolves.toBe(2);
-    await expect(getQueuedActions(ownerId)).resolves.toEqual([]);
-    expect(mocks.getSafeOfflineTimeZone).toHaveBeenCalledWith(undefined);
-    expect(mocks.countOfflineOperations).toHaveBeenCalledWith(
-      ownerId,
-      "action",
-    );
-    vi.useRealTimers();
-  });
-
-  it("synchronizes every supported action and removes successful entries", async () => {
-    const queue = [
-      operation({
-        type: "med_intake",
-        medicationId: "med-1",
-        doseIndex: 1,
-        scheduledForDate: "2026-08-18",
-        takenAt: createdAt.toISOString(),
-      }),
-      operation({
-        type: "med_skip",
-        medicationId: "med-2",
-        reason: "Skipped",
-      }),
-      operation({
-        type: "med_prn_intake",
-        medicationId: "med-3",
-        reason: "As needed",
-      }),
-      operation({
-        type: "exercise_log",
-        exerciseId: "exercise-1",
-        note: "Done",
-      }),
-      operation({
-        type: "therapy_create",
-        date: "2026-08-18",
-        notes: "Session",
-        benefitRating: 0,
-      }),
-      operation({
-        type: "v2_check_in",
-        depth: "quick",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        valence: 8,
-        activation: 4,
-        irritability: 6,
-        contexts: [],
-      }),
-      operation({
-        type: "v2_routine_occurrence",
-        entityId: "occurrence-1",
-        routineId: "routine-1",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        status: "completed",
-        completedAt: createdAt.toISOString(),
-      }),
-    ];
+  it("replays the check-in with its queue id as the idempotency key", async () => {
     mocks.listOfflineOperations
-      .mockResolvedValueOnce(queue)
+      .mockResolvedValueOnce([operation()])
       .mockResolvedValueOnce([]);
+    mocks.saveCheckInAction.mockResolvedValue({ data: { id: "check-1" } });
 
     await expect(syncQueuedActions(ownerId)).resolves.toEqual({
-      synced: 7,
+      synced: 1,
       remaining: 0,
       conflicts: 0,
     });
-    expect(mocks.logMedIntake).toHaveBeenCalledWith(
-      expect.objectContaining({ operationId: "action:med_intake" }),
+    expect(mocks.saveCheckInAction).toHaveBeenCalledWith({
+      operationId: "action:offline-id",
+      localDate: "2026-10-30",
+      timezone: "Europe/Paris",
+      state: "fragile",
+      symptoms: ["fatigue"],
+      needs: ["calm"],
+      privateNote: "rien que pour moi",
+    });
+    expect(mocks.removeOfflineOperation).toHaveBeenCalledWith(
+      ownerId,
+      "action:offline-id",
     );
-    expect(mocks.skipMedIntake).toHaveBeenCalledTimes(1);
-    expect(mocks.logPRNIntake).toHaveBeenCalledTimes(1);
-    expect(mocks.logExerciseCompletion).toHaveBeenCalledTimes(1);
-    expect(mocks.createTherapySession).toHaveBeenCalledWith(
-      expect.objectContaining({ benefitRating: 0 }),
-    );
-    expect(mocks.createV2CheckIn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operationId: "action:v2_check_in",
-        valence: 8,
-      }),
-    );
-    expect(mocks.createV2RoutineOccurrence).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operationId: "action:v2_routine_occurrence",
-        entityId: "occurrence-1",
-        routineId: "routine-1",
-      }),
-    );
-    expect(mocks.removeOfflineOperation).toHaveBeenCalledTimes(7);
   });
 
-  it("skips conflicts and operations whose retry is not due", async () => {
-    const conflict = operation(
-      { type: "med_intake", medicationId: "med-1" },
-      { status: "conflict" },
-    );
-    const delayed = operation({ type: "med_skip", medicationId: "med-2" });
-    mocks.isOfflineOperationDue.mockImplementation((item) => item !== delayed);
+  it("keeps a rejected check-in for retry instead of dropping it", async () => {
     mocks.listOfflineOperations
-      .mockResolvedValueOnce([conflict, delayed])
-      .mockResolvedValueOnce([conflict, delayed]);
+      .mockResolvedValueOnce([operation()])
+      .mockResolvedValueOnce([operation({ status: "failed" })]);
+    mocks.saveCheckInAction.mockResolvedValue({ serverError: "network down" });
 
-    await expect(syncQueuedActions(ownerId)).resolves.toEqual({
-      synced: 0,
-      remaining: 2,
-      conflicts: 1,
-    });
-    expect(mocks.updateOfflineOperation).not.toHaveBeenCalled();
-  });
+    const result = await syncQueuedActions(ownerId);
 
-  it.each([
-    ["med_intake", mocks.logMedIntake],
-    ["med_skip", mocks.skipMedIntake],
-    ["med_prn_intake", mocks.logPRNIntake],
-    ["exercise_log", mocks.logExerciseCompletion],
-    ["therapy_create", mocks.createTherapySession],
-    ["v2_check_in", mocks.createV2CheckIn],
-    ["v2_routine_occurrence", mocks.createV2RoutineOccurrence],
-  ] as const)("captures a %s server error for retry", async (type, action) => {
-    const payloads: Record<string, OfflineActionPayload> = {
-      med_intake: { type: "med_intake", medicationId: "med-1" },
-      med_skip: { type: "med_skip", medicationId: "med-1" },
-      med_prn_intake: { type: "med_prn_intake", medicationId: "med-1" },
-      exercise_log: { type: "exercise_log", exerciseId: "exercise-1" },
-      therapy_create: {
-        type: "therapy_create",
-        date: "2026-08-18",
-        notes: "Notes",
-      },
-      v2_check_in: {
-        type: "v2_check_in",
-        depth: "presence",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        contexts: [],
-      },
-      v2_routine_occurrence: {
-        type: "v2_routine_occurrence",
-        entityId: "occurrence-1",
-        routineId: "routine-1",
-        localDate: "2026-08-18",
-        timezone: "Europe/Paris",
-        status: "completed",
-        completedAt: createdAt.toISOString(),
-      },
-    };
-    const item = operation(payloads[type]);
-    action.mockResolvedValueOnce({ serverError: `${type} unavailable` });
-    mocks.listOfflineOperations
-      .mockResolvedValueOnce([item])
-      .mockResolvedValueOnce([item]);
-
-    await expect(syncQueuedActions(`${ownerId}-${type}`)).resolves.toEqual({
-      synced: 0,
-      remaining: 1,
-      conflicts: 0,
-    });
+    expect(result).toEqual({ synced: 0, remaining: 1, conflicts: 0 });
+    expect(mocks.removeOfflineOperation).not.toHaveBeenCalled();
     expect(mocks.updateOfflineOperation).toHaveBeenLastCalledWith(
-      `${ownerId}-${type}`,
-      item.id,
+      ownerId,
+      "action:offline-id",
       expect.objectContaining({
         status: "failed",
         retryCount: 1,
-        errorCategory: "transient",
+        lastError: "network down",
         nextAttemptAt: expect.any(String),
       }),
     );
   });
 
-  it("turns permanent ownership failures into conflicts without retry dates", async () => {
-    const item = operation({ type: "med_intake", medicationId: "med-1" });
-    mocks.logMedIntake.mockRejectedValueOnce("ownership mismatch");
-    mocks.getOfflineFailureStatus.mockReturnValueOnce("conflict");
+  it("skips conflicts and operations that are not due yet", async () => {
     mocks.listOfflineOperations
-      .mockResolvedValueOnce([item])
-      .mockResolvedValueOnce([{ ...item, status: "conflict" }]);
+      .mockResolvedValueOnce([operation({ status: "conflict" })])
+      .mockResolvedValueOnce([operation({ status: "conflict" })]);
 
-    await expect(syncQueuedActions("other-owner")).resolves.toEqual({
+    await expect(syncQueuedActions(ownerId)).resolves.toEqual({
       synced: 0,
       remaining: 1,
       conflicts: 1,
     });
-    expect(mocks.updateOfflineOperation).toHaveBeenLastCalledWith(
-      "other-owner",
-      item.id,
-      expect.objectContaining({
-        status: "conflict",
-        lastError: "Offline synchronization failed",
-        nextAttemptAt: undefined,
-      }),
-    );
+    expect(mocks.saveCheckInAction).not.toHaveBeenCalled();
   });
 
-  it("rejects unknown queued payloads safely", async () => {
-    const item = operation({
-      type: "unknown",
-    } as unknown as OfflineActionPayload);
-    mocks.listOfflineOperations
-      .mockResolvedValueOnce([item])
-      .mockResolvedValueOnce([item]);
-
-    await expect(syncQueuedActions("unknown-owner")).resolves.toEqual({
-      synced: 0,
-      remaining: 1,
-      conflicts: 0,
-    });
-    expect(mocks.updateOfflineOperation).toHaveBeenLastCalledWith(
-      "unknown-owner",
-      item.id,
-      expect.objectContaining({ lastError: "Unknown offline action" }),
+  it("counts queued check-ins per owner", async () => {
+    mocks.countOfflineOperations.mockResolvedValue(2);
+    await expect(getQueuedActionCount(ownerId)).resolves.toBe(2);
+    expect(mocks.countOfflineOperations).toHaveBeenCalledWith(
+      ownerId,
+      "action",
     );
-  });
-
-  it("deduplicates concurrent synchronization for the same owner", async () => {
-    let release: ((value: unknown[]) => void) | undefined;
-    mocks.listOfflineOperations.mockImplementationOnce(
-      async () =>
-        new Promise((resolve) => {
-          release = resolve;
-        }),
-    );
-
-    const first = syncQueuedActions("concurrent-owner");
-    const second = syncQueuedActions("concurrent-owner");
-    release?.([]);
-
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      { synced: 0, remaining: 0, conflicts: 0 },
-      { synced: 0, remaining: 0, conflicts: 0 },
-    ]);
-    expect(mocks.listOfflineOperations).toHaveBeenCalledTimes(1);
   });
 });

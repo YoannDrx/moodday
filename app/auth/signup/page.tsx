@@ -1,5 +1,5 @@
 import { Loader } from "@/components/nowts/loader";
-import { MooddayLogo } from "@/components/nowts/moodday-logo";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
 import { Typography } from "@/components/nowts/typography";
 import {
   Card,
@@ -49,21 +49,18 @@ export default async function AuthSignInPage() {
       </CardHeader>
       <CardContent>
         {signupAccess.mode === "closed" ? (
-          <div
-            className="rounded-3xl border border-[#155c5a]/15 bg-[#eef4ef] p-5 text-center"
-            role="status"
-          >
-            <p className="font-[family-name:var(--font-caption)] text-lg font-semibold text-[#143f3e]">
+          <div className="sticker bg-mint-soft p-5 text-center" role="status">
+            <p className="font-display text-lg font-extrabold">
               {t("auth.signUp.closedTitle")}
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#45615f]">
+            <p className="text-muted-foreground mt-2 text-sm leading-6">
               {t("auth.signUp.closedDescription")}
             </p>
           </div>
         ) : (
           <>
             {signupAccess.mode === "invite" ? (
-              <p className="mb-5 rounded-2xl bg-[#fff3e8] px-4 py-3 text-sm leading-6 text-[#68452e]">
+              <p className="bg-honey-soft mb-5 rounded-2xl border-2 border-[var(--ink)] px-4 py-3 text-sm leading-6">
                 {t("auth.signUp.inviteDescription")}
               </p>
             ) : null}

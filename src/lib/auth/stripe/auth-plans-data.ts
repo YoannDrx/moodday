@@ -42,10 +42,10 @@ export const AUTH_PLANS_DATA: AppAuthPlanData[] = [
       caregivers: 3,
     },
     freeTrial: {
-      days: 14,
+      days: 7,
     },
-    price: 7.99,
-    yearlyPrice: 59.99,
+    price: 4.99,
+    yearlyPrice: 34.99,
     currency: "EUR",
   },
 ];

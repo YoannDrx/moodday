@@ -1,4 +1,4 @@
-import { color, radius, space } from "@moodday/design-tokens";
+import { radius, space, sticker } from "@moodday/design-tokens";
 import type { AccountAccessDto } from "@moodday/contracts";
 import { MoodDayApiError } from "@moodday/api-client";
 import * as Crypto from "expo-crypto";
@@ -17,16 +17,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, appBaseUrl } from "../lib/api";
 import { authClient } from "../lib/auth-client";
-import {
-  closeOwnerLocalDatabase,
-  getLocalOperationSummary,
-} from "../lib/local-database";
+import { countOfflineCheckIns } from "../lib/offline-queue";
+import { signOutOfMoodday } from "../lib/sign-out";
+import { usePalette } from "../lib/theme";
+import { Bouyotte } from "./bouyotte";
+import { HelpButton } from "./help-button";
+import { Button, Sticker, Txt } from "./ui";
 
 const labels = [
   "J’ai au moins 18 ans et je réside en France.",
   "J’accepte les conditions d’utilisation.",
   "J’ai lu la politique de confidentialité.",
-  "Je consens explicitement au traitement de mes données de santé pour le suivi que je choisis. Je peux retirer ce consentement dans les réglages de confidentialité.",
+  "Je consens explicitement au traitement de mes données de santé (cycle, ressenti du jour, besoins) pour utiliser Moodday. Je peux retirer ce consentement dans les réglages de confidentialité.",
 ];
 
 // An owner-scoped, non-health marker preserves offline access only after a
@@ -49,9 +51,13 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
   const [accepted, setAccepted] = useState([false, false, false, false]);
   const [pending, setPending] = useState(false);
   const [verificationNotice, setVerificationNotice] = useState<string>();
-  const publicRoute = ["/sign-in", "/two-factor", "/forgot-password"].includes(
-    pathname,
-  );
+  const palette = usePalette();
+  const publicRoute = [
+    "/sign-in",
+    "/two-factor",
+    "/forgot-password",
+    "/help",
+  ].includes(pathname);
 
   useEffect(() => {
     if (!ownerId || !sessionId || publicRoute) return;
@@ -172,18 +178,15 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
     if (pending) return;
     setPending(true);
     try {
-      const summary = await getLocalOperationSummary(ownerId);
-      if (summary.total > 0) {
+      if ((await countOfflineCheckIns(ownerId)) > 0) {
         setState((current) => ({
           ...current,
           error:
-            "Des données restent à synchroniser sur cet appareil. La déconnexion est bloquée pour les préserver. Rétablis l’accès au compte ou contacte le support.",
+            "Un point fait hors ligne attend encore le réseau. La déconnexion est bloquée pour ne pas le perdre : reconnecte-toi à Internet, puis réessaie.",
         }));
         return;
       }
-      await closeOwnerLocalDatabase(ownerId);
-      const result = await authClient.signOut();
-      if (result.error) throw new Error("sign_out_failed");
+      await signOutOfMoodday(ownerId);
     } catch {
       setState((current) => ({
         ...current,
@@ -195,44 +198,48 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
   };
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView style={[styles.page, { backgroundColor: palette.canvas }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Ton espace, ton choix.</Text>
+        <View style={styles.topBar}>
+          <HelpButton />
+        </View>
+        <View style={styles.hero}>
+          <Bouyotte mood="wink" size={88} />
+          <Txt variant="display" accessibilityRole="header" style={styles.flex}>
+            Ton espace, ton choix.
+          </Txt>
+        </View>
         {state.sessionId !== sessionId ? (
           <ActivityIndicator
             accessibilityLabel="Vérification du compte"
-            color={color.primary}
+            color={palette.ink}
           />
         ) : (
           <>
             {state.access?.emailVerified === false ? (
-              <>
-                <Text style={styles.text}>
-                  Vérifie ton adresse e-mail avant d’accéder à ton suivi. Ouvre
-                  le message Mood Day, puis reviens ici.
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
+              <Sticker>
+                <Txt>
+                  Vérifie ton adresse e-mail avant d’entrer dans Moodday. Ouvre
+                  le message qu’on t’a envoyé, puis reviens ici.
+                </Txt>
+                <Button
+                  variant="honey"
+                  label={pending ? "Envoi…" : "Renvoyer le lien"}
                   disabled={pending}
                   onPress={() => void resendVerification()}
-                  style={[styles.button, pending && styles.disabled]}
-                >
-                  <Text style={styles.buttonText}>
-                    {pending ? "Envoi…" : "Renvoyer le lien"}
-                  </Text>
-                </Pressable>
+                />
                 {verificationNotice ? (
-                  <Text accessibilityLiveRegion="polite" style={styles.text}>
+                  <Txt accessibilityLiveRegion="polite">
                     {verificationNotice}
-                  </Text>
+                  </Txt>
                 ) : null}
-              </>
+              </Sticker>
             ) : state.access ? (
-              <>
-                <Text style={styles.text}>
-                  Avant de commencer, prends connaissance de ce que tu partages.
-                  Aucun accord n’est précoché.
-                </Text>
+              <Sticker>
+                <Txt>
+                  Avant de commencer, prends connaissance de ce que tu confies à
+                  Moodday. Aucun accord n’est précoché.
+                </Txt>
                 {labels.map((label, index) => (
                   <Pressable
                     key={label}
@@ -251,46 +258,52 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
                     }
                     style={styles.choice}
                   >
-                    <Text style={styles.text}>
-                      {accepted[index] ? "☑" : "☐"} {label}
-                    </Text>
+                    <View
+                      style={[
+                        styles.box,
+                        {
+                          borderColor: palette.border,
+                          backgroundColor: accepted[index]
+                            ? palette.honey
+                            : palette.surfaceStrong,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.boxMark}>
+                        {accepted[index] ? "✓" : ""}
+                      </Text>
+                    </View>
+                    <Txt style={styles.flex}>{label}</Txt>
                   </Pressable>
                 ))}
-                <Pressable
-                  accessibilityRole="button"
+                <Button
+                  variant="honey"
+                  label={
+                    pending ? "Enregistrement…" : "Continuer avec ces choix"
+                  }
                   disabled={pending || !accepted.every(Boolean)}
                   onPress={() => void accept()}
-                  style={[
-                    styles.button,
-                    (pending || !accepted.every(Boolean)) && styles.disabled,
-                  ]}
-                >
-                  <Text style={styles.buttonText}>
-                    {pending ? "Enregistrement…" : "Continuer avec ces choix"}
-                  </Text>
-                </Pressable>
-              </>
+                />
+              </Sticker>
             ) : null}
             {state.error ? (
-              <Text
+              <Txt
+                tone="danger"
                 accessibilityRole="alert"
                 accessibilityLiveRegion="assertive"
-                style={styles.error}
               >
                 {state.error}
-              </Text>
+              </Txt>
             ) : null}
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              variant="outline"
+              label="Vérifier à nouveau"
               disabled={pending}
               onPress={() => {
                 setState({});
                 setAttempt((value) => value + 1);
               }}
-              style={styles.choice}
-            >
-              <Text style={styles.text}>Vérifier à nouveau</Text>
-            </Pressable>
+            />
           </>
         )}
         <View style={styles.links}>
@@ -305,54 +318,51 @@ export function AccountAccessGate({ children }: PropsWithChildren) {
               key={path}
               accessibilityRole="link"
               onPress={() => link(path)}
-              style={styles.choice}
+              style={styles.link}
             >
-              <Text style={styles.link}>{label}</Text>
+              <Txt style={styles.underline}>{label}</Txt>
             </Pressable>
           ))}
         </View>
-        <Pressable
-          accessibilityRole="button"
+        <Button
+          variant="ghost"
+          label="Me déconnecter"
           disabled={pending}
           onPress={() => void signOut()}
-          style={styles.choice}
-        >
-          <Text style={styles.text}>Me déconnecter</Text>
-        </Pressable>
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: color.canvas },
+  page: { flex: 1 },
   content: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: space[6],
+    padding: space[5],
     gap: space[4],
   },
-  title: { fontSize: 28, fontWeight: "700", color: color.ink },
-  text: { fontSize: 16, lineHeight: 24, color: color.ink },
+  topBar: { alignItems: "flex-end" },
+  hero: { flexDirection: "row", alignItems: "center", gap: space[4] },
+  flex: { flex: 1 },
   choice: {
     minHeight: 48,
-    paddingVertical: space[3],
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space[3],
+    paddingVertical: space[2],
+  },
+  box: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
     justifyContent: "center",
+    borderWidth: sticker.borderWidth,
+    borderRadius: radius.small / 2,
   },
-  button: {
-    minHeight: 50,
-    padding: space[4],
-    borderRadius: radius.medium,
-    backgroundColor: color.primary,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: color.surfaceStrong,
-    textAlign: "center",
-    fontWeight: "700",
-  },
-  disabled: { opacity: 0.5 },
-  error: { color: color.danger, fontSize: 16 },
-  link: { color: color.primary, textDecorationLine: "underline", fontSize: 16 },
+  boxMark: { fontSize: 16, fontWeight: "800", color: "#2B1B30" },
+  link: { minHeight: 44, justifyContent: "center" },
   links: { gap: space[1] },
+  underline: { textDecorationLine: "underline", fontWeight: "700" },
 });

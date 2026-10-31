@@ -9,7 +9,7 @@ test("sign up requires verification before the account can be used", async ({
 }) => {
   const userData = await createTestAccount({
     page,
-    callbackURL: "/dashboard",
+    callbackURL: "/today",
     verifyEmail: false,
   });
 
@@ -42,7 +42,7 @@ test("sign up requires verification before the account can be used", async ({
     expect(consent.version).not.toHaveLength(0);
   }
 
-  await page.goto("/auth/signin?callbackUrl=/dashboard");
+  await page.goto("/auth/signin?callbackUrl=/today");
   await page.getByLabel(/^Email$/i).fill(userData.email);
   await page.locator('input[name="password"]').fill(userData.password);
   const signInResponsePromise = page.waitForResponse((response) =>
@@ -55,7 +55,7 @@ test("sign up requires verification before the account can be used", async ({
   const blockedSignIn = await signInResponsePromise;
   expect(blockedSignIn.ok()).toBe(false);
 
-  await page.goto("/dashboard");
+  await page.goto("/today");
   await expect(page.getByText("401")).toBeVisible();
 
   const authSecret = process.env.BETTER_AUTH_SECRET;
@@ -66,9 +66,10 @@ test("sign up requires verification before the account can be used", async ({
     undefined,
     60 * 60,
   );
-  const verificationUrl = `${getServerUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent("/dashboard")}`;
+  const verificationUrl = `${getServerUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent("/today")}`;
   await page.goto(verificationUrl);
-  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+  // A verified account without a role first lands on the onboarding.
+  await page.waitForURL(/\/(today|onboarding)/, { timeout: 30_000 });
 
   const verifiedUser = await prisma.user.findUnique({
     where: { email: userData.email },

@@ -45,7 +45,6 @@ const publicPages = [
   "/help",
   "/offline",
   "/crisis",
-  "/brief",
 ] as const;
 
 for (const pathname of publicPages) {
@@ -67,23 +66,14 @@ test("crisis resources remain public without an account", async ({ page }) => {
 });
 
 const authenticatedPages = [
-  "/dashboard",
-  "/mood",
-  "/mood/history",
-  "/medications",
-  "/medications/today",
-  "/therapy",
-  "/exercises",
-  "/trends",
-  "/consultation",
-  "/safety-plan",
-  "/caregiver",
-  "/export",
+  "/today",
+  "/cycle",
+  "/duo",
+  "/ally",
+  "/settings",
   "/settings/security",
-  "/settings/connections",
   "/settings/privacy",
-  "/settings/offline",
-  "/settings/import",
+  "/settings/appearance",
   "/pricing",
 ] as const;
 
@@ -91,7 +81,7 @@ test("main authenticated pages have no serious automated accessibility violation
   page,
 }) => {
   test.setTimeout(180_000);
-  await createTestAccount({ page, callbackURL: "/dashboard" });
+  await createTestAccount({ page, callbackURL: "/today" });
   const failures: string[] = [];
   for (const pathname of authenticatedPages) {
     // The account is deliberately reused so the audit covers a coherent,

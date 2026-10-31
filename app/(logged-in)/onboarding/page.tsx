@@ -1,39 +1,38 @@
-import { redirect } from "next/navigation";
-import { combineWithParentMetadata } from "@/lib/metadata";
-import { getI18n } from "@/i18n/server";
+import { MooddayLogo } from "@/components/brand/moodday-logo";
+import { getUserContext } from "@/features/couple/shared";
+import { OnboardingFlow } from "@/features/couple/ui/onboarding-flow";
 import { getRequiredUser } from "@/lib/auth/auth-user";
-import { prisma } from "@/lib/prisma";
-import { OnboardingWizard } from "./_components/onboarding-wizard";
-import { getFeatureAvailability } from "@/lib/features/availability";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const generateMetadata = combineWithParentMetadata(async () => {
-  const { t } = await getI18n();
-  return {
-    title: t("onboarding.title"),
-    description: t("onboarding.title"),
-  };
-});
+export const metadata: Metadata = { title: "Bienvenue" };
+export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage(props: {
+  searchParams: Promise<{ porte?: string }>;
+}) {
   const user = await getRequiredUser();
-
-  // Check if onboarding is already completed
-  const preferences = await prisma.userPreferences.findUnique({
-    where: { userId: user.id },
-  });
-
-  if (preferences?.hasCompletedOnboarding) {
-    redirect("/dashboard");
-  }
+  const context = await getUserContext(user.id);
+  if (context.role && context.onboarded) redirect("/today");
+  const { porte } = await props.searchParams;
 
   return (
-    <OnboardingWizard
-      pushNotificationsEnabled={
-        getFeatureAvailability("pushNotifications").enabled
-      }
-      caregiverSharingEnabled={
-        getFeatureAvailability("caregiverSharing").enabled
-      }
-    />
+    <div className="knit min-h-full px-4 py-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <MooddayLogo />
+        <OnboardingFlow
+          initialRole={
+            context.role ??
+            (porte === "partner"
+              ? "supporter"
+              : porte === "cycle"
+                ? "cycle_owner"
+                : null)
+          }
+          roleConfirmed={Boolean(context.role)}
+          suggestedName={user.name.split(" ")[0] ?? ""}
+        />
+      </div>
+    </div>
   );
 }

@@ -4,6 +4,45 @@ import { faker } from "@faker-js/faker";
 import { expect, type Page } from "@playwright/test";
 import { retry } from "./retry";
 
+export type E2ERole = "cycle_owner" | "supporter";
+
+/**
+ * Completes the couple onboarding through the API, so feature scenarios start
+ * on an usable "Aujourd'hui" screen. Dedicated specs exercise the UI flow.
+ */
+export async function completeOnboardingViaApi(
+  page: Page,
+  role: E2ERole = "cycle_owner",
+  options: { origin?: string; displayName?: string } = {},
+) {
+  const displayName =
+    options.displayName ?? (role === "cycle_owner" ? "Léa" : "Tom");
+  const headers = { Origin: options.origin ?? new URL(page.url()).origin };
+  const chosen = await page.request.post("/api/v2/role", {
+    headers,
+    data: { role },
+  });
+  expect(chosen.ok()).toBe(true);
+  const completed =
+    role === "cycle_owner"
+      ? await page.request.post("/api/v2/onboarding/owner", {
+          headers,
+          data: {
+            displayName,
+            lastPeriodStart: null,
+            typicalCycleLength: 28,
+            typicalPeriodLength: 5,
+            hardestThings: [],
+            usualNeeds: ["calm"],
+          },
+        })
+      : await page.request.post("/api/v2/onboarding/supporter", {
+          headers,
+          data: { displayName, supporterFocus: ["help"] },
+        });
+  expect(completed.ok()).toBe(true);
+}
+
 export const getUserEmail = () =>
   `playwright-test-${faker.string.uuid()}@example.test`;
 
@@ -11,9 +50,12 @@ export const getUserEmail = () =>
 export async function createTestAccountViaApi({
   page,
   baseURL,
+  role = "cycle_owner",
 }: {
   page: Page;
   baseURL?: string;
+  /** Pass null to keep the account before onboarding. */
+  role?: E2ERole | null;
 }) {
   if (!baseURL || process.env.PLAYWRIGHT_DATABASE_GUARD_CONFIGURED !== "true")
     throw new Error("An isolated Playwright environment is required");
@@ -57,6 +99,11 @@ export async function createTestAccountViaApi({
     },
   });
   expect(consent.status()).toBe(200);
+  if (role) {
+    await completeOnboardingViaApi(page, role, {
+      origin: new URL(baseURL).origin,
+    });
+  }
   return userData;
 }
 
@@ -64,7 +111,7 @@ const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
   const expected = new URL(callbackURL, page.url());
   const canonicalPath =
     expected.pathname === "/app"
-      ? "/dashboard"
+      ? "/today"
       : expected.pathname === "/settings" &&
           expected.searchParams.get("tab") === "profile"
         ? "/settings/profile"
@@ -73,9 +120,19 @@ const waitForCallbackUrl = async (page: Page, callbackURL: string) => {
   await page.waitForURL(
     (url) =>
       (url.pathname === expected.pathname && url.search === expected.search) ||
-      url.pathname === canonicalPath,
+      url.pathname === canonicalPath ||
+      url.pathname === "/onboarding",
     { timeout: 30000 },
   );
+  // New accounts first choose their side of the duo. Feature scenarios take
+  // the cycle owner path, then continue to the page they asked for.
+  if (
+    new URL(page.url()).pathname === "/onboarding" &&
+    expected.pathname !== "/onboarding"
+  ) {
+    await completeOnboardingViaApi(page);
+    await page.goto(callbackURL, { waitUntil: "domcontentloaded" });
+  }
   // Authenticated pages synchronize and prefetch in the background. A global
   // network-idle condition can time out on a fully usable dashboard. Wait for
   // the navigation document; each scenario asserts its own visible controls.
@@ -188,7 +245,7 @@ export async function createTestAccount(options: {
   await signInAccount({
     page: options.page,
     userData,
-    callbackURL: options.callbackURL ?? "/dashboard",
+    callbackURL: options.callbackURL ?? "/today",
   });
 
   if (options.admin) {
@@ -262,7 +319,7 @@ export async function signOutAccount(options: { page: Page }) {
     timeout: 30000,
     waitUntil: "commit",
   });
-  await page.goto("/dashboard");
+  await page.goto("/today");
   await expect(page.getByText("401")).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Sign in|Se connecter/i }),

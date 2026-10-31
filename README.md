@@ -1,10 +1,14 @@
-# Mood Day
+# Moodday
 
-Mood Day est un compagnon de continuité de soin web et mobile, confidentiel et
-non médical. La V2 aide à garder le fil entre les journées et les rendez-vous,
-avec une promesse simple : **« Moins saisir. Mieux comprendre. Mieux se
-préparer. »** Elle n'établit aucun diagnostic et ne formule aucune recommandation
-thérapeutique.
+**Le SPM, ça se traverse à deux.** Moodday aide les couples à traverser le
+syndrome prémenstruel : elle fait son point en dix secondes, son ou sa
+partenaire reçoit une notification sobre avec des idées concrètes et répond par
+un geste. Un Programme Allié de sept leçons éduque le partenaire. Moodday ne
+pose aucun diagnostic.
+
+- Architecture et choix du pivot : [docs/strategy/2026-10-31-pivot-implementation.md](docs/strategy/2026-10-31-pivot-implementation.md)
+- Séquence d'e-mails : [docs/product/email-sequence.md](docs/product/email-sequence.md)
+- Direction artistique « Chaud devant » : `app/globals.css`, `packages/design-tokens`
 
 ## Quick Start
 

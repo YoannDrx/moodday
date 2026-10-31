@@ -47,13 +47,13 @@ test("a registered passkey can sign in without a password", async ({
     );
 
     await signOutAccount({ page });
-    await page.goto("/auth/signin?callbackUrl=/dashboard");
+    await page.goto("/auth/signin?callbackUrl=/today");
     await page
       .getByRole("button", {
         name: /Continue with a passkey|Continuer avec une passkey/i,
       })
       .click();
-    await page.waitForURL((url) => url.pathname === "/dashboard");
+    await page.waitForURL((url) => url.pathname === "/today");
     await expect(page.getByRole("main")).toBeVisible();
 
     await prisma.user.delete({ where: { id: user.id } });

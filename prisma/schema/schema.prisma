@@ -12,330 +12,6 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
-model Feedback {
-  id      String  @id @default(nanoid(11))
-  review  Int
-  message String
-  email   String?
-  userId  String?
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MOOD TRACKING (Epic 2)
-// ═══════════════════════════════════════════════════════════════
-
-model MoodEntry {
-  id                String  @id @default(cuid())
-  userId            String
-  clientOperationId String?
-  value             Int // 0-10 scale
-  note              String? // Optional free-text note
-
-  // Extended mood tracking fields (optional for compatibility)
-  energy            Int? // 1-10 energy level
-  sleepHours        Float? // Hours of sleep
-  sleepQuality      String? // "bad" | "average" | "good"
-  sleepDisturbances String[] @default([]) // "nightmares" | "multiple_awakenings" | etc.
-  anxiety           Int? // 1-10 anxiety level
-  tags              String[] @default([]) // Context tags (work, family, etc.)
-  sideEffects       String[] @default([]) // Medication side effects
-
-  syncStatus String @default("synced") // 'pending' | 'synced' | 'conflict' for offline support
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, clientOperationId])
-  @@index([userId])
-  @@index([createdAt])
-  @@map("mood_entry")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MEDICATION MANAGEMENT (Epic 3)
-// ═══════════════════════════════════════════════════════════════
-
-model Medication {
-  id                String   @id @default(cuid())
-  userId            String
-  name              String
-  dosage            String // e.g., "50mg", "1 comprimé"
-  frequency         String // "daily", "twice_daily", "weekly", "prn"
-  isPRN             Boolean  @default(false) // PRN = Pro Re Nata (as needed)
-  isArchived        Boolean  @default(false)
-  scheduleTimes     String[] @default([]) // Local HH:mm dose times
-  weeklyDay         Int? // 0-6, Sunday-Saturday
-  syncStatus        String   @default("synced")
-  startDate         String?
-  endDate           String?
-  stockQuantity     Decimal? @db.Decimal(12, 3)
-  unitsPerDose      Decimal? @db.Decimal(12, 3)
-  lowStockThreshold Decimal? @db.Decimal(12, 3)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user              User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  intakes           MedIntake[]
-  history           MedicationHistory[]
-  scheduleRevisions MedicationScheduleRevision[]
-  inventoryEvents   MedicationInventoryEvent[]
-  intakeRevisions   MedicationIntakeRevision[]
-  mutationReceipts  MedicationMutationReceipt[]
-
-  @@index([userId])
-  @@index([isArchived])
-  @@map("medication")
-}
-
-/// Content-free idempotency receipt for multi-table medication mutations.
-/// The submitted medication payload is never retained.
-model MedicationMutationReceipt {
-  id           String   @id @default(cuid())
-  userId       String
-  medicationId String
-  operationId  String
-  mutationType String
-  createdAt    DateTime @default(now())
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, operationId])
-  @@index([medicationId])
-  @@index([createdAt])
-  @@map("medication_mutation_receipt")
-}
-
-model MedIntake {
-  id                String    @id @default(cuid())
-  medicationId      String
-  takenAt           DateTime  @default(now())
-  skipped           Boolean   @default(false)
-  note              String? // Reason for skip or PRN usage
-  scheduledForDate  String? // Local YYYY-MM-DD date for scheduled doses
-  timezone          String? // IANA timezone captured by V2 clients
-  doseIndex         Int? // 0-based slot within the scheduled day
-  doseKey           String?   @unique // medicationId:scheduledForDate:doseIndex
-  clientOperationId String?
-  cancelledAt       DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  medication      Medication                 @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  inventoryEvents MedicationInventoryEvent[]
-
-  @@unique([medicationId, clientOperationId])
-  @@index([medicationId])
-  @@index([medicationId, scheduledForDate])
-  @@index([scheduledForDate])
-  @@index([takenAt])
-  @@map("med_intake")
-}
-
-model MedicationHistory {
-  id             String   @id @default(cuid())
-  medicationId   String
-  dosage         String // The new dosage
-  previousDosage String? // The previous dosage (for reference)
-  reason         String? // Why the dosage was changed
-  changedAt      DateTime @default(now())
-
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-
-  @@index([medicationId])
-  @@index([changedAt])
-  @@map("medication_history")
-}
-
-model MedicationScheduleRevision {
-  id            String   @id @default(cuid())
-  medicationId  String
-  effectiveDate String
-  dosage        String
-  frequency     String
-  scheduleTimes String[] @default([])
-  weeklyDay     Int?
-  unitsPerDose  Decimal? @db.Decimal(12, 3)
-  reason        String?
-  authoredById  String
-  createdAt     DateTime @default(now())
-
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-
-  @@unique([medicationId, effectiveDate, createdAt])
-  @@index([medicationId, effectiveDate])
-  @@map("medication_schedule_revision")
-}
-
-model MedicationInventoryEvent {
-  id            String               @id @default(cuid())
-  medicationId  String
-  medIntakeId   String?
-  quantityDelta Decimal              @db.Decimal(12, 3)
-  reason        InventoryEventReason
-  note          String?
-  occurredAt    DateTime             @default(now())
-  createdAt     DateTime             @default(now())
-
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  medIntake  MedIntake? @relation(fields: [medIntakeId], references: [id], onDelete: SetNull)
-
-  @@index([medicationId, occurredAt])
-  @@index([medIntakeId])
-  @@map("medication_inventory_event")
-}
-
-model MedicationIntakeRevision {
-  id                String    @id @default(cuid())
-  medIntakeId       String
-  medicationId      String
-  actorId           String
-  operationId       String?
-  action            String
-  previousSkipped   Boolean?
-  nextSkipped       Boolean?
-  previousTakenAt   DateTime?
-  nextTakenAt       DateTime?
-  previousDoseIndex Int?
-  nextDoseIndex     Int?
-  previousDateKey   String?
-  nextDateKey       String?
-  previousNote      String?
-  nextNote          String?
-  reason            String?
-  timezone          String?
-  createdAt         DateTime  @default(now())
-
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  actor      User       @relation(fields: [actorId], references: [id], onDelete: Cascade)
-
-  @@unique([actorId, operationId])
-  @@index([medicationId, createdAt])
-  @@index([medIntakeId, createdAt])
-  @@map("medication_intake_revision")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// THERAPY & WELLNESS (Epic 4)
-// ═══════════════════════════════════════════════════════════════
-
-model TherapySession {
-  id                String   @id @default(cuid())
-  userId            String
-  clientOperationId String?
-  date              DateTime @default(now())
-  notes             String // Free-text session notes
-  benefitRating     Int? // 1-5 rating of how beneficial the session was
-  syncStatus        String   @default("synced")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, clientOperationId])
-  @@index([userId])
-  @@index([date])
-  @@map("therapy_session")
-}
-
-model Exercise {
-  id          String  @id @default(cuid())
-  userId      String
-  name        String
-  description String?
-  isArchived  Boolean @default(false)
-  syncStatus  String  @default("synced")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs ExerciseLog[]
-
-  @@index([userId])
-  @@index([isArchived])
-  @@map("exercise")
-}
-
-model ExerciseLog {
-  id                String   @id @default(cuid())
-  exerciseId        String
-  clientOperationId String?
-  completedAt       DateTime @default(now())
-  note              String? // Optional note about how it went
-
-  createdAt DateTime @default(now())
-
-  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-
-  @@unique([exerciseId, clientOperationId])
-  @@index([exerciseId])
-  @@index([completedAt])
-  @@map("exercise_log")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// USER PREFERENCES (Epic 7)
-// ═══════════════════════════════════════════════════════════════
-
-model UserPreferences {
-  id     String @id @default(cuid())
-  userId String @unique
-
-  // Onboarding
-  hasCompletedOnboarding Boolean @default(false)
-  onboardingStep         Int     @default(0)
-
-  // Display preferences
-  defaultChartPeriod              Int       @default(30) // 7, 30, 90 days
-  timezone                        String? // IANA timezone (e.g. "Europe/Paris")
-  theme                           String? // "light" | "dark" | "system" | "zen"
-  locale                          String    @default("fr")
-  notificationContentMode         String    @default("generic")
-  trustedDevice                   Boolean   @default(false)
-  reducedMotion                   Boolean   @default(false)
-  preferredTextScale              String    @default("system")
-  caregiverAccessDigestEnabled    Boolean   @default(true)
-  caregiverAccessDigestFrequency  String    @default("weekly")
-  lastCaregiverAccessDigestSentAt DateTime?
-
-  // Notification preferences (for future PWA)
-  notificationsEnabled           Boolean  @default(false)
-  dailyCheckInReminder           Boolean  @default(true)
-  dailyCheckInTime               String   @default("09:00") // HH:mm format
-  medicationReminders            Boolean  @default(true)
-  medicationReminderTime         String   @default("09:00") // HH:mm format
-  lastDailyCheckInSentDate       String?
-  lastMedicationReminderSentDate String?
-  lastMedicationReminderSentKeys String[] @default([])
-
-  // AI insights are disabled until the user explicitly consents.
-  aiInsightsEnabled     Boolean   @default(false)
-  aiJournalNotesEnabled Boolean   @default(false)
-  aiConsentVersion      String?
-  aiConsentAt           DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_preferences")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PUSH NOTIFICATIONS (PWA)
-// ═══════════════════════════════════════════════════════════════
-
 model PushSubscription {
   id             String    @id @default(cuid())
   userId         String
@@ -402,164 +78,6 @@ model StripeWebhookEvent {
   @@index([type, stripeCreatedAt])
   @@map("stripe_webhook_event")
 }
-
-/// Content-free AI request accounting. Prompts, journal text, model output,
-/// symptoms and medication names are deliberately excluded.
-model AIUsage {
-  id             String   @id @default(cuid())
-  userId         String
-  requestKey     String   @unique
-  periodKey      String
-  status         String
-  model          String
-  promptVersion  String
-  inputTokens    Int?
-  outputTokens   Int?
-  latencyMs      Int?
-  safetyCategory String?
-  createdAt      DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, periodKey, status])
-  @@index([createdAt])
-  @@map("ai_usage")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CAREGIVER TRACKING (Epic 8)
-// ═══════════════════════════════════════════════════════════════
-
-model CaregiverObservation {
-  id         String @id @default(cuid())
-  observerId String // The caregiver making the observation
-  subjectId  String // The patient being observed
-
-  moodObserved     String? // "very_good" | "good" | "neutral" | "down" | "very_down" | "concerning"
-  energyObserved   String? // "high" | "normal" | "low" | "very_low"
-  socialBehavior   String? // "engaged" | "normal" | "withdrawn" | "isolated"
-  sleepObserved    String? // "good" | "restless" | "insomnia" | "oversleeping"
-  notes            String?
-  visibleToPatient Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  observer User @relation("ObserverRelation", fields: [observerId], references: [id], onDelete: Cascade)
-  subject  User @relation("SubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
-
-  @@index([observerId])
-  @@index([subjectId])
-  @@index([createdAt])
-  @@map("caregiver_observation")
-}
-
-model CaregiverEvent {
-  id         String @id @default(cuid())
-  reporterId String // The person reporting the event
-  subjectId  String // The patient the event is about
-
-  eventType        String // "compulsive_purchase" | "crisis" | "conflict" | "milestone" | "medication_issue" | "other"
-  severity         Int // 1-5 severity scale
-  description      String
-  eventDate        DateTime @default(now())
-  visibleToPatient Boolean  @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  reporter User @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
-  subject  User @relation("EventSubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
-
-  @@index([reporterId])
-  @@index([subjectId])
-  @@index([eventDate])
-  @@map("caregiver_event")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CAREGIVER RELATIONSHIPS (Système d'invitation aidants)
-// ═══════════════════════════════════════════════════════════════
-
-model CaregiverRelationship {
-  id             String  @id @default(cuid())
-  patientId      String // The patient (person being cared for)
-  caregiverId    String? // The caregiver (family member, professional, etc.)
-  caregiverEmail String // Email used for invitation / lookup
-
-  role        String // "family" | "friend" | "professional"
-  label       String? // Custom label like "Maman", "Dr. Dupont"
-  permissions String[] @default([]) // ["view_mood", "view_medications", "add_observations", etc.]
-  status      String   @default("pending") // "pending" | "active" | "declined"
-
-  inviteToken          String?   @unique // For invitation system
-  inviteExpiry         DateTime? // When the invite expires
-  accessExpiresAt      DateTime?
-  revokedAt            DateTime?
-  revokedById          String?
-  moodWindowDays       Int       @default(30)
-  medicationWindowDays Int       @default(30)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  patient    User                 @relation("PatientRelations", fields: [patientId], references: [id], onDelete: Cascade)
-  caregiver  User?                @relation("CaregiverRelations", fields: [caregiverId], references: [id], onDelete: Cascade)
-  accessLogs CaregiverAccessLog[]
-  revokedBy  User?                @relation("CaregiverRevokedBy", fields: [revokedById], references: [id], onDelete: SetNull)
-
-  @@unique([patientId, caregiverId])
-  @@unique([patientId, caregiverEmail])
-  @@index([patientId])
-  @@index([caregiverId])
-  @@index([caregiverEmail])
-  @@index([inviteToken])
-  @@index([revokedById])
-  @@map("caregiver_relationship")
-}
-
-/// Immutable, content-free audit record created when a caregiver opens a
-/// patient's shared caregiver space. Medical values, notes, IP addresses and
-/// user-agent strings must never be stored in this model.
-model CaregiverAccessLog {
-  id             String   @id @default(cuid())
-  patientId      String
-  caregiverId    String
-  relationshipId String?
-  resource       String
-  accessKey      String   @unique
-  accessedAt     DateTime @default(now())
-
-  patient      User                   @relation("CaregiverAccessPatient", fields: [patientId], references: [id], onDelete: Cascade)
-  caregiver    User                   @relation("CaregiverAccessActor", fields: [caregiverId], references: [id], onDelete: Cascade)
-  relationship CaregiverRelationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
-
-  @@index([patientId, accessedAt])
-  @@index([caregiverId, accessedAt])
-  @@index([relationshipId, accessedAt])
-  @@map("caregiver_access_log")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// NEWSLETTER
-// ═══════════════════════════════════════════════════════════════
-
-model NewsletterSubscriber {
-  id     String @id @default(cuid())
-  email  String @unique
-  locale String @default("fr")
-  source String @default("landing") // landing, footer, mobile_app, etc.
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
-  @@map("newsletter_subscriber")
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EMAIL TRACKING
-// ═══════════════════════════════════════════════════════════════
 
 model EmailLog {
   id String @id @default(cuid())
@@ -714,44 +232,6 @@ model RegulatoryExportAudit {
   @@map("regulatory_export_audit")
 }
 
-model MoodTagDefinition {
-  id              String          @id @default(cuid())
-  userId          String
-  normalizedLabel String
-  displayLabel    String
-  category        MoodTagCategory
-  color           String?
-  isArchived      Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, normalizedLabel, category])
-  @@index([userId, isArchived])
-  @@map("mood_tag_definition")
-}
-
-model ConsultationPreparation {
-  id              String                        @id @default(cuid())
-  userId          String
-  scheduledFor    DateTime?
-  title           String
-  questions       String[]                      @default([])
-  importantEvents String[]                      @default([])
-  periodStartDate String
-  periodEndDate   String
-  personalNotes   String?
-  status          ConsultationPreparationStatus @default(draft)
-  createdAt       DateTime                      @default(now())
-  updatedAt       DateTime                      @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status, updatedAt])
-  @@map("consultation_preparation")
-}
-
 model SafetyPlan {
   id                   String    @id @default(cuid())
   userId               String    @unique
@@ -767,16 +247,6 @@ model SafetyPlan {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("safety_plan")
-}
-
-enum ConsentPurpose {
-  age_18
-  terms
-  privacy
-  health_data
-  ai_insights
-  ai_journal_notes
-  caregiver_sharing
 }
 
 enum ConsentSource {
@@ -802,21 +272,56 @@ enum RegulatoryExportAuditStatus {
   failed
 }
 
-enum InventoryEventReason {
-  refill
-  intake
-  correction
-  manual
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  hasCompletedOnboarding Boolean @default(false)
+
+  timezone                String? // IANA timezone (e.g. "Europe/Paris")
+  theme                   String? // "light" | "dark" | "system"
+  locale                  String  @default("fr")
+  reducedMotion           Boolean @default(false)
+  // "generic" keeps lock-screen notifications free of any health detail.
+  notificationContentMode String  @default("generic")
+
+  notificationsEnabled     Boolean @default(false)
+  dailyCheckInReminder     Boolean @default(true)
+  dailyCheckInTime         String  @default("19:00") // HH:mm
+  lastDailyCheckInSentDate String?
+  quietHoursStart          String  @default("22:00") // HH:mm
+  quietHoursEnd            String  @default("08:00") // HH:mm
+  // Onboarding sequence emails. Transactional security emails ignore it.
+  lifecycleEmails          Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }
 
-enum MoodTagCategory {
-  context
-  trigger
-  protective
+/// Waitlist entries collected before public signup opens. No health data.
+model NewsletterSubscriber {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  locale    String    @default("fr")
+  source    String    @default("landing") // landing, footer, mobile_app, etc.
+  door      String? // "cycle" | "partner": which landing door was used
+  consentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("newsletter_subscriber")
 }
 
-enum ConsultationPreparationStatus {
-  draft
-  completed
-  archived
+enum ConsentPurpose {
+  age_18
+  terms
+  privacy
+  health_data
+  couple_sharing
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function AppLayout() {
-  redirect("/dashboard");
+  redirect("/today");
 }

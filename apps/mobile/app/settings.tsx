@@ -1,998 +1,365 @@
-import { color, radius, space } from "@moodday/design-tokens";
-import type {
-  EntitlementDto,
-  SyncedPreferencesDto,
-  SyncedPreferencesWriteInput,
-} from "@moodday/contracts";
+import type { EntitlementDto } from "@moodday/contracts";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { BrandIllustration } from "../src/components/brand-illustration";
+import { Alert, Linking } from "react-native";
+import { Bouyotte } from "../src/components/bouyotte";
 import { Screen } from "../src/components/screen";
-import { SectionCard } from "../src/components/section-card";
-import { authClient } from "../src/lib/auth-client";
-import { api, appBaseUrl } from "../src/lib/api";
+import { Button, Card, StatusText, ToggleRow, Txt } from "../src/components/ui";
 import {
   exportAndShareAccountData,
   MobileAccountDataError,
 } from "../src/lib/account-data";
+import { api, appBaseUrl } from "../src/lib/api";
+import { authClient } from "../src/lib/auth-client";
 import {
-  closeOwnerLocalDatabase,
-  getCachedMedications,
-  getLocalOperationSummary,
-  getMutableConflictCount,
-  purgeOwnerLocalData,
-  refreshSyncedPreferences,
-  resolveMutableConflicts,
-  saveSyncedPreferencesLocally,
-  synchronizeNow,
-} from "../src/lib/local-database";
-import type { LocalOperationSummary } from "../src/lib/local-database-core";
-import {
-  defaultLocalReminderPreferences,
-  type LocalReminderPreferences,
-} from "../src/lib/notification-planner";
-import {
-  getLocalNotificationPermission,
-  getLocalReminderPreferences,
-  updateLocalNotificationSchedule,
+  ensurePushRegistration,
+  getPushPermission,
+  isPushOptedOut,
+  unregisterPush,
+  type PushPermission,
 } from "../src/lib/notifications";
+import { countOfflineCheckIns } from "../src/lib/offline-queue";
 import {
   isMobileBillingAvailable,
-  presentPlusPaywall,
-  restorePlusPurchases,
+  presentDuoPaywall,
+  restoreDuoPurchases,
   showMobileSubscriptionManagement,
 } from "../src/lib/purchases";
-
-const emptySummary: LocalOperationSummary = {
-  pending: 0,
-  conflict: 0,
-  rejected: 0,
-  total: 0,
-};
+import { signOutOfMoodday } from "../src/lib/sign-out";
+import { useTodayState } from "../src/lib/today-store";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const ownerId = session?.user.id;
-  const [summary, setSummary] = useState(emptySummary);
-  const [isPending, setIsPending] = useState(false);
-  const [status, setStatus] = useState<string>();
+  const { today } = useTodayState();
+  const [pending, setPending] = useState(false);
+  const [permission, setPermission] = useState<PushPermission>();
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string>();
   const [entitlement, setEntitlement] = useState<EntitlementDto>();
   const [billingStatus, setBillingStatus] = useState<string>();
-  const [notificationPreferences, setNotificationPreferences] =
-    useState<LocalReminderPreferences>(defaultLocalReminderPreferences);
-  const [notificationStatus, setNotificationStatus] = useState<string>();
-  const [accountDataStatus, setAccountDataStatus] = useState<string>();
-  const [syncedPreferences, setSyncedPreferences] =
-    useState<SyncedPreferencesDto>();
-  const [mutableConflictCount, setMutableConflictCount] = useState(0);
-
-  const refreshSummary = useCallback(async () => {
-    if (!ownerId) return emptySummary;
-    const nextSummary = await getLocalOperationSummary(ownerId);
-    setSummary(nextSummary);
-    setMutableConflictCount(await getMutableConflictCount(ownerId));
-    return nextSummary;
-  }, [ownerId]);
+  const [dataStatus, setDataStatus] = useState<string>();
+  const [accountStatus, setAccountStatus] = useState<string>();
 
   useEffect(() => {
-    refreshSummary().catch(() =>
-      setStatus("Impossible de lire l’état local pour le moment."),
-    );
-  }, [refreshSummary]);
+    void Promise.all([getPushPermission(), isPushOptedOut()])
+      .then(([value, optedOut]) => {
+        setPermission(value);
+        setPushEnabled(value === "granted" && !optedOut);
+      })
+      .catch(() => setPushStatus("L’état des notifications est indisponible."));
+  }, []);
 
   const refreshEntitlement = useCallback(async () => {
-    if (!ownerId) return;
     try {
       setEntitlement(await api.getEntitlements());
     } catch {
-      setBillingStatus("Le statut Plus est temporairement indisponible.");
+      setBillingStatus("Le statut Duo est temporairement indisponible.");
     }
-  }, [ownerId]);
-
-  useEffect(() => {
-    void refreshEntitlement();
-  }, [refreshEntitlement]);
-
-  useEffect(() => {
-    Promise.all([
-      getLocalReminderPreferences(),
-      getLocalNotificationPermission(),
-    ])
-      .then(([preferences, permitted]) =>
-        setNotificationPreferences({
-          ...preferences,
-          enabled: preferences.enabled && permitted,
-        }),
-      )
-      .catch(() =>
-        setNotificationStatus(
-          "L’état des rappels est momentanément indisponible.",
-        ),
-      );
   }, []);
 
   useEffect(() => {
-    if (!ownerId) return;
-    void refreshSyncedPreferences(ownerId)
-      .then((preferences) => {
-        if (!preferences) return;
-        setSyncedPreferences(preferences);
-        setNotificationPreferences((current) => ({
-          ...current,
-          enabled: preferences.notificationsEnabled && current.enabled,
-          dailyCheckIn: preferences.dailyCheckInReminder,
-          dailyCheckInTime: preferences.dailyCheckInTime,
-          medicationReminders: preferences.medicationReminders,
-        }));
-      })
-      .catch(() =>
-        setStatus(
-          "Les préférences du compte seront reprises à la prochaine synchronisation.",
-        ),
-      );
-  }, [ownerId]);
+    if (ownerId) void refreshEntitlement();
+  }, [ownerId, refreshEntitlement]);
 
-  const defaultSyncedPreferences = (): SyncedPreferencesWriteInput => ({
-    locale: "fr",
-    timezone:
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Paris",
-    reducedMotion: false,
-    preferredTextScale: "system",
-    notificationsEnabled: notificationPreferences.enabled,
-    dailyCheckInReminder: notificationPreferences.dailyCheckIn,
-    dailyCheckInTime: notificationPreferences.dailyCheckInTime,
-    medicationReminders: notificationPreferences.medicationReminders,
-    medicationReminderTime: "09:00",
-  });
-
-  const persistSyncedPreferences = async (
-    changes: Partial<SyncedPreferencesWriteInput>,
-  ) => {
-    if (!ownerId) return;
-    const base = syncedPreferences ?? defaultSyncedPreferences();
-    const input: SyncedPreferencesWriteInput = { ...base, ...changes };
-    const result = await saveSyncedPreferencesLocally(ownerId, input);
-    setSyncedPreferences(result.preferences);
-    await refreshSummary();
-    return result;
-  };
-
-  const updateNotifications = async (
-    preferences: LocalReminderPreferences,
-    requestPermission = false,
-  ) => {
-    if (!ownerId) return;
-    setIsPending(true);
-    setNotificationStatus("Mise à jour des rappels sur cet iPhone…");
+  const togglePush = async (enable: boolean) => {
+    setPending(true);
+    setPushStatus(undefined);
     try {
-      const medications = await getCachedMedications(ownerId);
-      const result = await updateLocalNotificationSchedule({
-        medications,
-        preferences,
-        requestPermission,
-      });
-      const next = {
-        ...preferences,
-        enabled: preferences.enabled && result.permitted,
-      };
-      setNotificationPreferences(next);
-      const synchronization = await persistSyncedPreferences({
-        notificationsEnabled: next.enabled,
-        dailyCheckInReminder: next.dailyCheckIn,
-        dailyCheckInTime: next.dailyCheckInTime,
-        medicationReminders: next.medicationReminders,
-      });
-      setNotificationStatus(
-        preferences.enabled && !result.permitted
-          ? "Les notifications restent refusées dans les réglages iOS. Mood Day continue de fonctionner normalement."
-          : next.enabled
-            ? `${result.scheduled} rappel${result.scheduled > 1 ? "s" : ""} générique${result.scheduled > 1 ? "s" : ""} planifié${result.scheduled > 1 ? "s" : ""} localement.`
-            : "Les rappels Mood Day sont désactivés sur cet iPhone.",
-      );
-      if (synchronization?.pending) {
-        setNotificationStatus(
-          "Le réglage est appliqué sur cet iPhone et sera synchronisé avec tes autres appareils dès que possible.",
+      if (enable) {
+        const result = await ensurePushRegistration({ prompt: true });
+        setPermission(result);
+        setPushEnabled(result === "granted");
+        setPushStatus(
+          result === "granted"
+            ? "Notifications activées sur ce téléphone."
+            : "Les notifications sont refusées dans les réglages du téléphone. Moodday marche quand même très bien.",
+        );
+      } else {
+        await unregisterPush({ optOut: true });
+        setPushEnabled(false);
+        setPushStatus(
+          "Ce téléphone ne recevra plus de notifications de ton duo.",
         );
       }
     } catch {
-      setNotificationStatus(
-        "Les rappels n’ont pas pu être modifiés. Les réglages précédents restent prioritaires.",
+      setPushStatus(
+        "Le réglage n’a pas pu être appliqué. Vérifie ta connexion puis réessaie.",
       );
     } finally {
-      setIsPending(false);
+      setPending(false);
     }
   };
 
-  const runBillingAction = async (
+  const runBilling = async (
     action: (userId: string) => Promise<EntitlementDto | undefined>,
-    pendingMessage: string,
+    message: string,
   ) => {
     if (!ownerId) return;
-    setIsPending(true);
-    setBillingStatus(pendingMessage);
+    setPending(true);
+    setBillingStatus(message);
     try {
       const result = await action(ownerId);
       if (result) setEntitlement(result);
       else await refreshEntitlement();
-      setBillingStatus("Ton statut Plus est à jour sur tous tes appareils.");
+      setBillingStatus("Ton statut Duo est à jour, pour vous deux.");
     } catch {
       setBillingStatus(
         "L’opération n’a pas abouti. Aucun achat n’a été appliqué deux fois ; tu peux réessayer.",
       );
     } finally {
-      setIsPending(false);
+      setPending(false);
     }
   };
 
-  const finishSignOut = async ({ purge }: { purge: boolean }) => {
-    if (!ownerId) return;
-    setIsPending(true);
-    setStatus(undefined);
-    let localActionCompleted = false;
-    try {
-      if (purge) await purgeOwnerLocalData(ownerId);
-      else await closeOwnerLocalDatabase(ownerId);
-      localActionCompleted = true;
-      const result = await authClient.signOut();
-      if (result.error) throw new Error("sign_out_failed");
-      router.replace("/sign-in");
-    } catch {
-      setStatus(
-        purge && !localActionCompleted
-          ? "Les données n’ont pas toutes pu être effacées. Réessaie avant de quitter l’app."
-          : purge
-            ? "Les données locales sont effacées, mais la déconnexion a échoué. Réessaie."
-            : "Déconnexion impossible. Tes données locales restent protégées.",
-      );
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const synchronize = async ({ signOutAfter = false } = {}) => {
-    if (!ownerId) return;
-    setIsPending(true);
-    setStatus("Synchronisation en cours…");
-    try {
-      await synchronizeNow(ownerId);
-      const nextSummary = await refreshSummary();
-      if (nextSummary.total > 0) {
-        setStatus(
-          "Certaines données demandent encore ton attention. Elles restent chiffrées sur cet appareil.",
-        );
-        return;
-      }
-      if (signOutAfter) {
-        await finishSignOut({ purge: false });
-        return;
-      }
-      setStatus("Tout est synchronisé avec Mood Day.");
-    } catch {
-      setStatus(
-        "Synchronisation indisponible. Rien n’est perdu : les données restent sur cet appareil.",
-      );
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const requestSignOut = () => {
-    if (summary.total === 0) {
-      void finishSignOut({ purge: false });
-      return;
-    }
-    Alert.alert(
-      "Déconnexion protégée",
-      `${summary.total} élément${summary.total > 1 ? "s ne sont" : " n’est"} pas encore synchronisé${summary.total > 1 ? "s" : ""}. Synchronise avant de te déconnecter, ou efface explicitement les données de cet appareil.`,
-      summary.pending > 0
-        ? [
-            { text: "Rester connecté", style: "cancel" },
-            {
-              text: "Synchroniser",
-              onPress: () => void synchronize({ signOutAfter: true }),
-            },
-          ]
-        : [{ text: "Rester connecté", style: "cancel" }],
-    );
-  };
-
-  const requestPurge = () => {
-    Alert.alert(
-      "Effacer les données de cet appareil ?",
-      "Les brouillons et opérations non synchronisés seront définitivement perdus. Les données déjà synchronisées resteront dans ton compte Mood Day.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Effacer et se déconnecter",
-          style: "destructive",
-          onPress: () => void finishSignOut({ purge: true }),
-        },
-      ],
-    );
-  };
-
-  const requestMutableConflictResolution = (
-    strategy: "keep_local" | "use_server",
-  ) => {
-    if (!ownerId) return;
-    Alert.alert(
-      strategy === "keep_local"
-        ? "Garder la version de cet iPhone ?"
-        : "Utiliser la version déjà synchronisée ?",
-      strategy === "keep_local"
-        ? "Les brouillons et préférences de cet iPhone remplaceront les versions synchronisées après ta confirmation."
-        : "Les versions de cet iPhone seront remplacées par celles qui sont déjà synchronisées. Aucun choix n’est fait silencieusement.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Confirmer",
-          style: strategy === "use_server" ? "destructive" : "default",
-          onPress: () => {
-            setIsPending(true);
-            setStatus("Résolution du conflit…");
-            void resolveMutableConflicts(ownerId, strategy)
-              .then(async () => {
-                await refreshSummary();
-                setStatus("Le choix a été appliqué et synchronisé.");
-              })
-              .catch(() =>
-                setStatus(
-                  "La résolution n’a pas abouti. Les deux versions restent protégées.",
-                ),
-              )
-              .finally(() => setIsPending(false));
-          },
-        },
-      ],
-    );
-  };
-
-  const exportAccountData = async () => {
-    setIsPending(true);
-    setAccountDataStatus("Préparation de ton export complet…");
+  const exportData = async () => {
+    setPending(true);
+    setDataStatus("Préparation de ton export complet…");
     try {
       await exportAndShareAccountData();
-      setAccountDataStatus(
+      setDataStatus(
         "L’export a été remis à l’app que tu as choisie, puis sa copie temporaire a été effacée.",
       );
     } catch (error) {
-      setAccountDataStatus(
+      setDataStatus(
         error instanceof MobileAccountDataError &&
           error.code === "recent_authentication_required"
           ? "Pour protéger tes données, reconnecte-toi puis relance l’export dans les dix minutes."
           : "L’export n’a pas abouti. Aucune copie temporaire n’a été conservée.",
       );
     } finally {
-      setIsPending(false);
+      setPending(false);
     }
   };
 
-  const requestAccountDeletion = () => {
+  const requestDeletion = () =>
     Alert.alert(
       "Demander la suppression du compte ?",
-      "Mood Day enverra un lien de confirmation à ton adresse e-mail. Après confirmation, le compte et ses données seront définitivement supprimés, sous réserve des obligations légales de conservation.",
+      "Moodday enverra un lien de confirmation à ton adresse e-mail. Après confirmation, le compte, ton duo et vos données seront définitivement supprimés, sous réserve des obligations légales de conservation.",
       [
         { text: "Annuler", style: "cancel" },
         {
           text: "Envoyer le lien",
           style: "destructive",
           onPress: () => {
-            setIsPending(true);
-            setAccountDataStatus("Envoi du lien de confirmation…");
+            setPending(true);
+            setDataStatus("Envoi du lien de confirmation…");
             void authClient
               .deleteUser({ callbackURL: `${appBaseUrl}/auth/goodbye` })
               .then((result) => {
                 if (result.error) throw new Error("delete_request_failed");
-                setAccountDataStatus(
+                setDataStatus(
                   "Lien envoyé. Le compte ne sera supprimé qu’après ta confirmation par e-mail.",
                 );
               })
               .catch(() =>
-                setAccountDataStatus(
+                setDataStatus(
                   "La demande n’a pas abouti. Ton compte et tes données restent inchangés.",
                 ),
               )
-              .finally(() => setIsPending(false));
+              .finally(() => setPending(false));
           },
+        },
+      ],
+    );
+
+  const finishSignOut = async (discardOffline: boolean) => {
+    if (!ownerId) return;
+    setPending(true);
+    setAccountStatus(undefined);
+    try {
+      await signOutOfMoodday(ownerId, { discardOffline });
+      router.replace("/sign-in");
+    } catch {
+      setAccountStatus("Déconnexion impossible pour le moment. Réessaie.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const requestSignOut = async () => {
+    if (!ownerId) return;
+    const waiting = await countOfflineCheckIns(ownerId).catch(() => 0);
+    if (waiting === 0) {
+      void finishSignOut(false);
+      return;
+    }
+    Alert.alert(
+      "Un point attend encore le réseau",
+      "Si tu te déconnectes maintenant, le point fait hors ligne sera effacé de ce téléphone sans être envoyé.",
+      [
+        { text: "Rester connecté·e", style: "cancel" },
+        {
+          text: "Effacer et me déconnecter",
+          style: "destructive",
+          onPress: () => void finishSignOut(true),
         },
       ],
     );
   };
 
-  const unresolved = summary.conflict + summary.rejected;
+  const openWeb = (path: string) => {
+    void WebBrowser.openBrowserAsync(`${appBaseUrl}${path}`).catch(() =>
+      setAccountStatus("Le lien ne peut pas s’ouvrir pour le moment."),
+    );
+  };
+
+  const validUntil = entitlement?.validUntil
+    ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(
+        new Date(entitlement.validUntil),
+      )
+    : null;
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Fermer les réglages"
-          disabled={isPending}
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.closeButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.closeLabel}>Fermer</Text>
-        </Pressable>
-        <BrandIllustration variant="privacy" style={styles.illustration} />
-        <Text style={styles.title}>Compte et appareil</Text>
-        <Text style={styles.subtitle}>
-          Tu gardes la main sur la session et sur les données chiffrées stockées
-          ici.
-        </Text>
-      </View>
-
-      <SectionCard
-        eyebrow="Synchronisation"
-        title={
-          summary.total === 0 ? "Tout est à jour" : "Des éléments restent ici"
-        }
-        description={
-          summary.total === 0
-            ? "Tu peux te déconnecter sans perdre de saisie locale."
-            : `${summary.pending} en attente · ${unresolved} à vérifier`
-        }
-      >
-        {summary.total > 0 ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={isPending || summary.pending === 0}
-            onPress={() => void synchronize()}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (isPending || summary.pending === 0) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.primaryLabel}>
-              {isPending ? "Traitement en cours…" : "Synchroniser maintenant"}
-            </Text>
-          </Pressable>
-        ) : null}
-        {mutableConflictCount > 0 ? (
-          <View style={styles.conflictActions}>
-            <Text style={styles.status}>
-              {mutableConflictCount} brouillon ou préférence a changé sur deux
-              appareils. Choisis explicitement la version à conserver.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isPending}
-              onPress={() => requestMutableConflictResolution("keep_local")}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.secondaryLabel}>Garder cet iPhone</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isPending}
-              onPress={() => requestMutableConflictResolution("use_server")}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.secondaryLabel}>
-                Utiliser la version synchronisée
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-        {status ? (
-          <Text accessibilityLiveRegion="polite" style={styles.status}>
-            {status}
-          </Text>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard
-        eyebrow="Connexions"
-        title="Santé et calendriers"
-        description="Chaque source reste facultative, limitée et révocable."
-      >
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={() => router.push("/calendar-connections")}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Gérer la connexion</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={() => router.push("/health-connections")}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Gérer Santé sur iPhone</Text>
-        </Pressable>
-      </SectionCard>
-
-      <SectionCard
-        eyebrow="Toujours accessible"
-        title="Plan de sécurité personnel"
-        description="Une copie privée et chiffrée reste lisible hors ligne sur cet iPhone. Elle n’est jamais partagée automatiquement."
-      >
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={() => router.push("/safety-plan")}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Ouvrir mon plan</Text>
-        </Pressable>
-      </SectionCard>
-
-      <SectionCard
-        eyebrow="Affichage"
-        title="Langue et accessibilité"
-        description="Ces préférences suivent ton compte. Les réglages système iOS restent toujours prioritaires."
-      >
-        <PreferenceSwitch
-          disabled={isPending}
-          label="Réduire les mouvements"
-          selected={syncedPreferences?.reducedMotion ?? false}
-          onPress={() => {
-            setIsPending(true);
-            void persistSyncedPreferences({
-              reducedMotion: !(syncedPreferences?.reducedMotion ?? false),
-            })
-              .then((result) =>
-                setStatus(
-                  result?.pending
-                    ? "Préférence conservée sur cet iPhone, en attente de synchronisation."
-                    : "Préférence d’animation synchronisée.",
-                ),
-              )
-              .finally(() => setIsPending(false));
-          }}
-        />
-        <PreferenceSwitch
-          disabled={isPending}
-          label="Texte renforcé"
-          selected={
-            syncedPreferences?.preferredTextScale === "large" ||
-            syncedPreferences?.preferredTextScale === "extra_large"
+    <Screen
+      title="Réglages"
+      subtitle={session?.user.email}
+      leading={
+        <Button
+          compact
+          variant="outline"
+          label="Fermer"
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace("/")
           }
-          onPress={() => {
-            const enabled =
-              syncedPreferences?.preferredTextScale === "large" ||
-              syncedPreferences?.preferredTextScale === "extra_large";
-            setIsPending(true);
-            void persistSyncedPreferences({
-              preferredTextScale: enabled ? "system" : "large",
-            })
-              .then((result) =>
-                setStatus(
-                  result?.pending
-                    ? "Préférence de texte conservée localement."
-                    : "Préférence de texte synchronisée.",
-                ),
-              )
-              .finally(() => setIsPending(false));
-          }}
         />
-        <View style={styles.choiceRow} accessibilityRole="radiogroup">
-          {(["fr", "en"] as const).map((locale) => (
-            <Pressable
-              key={locale}
-              accessibilityRole="radio"
-              accessibilityState={{
-                selected: (syncedPreferences?.locale ?? "fr") === locale,
-              }}
-              disabled={isPending}
-              onPress={() => {
-                setIsPending(true);
-                void persistSyncedPreferences({ locale })
-                  .then((result) =>
-                    setStatus(
-                      result?.pending
-                        ? "Langue conservée localement."
-                        : "Langue synchronisée. Le catalogue mobile complet sera appliqué au prochain redémarrage.",
-                    ),
-                  )
-                  .finally(() => setIsPending(false));
-              }}
-              style={({ pressed }) => [
-                styles.choiceButton,
-                (syncedPreferences?.locale ?? "fr") === locale &&
-                  styles.choiceButtonSelected,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.choiceLabel}>
-                {locale === "fr" ? "Français" : "English"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </SectionCard>
+      }
+    >
+      <Card title="Profil">
+        <Txt>
+          {today?.displayName ?? session?.user.name ?? "Toi"}
+          {today?.role
+            ? today.role === "cycle_owner"
+              ? " · c’est ton cycle"
+              : " · partenaire allié·e"
+            : ""}
+        </Txt>
+        <Button
+          variant="outline"
+          label="Modifier mon profil sur le web"
+          trailing="↗"
+          onPress={() => openWeb("/settings/profile")}
+        />
+      </Card>
 
-      <SectionCard
-        eyebrow="Rappels iOS"
-        title={
-          notificationPreferences.enabled
-            ? "Rappels activés sur cet iPhone"
-            : "Rappels désactivés"
-        }
-        description="Les rappels sont planifiés localement, avec un contenu générique. Aucun nom de traitement n’apparaît sur l’écran verrouillé."
-      >
-        {notificationPreferences.enabled ? (
-          <>
-            <PreferenceSwitch
-              disabled={isPending}
-              label={`Point quotidien · ${notificationPreferences.dailyCheckInTime}`}
-              selected={notificationPreferences.dailyCheckIn}
+      <Card title="Notifications">
+        <ToggleRow
+          label="Nouvelles de mon duo"
+          hint="Son point du jour, un geste, un merci. Rien la nuit, et des aperçus discrets sauf si elle choisit les notifications détaillées."
+          value={pushEnabled}
+          disabled={pending}
+          onValueChange={(value) => void togglePush(value)}
+        />
+        {permission === "denied" ? (
+          <Button
+            variant="outline"
+            label="Ouvrir les réglages du téléphone"
+            onPress={() => void Linking.openSettings()}
+          />
+        ) : null}
+        <StatusText>{pushStatus}</StatusText>
+      </Card>
+
+      {isMobileBillingAvailable() ? (
+        <Card fill="honey" title="Moodday Duo">
+          <Txt>
+            {entitlement?.active
+              ? validUntil
+                ? `Duo actif jusqu’au ${validUntil}, pour vous deux.`
+                : "Duo actif, pour vous deux."
+              : "Un seul abonnement pour le couple. Le bouton « Besoin d’aide » reste toujours gratuit."}
+          </Txt>
+          {entitlement?.active ? (
+            <Button
+              variant="outline"
+              label="Gérer mon abonnement"
+              disabled={pending}
               onPress={() =>
-                void updateNotifications({
-                  ...notificationPreferences,
-                  dailyCheckIn: !notificationPreferences.dailyCheckIn,
-                })
+                void runBilling(
+                  showMobileSubscriptionManagement,
+                  "Ouverture de la gestion de l’abonnement…",
+                )
               }
             />
-            <PreferenceSwitch
-              disabled={isPending}
-              label="Rappels de traitement"
-              selected={notificationPreferences.medicationReminders}
+          ) : (
+            <Button
+              variant="primary"
+              label="Découvrir Duo"
+              disabled={pending}
               onPress={() =>
-                void updateNotifications({
-                  ...notificationPreferences,
-                  medicationReminders:
-                    !notificationPreferences.medicationReminders,
-                })
+                void runBilling(presentDuoPaywall, "Ouverture de l’offre Duo…")
               }
             />
-          </>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={() =>
-            void updateNotifications(
-              {
-                ...notificationPreferences,
-                enabled: !notificationPreferences.enabled,
-              },
-              !notificationPreferences.enabled,
-            )
-          }
-          style={({ pressed }) => [
-            notificationPreferences.enabled
-              ? styles.secondaryButton
-              : styles.primaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text
-            style={
-              notificationPreferences.enabled
-                ? styles.secondaryLabel
-                : styles.primaryLabel
-            }
-          >
-            {notificationPreferences.enabled
-              ? "Désactiver les rappels"
-              : "Autoriser les rappels"}
-          </Text>
-        </Pressable>
-        {notificationStatus ? (
-          <Text accessibilityLiveRegion="polite" style={styles.status}>
-            {notificationStatus}
-          </Text>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard
-        eyebrow="Abonnement"
-        title={
-          entitlement?.active ? "Mood Day Plus est actif" : "Mood Day Plus"
-        }
-        description={
-          entitlement?.duplicateSubscription
-            ? "Deux abonnements actifs ont été détectés. Mood Day ne les annule jamais automatiquement. Ouvre la gestion de chaque plateforme pour éviter une double facturation."
-            : entitlement?.active
-              ? `Ton accès est commun au web et au mobile${entitlement.validUntil ? ` jusqu’au ${new Date(entitlement.validUntil).toLocaleDateString("fr-FR")}` : ""}.`
-              : "Débloque les fonctionnalités Plus sur le web, l’iPhone et Android avec un seul droit partagé."
-        }
-      >
-        {entitlement?.active && entitlement.manageWith !== "stripe" ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={isPending || !isMobileBillingAvailable()}
+          )}
+          <Button
+            variant="ghost"
+            label="Restaurer mes achats"
+            disabled={pending}
             onPress={() =>
-              void runBillingAction(
-                showMobileSubscriptionManagement,
-                "Ouverture de la gestion de l’abonnement…",
-              )
+              void runBilling(restoreDuoPurchases, "Restauration des achats…")
             }
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (isPending || !isMobileBillingAvailable()) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.primaryLabel}>Gérer l’abonnement</Text>
-          </Pressable>
-        ) : !entitlement?.active ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={isPending || !isMobileBillingAvailable()}
-            onPress={() =>
-              void runBillingAction(
-                presentPlusPaywall,
-                "Chargement des offres sécurisées…",
-              )
-            }
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (isPending || !isMobileBillingAvailable()) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.primaryLabel}>Voir les offres Plus</Text>
-          </Pressable>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending || !isMobileBillingAvailable()}
-          onPress={() =>
-            void runBillingAction(
-              restorePlusPurchases,
-              "Restauration des achats en cours…",
-            )
-          }
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            (isPending || !isMobileBillingAvailable()) && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Restaurer mes achats</Text>
-        </Pressable>
-        {!isMobileBillingAvailable() ? (
-          <Text style={styles.status}>
-            Les achats mobiles ne sont pas activés dans cette version de l’app.
-          </Text>
-        ) : null}
-        {billingStatus ? (
-          <Text accessibilityLiveRegion="polite" style={styles.status}>
-            {billingStatus}
-          </Text>
-        ) : null}
-      </SectionCard>
+          />
+          <StatusText>{billingStatus}</StatusText>
+        </Card>
+      ) : null}
 
-      <SectionCard
-        eyebrow="Session"
-        title="Se déconnecter"
-        description="Les données locales synchronisées restent chiffrées pour accélérer ta prochaine connexion avec ce même compte."
-      >
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={requestSignOut}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Se déconnecter</Text>
-        </Pressable>
-      </SectionCard>
+      <Card title="Tes données">
+        <Txt variant="small" tone="muted">
+          Tes points, ton cycle et ta note privée t’appartiennent. Tu peux les
+          récupérer ou tout effacer quand tu veux.
+        </Txt>
+        <Button
+          variant="outline"
+          label="Exporter mes données (JSON)"
+          disabled={pending}
+          onPress={() => void exportData()}
+        />
+        <Button
+          variant="danger"
+          label="Supprimer mon compte"
+          disabled={pending}
+          onPress={requestDeletion}
+        />
+        <StatusText>{dataStatus}</StatusText>
+      </Card>
 
-      <SectionCard
-        eyebrow="Tes données"
-        title="Exporter ou supprimer"
-        description="L’export contient les données de ton compte. La suppression exige une confirmation reçue par e-mail et n’est jamais immédiate au premier toucher."
-      >
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={() => void exportAccountData()}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Exporter toutes mes données</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={requestAccountDeletion}
-          style={({ pressed }) => [
-            styles.dangerButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.dangerLabel}>Supprimer mon compte</Text>
-        </Pressable>
-        {accountDataStatus ? (
-          <Text accessibilityLiveRegion="polite" style={styles.status}>
-            {accountDataStatus}
-          </Text>
-        ) : null}
-      </SectionCard>
+      <Card title="Aide et infos">
+        <Button
+          variant="danger"
+          label="Besoin d’aide : 3114, 15, 112, 114"
+          onPress={() => router.push("/help")}
+        />
+        <Button
+          variant="ghost"
+          label="Conditions d’utilisation"
+          onPress={() => openWeb("/legal/terms")}
+        />
+        <Button
+          variant="ghost"
+          label="Confidentialité"
+          onPress={() => openWeb("/legal/privacy")}
+        />
+        <Button
+          variant="ghost"
+          label="Contacter le support"
+          onPress={() => openWeb("/contact")}
+        />
+      </Card>
 
-      <SectionCard
-        eyebrow="Cet appareil"
-        title="Effacer les données locales"
-        description="Cette action supprime la base chiffrée et sa clé de cet appareil, puis te déconnecte. Elle ne supprime pas ton compte."
-      >
-        <Pressable
-          accessibilityRole="button"
-          disabled={isPending}
-          onPress={requestPurge}
-          style={({ pressed }) => [
-            styles.dangerButton,
-            isPending && styles.disabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.dangerLabel}>Effacer et se déconnecter</Text>
-        </Pressable>
-      </SectionCard>
+      <Bouyotte mood="sleepy" size={72} />
+      <Button
+        variant="primary"
+        label="Me déconnecter"
+        pending={pending}
+        onPress={() => void requestSignOut()}
+      />
+      <StatusText tone="danger">{accountStatus}</StatusText>
+      <Txt variant="small" tone="muted">
+        Moodday est un outil personnel non médical : il ne pose aucun
+        diagnostic.
+      </Txt>
     </Screen>
   );
 }
-
-function PreferenceSwitch({
-  disabled,
-  label,
-  onPress,
-  selected,
-}: {
-  disabled: boolean;
-  label: string;
-  onPress: () => void;
-  selected: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityState={{ checked: selected, disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.preferenceRow,
-        disabled && styles.disabled,
-        pressed && styles.pressed,
-      ]}
-    >
-      <Text style={styles.preferenceLabel}>{label}</Text>
-      <View
-        style={[styles.switchTrack, selected && styles.switchTrackSelected]}
-      >
-        <View
-          style={[styles.switchThumb, selected && styles.switchThumbSelected]}
-        />
-      </View>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  header: { alignItems: "center", gap: space[2], paddingBottom: space[2] },
-  closeButton: {
-    minWidth: 48,
-    minHeight: 48,
-    alignSelf: "flex-start",
-    justifyContent: "center",
-  },
-  closeLabel: { color: color.primaryDeep, fontSize: 15, fontWeight: "700" },
-  illustration: { width: 190, height: 122 },
-  title: {
-    color: color.ink,
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  subtitle: {
-    maxWidth: 330,
-    color: color.inkMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: "center",
-  },
-  primaryButton: {
-    minHeight: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.medium,
-    backgroundColor: color.primary,
-    paddingHorizontal: space[4],
-  },
-  primaryLabel: { color: color.surfaceStrong, fontSize: 16, fontWeight: "700" },
-  secondaryButton: {
-    minHeight: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: color.border,
-    borderRadius: radius.medium,
-    backgroundColor: color.surface,
-  },
-  secondaryLabel: { color: color.primaryDeep, fontSize: 16, fontWeight: "700" },
-  dangerButton: {
-    minHeight: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: color.danger,
-    borderRadius: radius.medium,
-    backgroundColor: color.dangerSoft,
-  },
-  dangerLabel: { color: color.danger, fontSize: 16, fontWeight: "700" },
-  status: { color: color.inkMuted, fontSize: 13, lineHeight: 19 },
-  conflictActions: { gap: space[2] },
-  preferenceRow: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: space[3],
-  },
-  preferenceLabel: {
-    flex: 1,
-    color: color.ink,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  switchTrack: {
-    width: 50,
-    height: 30,
-    justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: color.border,
-    paddingHorizontal: 3,
-  },
-  switchTrackSelected: { backgroundColor: color.primary },
-  switchThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: color.surfaceStrong,
-  },
-  switchThumbSelected: { alignSelf: "flex-end" },
-  choiceRow: { flexDirection: "row", gap: space[2] },
-  choiceButton: {
-    minHeight: 48,
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: color.border,
-    borderRadius: radius.medium,
-    backgroundColor: color.surface,
-  },
-  choiceButtonSelected: {
-    borderColor: color.primary,
-    backgroundColor: color.primarySoft,
-  },
-  choiceLabel: { color: color.ink, fontSize: 15, fontWeight: "700" },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.72 },
-});

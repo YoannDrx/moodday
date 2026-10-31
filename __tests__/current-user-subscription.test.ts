@@ -11,8 +11,8 @@ const mocks = vi.hoisted(() => ({
   effective: vi.fn(),
 }));
 vi.mock("@/lib/auth/auth-user", () => ({ getSession: mocks.session }));
-vi.mock("@/features/v2/entitlements/service", () => ({
-  getV2PlusEntitlement: mocks.entitlement,
+vi.mock("@/features/couple/entitlement.service", () => ({
+  getDuoEntitlement: mocks.entitlement,
 }));
 vi.mock("@/lib/billing/entitlements", () => ({
   getEffectivePlan: mocks.effective,

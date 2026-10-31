@@ -2,7 +2,7 @@
 
 import { authAction } from "@/lib/actions/safe-actions";
 import { prisma } from "@/lib/prisma";
-import { getV2PlusEntitlement } from "@/features/v2/entitlements/service";
+import { getDuoEntitlement } from "@/features/couple/entitlement.service";
 import {
   deleteUserAccountAtomically,
   enqueueManagedProfileImageDeletion,
@@ -104,7 +104,7 @@ export const getSubscriptionSummary = authAction.action(
   async ({ ctx: { user } }) => {
     const [subscription, entitlement] = await Promise.all([
       prisma.subscription.findUnique({ where: { referenceId: user.id } }),
-      getV2PlusEntitlement(user.id),
+      getDuoEntitlement(user.id),
     ]);
 
     if (!subscription && !entitlement.active) {

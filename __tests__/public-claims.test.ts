@@ -28,12 +28,13 @@ describe("public claims registry", () => {
       "utf8",
     );
     const footer = readFileSync(
-      resolve("src/features/landing/footer-dark.tsx"),
+      resolve("src/features/site/site-footer.tsx"),
       "utf8",
     );
     const sitemap = readFileSync(resolve("app/sitemap.tsx"), "utf8");
 
-    expect(subprocessors).toContain("OpenAI");
+    expect(subprocessors).not.toContain('name: "OpenAI"');
+    expect(subprocessors).toContain("Expo");
     expect(subprocessors).toContain("Stripe");
     expect(subprocessors).toContain("PostHog explicitly absent");
     expect(footer).toContain("/legal/subprocessors");

@@ -104,7 +104,7 @@ describe("SignUpCredentialsForm", () => {
         password: "password123",
         name: "John Doe",
         image: "",
-        callbackURL: "/dashboard",
+        callbackURL: "/today",
         age18Accepted: true,
         termsVersionAccepted: "terms-test",
         privacyVersionAccepted: "privacy-test",
@@ -123,8 +123,8 @@ describe("SignUpCredentialsForm", () => {
     Object.defineProperty(window, "location", {
       value: {
         origin: "http://localhost:3000",
-        href: "http://localhost:3000/auth/signup?callbackUrl=/dashboard",
-        search: "?callbackUrl=/dashboard",
+        href: "http://localhost:3000/auth/signup?callbackUrl=/today",
+        search: "?callbackUrl=/today",
       },
       writable: true,
     });
@@ -147,7 +147,7 @@ describe("SignUpCredentialsForm", () => {
     });
 
     expect(authClient.signUp.email).toHaveBeenCalledWith(
-      expect.objectContaining({ callbackURL: "/dashboard" }),
+      expect.objectContaining({ callbackURL: "/today" }),
     );
     expect(useRouter().replace).toHaveBeenCalledWith("/auth/verify");
     expect(useRouter().refresh).toHaveBeenCalled();

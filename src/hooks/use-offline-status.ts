@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { getQueuedActionCount } from "@/features/pwa/offline-actions";
 import { OFFLINE_QUEUE_CHANGED_EVENT } from "@/features/pwa/offline-events";
-import { getQueuedMoodCount } from "@/features/pwa/offline-queue";
 import { useSession } from "@/lib/auth-client";
 
 const getSnapshot = async (ownerId?: string) => {
@@ -13,10 +12,7 @@ const getSnapshot = async (ownerId?: string) => {
 
   return {
     isOnline: navigator.onLine,
-    queuedCount: ownerId
-      ? (await getQueuedActionCount(ownerId)) +
-        (await getQueuedMoodCount(ownerId))
-      : 0,
+    queuedCount: ownerId ? await getQueuedActionCount(ownerId) : 0,
   };
 };
 

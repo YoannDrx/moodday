@@ -47,7 +47,6 @@
     "prisma:migrate": "pnpm prisma migrate dev",
     "prisma:generate": "pnpm prisma generate",
     "db:migration-guard": "tsx scripts/check-production-migrations.ts",
-    "verify:medication-integrity": "NODE_ENV=test tsx scripts/verify-medication-integrity.ts",
     "verify:operational-jobs": "NODE_ENV=test tsx scripts/verify-operational-jobs.ts",
     "verify:auth-rate-limit": "NODE_OPTIONS=--conditions=react-server NODE_ENV=test tsx scripts/verify-auth-rate-limit.ts",
     "verify:migration-upgrade": "NODE_ENV=test tsx scripts/verify-migration-upgrade.ts",
@@ -58,8 +57,6 @@
     "verify:release-approvals": "tsx scripts/verify-release-approval-evidence.ts",
     "verify:vercel-predeploy": "pnpm verify:vercel-source-boundary && pnpm verify:credential-rotations && pnpm verify:release-approvals && pnpm verify:vercel-environment -- --compare-values",
     "vercel:configure-safe-defaults": "tsx scripts/configure-vercel-release-defaults.ts",
-    "verify:ai-admission": "NODE_OPTIONS=--conditions=react-server NODE_ENV=test tsx scripts/verify-ai-admission.ts",
-    "verify:ai-live-eval": "NODE_OPTIONS=--conditions=react-server NODE_ENV=test AI_INSIGHTS_ENABLED=true AI_SAFETY_HMAC_SECRET=synthetic-live-evaluation-hmac-secret-not-for-production tsx --env-file=.env.local scripts/evaluate-ai-insights-live.ts",
     "maintenance:revoke-unverified-sessions": "tsx scripts/revoke-unverified-sessions.ts",
     "notifications:retry-dead": "tsx scripts/retry-dead-notification.ts",
     "dsar:generate": "NODE_ENV=production tsx scripts/generate-regulatory-export.ts",
@@ -67,7 +64,6 @@
     "stripe:validate-catalog": "tsx scripts/validate-stripe-catalog.ts",
     "stripe:verify-test-clocks": "tsx --env-file=.env.local scripts/verify-stripe-test-clocks.ts",
     "release:schema-inventory": "tsx scripts/release-schema-inventory.ts",
-    "verify:v2-integrity": "tsx scripts/verify-v2-operation-integrity.ts",
     "benchmark:account-export": "tsx scripts/benchmark-account-export.ts"
   },
   "prisma": {

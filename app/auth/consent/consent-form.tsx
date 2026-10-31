@@ -20,7 +20,7 @@ export function ConsentForm() {
   const [healthData, setHealthData] = useState(false);
   const { execute, isPending } = useAction(acceptRequiredConsents, {
     onSuccess: () => {
-      router.replace("/dashboard");
+      router.replace("/today");
       router.refresh();
     },
     onError: () =>

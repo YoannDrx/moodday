@@ -1,10 +1,9 @@
-import { color, radius, space } from "@moodday/design-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
 import { Screen } from "../src/components/screen";
-import { authClient } from "../src/lib/auth-client";
+import { Button, Field, StatusText, Txt } from "../src/components/ui";
 import { appBaseUrl } from "../src/lib/api";
+import { authClient } from "../src/lib/auth-client";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -34,14 +33,13 @@ export default function ForgotPasswordScreen() {
     }
   };
   return (
-    <Screen>
-      <Text style={styles.title}>Retrouve ton accès.</Text>
-      <Text style={styles.text}>
+    <Screen title="Retrouve ton accès.">
+      <Txt>
         Un lien envoyé par e-mail te permettra de choisir un nouveau mot de
-        passe.
-      </Text>
-      <TextInput
-        accessibilityLabel="Adresse e-mail"
+        passe. Ça arrive aux meilleur·e·s.
+      </Txt>
+      <Field
+        label="Adresse e-mail"
         testID="password-recovery-email"
         value={email}
         onChangeText={setEmail}
@@ -50,51 +48,20 @@ export default function ForgotPasswordScreen() {
         autoComplete="email"
         autoCapitalize="none"
         autoCorrect={false}
-        style={styles.input}
       />
-      {message ? (
-        <Text accessibilityLiveRegion="polite" style={styles.text}>
-          {message}
-        </Text>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
+      <StatusText>{message}</StatusText>
+      <Button
+        variant="honey"
+        label={pending ? "Envoi…" : "Recevoir un lien"}
+        accessibilityLabel="Recevoir un lien"
         disabled={pending || !email.trim()}
         onPress={() => void send()}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>
-          {pending ? "Envoi…" : "Recevoir un lien"}
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
+      />
+      <Button
+        variant="ghost"
+        label="Revenir à la connexion"
         onPress={() => router.replace("/sign-in")}
-        style={styles.link}
-      >
-        <Text style={styles.text}>Revenir à la connexion</Text>
-      </Pressable>
+      />
     </Screen>
   );
 }
-const styles = StyleSheet.create({
-  title: { fontSize: 28, fontWeight: "700", color: color.ink },
-  text: { fontSize: 16, lineHeight: 24, color: color.ink },
-  input: {
-    minHeight: 52,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: color.border,
-    padding: space[3],
-    borderRadius: radius.medium,
-    color: color.ink,
-  },
-  button: {
-    minHeight: 50,
-    padding: space[4],
-    backgroundColor: color.primary,
-    borderRadius: radius.medium,
-  },
-  buttonText: { color: color.surfaceStrong, fontSize: 16, textAlign: "center" },
-  link: { minHeight: 48, justifyContent: "center" },
-});

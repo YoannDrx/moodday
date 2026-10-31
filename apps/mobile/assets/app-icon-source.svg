@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" fill="#155C5A"/>
-  <g transform="translate(64 64) scale(6)" fill="none">
-    <path d="M18 11h28a8 8 0 0 1 8 8v29a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8V19a8 8 0 0 1 8-8Z" stroke="#FFF8EB" stroke-width="3.5" stroke-linejoin="round"/>
-    <path d="M21 7v8M43 7v8M10 24h44" stroke="#FFF8EB" stroke-width="3.5" stroke-linecap="round"/>
-    <circle cx="21" cy="34" r="2.25" fill="#FFF8EB"/>
-    <circle cx="30" cy="34" r="2.25" fill="#FFF8EB"/>
-    <circle cx="21" cy="43" r="2.25" fill="#FFF8EB"/>
-    <path d="M42.5 51.5c-1.2-1.05-8.5-6.05-8.5-11.05a5.15 5.15 0 0 1 9-3.45 5.15 5.15 0 0 1 9 3.45c0 5-7.3 10-8.5 11.05a.76.76 0 0 1-1 0Z" fill="#F3C9A8"/>
-  </g>
+  <rect width="512" height="512" fill="#FBF4EA"/>
+  <rect x="200" y="58" width="112" height="70" rx="22" fill="#6B3C78" stroke="#2B1B30" stroke-width="16"/>
+  <rect x="96" y="128" width="320" height="330" rx="110" fill="#F2B84B" stroke="#2B1B30" stroke-width="18"/>
+  <path d="M150 382 q26 26 52 0 q26 26 52 0 q26 26 52 0 q26 26 52 0" stroke="#2B1B30" stroke-width="12" stroke-linecap="round" opacity="0.35"/>
+  <circle cx="204" cy="262" r="20" fill="#2B1B30"/>
+  <circle cx="308" cy="262" r="20" fill="#2B1B30"/>
+  <path d="M208 318 q48 44 96 0" stroke="#2B1B30" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="168" cy="314" r="18" fill="#F39A62" opacity="0.6"/>
+  <circle cx="344" cy="314" r="18" fill="#F39A62" opacity="0.6"/>
 </svg>

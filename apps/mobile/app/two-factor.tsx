@@ -1,8 +1,7 @@
-import { color, radius, space } from "@moodday/design-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
 import { Screen } from "../src/components/screen";
+import { Button, Field, StatusText, Txt } from "../src/components/ui";
 import { authClient } from "../src/lib/auth-client";
 import { clearMobileSessionInvalidation } from "../src/lib/session-security";
 
@@ -43,17 +42,14 @@ export default function TwoFactorScreen() {
     }
   };
   return (
-    <Screen>
-      <Text style={styles.title}>Une dernière vérification.</Text>
-      <Text style={styles.text}>
+    <Screen title="Une dernière vérification.">
+      <Txt>
         {recovery
           ? "Saisis un code de récupération à usage unique."
           : "Saisis les six chiffres de ton application d’authentification."}
-      </Text>
-      <TextInput
-        accessibilityLabel={
-          recovery ? "Code de récupération" : "Code à six chiffres"
-        }
+      </Txt>
+      <Field
+        label={recovery ? "Code de récupération" : "Code à six chiffres"}
         testID="two-factor-code"
         value={code}
         onChangeText={setCode}
@@ -63,70 +59,37 @@ export default function TwoFactorScreen() {
         keyboardType={recovery ? "default" : "number-pad"}
         maxLength={recovery ? 64 : 6}
         editable={!pending}
-        style={styles.input}
+        style={{ fontSize: 20, letterSpacing: recovery ? 0 : 4 }}
       />
-      {error ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
+      <StatusText tone="danger">{error}</StatusText>
+      <Button
+        variant="honey"
         testID="two-factor-submit"
+        label={pending ? "Vérification…" : "Continuer"}
+        accessibilityLabel="Continuer"
         disabled={pending || (recovery ? !code.trim() : !/^\d{6}$/.test(code))}
         onPress={() => void verify()}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>
-          {pending ? "Vérification…" : "Continuer"}
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
+      />
+      <Button
+        variant="ghost"
+        label={
+          recovery
+            ? "Utiliser l’application d’authentification"
+            : "Utiliser un code de récupération"
+        }
         disabled={pending}
         onPress={() => {
           setCode("");
           setError(undefined);
           setRecovery((current) => !current);
         }}
-        style={styles.link}
-      >
-        <Text style={styles.text}>
-          {recovery
-            ? "Utiliser l’application d’authentification"
-            : "Utiliser un code de récupération"}
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
+      />
+      <Button
+        variant="ghost"
+        label="Revenir à la connexion"
         disabled={pending}
         onPress={() => router.replace("/sign-in")}
-        style={styles.link}
-      >
-        <Text style={styles.text}>Revenir à la connexion</Text>
-      </Pressable>
+      />
     </Screen>
   );
 }
-const styles = StyleSheet.create({
-  title: { fontSize: 28, fontWeight: "700", color: color.ink },
-  text: { fontSize: 16, lineHeight: 24, color: color.ink },
-  input: {
-    minHeight: 52,
-    fontSize: 20,
-    borderWidth: 1,
-    borderColor: color.border,
-    padding: space[3],
-    borderRadius: radius.medium,
-    color: color.ink,
-  },
-  button: {
-    minHeight: 50,
-    padding: space[4],
-    backgroundColor: color.primary,
-    borderRadius: radius.medium,
-  },
-  buttonText: { color: color.surfaceStrong, fontSize: 16, textAlign: "center" },
-  error: { color: color.danger },
-  link: { minHeight: 48, justifyContent: "center" },
-});

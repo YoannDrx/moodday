@@ -7,15 +7,11 @@ describe("applyOperationalRetention", () => {
     const deleted = { count: 1 };
     vi.mocked(prisma.emailLog.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.emailWebhookEvent.deleteMany).mockResolvedValue(deleted);
-    vi.mocked(prisma.caregiverAccessLog.deleteMany).mockResolvedValue(deleted);
-    vi.mocked(prisma.aIUsage.deleteMany).mockResolvedValue(deleted);
+    vi.mocked(prisma.accessLog.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.stripeWebhookEvent.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.externalDeletionJob.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.operationalJobRun.deleteMany).mockResolvedValue(deleted);
     vi.mocked(prisma.notificationDelivery.deleteMany).mockResolvedValue(
-      deleted,
-    );
-    vi.mocked(prisma.medicationMutationReceipt.deleteMany).mockResolvedValue(
       deleted,
     );
     vi.mocked(prisma.verification.deleteMany).mockResolvedValue(deleted);
@@ -41,13 +37,11 @@ describe("applyOperationalRetention", () => {
       deleted: {
         emailLogs: 1,
         emailWebhookEvents: 1,
-        caregiverAccessLogs: 1,
-        aiUsage: 1,
+        accessLogs: 1,
         stripeWebhookEvents: 1,
         externalDeletionJobs: 1,
         operationalJobRuns: 1,
         notificationDeliveries: 1,
-        medicationMutationReceipts: 1,
         expiredVerifications: 1,
         regulatoryExportAudits: 1,
         rateLimitCounters: 1,
@@ -64,10 +58,7 @@ describe("applyOperationalRetention", () => {
     expect(prisma.emailWebhookEvent.deleteMany).toHaveBeenCalledWith({
       where: { createdAt: { lt: daysBefore(90) } },
     });
-    expect(prisma.caregiverAccessLog.deleteMany).toHaveBeenCalledWith({
-      where: { accessedAt: { lt: daysBefore(365) } },
-    });
-    expect(prisma.aIUsage.deleteMany).toHaveBeenCalledWith({
+    expect(prisma.accessLog.deleteMany).toHaveBeenCalledWith({
       where: { createdAt: { lt: daysBefore(365) } },
     });
     expect(prisma.stripeWebhookEvent.deleteMany).toHaveBeenCalledWith({
@@ -90,9 +81,6 @@ describe("applyOperationalRetention", () => {
         status: { in: ["sent", "failed", "dead"] },
         updatedAt: { lt: daysBefore(90) },
       },
-    });
-    expect(prisma.medicationMutationReceipt.deleteMany).toHaveBeenCalledWith({
-      where: { createdAt: { lt: daysBefore(30) } },
     });
     expect(prisma.verification.deleteMany).toHaveBeenCalledWith({
       where: { expiresAt: { lt: now } },

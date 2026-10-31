@@ -8,19 +8,25 @@ export const commonMessages = {
   fr: {
     navigation: {
       today: "Aujourd’hui",
-      landmarks: "Repères",
-      care: "Soin",
-      circle: "Cercle",
+      cycle: "Cycle",
+      partnerCycle: "Son cycle",
+      duo: "Duo",
+      forMe: "Pour moi",
+      ally: "Allié",
     },
+    help: "Besoin d’aide",
     sessionLoading: "Chargement de la session",
   },
   en: {
     navigation: {
       today: "Today",
-      landmarks: "Patterns",
-      care: "Care",
-      circle: "Circle",
+      cycle: "Cycle",
+      partnerCycle: "Her cycle",
+      duo: "Duo",
+      forMe: "For me",
+      ally: "Ally",
     },
+    help: "Need help",
     sessionLoading: "Loading your session",
   },
 } as const;

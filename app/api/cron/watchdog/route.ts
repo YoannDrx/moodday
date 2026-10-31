@@ -25,8 +25,7 @@ export async function GET(request: Request) {
     stripeReconciliation,
     stripeWebhooks,
     revenueCatWebhooks,
-    caregiverAccessDigests,
-    googleCalendarSync,
+    partnerNotifications,
     deadDeletionCount,
     overdueDeletionCount,
     deadNotificationCount,
@@ -53,10 +52,7 @@ export async function GET(request: Request) {
       where: { serviceName: "revenuecat-webhooks" },
     }),
     prisma.operationalHeartbeat.findUnique({
-      where: { serviceName: "caregiver-access-digests" },
-    }),
-    prisma.operationalHeartbeat.findUnique({
-      where: { serviceName: "google-calendar-sync" },
+      where: { serviceName: "partner-notifications" },
     }),
     prisma.externalDeletionJob.count({ where: { status: "dead" } }),
     prisma.externalDeletionJob.count({
@@ -109,16 +105,10 @@ export async function GET(request: Request) {
     !operationalRetention?.lastSuccessAt ||
     operationalRetention.lastSuccessAt <
       new Date(now.getTime() - 26 * 60 * 60 * 1000);
-  const staleCaregiverAccessDigests =
-    env.CAREGIVER_SHARING_ENABLED &&
-    (!caregiverAccessDigests?.lastSuccessAt ||
-      caregiverAccessDigests.lastSuccessAt <
-        new Date(now.getTime() - 26 * 60 * 60 * 1000));
-  const staleGoogleCalendarSync =
-    env.GOOGLE_CALENDAR_ENABLED &&
-    (!googleCalendarSync?.lastSuccessAt ||
-      googleCalendarSync.lastSuccessAt <
-        new Date(now.getTime() - 30 * 60 * 1000));
+  const stalePartnerNotifications =
+    !partnerNotifications?.lastSuccessAt ||
+    partnerNotifications.lastSuccessAt <
+      new Date(now.getTime() - 30 * 60 * 1000);
   const stripeReconciliationFailed =
     env.BILLING_ENABLED &&
     Boolean(
@@ -132,10 +122,7 @@ export async function GET(request: Request) {
       (notifications?.consecutiveFailures ?? 0) >= 2) ||
     (externalDeletions?.consecutiveFailures ?? 0) >= 2 ||
     (operationalRetention?.consecutiveFailures ?? 0) >= 2 ||
-    (env.CAREGIVER_SHARING_ENABLED &&
-      (caregiverAccessDigests?.consecutiveFailures ?? 0) >= 2) ||
-    (env.GOOGLE_CALENDAR_ENABLED &&
-      (googleCalendarSync?.consecutiveFailures ?? 0) >= 2) ||
+    (partnerNotifications?.consecutiveFailures ?? 0) >= 2 ||
     (env.BILLING_ENABLED &&
       ((stripeReconciliation?.consecutiveFailures ?? 0) >= 2 ||
         (stripeWebhooks?.consecutiveFailures ?? 0) >= 2)) ||
@@ -144,8 +131,7 @@ export async function GET(request: Request) {
     staleNotifications ||
     staleDeletions ||
     staleOperationalRetention ||
-    staleCaregiverAccessDigests ||
-    staleGoogleCalendarSync ||
+    stalePartnerNotifications ||
     staleStripeReconciliation ||
     staleStripeWebhooks ||
     staleRevenueCatWebhooks ||

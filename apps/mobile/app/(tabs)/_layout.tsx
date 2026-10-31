@@ -1,28 +1,123 @@
-import { Redirect, Tabs } from "expo-router";
-import { color } from "@moodday/design-tokens";
 import { getCommonMessages } from "@moodday/i18n";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import * as Network from "expo-network";
+import { Redirect, Tabs } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, AppState, Text, View } from "react-native";
+import { AccountAccessGate } from "../../src/components/account-access-gate";
 import { authClient } from "../../src/lib/auth-client";
-import { closeOwnerLocalDatabase } from "../../src/lib/local-database";
-import { getSessionOwnerTransition } from "../../src/lib/local-database-core";
+import { needsOnboarding, tabsForRole } from "../../src/lib/navigation";
+import {
+  addNotificationReceivedListener,
+  ensurePushRegistration,
+} from "../../src/lib/notifications";
+import { configureMobilePurchases } from "../../src/lib/purchases";
 import {
   isMobileSessionInvalidated,
   subscribeToMobileSessionInvalidation,
 } from "../../src/lib/session-security";
-import { configureMobilePurchases } from "../../src/lib/purchases";
-import { AccountAccessGate } from "../../src/components/account-access-gate";
+import { usePalette } from "../../src/lib/theme";
+import {
+  refreshToday,
+  resetToday,
+  syncOfflineAndRefresh,
+  useTodayState,
+} from "../../src/lib/today-store";
 
 const messages = getCommonMessages("fr");
 
-const TabGlyph = ({ glyph, focused }: { glyph: string; focused: boolean }) => (
+function Loading() {
+  const palette = usePalette();
+  return (
+    <View
+      accessibilityLabel={messages.sessionLoading}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: palette.canvas,
+      }}
+    >
+      <ActivityIndicator color={palette.ink} />
+    </View>
+  );
+}
+
+const TabGlyph = ({ glyph, color }: { glyph: string; color: string }) => (
   <Text
     accessibilityElementsHidden
-    style={{ color: focused ? color.primary : color.inkMuted, fontSize: 20 }}
+    importantForAccessibility="no"
+    style={{ color, fontSize: 20, fontWeight: "800" }}
   >
     {glyph}
   </Text>
 );
+
+function CoupleTabs({ ownerId }: { ownerId: string }) {
+  const palette = usePalette();
+  const { today, status, rememberedRole } = useTodayState();
+
+  useEffect(() => {
+    void syncOfflineAndRefresh(ownerId);
+    // Refresh an already granted push token; never prompt at launch.
+    void ensurePushRegistration({ prompt: false }).catch(() => undefined);
+
+    const network = Network.addNetworkStateListener((event) => {
+      if (event.isConnected && event.isInternetReachable !== false)
+        void syncOfflineAndRefresh(ownerId);
+    });
+    const appState = AppState.addEventListener("change", (next) => {
+      if (next === "active") void syncOfflineAndRefresh(ownerId);
+    });
+    const received = addNotificationReceivedListener(() => {
+      void refreshToday(ownerId);
+    });
+    return () => {
+      network.remove();
+      appState.remove();
+      received.remove();
+    };
+  }, [ownerId]);
+
+  if (!today && (status === "idle" || status === "loading")) return <Loading />;
+  if (today && needsOnboarding(today)) return <Redirect href="/onboarding" />;
+
+  const tabs = tabsForRole(today?.role ?? rememberedRole ?? null);
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: palette.ink,
+        tabBarInactiveTintColor: palette.inkMuted,
+        tabBarActiveBackgroundColor: palette.honeySoft,
+        tabBarStyle: {
+          minHeight: 76,
+          paddingTop: 6,
+          paddingBottom: 10,
+          backgroundColor: palette.surfaceStrong,
+          borderTopColor: palette.border,
+          borderTopWidth: 2,
+        },
+        tabBarItemStyle: { borderRadius: 18, marginHorizontal: 4 },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: "800" },
+      }}
+    >
+      {tabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarAccessibilityLabel: tab.title,
+            tabBarIcon: ({ color }) => (
+              <TabGlyph glyph={tab.glyph} color={color} />
+            ),
+          }}
+        />
+      ))}
+    </Tabs>
+  );
+}
 
 export default function TabLayout() {
   const { data: session, isPending } = authClient.useSession();
@@ -30,21 +125,12 @@ export default function TabLayout() {
   const [sessionInvalidated, setSessionInvalidated] = useState(
     isMobileSessionInvalidated,
   );
-  const activeOwnerId = useRef<string | undefined>(undefined);
-  const [lockState, setLockState] = useState<"idle" | "locking" | "failed">(
-    "idle",
-  );
-  const [lockAttempt, setLockAttempt] = useState(0);
-  const transition = getSessionOwnerTransition({
-    currentOwnerId: sessionInvalidated ? undefined : ownerId,
-    isPending: isPending && !sessionInvalidated,
-    previousOwnerId: activeOwnerId.current,
-  });
 
   useEffect(
     () =>
       subscribeToMobileSessionInvalidation(() => {
         setSessionInvalidated(true);
+        resetToday();
         void authClient.signOut();
       }),
     [],
@@ -53,144 +139,16 @@ export default function TabLayout() {
   useEffect(() => {
     if (!ownerId || sessionInvalidated) return;
     void configureMobilePurchases(ownerId).catch(() => {
-      // The server remains authoritative and the billing card exposes a retry.
+      // The server remains authoritative and the settings expose a retry.
     });
   }, [ownerId, sessionInvalidated]);
 
-  // Adopt the authenticated owner before child passive effects can open a
-  // database, so even an immediate 401 has an owner connection to lock.
-  useLayoutEffect(() => {
-    if (transition === "adopt") activeOwnerId.current = ownerId;
-  }, [ownerId, transition]);
-
-  useEffect(() => {
-    if (transition === "adopt") return;
-    if (transition !== "lock" || !activeOwnerId.current) return;
-
-    const previousOwnerId = activeOwnerId.current;
-    let current = true;
-    setLockState("locking");
-    closeOwnerLocalDatabase(previousOwnerId)
-      .then(() => {
-        if (!current) return;
-        activeOwnerId.current = sessionInvalidated ? undefined : ownerId;
-        setLockState("idle");
-      })
-      .catch(() => {
-        if (current) setLockState("failed");
-      });
-    return () => {
-      current = false;
-    };
-  }, [lockAttempt, ownerId, sessionInvalidated, transition]);
-
-  if (isPending || transition === "lock" || lockState !== "idle") {
-    return (
-      <View
-        accessibilityLabel={
-          lockState === "failed"
-            ? "Le verrouillage local a échoué"
-            : messages.sessionLoading
-        }
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: color.canvas,
-          gap: 16,
-          padding: 24,
-        }}
-      >
-        {lockState === "failed" ? (
-          <>
-            <Text
-              accessibilityLiveRegion="assertive"
-              style={{ color: color.danger, textAlign: "center" }}
-            >
-              Impossible de verrouiller les données de cet appareil.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setLockState("idle");
-                setLockAttempt((attempt) => attempt + 1);
-              }}
-              style={{
-                minHeight: 48,
-                justifyContent: "center",
-                borderRadius: 18,
-                backgroundColor: color.primary,
-                paddingHorizontal: 20,
-              }}
-            >
-              <Text style={{ color: color.surfaceStrong, fontWeight: "700" }}>
-                Réessayer
-              </Text>
-            </Pressable>
-          </>
-        ) : (
-          <ActivityIndicator color={color.primary} />
-        )}
-      </View>
-    );
-  }
-
-  if (!session || sessionInvalidated) return <Redirect href="/sign-in" />;
+  if (isPending && !sessionInvalidated) return <Loading />;
+  if (!ownerId || sessionInvalidated) return <Redirect href="/sign-in" />;
 
   return (
     <AccountAccessGate>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: color.primary,
-          tabBarInactiveTintColor: color.inkMuted,
-          tabBarStyle: {
-            minHeight: 76,
-            paddingTop: 8,
-            paddingBottom: 10,
-            backgroundColor: color.surfaceStrong,
-            borderTopColor: color.border,
-          },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: messages.navigation.today,
-            tabBarIcon: ({ focused }) => (
-              <TabGlyph glyph="⌂" focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="reperes"
-          options={{
-            title: messages.navigation.landmarks,
-            tabBarIcon: ({ focused }) => (
-              <TabGlyph glyph="⌁" focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="soin"
-          options={{
-            title: messages.navigation.care,
-            tabBarIcon: ({ focused }) => (
-              <TabGlyph glyph="＋" focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="cercle"
-          options={{
-            title: messages.navigation.circle,
-            tabBarIcon: ({ focused }) => (
-              <TabGlyph glyph="○" focused={focused} />
-            ),
-          }}
-        />
-      </Tabs>
+      <CoupleTabs ownerId={ownerId} />
     </AccountAccessGate>
   );
 }

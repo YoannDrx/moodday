@@ -26,18 +26,17 @@ async function main() {
       },
     });
     for (let offset = 0; offset < count; offset += 500) {
-      await prisma.checkIn.createMany({
+      await prisma.dailyCheckIn.createMany({
         data: Array.from({ length: 500 }, (_, index) => ({
           userId: id,
           operationId: `${id}-${offset + index}`,
-          depth: "quick" as const,
-          localDate: "2026-10-02",
+          // One check-in per civil day: spread fixtures over distinct dates.
+          localDate: new Date(Date.UTC(2000, 0, 1 + offset + index)),
           timezone: "Europe/Paris",
-          valence: 5,
-          activation: 3,
-          irritability: 2,
-          contexts: ["work"],
-          note: "Synthetic 🧪 private export fixture. ".repeat(30),
+          state: "fragile" as const,
+          symptoms: ["fatigue"],
+          needs: ["calm"],
+          privateNote: "Synthetic 🧪 private export fixture. ".repeat(30),
         })),
       });
     }

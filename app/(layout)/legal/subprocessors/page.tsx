@@ -61,17 +61,8 @@ const processors = [
     dataEn:
       "Customer identifier, billing, and payment data collected by Stripe",
     conditionFr:
-      "Uniquement pour Moodday Plus lorsque la facturation est ouverte",
-    conditionEn: "Only for Moodday Plus when billing is open",
-  },
-  {
-    name: "OpenAI",
-    purposeFr: "Bilan IA factuel facultatif",
-    purposeEn: "Optional factual AI summary",
-    dataFr: "Métriques minimisées ; note uniquement avec accord séparé",
-    dataEn: "Minimized metrics; journal note only with separate consent",
-    conditionFr: "Plus, opt-in explicite, stockage de réponse API désactivé",
-    conditionEn: "Plus, explicit opt-in, API response storage disabled",
+      "Uniquement pour Moodday Duo lorsque la facturation est ouverte",
+    conditionEn: "Only for Moodday Duo when billing is open",
   },
   {
     name: "Vercel Blob",
@@ -97,17 +88,28 @@ const processors = [
     conditionEn: "Only when the user selects that sign-in method",
   },
   {
-    name: "Google Calendar",
-    purposeFr: "Synchronisation facultative d’un agenda Mood Day dédié",
-    purposeEn: "Optional synchronization of a dedicated Mood Day calendar",
+    name: "Expo (Expo Push Service)",
+    purposeFr: "Acheminement des notifications vers l'application mobile",
+    purposeEn: "Delivery of notifications to the mobile app",
     dataFr:
-      "Date, heure et fuseau ; titre et lieu uniquement en mode détaillé choisi",
+      "Jeton d'appareil et texte de la notification ; texte neutre par défaut, sans donnée de santé",
     dataEn:
-      "Date, time, and time zone; title and location only in selected detailed mode",
+      "Device token and notification text; neutral text by default, without health data",
     conditionFr:
-      "Opt-in ; accès limité à l’agenda secondaire créé par Mood Day ; les autres agendas ne sont pas lus",
+      "Uniquement si l'application mobile est installée et les notifications autorisées ; transfert hors UE encadré à confirmer contractuellement",
     conditionEn:
-      "Opt-in; access limited to the secondary calendar created by Mood Day; other calendars are not read",
+      "Only when the mobile app is installed and notifications are allowed; transfer outside the EU pending contractual confirmation",
+  },
+  {
+    name: "Apple / Google (APNs, FCM, Web Push)",
+    purposeFr:
+      "Services de notification des systèmes d'exploitation et navigateurs",
+    purposeEn: "Operating-system and browser notification services",
+    dataFr: "Texte de la notification, neutre par défaut",
+    dataEn: "Notification text, neutral by default",
+    conditionFr:
+      "Uniquement si les notifications sont autorisées sur l'appareil",
+    conditionEn: "Only when notifications are allowed on the device",
   },
 ] as const;
 
@@ -190,7 +192,7 @@ export default async function SubprocessorsPage() {
           <ul className="text-muted-foreground mt-4 list-disc space-y-2 pl-5 text-sm">
             <li>
               {fr
-                ? "23 août 2026 — ajout de Google Agenda, facultatif et limité à l’agenda secondaire créé par Mood Day."
+                ? "31 octobre 2026 — nouvelle version de Moodday pour les couples : retrait d’OpenAI et de Google Agenda, ajout d’Expo et des services de notification."
                 : "23 August 2026 — added optional Google Calendar access, limited to the secondary calendar created by Mood Day."}
             </li>
             <li>

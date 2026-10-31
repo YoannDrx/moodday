@@ -6,20 +6,20 @@ import { ActionError } from "@/lib/errors/action-error";
 import type Stripe from "stripe";
 
 export const BILLING_CATALOG_VERSION = "1";
-export const MOODDAY_PLUS_PRODUCT_NAME = "Moodday Plus";
+export const MOODDAY_PLUS_PRODUCT_NAME = "Moodday Duo";
 
 export const PLUS_PRICE_SPECS = {
   monthly: {
-    amount: 799,
+    amount: 499,
     currency: "eur",
     interval: "month",
-    lookupKey: "moodday_plus_monthly_eur_v1",
+    lookupKey: "moodday_duo_monthly_eur_v1",
   },
   yearly: {
-    amount: 5999,
+    amount: 3499,
     currency: "eur",
     interval: "year",
-    lookupKey: "moodday_plus_yearly_eur_v1",
+    lookupKey: "moodday_duo_yearly_eur_v1",
   },
 } as const;
 

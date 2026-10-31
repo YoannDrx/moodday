@@ -47,27 +47,7 @@ export const env = createEnv({
       .optional()
       .default("false")
       .transform((value) => value === "true"),
-    CAREGIVER_SHARING_ENABLED: z
-      .enum(["true", "false"])
-      .optional()
-      .default("false")
-      .transform((value) => value === "true"),
-    GOOGLE_CALENDAR_ENABLED: z
-      .enum(["true", "false"])
-      .optional()
-      .default("false")
-      .transform((value) => value === "true"),
-    HEALTHKIT_ENABLED: z
-      .enum(["true", "false"])
-      .optional()
-      .default("false")
-      .transform((value) => value === "true"),
     PUSH_NOTIFICATIONS_ENABLED: z
-      .enum(["true", "false"])
-      .optional()
-      .default("false")
-      .transform((value) => value === "true"),
-    ACCOUNT_IMPORT_ENABLED: z
       .enum(["true", "false"])
       .optional()
       .default("false")
@@ -95,31 +75,17 @@ export const env = createEnv({
       .string()
       .regex(/^txcd_\d+$/)
       .optional(),
-    OPENAI_API_KEY: z.string().optional(),
-    AI_INSIGHTS_MODEL: z.string().optional(),
-    AI_INSIGHTS_ENABLED: z
-      .enum(["true", "false"])
-      .optional()
-      .default("false")
-      .transform((value) => value === "true"),
-    AI_ROLLOUT_MODE: z.enum(["internal", "public"]).default("internal"),
-    AI_INTERNAL_USER_IDS: z.string().optional(),
-    AI_SAFETY_HMAC_SECRET: z.string().min(32).optional(),
-    AI_CONSENT_VERSION: z.string().min(1).default("ai-insights-2026-08"),
-    AI_MONTHLY_REQUEST_BUDGET: z.coerce.number().int().positive().default(1000),
-    AI_MAX_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
-    AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(15000),
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().optional(),
     CRON_SECRET: z.string().min(16).optional(),
     OPERATIONAL_ALERT_EMAIL: z.string().email().optional(),
-    LEGAL_TERMS_VERSION: z.string().min(1).default("terms-2026-08"),
-    LEGAL_PRIVACY_VERSION: z.string().min(1).default("privacy-2026-08"),
+    LEGAL_TERMS_VERSION: z.string().min(1).default("terms-2026-11"),
+    LEGAL_PRIVACY_VERSION: z.string().min(1).default("privacy-2026-11"),
     HEALTH_DATA_CONSENT_VERSION: z
       .string()
       .min(1)
-      .default("health-data-2026-08"),
+      .default("health-data-2026-11"),
     LAUNCH_COUNTRY: z.literal("FR").default("FR"),
     MINIMUM_AGE: z.coerce.number().int().min(18).max(18).default(18),
     NODE_ENV: z.enum(["development", "production", "test"]),
