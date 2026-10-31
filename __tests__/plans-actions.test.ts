@@ -133,7 +133,7 @@ describe("Moodday Plus checkout action", () => {
           "https://moodday.invalid/settings/subscription?source=pricing&session_id={CHECKOUT_SESSION_ID}",
         cancel_url: "https://moodday.invalid/pricing",
         subscription_data: expect.objectContaining({
-          trial_period_days: 14,
+          trial_period_days: 7,
           trial_settings: {
             end_behavior: { missing_payment_method: "cancel" },
           },

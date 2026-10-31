@@ -29,16 +29,16 @@ const specs = [
   {
     label: "monthly",
     id: process.env.STRIPE_PLUS_MONTHLY_PRICE_ID as string,
-    amount: 799,
+    amount: 499,
     interval: "month",
-    lookupKey: "moodday_plus_monthly_eur_v1",
+    lookupKey: "moodday_duo_monthly_eur_v1",
   },
   {
     label: "yearly",
     id: process.env.STRIPE_PLUS_YEARLY_PRICE_ID as string,
-    amount: 5999,
+    amount: 3499,
     interval: "year",
-    lookupKey: "moodday_plus_yearly_eur_v1",
+    lookupKey: "moodday_duo_yearly_eur_v1",
   },
 ] as const;
 
@@ -116,7 +116,7 @@ async function main() {
       configurationFailures.push(`${spec.label}_metadata`);
     if (
       !product?.active ||
-      product.name !== "Moodday Plus" ||
+      product.name !== "Moodday Duo" ||
       product.metadata.app !== "moodday" ||
       product.metadata.plan !== "plus" ||
       product.metadata.catalog_version !== "1" ||

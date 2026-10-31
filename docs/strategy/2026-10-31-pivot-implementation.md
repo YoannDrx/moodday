@@ -43,11 +43,38 @@ Le mot de passe de démo est défini dans `prisma/seed.ts` (`SEED_DEMO_PASSWORD`
    du consentement aux données de santé (`*-2026-11`) à faire valider ; AIPD ;
    décision HDS ; Expo est un nouveau sous-traitant (transfert hors UE à encadrer).
 3. **Relecture santé** des leçons Allié et des guides SEO (mention en tête de chaque contenu).
-4. **Stripe** : créer les prix Duo 4,99 €/mois et 34,99 €/an (clés de recherche
-   `moodday_duo_*_eur_v1`) ; le code technique du plan reste `plus`.
+4. **Stripe** : fait le 31/10/2026. Produit « Moodday Duo » (4,99 €/mois,
+   34,99 €/an, clés `moodday_duo_*_eur_v1`, TTC) créé dans le bac à sable
+   Moodday et sur le compte live, avec un portail client dédié en live ;
+   anciens Moodday Plus/Pro/Ultra archivés ; webhook live passé sur
+   `https://www.moodday.app/api/webhooks/stripe`. Le code technique du plan
+   reste `plus`. Reste : reporter les identifiants live dans Vercel
+   (`STRIPE_ACCOUNT_ID`, `STRIPE_PLUS_*_PRICE_ID`,
+   `STRIPE_PORTAL_CONFIGURATION_ID`) ; le compte live est partagé et affiche
+   « Pressay » comme nom d'entreprise au paiement.
 5. **Mobile** : recette sur iPhone et Android réels (push, hors-ligne, achats),
    identifiant de projet EAS pour les jetons Expo.
-6. **Secrets** : rotation des 12 secrets encore en attente (audit du 2 octobre).
+6. **Secrets** : rotation des 12 secrets de l'incident du 14/08 (registre
+   `docs/operations/evidence/credential-rotation-2026-08-14.json`).
+   - Fait le 31/10/2026 : `BETTER_AUTH_SECRET` et `CRON_SECRET` régénérés et
+     distincts en Production et Preview ; secrets des webhooks Stripe live et
+     bac à sable renouvelés (points de terminaison recréés) ; secrets GitHub
+     inutilisés supprimés ; clés Redis, PostHog, UploadThing et OpenAI retirées
+     des `.env`. Les anciennes valeurs restent actives dans le déploiement de
+     production en cours jusqu'au prochain déploiement.
+   - Resend : l'ancienne clé était déjà invalide ; nouvelle clé posée le
+     31/10/2026 dans `.env`, `.env.local` et Vercel (Production, Preview,
+     Development, même valeur). `RESEND_AUDIENCE_ID` pointe sur l'audience
+     « General ». Les e-mails partent de `Moodday <moodday@yodev.fr>`
+     (`EMAIL_FROM`, seul domaine vérifié sur le compte Resend) ; le contact
+     public reste `hello@moodday.app`, reçu chez OVH.
+   - À faire dans les consoles : Neon (ou nouvelle base), Google OAuth, GitHub
+     OAuth (ou suppression de l'app si abandonnée), clé Stripe restreinte
+     propre à Moodday (le compte est partagé : ne pas renouveler la clé
+     standard), Resend, jeton Vercel Blob, révocation Redis, UploadThing,
+     PostHog et OpenAI. Saisir chaque nouvelle valeur avec
+     `vercel env add NOM production` (et `preview`) pour qu'elle ne transite
+     pas ailleurs.
 
 ## Points d'attention techniques
 

@@ -43,16 +43,16 @@ const specs = [
   {
     label: "monthly",
     id: process.env.STRIPE_PLUS_MONTHLY_PRICE_ID as string,
-    amount: 799,
+    amount: 499,
     interval: "month",
-    lookupKey: "moodday_plus_monthly_eur_v1",
+    lookupKey: "moodday_duo_monthly_eur_v1",
   },
   {
     label: "yearly",
     id: process.env.STRIPE_PLUS_YEARLY_PRICE_ID as string,
-    amount: 5999,
+    amount: 3499,
     interval: "year",
-    lookupKey: "moodday_plus_yearly_eur_v1",
+    lookupKey: "moodday_duo_yearly_eur_v1",
   },
 ] as const;
 
@@ -111,9 +111,9 @@ async function main() {
 
   await Promise.all([
     stripe.products.update(productId, {
-      name: "Moodday Plus",
+      name: "Moodday Duo",
       description:
-        "Continuité Mood Day sur le web et le mobile, avec les fonctionnalités Plus.",
+        "Un seul abonnement pour vos deux comptes : repères sur les derniers cycles, bilan à deux après les règles et Programme Allié avancé.",
       metadata: {
         app: "moodday",
         plan: "plus",
@@ -132,7 +132,7 @@ async function main() {
     ),
     stripe.billingPortal.configurations.update(portal.id, {
       business_profile: {
-        headline: "Gère ton abonnement Mood Day Plus en toute autonomie.",
+        headline: "Gère ton abonnement Moodday Duo en toute autonomie.",
       },
       features: {
         customer_update: {
