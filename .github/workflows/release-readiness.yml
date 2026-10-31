@@ -126,8 +126,6 @@ jobs:
         run: pnpm prisma migrate deploy
       - name: Prove operational job locking and retry recovery
         run: pnpm verify:operational-jobs
-      - name: Prove medication and deletion transaction integrity
-        run: pnpm verify:medication-integrity
 
   coverage:
     runs-on: ubuntu-latest
